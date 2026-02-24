@@ -1,0 +1,89 @@
+---
+# Plain (unencrypted) group variables
+# Secrets go in all.sops.yml
+
+# System configuration
+system_timezone: "America/New_York"
+system_locale: "en_US.UTF-8"
+
+# Admin users (SSH access)
+# username and ssh_key are derived from the Ansible connection — no hardcoding needed.
+# To change the admin user, update ansible_user in ansible/inventory/dev.yml.
+admin_users:
+  - username: "{{ ansible_user }}"
+    ssh_key: "{{ lookup('file', (ansible_ssh_private_key_file | default('~/.ssh/id_ed25519')) + '.pub') }}"
+    groups:
+      - sudo
+      - docker
+
+# SSH configuration
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_pubkey_authentication: "yes"
+ssh_allow_users: "{{ ansible_user }}"
+
+# allowed_ssh_ips is defined per-host in inventory/dev.yml (not a global default)
+
+# Firewall rules (UFW)
+firewall_allowed_ports:
+  - { port: 443, proto: tcp, rule: allow, comment: "HTTPS" }
+  # SSH is handled exclusively via allowed_ssh_ips (IP-restricted rules below)
+
+# Docker configuration
+docker_users:
+  - "{{ ansible_user }}"
+
+docker_compose_version: "2.24.5"
+
+# Nginx configuration
+nginx_server_name: "_"  # Accept any hostname (dev environment)
+nginx_ssl_certificate: "/etc/nginx/ssl/selfsigned.crt"
+nginx_ssl_certificate_key: "/etc/nginx/ssl/selfsigned.key"
+
+# Grafana configuration
+grafana_port: 3000
+grafana_domain: "{{ ansible_host }}"
+grafana_root_url: "http://{{ grafana_domain }}:{{ grafana_port }}/"
+grafana_enable_anonymous: false
+
+# Prometheus configuration
+prometheus_port: 9090
+prometheus_retention_days: 15
+
+# Loki configuration
+loki_port: 3100
+loki_retention_days: 7
+
+# Alertmanager configuration
+alertmanager_port: 9093
+# telegram_chat_id is in all.sops.yml (encrypted)
+
+# Node exporter
+node_exporter_port: 9100
+
+# Authelia configuration
+authelia_port: 9091
+authelia_domain: "{{ ansible_host }}"
+authelia_session_expiration: "1h"
+authelia_inactivity_timeout: "5m"
+
+# MFA toggle state
+mfa_enabled: false  # Set to true to enable MFA by default
+
+# Security settings
+fail2ban_enabled: true
+fail2ban_maxretry: 5
+fail2ban_bantime: 3600
+fail2ban_findtime: 600
+
+unattended_upgrades_enabled: true
+
+# Backup configuration (future stages)
+backup_enabled: false
+backup_retention_days: 30
+
+# Feature flags
+observability_stack_enabled: true
+mermaid_diagrams_enabled: true
+alerting_enabled: true

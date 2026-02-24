@@ -1,0 +1,36 @@
+---
+# Fail2ban Role - Intrusion Prevention
+
+- name: Install Fail2ban
+  apt:
+    name: fail2ban
+    state: present
+    update_cache: yes
+
+- name: Create Fail2ban local configuration
+  template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: '0644'
+    backup: yes
+  notify: restart fail2ban
+
+- name: Ensure Fail2ban is started and enabled
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes
+
+- name: Wait for Fail2ban to initialize
+  wait_for:
+    timeout: 5
+
+- name: Check Fail2ban status
+  command: fail2ban-client status
+  register: fail2ban_status
+  changed_when: false
+  failed_when: false
+
+- name: Display Fail2ban status
+  debug:
+    msg: "{{ fail2ban_status.stdout_lines }}"

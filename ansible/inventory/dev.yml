@@ -1,0 +1,45 @@
+---
+# Development Environment - VirtualBox VM
+# Replace VM_IP_ADDRESS with your actual VM IP from DHCP
+
+all:
+  children:
+
+    development:
+      hosts:
+        console:
+          ansible_user: ernest
+          ansible_python_interpreter: /usr/bin/python3
+          
+          # Host-specific variables
+          environment_name: development
+          is_production: false
+          
+          # Network configuration
+          allowed_ssh_ips:
+            - "192.168.40.0/24"  # REPLACE: Your local network
+          
+          # VM specifications
+          vm_memory_gb: 6.144
+          vm_cpus: 4
+          vm_disk_gb: 45
+
+# SETUP INSTRUCTIONS:
+# 1. Create a minimal Ubuntu Server 22.04 VM in VirtualBox:
+#    - Name: console
+#    - Network: Bridged Adapter (gets IP via DHCP)
+#    - RAM: 6.144GB, CPU: 4 cores, Disk: 45GB
+#    - During install: enable SSH, create user, for example : 'you'
+#
+# 2. Boot the VM and get its IP:
+#    ip addr show
+#
+# 3. Replace VM_IP_ADDRESS above with the actual IP
+#
+# 4. Copy your SSH key to the VM:
+#    ssh-copy-id admin@VM_IP_ADDRESS
+#
+# 5. Test connection:
+#    ansible all -m ping
+#
+# 6. If ping succeeds, you're ready to run the playbook

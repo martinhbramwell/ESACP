@@ -1,0 +1,57 @@
+#!/bin/bash
+# SSH Toggle Script - Lock/Open SSH access
+# Usage: ssh_toggle.sh {lock|open}
+
+set -e
+
+ACTION="${1:-}"
+SSH_PORT="{{ ssh_port }}"
+CONTROLLER_IP="$(echo $SSH_CLIENT | awk '{print $1}')"
+
+if [[ -z "$CONTROLLER_IP" ]]; then
+    echo "❌ Cannot determine controller IP. Run this from an SSH session."
+    exit 1
+fi
+
+case "$ACTION" in
+    lock)
+        echo "🔒 Locking SSH to controller IP: $CONTROLLER_IP"
+        
+        # Remove any existing SSH rules
+        ufw --force delete allow "$SSH_PORT"/tcp 2>/dev/null || true
+        
+        # Add restricted rule
+        ufw allow from "$CONTROLLER_IP" to any port "$SSH_PORT" proto tcp comment "SSH locked to controller"
+        
+        echo "✅ SSH locked. Only $CONTROLLER_IP can connect."
+        ;;
+        
+    open)
+        echo "🔓 Opening SSH to allowed networks"
+        
+        # Remove restricted rule
+        ufw --force delete allow from "$CONTROLLER_IP" to any port "$SSH_PORT" proto tcp 2>/dev/null || true
+        
+        # Re-add network-wide rules
+{% for ip in allowed_ssh_ips | default([]) %}
+        ufw allow from "{{ ip }}" to any port "$SSH_PORT" proto tcp comment "SSH from allowed network"
+{% endfor %}
+        
+        echo "✅ SSH opened to configured networks."
+        ;;
+        
+    *)
+        echo "Usage: $0 {lock|open}"
+        echo ""
+        echo "  lock  - Restrict SSH to current IP only"
+        echo "  open  - Allow SSH from configured networks"
+        exit 1
+        ;;
+esac
+
+# Reload UFW
+ufw reload
+
+echo ""
+echo "Current UFW status:"
+ufw status numbered | grep "$SSH_PORT"

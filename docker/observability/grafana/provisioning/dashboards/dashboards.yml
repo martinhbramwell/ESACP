@@ -1,0 +1,16 @@
+apiVersion: 1
+
+providers:
+  - name: 'ESACP Dashboards'
+    orgId: 1
+    folder: 'ESACP'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      foldersFromFilesStructure: true
+
+# Future: Add dashboard JSON files to /etc/grafana/provisioning/dashboards/json
+# These will be automatically imported into Grafana

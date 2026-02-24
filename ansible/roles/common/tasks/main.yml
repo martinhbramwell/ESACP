@@ -1,0 +1,128 @@
+---
+# Common Role - Base System Configuration
+# Handles: passwordless sudo, system packages, timezone, security updates
+
+- name: Set system timezone
+  timezone:
+    name: "{{ system_timezone }}"
+
+- name: Set system locale
+  locale_gen:
+    name: "{{ system_locale }}"
+    state: present
+
+- name: Install essential packages
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+      - vim
+      - htop
+      - net-tools
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - software-properties-common
+      - apt-transport-https
+      - python3
+      - python3-pip
+      - jq
+    state: present
+    update_cache: yes
+
+- name: Configure passwordless sudo for admin users
+  lineinfile:
+    path: /etc/sudoers.d/admin-nopasswd
+    line: "{{ item.username }} ALL=(ALL) NOPASSWD:ALL"
+    create: yes
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  loop: "{{ admin_users }}"
+  loop_control:
+    label: "{{ item.username }}"
+
+- name: Ensure docker group exists (before adding users to it)
+  group:
+    name: docker
+    state: present
+
+- name: Ensure admin users exist
+  user:
+    name: "{{ item.username }}"
+    groups: "{{ item.groups }}"
+    append: yes
+    shell: /bin/bash
+    create_home: yes
+  loop: "{{ admin_users }}"
+  loop_control:
+    label: "{{ item.username }}"
+
+- name: Add SSH keys for admin users
+  authorized_key:
+    user: "{{ item.username }}"
+    key: "{{ item.ssh_key }}"
+    state: present
+  loop: "{{ admin_users }}"
+  loop_control:
+    label: "{{ item.username }}"
+  when: item.ssh_key is defined
+
+- name: Create useful shell aliases
+  copy:
+    dest: /etc/profile.d/esacp_aliases.sh
+    mode: '0644'
+    content: |
+      # ESACP Shell Aliases
+      alias suda='sudo -A'
+      alias dps='docker ps --format "table {{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}\t{{ '{{' }}.Ports{{ '}}' }}"'
+      alias dlog='docker-compose -f /opt/observability/docker-compose.yml logs -f'
+      alias drestart='docker-compose -f /opt/observability/docker-compose.yml restart'
+      alias mfa_on='/opt/scripts/mfa_toggle.sh on'
+      alias mfa_off='/opt/scripts/mfa_toggle.sh off'
+      alias ssh_lock='/opt/scripts/ssh_toggle.sh lock'
+      alias ssh_open='/opt/scripts/ssh_toggle.sh open'
+
+- name: Enable unattended security updates
+  apt:
+    name: unattended-upgrades
+    state: present
+  when: unattended_upgrades_enabled | default(true)
+
+- name: Configure unattended upgrades
+  template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    mode: '0644'
+  when: unattended_upgrades_enabled | default(true)
+
+- name: Enable automatic updates
+  copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: '0644'
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+  when: unattended_upgrades_enabled | default(true)
+
+- name: Disable SSH password authentication for root (defense in depth)
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin'
+    line: 'PermitRootLogin no'
+    state: present
+  notify: restart sshd
+
+- name: Create scripts directory
+  file:
+    path: /opt/scripts
+    state: directory
+    mode: '0755'
+
+- name: Create observability directory
+  file:
+    path: /opt/observability
+    state: directory
+    mode: '0755'

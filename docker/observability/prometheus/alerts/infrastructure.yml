@@ -1,0 +1,119 @@
+groups:
+  - name: infrastructure_alerts
+    interval: 30s
+    rules:
+      # High disk usage alert
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+          component: disk
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 80% (current: {{ $value | humanize }}%)"
+
+      # Critical disk usage alert
+      - alert: CriticalDiskUsage
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 2m
+        labels:
+          severity: critical
+          component: disk
+        annotations:
+          summary: "CRITICAL: Disk almost full on {{ $labels.instance }}"
+          description: "Disk usage is above 90% (current: {{ $value | humanize }}%)"
+
+      # High CPU usage alert
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: cpu
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for 10 minutes (current: {{ $value | humanize }}%)"
+
+      # High memory usage alert
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% (current: {{ $value | humanize }}%)"
+
+      # Node down alert
+      - alert: InstanceDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: availability
+        annotations:
+          summary: "Node exporter down on {{ $labels.instance }}"
+          description: "Node exporter has been down for more than 2 minutes"
+
+      # Container restart loop alert
+      - alert: ContainerRestartLoop
+        expr: rate(container_start_time_seconds[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: docker
+        annotations:
+          summary: "Container {{ $labels.name }} is restarting frequently"
+          description: "Container has restarted {{ $value | humanize }} times in the last 5 minutes"
+
+  - name: security_alerts
+    interval: 30s
+    rules:
+      # SSH authentication failures
+      - alert: HighSSHFailureRate
+        expr: rate(node_systemd_unit_state{name="sshd.service",state="failed"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High SSH failure rate detected"
+          description: "Multiple SSH authentication failures detected in the last 5 minutes"
+
+  - name: observability_stack_alerts
+    interval: 30s
+    rules:
+      # Prometheus down
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: monitoring
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus has been unreachable for more than 2 minutes"
+
+      # Alertmanager down
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: alerting
+        annotations:
+          summary: "Alertmanager is down"
+          description: "Alertmanager has been unreachable for more than 2 minutes"
+
+      # Grafana down (future - requires metrics endpoint)
+      # - alert: GrafanaDown
+      #   expr: up{job="grafana"} == 0
+      #   for: 2m
+      #   labels:
+      #     severity: warning
+      #     component: monitoring
+      #   annotations:
+      #     summary: "Grafana is down"
+      #     description: "Grafana has been unreachable for more than 2 minutes"

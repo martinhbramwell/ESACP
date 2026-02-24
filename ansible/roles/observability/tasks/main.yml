@@ -1,0 +1,128 @@
+---
+# Observability Role - Deploy Grafana, Prometheus, Loki stack
+
+- name: Create observability directory
+  file:
+    path: /opt/observability
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Copy Docker Compose file
+  copy:
+    src: "{{ playbook_dir }}/../docker/observability/docker-compose.yml"
+    dest: /opt/observability/docker-compose.yml
+    mode: '0644'
+
+- name: Create config directories
+  file:
+    path: "/opt/observability/{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - prometheus
+    - prometheus/alerts
+    - grafana
+    - grafana/provisioning
+    - grafana/provisioning/datasources
+    - grafana/provisioning/dashboards
+    - grafana/provisioning/dashboards/json
+    - loki
+    - promtail
+    - alertmanager
+
+- name: Copy Prometheus configuration
+  copy:
+    src: "{{ playbook_dir }}/../docker/observability/prometheus/{{ item }}"
+    dest: "/opt/observability/prometheus/{{ item }}"
+    mode: '0644'
+  loop:
+    - prometheus.yml
+
+- name: Copy Prometheus alert rules
+  copy:
+    src: "{{ playbook_dir }}/../docker/observability/prometheus/alerts/"
+    dest: "/opt/observability/prometheus/alerts/"
+    mode: '0644'
+
+- name: Copy Grafana configuration
+  copy:
+    src: "{{ playbook_dir }}/../docker/observability/grafana/{{ item }}"
+    dest: "/opt/observability/grafana/{{ item }}"
+    mode: '0644'
+  loop:
+    - grafana.ini
+
+- name: Copy Grafana provisioning configs
+  copy:
+    src: "{{ playbook_dir }}/../docker/observability/grafana/provisioning/"
+    dest: "/opt/observability/grafana/provisioning/"
+    mode: '0644'
+
+- name: Copy Loki configuration
+  copy:
+    src: "{{ playbook_dir }}/../docker/observability/loki/loki.yml"
+    dest: "/opt/observability/loki/loki.yml"
+    mode: '0644'
+
+- name: Copy Promtail configuration
+  copy:
+    src: "{{ playbook_dir }}/../docker/observability/promtail/promtail.yml"
+    dest: "/opt/observability/promtail/promtail.yml"
+    mode: '0644'
+
+- name: Copy Alertmanager configuration
+  template:
+    src: alertmanager.yml.j2
+    dest: "/opt/observability/alertmanager/alertmanager.yml"
+    mode: '0644'
+
+- name: Create .env file with secrets
+  template:
+    src: observability.env.j2
+    dest: /opt/observability/.env
+    mode: '0600'
+  no_log: true
+
+- name: Pull Docker images
+  command: docker-compose -f /opt/observability/docker-compose.yml pull
+  register: docker_pull
+  changed_when: >
+    'Pulling' in docker_pull.stderr or 'Downloaded' in docker_pull.stderr or
+    'Pulling' in docker_pull.stdout or 'Downloaded' in docker_pull.stdout
+
+- name: Start observability stack
+  command: docker-compose -f /opt/observability/docker-compose.yml up -d
+  register: docker_up
+  changed_when: >
+    'Creating' in docker_up.stderr or 'Starting' in docker_up.stderr or
+    'Creating' in docker_up.stdout or 'Starting' in docker_up.stdout
+
+- name: Wait for Grafana to be ready
+  uri:
+    url: "http://localhost:3000/api/health"
+    status_code: 200
+  register: grafana_health
+  until: grafana_health.status == 200
+  retries: 30
+  delay: 2
+
+- name: Wait for Prometheus to be ready
+  uri:
+    url: "http://localhost:9090/-/ready"
+    status_code: 200
+  register: prometheus_health
+  until: prometheus_health.status == 200
+  retries: 30
+  delay: 2
+
+- name: Display observability stack status
+  debug:
+    msg:
+      - "✅ Observability stack is running"
+      - "Grafana: http://{{ ansible_host }}:3000"
+      - "Prometheus: http://{{ ansible_host }}:9090"
+      - "Alertmanager: http://{{ ansible_host }}:9093"
+      - ""
+      - "Access Grafana with credentials from all.sops.yml"

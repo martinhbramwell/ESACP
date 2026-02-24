@@ -1,0 +1,29 @@
+graph TB
+    %% ESACP Architecture - {{ metadata.stage }}
+    %% Generated from architecture.yml
+    %% Last updated: {{ metadata.last_updated }}
+    
+    %% Node definitions
+{% for node in nodes %}
+    {{ node.id }}["{{ node.label }}<br/>{{ node.type }}"]
+{%- if node.url %}
+    click {{ node.id }} "{{ node.url }}" "{{ node.description }}"
+{%- endif %}
+{% endfor %}
+
+    %% Connections
+{% for edge in edges %}
+    {{ edge.from }} -->|{{ edge.label }}| {{ edge.to }}
+{% endfor %}
+
+    %% Styling
+    classDef controller fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef compute fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef proxy fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef security fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    classDef observability fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef external fill:#eceff1,stroke:#263238,stroke-width:2px
+    
+{% for node in nodes %}
+    class {{ node.id }} {{ node.type }}
+{% endfor %}

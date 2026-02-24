@@ -1,0 +1,48 @@
+# ESACP SSH Configuration
+# Managed by Ansible - changes will be overwritten
+
+Port {{ ssh_port }}
+Protocol 2
+
+# Authentication
+PermitRootLogin {{ ssh_permit_root_login }}
+PubkeyAuthentication {{ ssh_pubkey_authentication }}
+PasswordAuthentication {{ ssh_password_authentication }}
+ChallengeResponseAuthentication no
+UsePAM yes
+
+# Restrict to specific users
+AllowUsers {{ ssh_allow_users }}
+
+# Security settings
+StrictModes yes
+MaxAuthTries 3
+MaxSessions 10
+PermitEmptyPasswords no
+PermitUserEnvironment no
+
+# Key exchange and encryption
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+
+# Logging
+SyslogFacility AUTH
+LogLevel VERBOSE
+
+# Forwarding
+X11Forwarding no
+AllowTcpForwarding yes
+PermitTunnel no
+
+# Session settings
+ClientAliveInterval 300
+ClientAliveCountMax 2
+LoginGraceTime 60
+
+# SFTP subsystem
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Banner
+PrintMotd no
+AcceptEnv LANG LC_*

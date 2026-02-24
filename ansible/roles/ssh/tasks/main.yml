@@ -1,0 +1,37 @@
+---
+# SSH Role - SSH Hardening Configuration
+
+- name: Install OpenSSH server
+  apt:
+    name: openssh-server
+    state: present
+
+- name: Configure SSH daemon
+  template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    mode: '0644'
+    validate: '/usr/sbin/sshd -t -f %s'
+    backup: yes
+  notify: restart sshd
+
+- name: Create SSH toggle script
+  template:
+    src: ssh_toggle.sh.j2
+    dest: /opt/scripts/ssh_toggle.sh
+    mode: '0755'
+
+- name: Ensure SSH service is running and enabled
+  service:
+    name: ssh
+    state: started
+    enabled: yes
+
+- name: Display SSH configuration
+  debug:
+    msg:
+      - "SSH Port: {{ ssh_port }}"
+      - "Root Login: {{ ssh_permit_root_login }}"
+      - "Password Auth: {{ ssh_password_authentication }}"
+      - "PubKey Auth: {{ ssh_pubkey_authentication }}"
+      - "Allowed Users: {{ ssh_allow_users }}"

@@ -1,0 +1,272 @@
+---
+# ESACP Architecture Documentation
+# This YAML file is the source of truth for system architecture
+# It generates Mermaid diagrams for Grafana display
+
+metadata:
+  version: "1.0.0"
+  stage: "Stage 1 - Security-Hardened Foundation"
+  last_updated: "2024-02-13"
+
+# Infrastructure nodes
+nodes:
+  - id: wsl_controller
+    label: "WSL Controller"
+    type: controller
+    description: "Windows Subsystem for Linux - Ansible orchestration"
+    url: null
+    components:
+      - Ansible
+      - Python scripts
+      - SOPS encryption
+      - Git repository
+
+  - id: vbox_vm
+    label: "VirtualBox VM"
+    type: compute
+    description: "Xubuntu development environment"
+    url: "ssh://admin@VM_IP"
+    components:
+      - Ubuntu 22.04 LTS
+      - Docker Engine
+      - UFW Firewall
+      - Fail2ban
+      - SSH (hardened)
+
+  - id: nginx
+    label: "Nginx"
+    type: proxy
+    description: "Reverse proxy with TLS termination"
+    url: "https://VM_IP/"
+    components:
+      - HTTPS only
+      - Self-signed certificate
+      - Forward auth to Authelia
+      - Reverse proxy to Grafana
+
+  - id: authelia
+    label: "Authelia"
+    type: security
+    description: "Multi-factor authentication"
+    url: "http://VM_IP:9091"
+    components:
+      - TOTP 2FA
+      - Session management
+      - User authentication
+    
+  - id: grafana
+    label: "Grafana"
+    type: observability
+    description: "Dashboards and visualization"
+    url: "http://VM_IP:3000"
+    components:
+      - Dashboards
+      - Mermaid diagrams
+      - Data source config
+      - Alert visualization
+    
+  - id: prometheus
+    label: "Prometheus"
+    type: observability
+    description: "Metrics collection and alerting"
+    url: "http://VM_IP:9090"
+    components:
+      - Time-series database
+      - Alert rules
+      - Service discovery
+      - Metrics scraping
+    
+  - id: loki
+    label: "Loki"
+    type: observability
+    description: "Log aggregation"
+    url: "http://VM_IP:3100"
+    components:
+      - Log storage
+      - LogQL queries
+      - Label indexing
+    
+  - id: promtail
+    label: "Promtail"
+    type: observability
+    description: "Log shipper"
+    url: null
+    components:
+      - System logs
+      - Auth logs
+      - Docker logs
+      - Journal logs
+    
+  - id: alertmanager
+    label: "Alertmanager"
+    type: observability
+    description: "Alert routing and notifications"
+    url: "http://VM_IP:9093"
+    components:
+      - Alert grouping
+      - Telegram integration
+      - Email notifications
+      - Alert inhibition
+    
+  - id: node_exporter
+    label: "Node Exporter"
+    type: observability
+    description: "Host metrics"
+    url: "http://VM_IP:9100"
+    components:
+      - CPU metrics
+      - Memory metrics
+      - Disk metrics
+      - Network metrics
+
+  - id: telegram
+    label: "Telegram"
+    type: external
+    description: "Alert notification channel"
+    url: "https://t.me/SCRPT_ALRTS_BOT"
+    components:
+      - Critical alerts
+      - Warning alerts
+      - Bot API
+
+# Connections between nodes
+edges:
+  - from: wsl_controller
+    to: vbox_vm
+    label: "SSH + Ansible"
+    protocol: ssh
+    port: 22
+    
+  - from: vbox_vm
+    to: nginx
+    label: "hosts"
+    protocol: docker
+    
+  - from: nginx
+    to: authelia
+    label: "forward auth"
+    protocol: http
+    port: 9091
+    
+  - from: nginx
+    to: grafana
+    label: "reverse proxy"
+    protocol: http
+    port: 3000
+    
+  - from: grafana
+    to: prometheus
+    label: "queries"
+    protocol: http
+    port: 9090
+    
+  - from: grafana
+    to: loki
+    label: "queries"
+    protocol: http
+    port: 3100
+    
+  - from: prometheus
+    to: node_exporter
+    label: "scrapes"
+    protocol: http
+    port: 9100
+    
+  - from: prometheus
+    to: alertmanager
+    label: "fires alerts"
+    protocol: http
+    port: 9093
+    
+  - from: promtail
+    to: loki
+    label: "ships logs"
+    protocol: http
+    port: 3100
+    
+  - from: alertmanager
+    to: telegram
+    label: "notifications"
+    protocol: https
+    
+  - from: promtail
+    to: vbox_vm
+    label: "reads logs"
+    protocol: filesystem
+
+# Security zones
+security_zones:
+  - id: external
+    label: "External Access"
+    nodes:
+      - wsl_controller
+      - telegram
+    
+  - id: trusted
+    label: "Trusted Zone"
+    nodes:
+      - vbox_vm
+      - nginx
+      - authelia
+    
+  - id: observability
+    label: "Observability Stack"
+    nodes:
+      - grafana
+      - prometheus
+      - loki
+      - promtail
+      - alertmanager
+      - node_exporter
+
+# Firewall rules
+firewall_rules:
+  - port: 22
+    protocol: tcp
+    action: allow
+    source: "192.168.1.0/24"
+    description: "SSH from local network"
+    
+  - port: 443
+    protocol: tcp
+    action: allow
+    source: "0.0.0.0/0"
+    description: "HTTPS public access"
+    
+  - port: 9090
+    protocol: tcp
+    action: deny
+    source: "0.0.0.0/0"
+    description: "Prometheus (internal only)"
+    
+  - port: 3000
+    protocol: tcp
+    action: deny
+    source: "0.0.0.0/0"
+    description: "Grafana (via Nginx only)"
+
+# Future stages preview
+future_stages:
+  - stage: 2
+    name: "WireGuard Mesh Network"
+    description: "Secure multi-continent VPS connectivity"
+    nodes:
+      - wireguard_usa
+      - wireguard_eu
+    
+  - stage: 3
+    name: "ERPNext v16 Deployment"
+    description: "Containerized ERP system"
+    nodes:
+      - erpnext_web
+      - erpnext_worker
+      - erpnext_socketio
+      - redis
+      - mariadb
+    
+  - stage: 4
+    name: "MariaDB Replication"
+    description: "Master-slave database replication"
+    nodes:
+      - mariadb_master_usa
+      - mariadb_slave_eu

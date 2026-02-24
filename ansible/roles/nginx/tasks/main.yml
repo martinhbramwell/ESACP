@@ -1,0 +1,15 @@
+---
+# Nginx Role - Reverse Proxy with TLS
+# Phase C implementation
+
+- name: Nginx role placeholder
+  debug:
+    msg: "Nginx role will be implemented in Phase C"
+
+# TODO Phase C:
+# - Install Nginx
+# - Generate self-signed certificate
+# - Configure reverse proxy for Grafana
+# - Configure Authelia forward auth
+# - Enable HTTPS only
+# - Configure HTTP -> HTTPS redirect

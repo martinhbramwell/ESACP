@@ -1,0 +1,47 @@
+---
+# Production Environment - Multi-Continent VPS Deployment
+# Stage 2+ configuration (not used in Stage 1)
+
+all:
+  children:
+    production:
+      children:
+        americas:
+          hosts:
+            esacp-usa:
+              ansible_host: usa.vps.example.com
+              ansible_user: admin
+              ansible_python_interpreter: /usr/bin/python3
+              
+              environment_name: production
+              is_production: true
+              region: usa
+              role: master
+              
+              # MariaDB replication
+              mariadb_role: master
+              mariadb_server_id: 1
+              
+        europe:
+          hosts:
+            esacp-eu:
+              ansible_host: eu.vps.example.com
+              ansible_user: admin
+              ansible_python_interpreter: /usr/bin/python3
+              
+              environment_name: production
+              is_production: true
+              region: europe
+              role: slave
+              
+              # MariaDB replication
+              mariadb_role: slave
+              mariadb_server_id: 2
+              mariadb_master_host: usa.vps.example.com
+
+# FUTURE: Stage 2+ will add:
+# - WireGuard mesh network configuration
+# - ERPNext v16 deployment
+# - MariaDB master-slave replication
+# - Cross-continent backup strategies
+# - Production SSL certificates (Let's Encrypt)

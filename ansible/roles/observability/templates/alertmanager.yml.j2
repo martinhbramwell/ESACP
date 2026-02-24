@@ -1,0 +1,74 @@
+global:
+  resolve_timeout: 5m
+
+# Route tree
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  
+  routes:
+    # Critical alerts go to Telegram immediately
+    - match:
+        severity: critical
+      receiver: 'telegram-critical'
+      group_wait: 0s
+      repeat_interval: 4h
+      continue: true
+    
+    # Warning alerts go to Telegram with grouping
+    - match:
+        severity: warning
+      receiver: 'telegram-warnings'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+
+# Receivers
+receivers:
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:9093/api/v2/alerts'  # Placeholder
+
+  - name: 'telegram-critical'
+    telegram_configs:
+      - bot_token: '{{ telegram_bot_token }}'
+        chat_id: {{ telegram_chat_id }}
+        parse_mode: 'HTML'
+        message: |
+          🚨 <b>CRITICAL ALERT</b> 🚨
+          
+          <b>Alert:</b> {% raw %}{{ .GroupLabels.alertname }}{% endraw %}
+          <b>Severity:</b> {% raw %}{{ .CommonLabels.severity }}{% endraw %}
+          <b>Instance:</b> {% raw %}{{ .CommonLabels.instance }}{% endraw %}
+          
+          <b>Summary:</b> {% raw %}{{ .CommonAnnotations.summary }}{% endraw %}
+          <b>Description:</b> {% raw %}{{ .CommonAnnotations.description }}{% endraw %}
+          
+          <b>Status:</b> {% raw %}{{ .Status }}{% endraw %}
+          <b>Started:</b> {% raw %}{{ .StartsAt.Format "2006-01-02 15:04:05" }}{% endraw %}
+
+  - name: 'telegram-warnings'
+    telegram_configs:
+      - bot_token: '{{ telegram_bot_token }}'
+        chat_id: {{ telegram_chat_id }}
+        parse_mode: 'HTML'
+        message: |
+          ⚠️ <b>Warning Alert</b>
+          
+          <b>Alert:</b> {% raw %}{{ .GroupLabels.alertname }}{% endraw %}
+          <b>Instance:</b> {% raw %}{{ .CommonLabels.instance }}{% endraw %}
+          
+          <b>Summary:</b> {% raw %}{{ .CommonAnnotations.summary }}{% endraw %}
+          
+          <b>Started:</b> {% raw %}{{ .StartsAt.Format "15:04:05" }}{% endraw %}
+
+# Inhibition rules (suppress lower severity when higher exists)
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']

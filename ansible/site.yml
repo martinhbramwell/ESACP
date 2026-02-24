@@ -1,0 +1,101 @@
+---
+# ESACP Main Playbook - Stage 1
+# 
+# This playbook provisions a security-hardened, observable infrastructure
+# foundation with Docker, Grafana, Prometheus, Loki, and Authelia MFA.
+#
+# Usage:
+#   ansible-playbook site.yml                    # Run all
+#   ansible-playbook site.yml --tags docker      # Run specific role
+#   ansible-playbook site.yml --check            # Dry run
+#   ansible-playbook site.yml --limit ${VM_HOSTNAME}  # Run on specific host
+
+- name: ESACP Stage 1 - Security-Hardened Foundation
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Display environment information
+      debug:
+        msg:
+          - "Provisioning host: {{ inventory_hostname }}"
+          - "Environment: {{ environment_name }}"
+          - "Production: {{ is_production }}"
+          - "Ansible user: {{ ansible_user }}"
+      tags: always
+
+    - name: Ensure system is up to date
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: always
+
+  roles:
+    - role: common
+      tags:
+        - common
+        - baseline
+
+    - role: firewall
+      tags:
+        - firewall
+        - security
+
+    - role: ssh
+      tags:
+        - ssh
+        - security
+
+    - role: fail2ban
+      tags:
+        - fail2ban
+        - security
+
+    - role: docker
+      tags:
+        - docker
+        - containers
+
+    - role: observability
+      tags:
+        - observability
+        - monitoring
+
+    - role: nginx
+      tags:
+        - nginx
+        - web
+        - security
+
+    - role: authelia
+      tags:
+        - authelia
+        - mfa
+        - security
+
+  post_tasks:
+    - name: Display completion message
+      debug:
+        msg:
+          - "✅ Provisioning complete!"
+          - "Grafana: https://{{ ansible_host }}/grafana/"
+          - "Prometheus: http://{{ ansible_host }}:{{ prometheus_port }}"
+          - "MFA enabled: {{ mfa_enabled }}"
+      tags: always
+
+    - name: Save provisioning timestamp
+      copy:
+        content: |
+          Provisioned: {{ ansible_date_time.iso8601 }}
+          Environment: {{ environment_name }}
+          Playbook: {{ ansible_playbook_python }}
+        dest: /etc/esacp_provisioned
+        mode: '0644'
+      tags: always
+
+# Idempotency Notes:
+# - All roles use state-based modules (apt, file, template, service)
+# - Re-running should show "ok" for unchanged resources
+# - Only "changed" tasks should be actual config differences
+# - Use --check mode to preview changes before applying

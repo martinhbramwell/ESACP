@@ -1,0 +1,32 @@
+# SOPS Configuration
+# Uses age for encryption with keys stored in ~/.config/sops/age/keys.txt
+
+creation_rules:
+  # Encrypt all .sops.yml files with age
+  - path_regex: \.sops\.yml$
+    age: >-
+      age185wy6suru3x53leqjf866zsz02vece8cnsy6g92tz7ae0ykw45dsjp2sl8
+
+  # Encrypt any file with .secret extension
+  - path_regex: \.secret$
+    age: >-
+      age185wy6suru3x53leqjf866zsz02vece8cnsy6g92tz7ae0ykw45dsjp2sl8
+
+# SETUP INSTRUCTIONS:
+# 1. Generate an age key:
+#    age-keygen -o ~/.config/sops/age/keys.txt
+#
+# 2. The output will show your public key (age1...)
+#
+# 3. Replace "age1yourkeyhere..." above with your actual public key
+#
+# 4. Encrypt a secrets file:
+#    sops ansible/group_vars/all.sops.yml
+#
+# 5. SOPS will automatically use the private key from ~/.config/sops/age/keys.txt
+#    when decrypting during Ansible runs
+
+# IMPORTANT: 
+# - Never commit ~/.config/sops/age/keys.txt to git
+# - Back up your keys.txt securely (encrypted USB, password manager)
+# - Without this key, encrypted secrets cannot be recovered

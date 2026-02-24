@@ -1,0 +1,99 @@
+global:
+  resolve_timeout: 5m
+
+# Route tree
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  
+  routes:
+    # Critical alerts go to Telegram immediately
+    - match:
+        severity: critical
+      receiver: 'telegram-critical'
+      group_wait: 0s
+      repeat_interval: 4h
+      continue: true
+    
+    # Warning alerts go to Telegram with grouping
+    - match:
+        severity: warning
+      receiver: 'telegram-warnings'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+
+# Receivers
+receivers:
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:9093/api/v2/alerts'  # Placeholder
+
+  - name: 'telegram-critical'
+    telegram_configs:
+      - bot_token: '${TELEGRAM_BOT_TOKEN}'
+        chat_id: ${TELEGRAM_CHAT_ID}
+        parse_mode: 'HTML'
+        message: |
+          🚨 <b>CRITICAL ALERT</b> 🚨
+          
+          <b>Alert:</b> {{ .GroupLabels.alertname }}
+          <b>Severity:</b> {{ .CommonLabels.severity }}
+          <b>Instance:</b> {{ .CommonLabels.instance }}
+          
+          <b>Summary:</b> {{ .CommonAnnotations.summary }}
+          <b>Description:</b> {{ .CommonAnnotations.description }}
+          
+          <b>Status:</b> {{ .Status }}
+          <b>Started:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+
+  - name: 'telegram-warnings'
+    telegram_configs:
+      - bot_token: '${TELEGRAM_BOT_TOKEN}'
+        chat_id: ${TELEGRAM_CHAT_ID}
+        parse_mode: 'HTML'
+        message: |
+          ⚠️ <b>Warning Alert</b>
+          
+          <b>Alert:</b> {{ .GroupLabels.alertname }}
+          <b>Instance:</b> {{ .CommonLabels.instance }}
+          
+          <b>Summary:</b> {{ .CommonAnnotations.summary }}
+          
+          <b>Started:</b> {{ .StartsAt.Format "15:04:05" }}
+
+# Inhibition rules (suppress lower severity when higher exists)
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+# SETUP INSTRUCTIONS:
+# 
+# 1. Create a Telegram bot:
+#    - Message @BotFather on Telegram
+#    - Send: /newbot
+#    - Follow prompts to create bot
+#    - Save the bot token
+#
+# 2. Add bot to your alert group:
+#    - Create a Telegram group
+#    - Add your bot to the group
+#    - Make bot an admin (or it can't post)
+#
+# 3. Get your chat ID:
+#    - Send a message in the group
+#    - Visit: https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+#    - Look for "chat":{"id":-1001234567890}
+#    - Save the chat ID (negative number for groups)
+#
+# 4. Add to all.sops.yml (encrypted):
+#    telegram_bot_token: "YOUR_BOT_TOKEN"
+#    telegram_chat_id: "-1001234567890"
+#
+# 5. Alertmanager will use these via environment variables from .env file
