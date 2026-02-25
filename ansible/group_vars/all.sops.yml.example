@@ -1,0 +1,28 @@
+---
+# Encrypted secrets — Example (plaintext placeholder, NOT encrypted)
+# Copy this file to all.sops.yml, then encrypt it with:
+#   sops ansible/group_vars/all.sops.yml
+#
+# Replace every REPLACE_ME value before encrypting.
+# Generate strong random values with: openssl rand -base64 32
+
+# Grafana
+grafana_admin_user: "REPLACE_ME"            # e.g. "admin"
+grafana_admin_password: "REPLACE_ME"        # openssl rand -base64 16
+
+# Authelia (MFA)
+authelia_jwt_secret: "REPLACE_ME"           # openssl rand -base64 48
+authelia_session_secret: "REPLACE_ME"       # openssl rand -base64 48
+authelia_storage_encryption_key: "REPLACE_ME"  # openssl rand -base64 48
+
+# Telegram (Alertmanager notifications)
+telegram_bot_token: "REPLACE_ME"            # from @BotFather — format: 1234567890:AAxxxxx
+telegram_chat_id: "REPLACE_ME"              # negative integer for group chats, e.g. -1001234567890
+
+# SSL
+ssl_key_password: "REPLACE_ME"             # passphrase for the SSL private key
+
+# Future use — set now so secrets are not added ad hoc later
+mariadb_root_password: "REPLACE_ME"        # openssl rand -base64 24
+erpnext_admin_password: "REPLACE_ME"
+backup_encryption_passphrase: "REPLACE_ME"

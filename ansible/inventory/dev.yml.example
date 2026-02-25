@@ -1,0 +1,25 @@
+---
+# Development Environment - VirtualBox VM
+# Copy this file to dev.yml and replace all REPLACE placeholders with your values.
+
+all:
+  children:
+
+    development:
+      hosts:
+        YOUR_VM_HOSTNAME:               # REPLACE: must match $VM_HOSTNAME and the hostname set during OS install
+          ansible_user: YOUR_USERNAME   # REPLACE: must match $ADMIN_USER_NAME
+          ansible_python_interpreter: /usr/bin/python3
+
+          # Host-specific variables
+          environment_name: development
+          is_production: false
+
+          # Network configuration
+          allowed_ssh_ips:
+            - "192.168.xx.0/24"         # REPLACE: your LAN subnet (VM IP with last octet replaced by 0)
+
+          # VM specifications — update to match your actual VM settings
+          vm_memory_gb: 4
+          vm_cpus: 2
+          vm_disk_gb: 40

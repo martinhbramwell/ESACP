@@ -1,0 +1,23 @@
+# SOPS Configuration — Example
+# Copy this file to .sops.yaml and replace the placeholder age public key with yours.
+#
+# To generate your age key pair:
+#   mkdir -p ~/.config/sops/age
+#   age-keygen -o ~/.config/sops/age/keys.txt
+#   grep "public key" ~/.config/sops/age/keys.txt
+#
+# IMPORTANT:
+#   - Never commit ~/.config/sops/age/keys.txt to git
+#   - Back up keys.txt securely (encrypted USB or password manager)
+#   - Without this file the encrypted secrets cannot be recovered
+
+creation_rules:
+  # Encrypt all .sops.yml files with age
+  - path_regex: \.sops\.yml$
+    age: >-
+      age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  # Encrypt any file with .secret extension
+  - path_regex: \.secret$
+    age: >-
+      age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
