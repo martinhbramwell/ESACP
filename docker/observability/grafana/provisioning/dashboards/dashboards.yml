@@ -12,5 +12,3 @@ providers:
       path: /etc/grafana/provisioning/dashboards/json
       foldersFromFilesStructure: true
 
-# Future: Add dashboard JSON files to /etc/grafana/provisioning/dashboards/json
-# These will be automatically imported into Grafana

@@ -10,19 +10,25 @@ all:
         console:
           ansible_user: ernest
           ansible_python_interpreter: /usr/bin/python3
-          
+
           # Host-specific variables
           environment_name: development
           is_production: false
-          
+
           # Network configuration
           allowed_ssh_ips:
             - "192.168.40.0/24"  # REPLACE: Your local network
-          
+
           # VM specifications
           vm_memory_gb: 6.144
           vm_cpus: 4
           vm_disk_gb: 45
+
+    # lab group: same host(s) as development but classified for drill alert profile.
+    # group_vars/lab.yml sets alert_profile: drill (overrides all.yml default).
+    lab:
+      hosts:
+        console: {}
 
 # SETUP INSTRUCTIONS:
 # 1. Create a minimal Ubuntu Server 22.04 VM in VirtualBox:

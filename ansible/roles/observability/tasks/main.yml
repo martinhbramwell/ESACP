@@ -40,9 +40,20 @@
   loop:
     - prometheus.yml
 
-- name: Copy Prometheus alert rules
+- name: Enforce production alert profile on production/protected hosts
+  fail:
+    msg: >
+      Host '{{ inventory_hostname }}' is in a production/protected group but
+      alert_profile is '{{ alert_profile }}'. Refusing to run drill profile on a
+      production target.
+  when:
+    - alert_profile != 'production'
+    - "'production' in group_names or 'protected' in group_names"
+
+- name: Copy Prometheus alert rules ({{ alert_profile }} profile)
   copy:
-    src: "{{ playbook_dir }}/../docker/observability/prometheus/alerts/"
+    src: >-
+      {{ playbook_dir }}/../docker/observability/prometheus/alerts{% if alert_profile == 'drill' %}-drill{% endif %}/
     dest: "/opt/observability/prometheus/alerts/"
     mode: '0644'
 
@@ -58,6 +69,12 @@
   copy:
     src: "{{ playbook_dir }}/../docker/observability/grafana/provisioning/"
     dest: "/opt/observability/grafana/provisioning/"
+    mode: '0644'
+
+- name: Copy Grafana dashboard JSON files
+  copy:
+    src: "{{ playbook_dir }}/../docker/observability/grafana/provisioning/dashboards/json/"
+    dest: "/opt/observability/grafana/provisioning/dashboards/json/"
     mode: '0644'
 
 - name: Copy Loki configuration
@@ -92,12 +109,13 @@
     'Pulling' in docker_pull.stderr or 'Downloaded' in docker_pull.stderr or
     'Pulling' in docker_pull.stdout or 'Downloaded' in docker_pull.stdout
 
-- name: Start observability stack
-  command: docker-compose -f /opt/observability/docker-compose.yml up -d
+- name: Start observability stack (recreate to apply any config changes)
+  command: docker-compose -f /opt/observability/docker-compose.yml up -d --force-recreate
   register: docker_up
   changed_when: >
     'Creating' in docker_up.stderr or 'Starting' in docker_up.stderr or
-    'Creating' in docker_up.stdout or 'Starting' in docker_up.stdout
+    'Recreating' in docker_up.stderr or 'Creating' in docker_up.stdout or
+    'Starting' in docker_up.stdout or 'Recreating' in docker_up.stdout
 
 - name: Wait for Grafana to be ready
   uri:

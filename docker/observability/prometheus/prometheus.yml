@@ -38,6 +38,22 @@ scrape_configs:
     static_configs:
       - targets: ['alertmanager:9093']
 
+  # Grafana (serve_from_sub_path=true routes metrics to /grafana/metrics)
+  - job_name: 'grafana'
+    metrics_path: /grafana/metrics
+    static_configs:
+      - targets: ['grafana:3000']
+
+  # Loki
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+
+  # Promtail
+  - job_name: 'promtail'
+    static_configs:
+      - targets: ['promtail:9080']
+
   # Future: ERPNext metrics endpoint
   # - job_name: 'erpnext'
   #   static_configs:

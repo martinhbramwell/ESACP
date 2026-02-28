@@ -1,0 +1,111 @@
+ansible:
+  inventory_file: ansible/inventory/dev.yml
+
+scenarios:
+  # -----------------------------------------------------------------------
+  # Category A: Instrumented System Failures
+  # -----------------------------------------------------------------------
+
+  disk_pressure:
+    timeout_seconds: 120
+    estimated_consequence_delay_seconds: 30
+    expected_guest_behavior: |
+      A large file is written to /tmp, rapidly consuming disk space.
+      HighDiskUsage alert enters pending state then fires.
+    expected_grafana_manifestations: |
+      Disk Utilization panel climbs toward threshold.
+      Alert Status Summary shows HighDiskUsage or CriticalDiskUsage firing.
+
+  cpu_saturation:
+    timeout_seconds: 120
+    estimated_consequence_delay_seconds: 45
+    cpu_workers: 4
+    expected_guest_behavior: |
+      All CPU cores are saturated for the duration of the injection.
+      HighCPUUsage alert enters pending state then fires.
+    expected_grafana_manifestations: |
+      CPU Utilization panel spikes above 80%.
+      Alert Status Summary shows HighCPUUsage firing.
+
+  memory_pressure:
+    timeout_seconds: 300
+    estimated_consequence_delay_seconds: 60
+    memory_ceiling_percent: 40
+    expected_guest_behavior: |
+      MemAvailable drops as memory is allocated up to the ceiling.
+      HighMemoryUsage alert enters pending state then fires.
+    expected_grafana_manifestations: |
+      Memory Utilization panel rises.
+      Alert Status Summary shows HighMemoryUsage firing.
+
+  log_storm:
+    timeout_seconds: 120
+    estimated_consequence_delay_seconds: 30
+    expected_guest_behavior: |
+      A throwaway container writes log entries at high rate.
+      Promtail ingestion rate spikes.
+    expected_grafana_manifestations: |
+      Log Ingestion Rate panel shows spike.
+      Grafana Explore shows burst of container log entries.
+
+  container_restart_loop:
+    timeout_seconds: 180
+    estimated_consequence_delay_seconds: 60
+    expected_guest_behavior: |
+      A throwaway container exits immediately and restarts in a loop.
+      ContainerRestartLoop alert enters pending state then fires.
+    expected_grafana_manifestations: |
+      Container Restart Indicators panel shows elevated restart rate.
+      Alert Status Summary shows ContainerRestartLoop firing.
+
+  # -----------------------------------------------------------------------
+  # Category B: Monitoring Stack Failures
+  # -----------------------------------------------------------------------
+
+  prometheus_stopped:
+    timeout_seconds: 180
+    estimated_consequence_delay_seconds: 60
+    expected_guest_behavior: |
+      Prometheus process terminates. Port 9090 becomes unreachable.
+    expected_grafana_manifestations: |
+      Prometheus datasource shows error in Grafana.
+      Scrape Health Overview shows targets as stale/unknown.
+      PrometheusDown alert fires (from Alertmanager's own self-monitoring).
+
+  alertmanager_stopped:
+    timeout_seconds: 180
+    estimated_consequence_delay_seconds: 60
+    expected_guest_behavior: |
+      Alertmanager process terminates. Port 9093 becomes unreachable.
+    expected_grafana_manifestations: |
+      Alert Status Summary shows AlertmanagerDown firing.
+      Prometheus /alerts page shows AlertmanagerDown pending/firing.
+
+  loki_stopped:
+    timeout_seconds: 180
+    estimated_consequence_delay_seconds: 60
+    expected_guest_behavior: |
+      Loki process terminates. Port 3100 becomes unreachable.
+    expected_grafana_manifestations: |
+      Grafana Explore log queries fail with datasource error.
+      Alert Status Summary shows LokiDown firing.
+
+  promtail_stopped:
+    timeout_seconds: 180
+    estimated_consequence_delay_seconds: 60
+    expected_guest_behavior: |
+      Promtail process terminates. Log ingestion stops.
+    expected_grafana_manifestations: |
+      Log Ingestion Rate panel drops to zero.
+      Alert Status Summary shows PromtailDown firing.
+      No new log entries appear in Grafana Explore.
+
+  grafana_stopped:
+    timeout_seconds: 180
+    estimated_consequence_delay_seconds: 60
+    expected_guest_behavior: |
+      Grafana process terminates. Port 3000 becomes unreachable.
+    expected_grafana_manifestations: |
+      Grafana UI becomes unavailable (HTTP connection refused).
+      GrafanaDown alert fires (visible in Prometheus /alerts).
+      Alertmanager receives GrafanaDown notification.

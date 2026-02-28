@@ -115,7 +115,9 @@ def snapshot_exists(vm_name, snapshot_name):
 
     if result and result.returncode == 0:
         for line in result.stdout.splitlines():
-            if f'SnapshotName="{snapshot_name}"' in line:
+            # VirtualBox uses SnapshotName, SnapshotName-1, SnapshotName-1-1, etc.
+            # for nested snapshots, so match on key prefix + value, not exact key.
+            if line.startswith('SnapshotName') and f'="{snapshot_name}"' in line:
                 return True
 
     return False

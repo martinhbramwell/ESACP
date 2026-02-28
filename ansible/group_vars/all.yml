@@ -87,3 +87,7 @@ backup_retention_days: 30
 observability_stack_enabled: true
 mermaid_diagrams_enabled: true
 alerting_enabled: true
+
+# Alert profile: 'production' or 'drill'
+# Overridden to 'drill' in group_vars/lab.yml, enforced to 'production' in group_vars/production.yml
+alert_profile: production

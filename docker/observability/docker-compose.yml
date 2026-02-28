@@ -116,7 +116,10 @@ services:
 
   # Promtail - Log Shipper
   promtail:
-    image: grafana/promtail:2.9.3
+    # 2.9.3 embeds Docker SDK API v1.42; host daemon requires v1.44 minimum.
+    # 3.x ships with a newer SDK that negotiates v1.44+ correctly.
+    # Loki stays at 2.9.3 — the push API is stable across major versions.
+    image: grafana/promtail:3.3.2
     container_name: promtail
     restart: unless-stopped
     networks:
@@ -124,7 +127,7 @@ services:
     volumes:
       - ./promtail/promtail.yml:/etc/promtail/config.yml:ro
       - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command: -config.file=/etc/promtail/config.yml
     depends_on:
       - loki
