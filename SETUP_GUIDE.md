@@ -1,6 +1,6 @@
 # ESACP Setup Guide — Stage 1
 
-> **Verified against a clean run on 2026-02-24.**
+> **Verified against a clean run on 2026-02-28.**
 
 ---
 
@@ -214,6 +214,27 @@ Test from WSL:
 ssh -i ${SSH_KEY_PATH} ${ADMIN_USER_NAME}@${VM_HOSTNAME}
 exit
 ```
+
+### 8. Install Python dependencies
+
+The orchestration scripts and diagram generator require three Python packages.
+`rich` is also required by the Stage 1.5 chaos drill scripts.
+
+On Ubuntu / WSL, install via `apt` (the system Python on Ubuntu 22.04+ is
+PEP 668 managed and rejects `pip` installs into the system environment):
+
+```bash
+sudo apt install -y python3-rich python3-yaml python3-jinja2
+```
+
+Confirm all three are importable:
+
+```bash
+python3 -c "import rich, yaml, jinja2; print('OK')"
+```
+
+> **Non-Ubuntu platforms:** Use `pip install -r orchestration/requirements.txt`
+> (with a virtual environment if your system enforces PEP 668).
 
 ---
 

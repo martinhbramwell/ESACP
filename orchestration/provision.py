@@ -11,10 +11,18 @@ Usage:
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
+
+console = Console()
 
 # Configuration
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -43,15 +51,12 @@ VM_CONFIGS = {
 
 def print_banner(message):
     """Print a formatted banner message"""
-    width = max(60, len(message) + 4)
-    print("\n" + "=" * width)
-    print(f"  {message}")
-    print("=" * width + "\n")
+    console.print(Panel(f"[bold]{message}[/bold]", expand=False))
 
 
 def run_command(cmd, check=True, capture_output=False):
     """Run a shell command"""
-    print(f"→ Running: {' '.join(cmd)}")
+    console.print(f"[dim]→ {' '.join(cmd)}[/dim]")
     try:
         result = subprocess.run(
             cmd,
@@ -61,24 +66,41 @@ def run_command(cmd, check=True, capture_output=False):
         )
         return result
     except subprocess.CalledProcessError as e:
-        print(f"❌ Command failed with exit code {e.returncode}")
+        console.print(f"[red]❌ Command failed with exit code {e.returncode}[/red]")
         if capture_output:
-            print(f"STDOUT: {e.stdout}")
-            print(f"STDERR: {e.stderr}")
+            console.print(f"STDOUT: {e.stdout}")
+            console.print(f"STDERR: {e.stderr}")
         sys.exit(1)
 
 
-def check_prerequisites():
+_VBOXMANAGE_WSL_PATH = "/mnt/c/Program Files/Oracle/VirtualBox/VBoxManage.exe"
+
+
+def find_vboxmanage():
+    """Locate VBoxManage, handling native Linux and WSL on Windows."""
+    for candidate in ("VBoxManage", "VBoxManage.exe"):
+        if shutil.which(candidate):
+            return candidate
+    if Path(_VBOXMANAGE_WSL_PATH).exists():
+        return _VBOXMANAGE_WSL_PATH
+    return None
+
+
+def check_prerequisites(need_vboxmanage=False):
     """Verify required tools are installed"""
     print_banner("Checking Prerequisites")
-    
+
     required_tools = {
         "ansible": "ansible --version",
         "ansible-playbook": "ansible-playbook --version",
         "sops": "sops --version",
         "age": "age --version",
     }
-    
+
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("Tool", style="cyan", min_width=20)
+    table.add_column("Status", min_width=12)
+
     missing = []
     for tool, check_cmd in required_tools.items():
         try:
@@ -87,72 +109,89 @@ def check_prerequisites():
                 check=True,
                 capture_output=True
             )
-            print(f"✓ {tool} found")
+            table.add_row(tool, "[green]✓ Found[/green]")
         except (subprocess.CalledProcessError, FileNotFoundError):
-            print(f"✗ {tool} not found")
+            table.add_row(tool, "[red]✗ Missing[/red]")
             missing.append(tool)
-    
+
+    if need_vboxmanage:
+        vbm = find_vboxmanage()
+        if vbm:
+            table.add_row("VBoxManage", f"[green]✓ Found[/green] [dim]({vbm})[/dim]")
+        else:
+            table.add_row("VBoxManage", "[red]✗ Missing[/red]")
+            missing.append("VBoxManage")
+
+    console.print(table)
+
     if missing:
-        print(f"\n❌ Missing required tools: {', '.join(missing)}")
-        print("Please install them before continuing.")
+        console.print(f"\n[red]❌ Missing required tools: {', '.join(missing)}[/red]")
+        console.print("Please install them before continuing.")
         sys.exit(1)
-    
-    print("\n✅ All prerequisites satisfied")
+
+    console.print("\n[green]✅ All prerequisites satisfied[/green]")
 
 
 def revert_vm_to_baseline(vm_name, snapshot_name):
     """Revert VM to baseline snapshot"""
     print_banner(f"Reverting {vm_name} to snapshot: {snapshot_name}")
-    
-    # Check if revertToBaseline.py exists
+
     revert_script = ORCHESTRATION_DIR / "revertToBaseline.py"
     if not revert_script.exists():
-        print(f"⚠️  revertToBaseline.py not found at {revert_script}")
-        print("    Skipping snapshot revert")
+        console.print(f"[yellow]⚠️  revertToBaseline.py not found at {revert_script}[/yellow]")
+        console.print("    Skipping snapshot revert")
         return False
-    
-    # Run revert script
+
     run_command([
         "python3",
         str(revert_script),
         "--vm", vm_name,
         "--snapshot", snapshot_name
     ])
-    
-    print(f"✅ VM reverted to {snapshot_name}")
+
+    console.print(f"[green]✅ VM reverted to {snapshot_name}[/green]")
     return True
 
 
 def wait_for_ssh(inventory_file, timeout=300):
     """Wait for SSH to become available"""
     print_banner("Waiting for SSH Connection")
-    
+
     start_time = time.time()
-    while time.time() - start_time < timeout:
-        try:
-            result = subprocess.run(
-                [
-                    "ansible",
-                    "all",
-                    "-i", str(ANSIBLE_DIR / "inventory" / inventory_file),
-                    "-m", "ping",
-                    "--one-line"
-                ],
-                check=True,
-                capture_output=True,
-                text=True
-            )
-            
-            if "SUCCESS" in result.stdout:
-                print("✅ SSH connection established")
-                return True
-        except subprocess.CalledProcessError:
-            pass
-        
-        print(".", end="", flush=True)
-        time.sleep(5)
-    
-    print(f"\n❌ SSH connection timeout after {timeout} seconds")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[cyan]Waiting for SSH... ({task.fields[elapsed]}s elapsed)[/cyan]"),
+        transient=True,
+    ) as progress:
+        task = progress.add_task("waiting", elapsed=0)
+
+        while time.time() - start_time < timeout:
+            try:
+                result = subprocess.run(
+                    [
+                        "ansible",
+                        "all",
+                        "-i", str(ANSIBLE_DIR / "inventory" / inventory_file),
+                        "-m", "ping",
+                        "--one-line"
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True
+                )
+
+                if "SUCCESS" in result.stdout:
+                    console.print("[green]✅ SSH connection established[/green]")
+                    return True
+            except subprocess.CalledProcessError:
+                pass
+
+            elapsed = int(time.time() - start_time)
+            progress.update(task, elapsed=elapsed)
+            time.sleep(5)
+
+    console.print(f"[red]❌ SSH connection timeout after {timeout} seconds[/red]")
     return False
 
 
@@ -183,19 +222,20 @@ def run_ansible_playbook(inventory_file, check_mode=False, tags=None):
 
     if check_mode:
         cmd.append("--check")
-        print("ℹ️  Running in CHECK mode (dry run)")
+        console.print("[cyan]ℹ️  Running in CHECK mode (dry run)[/cyan]")
 
     if tags:
         cmd.extend(["--tags", tags])
-        print(f"ℹ️  Running only tags: {tags}")
+        console.print(f"[cyan]ℹ️  Running only tags: {tags}[/cyan]")
 
-    print(f"→ Running: {' '.join(cmd)}")
+    console.print(f"[dim]→ {' '.join(cmd)}[/dim]")
     try:
-        result = subprocess.run(cmd, check=True, env=env, text=True)
+        subprocess.run(cmd, check=True, env=env, text=True)
     except subprocess.CalledProcessError as e:
-        print(f"❌ ansible-playbook failed with exit code {e.returncode}")
+        console.print(f"[red]❌ ansible-playbook failed with exit code {e.returncode}[/red]")
         sys.exit(1)
-    print("\n✅ Ansible playbook completed successfully")
+
+    console.print("\n[green]✅ Ansible playbook completed successfully[/green]")
 
 
 def main():
@@ -203,79 +243,83 @@ def main():
         description="ESACP Provisioning Orchestrator",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    
+
     parser.add_argument(
         "--target",
         choices=["dev", "prod"],
         required=True,
         help="Target environment to provision"
     )
-    
     parser.add_argument(
         "--revert",
         action="store_true",
         help="Revert VM to baseline snapshot before provisioning"
     )
-    
     parser.add_argument(
         "--check",
         action="store_true",
         help="Run in check mode (dry run, no changes)"
     )
-    
     parser.add_argument(
         "--tags",
         help="Only run specific Ansible tags (comma-separated)"
     )
-    
     parser.add_argument(
         "--skip-ssh-wait",
         action="store_true",
         help="Skip waiting for SSH (use if VM is already running)"
     )
-    
+
     args = parser.parse_args()
-    
-    # Get VM configuration
     config = VM_CONFIGS[args.target]
-    
-    print_banner(f"ESACP Provisioner - {config['description']}")
-    print(f"Target: {args.target}")
-    print(f"VM: {config['name']}")
-    print(f"Inventory: {config['inventory']}")
+
+    print_banner(f"ESACP Provisioner — {config['description']}")
+
+    info = Table(show_header=False, box=None, padding=(0, 2))
+    info.add_column("Key", style="cyan")
+    info.add_column("Value")
+    info.add_row("Target", args.target)
+    info.add_row("VM", config["name"])
+    info.add_row("Inventory", config["inventory"])
     if args.revert:
-        print(f"Snapshot: {config['snapshot']}")
-    
+        info.add_row("Snapshot", str(config["snapshot"]))
+    console.print(info)
+
     # Step 1: Check prerequisites
-    check_prerequisites()
-    
+    check_prerequisites(need_vboxmanage=args.revert and args.target == "dev")
+
     # Step 2: Revert VM to baseline (if requested and supported)
     if args.revert:
         if config["snapshot"]:
             revert_vm_to_baseline(config["name"], config["snapshot"])
         else:
-            print(f"⚠️  Snapshot revert not supported for {args.target}")
-    
+            console.print(f"[yellow]⚠️  Snapshot revert not supported for {args.target}[/yellow]")
+
     # Step 3: Wait for SSH (if not skipped)
     if not args.skip_ssh_wait:
         if not wait_for_ssh(config["inventory"]):
-            print("❌ Cannot proceed without SSH access")
+            console.print("[red]❌ Cannot proceed without SSH access[/red]")
             sys.exit(1)
-    
+
     # Step 4: Run Ansible playbook
     run_ansible_playbook(
         config["inventory"],
         check_mode=args.check,
         tags=args.tags
     )
-    
+
     # Done
     print_banner("✅ Provisioning Complete!")
-    print(f"\nYour {args.target} environment is ready.")
-    print(f"\nAccess services:")
-    print(f"  Grafana: https://<VM_IP>/grafana/")
-    print(f"  Prometheus: http://<VM_IP>:9090")
-    
+
+    vm_ip = os.environ.get("VM_IP", "<VM_IP>")
+    services = Table(title="Access Services", show_header=True, header_style="bold cyan")
+    services.add_column("Service", style="cyan")
+    services.add_column("URL")
+    services.add_row("Grafana", f"http://{vm_ip}:3000")
+    services.add_row("Prometheus", f"http://{vm_ip}:9090")
+    services.add_row("Alertmanager", f"http://{vm_ip}:9093")
+    console.print(services)
+
     return 0
 
 

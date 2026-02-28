@@ -1,0 +1,19 @@
+# Host-side Python dependencies for ESACP orchestration scripts
+#
+# On Ubuntu / WSL (the supported controller platform), install via apt:
+#   sudo apt install -y python3-rich python3-yaml python3-jinja2
+#
+# On other platforms (macOS, non-Ubuntu Linux), install via pip:
+#   pip install -r orchestration/requirements.txt
+# Note: Ubuntu 22.04+ enforces PEP 668; pip will refuse to install
+# into the system Python. Use apt or a virtual environment instead.
+
+# Rich terminal output — used by Stage 1 orchestration scripts
+# and required by Stage 1.5 chaos drill scripts
+rich>=13.0.0
+
+# YAML parsing — used by scripts/generate_diagrams.py
+PyYAML>=6.0
+
+# Jinja2 templating — used by scripts/generate_diagrams.py
+Jinja2>=3.1
