@@ -50,5 +50,7 @@ autoinstall:
   user-data:
     # Run on first boot after install
     runcmd:
+      - echo "you ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/you
+      - chmod 440 /etc/sudoers.d/you
       - systemctl enable --now docker
       - usermod -aG docker you

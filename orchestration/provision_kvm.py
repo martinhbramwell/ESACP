@@ -39,7 +39,7 @@ SNAPSHOT_BASELINE = "Stage 2.1 Baseline"
 
 KVM_VMS = {
     "saconsole": {
-        "description": "Xubuntu 24.04 — WireGuard hub + observability stack",
+        "description": "Ubuntu Server 24.04 — WireGuard hub + observability stack",
         "wg_ip":       "10.10.0.1",
     },
     "target1": {
@@ -55,10 +55,10 @@ def banner(msg: str) -> None:
     console.print(Panel(f"[bold]{msg}[/bold]", expand=False))
 
 
-def run(cmd: list[str], check: bool = True, env: dict = None) -> subprocess.CompletedProcess:
+def run(cmd: list[str], check: bool = True, env: dict = None, cwd: str = None) -> subprocess.CompletedProcess:
     console.print(f"[dim]→ {' '.join(cmd)}[/dim]")
     try:
-        return subprocess.run(cmd, check=check, text=True, env=env)
+        return subprocess.run(cmd, check=check, text=True, env=env, cwd=cwd)
     except subprocess.CalledProcessError as e:
         console.print(f"[red]❌ Command failed (exit {e.returncode})[/red]")
         sys.exit(1)
@@ -91,15 +91,28 @@ def check_prerequisites() -> None:
     console.print("[green]✅ All prerequisites satisfied[/green]")
 
 
+# ── Shared Ansible environment ────────────────────────────────────────────────
+
+def ansible_env() -> dict:
+    """Return an env dict with ANSIBLE_CONFIG and SSH key set."""
+    env = os.environ.copy()
+    env["ANSIBLE_CONFIG"] = str(ANSIBLE_DIR / "ansible.cfg")
+    env["ANSIBLE_PRIVATE_KEY_FILE"] = os.path.expanduser(
+        os.environ.get("SSH_KEY_PATH", "~/.ssh/hasan_mighty")
+    )
+    return env
+
+
 # ── SSH wait ──────────────────────────────────────────────────────────────────
 
 def wait_for_ssh(limit: str = None, timeout: int = 300) -> bool:
     banner("Waiting for SSH")
-    inv = str(ANSIBLE_DIR / "inventory" / INVENTORY)
-    cmd = ["ansible", "all", "-i", inv, "-m", "ping", "--one-line"]
+    # Run from ANSIBLE_DIR so Ansible resolves group_vars/ correctly.
+    cmd = ["ansible", "all", "-i", f"inventory/{INVENTORY}", "-m", "ping", "--one-line"]
     if limit:
         cmd += ["--limit", limit]
 
+    env = ansible_env()
     start = time.time()
     with Progress(
         SpinnerColumn(),
@@ -108,7 +121,8 @@ def wait_for_ssh(limit: str = None, timeout: int = 300) -> bool:
     ) as progress:
         task = progress.add_task("waiting", elapsed=0, timeout=timeout)
         while time.time() - start < timeout:
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, env=env,
+                                    cwd=str(ANSIBLE_DIR))
             if result.returncode == 0 and "SUCCESS" in result.stdout:
                 console.print("[green]✅ SSH available[/green]")
                 return True
@@ -122,18 +136,20 @@ def wait_for_ssh(limit: str = None, timeout: int = 300) -> bool:
 
 # ── Ansible ───────────────────────────────────────────────────────────────────
 
-def run_ansible(limit: str = None, check_mode: bool = False, tags: str = None) -> None:
+def run_ansible(
+    limit: str = None,
+    check_mode: bool = False,
+    tags: str = None,
+    ask_become_pass: bool = False,
+) -> None:
     banner("Running Ansible")
-    env = os.environ.copy()
-    env["ANSIBLE_CONFIG"] = str(ANSIBLE_DIR / "ansible.cfg")
-    env["ANSIBLE_PRIVATE_KEY_FILE"] = os.path.expanduser(
-        os.environ.get("SSH_KEY_PATH", "~/.ssh/hasan_mighty")
-    )
+    env = ansible_env()
 
+    # Run from ANSIBLE_DIR so Ansible resolves group_vars/ and roles/ correctly.
     cmd = [
         "ansible-playbook",
-        "-i", str(ANSIBLE_DIR / "inventory" / INVENTORY),
-        str(ANSIBLE_DIR / PLAYBOOK),
+        "-i", f"inventory/{INVENTORY}",
+        PLAYBOOK,
         "-v",
     ]
     if limit:
@@ -143,8 +159,10 @@ def run_ansible(limit: str = None, check_mode: bool = False, tags: str = None) -
         console.print("[cyan]ℹ️  Check mode (dry run)[/cyan]")
     if tags:
         cmd += ["--tags", tags]
+    if ask_become_pass:
+        cmd.append("--ask-become-pass")
 
-    run(cmd, env=env)
+    run(cmd, env=env, cwd=str(ANSIBLE_DIR))
     console.print("[green]✅ Ansible complete[/green]")
 
 
@@ -159,6 +177,9 @@ def provision_vm(
 ) -> None:
     info = KVM_VMS[vm]
     banner(f"Provisioning {vm}  —  {info['description']}")
+
+    # 0. Ensure VM is running (it powers off after installation)
+    snapshot("start", vm)
 
     # 1. SSH poll
     if not skip_ssh_wait:
@@ -215,6 +236,16 @@ def main() -> int:
             skip_ssh_wait=args.skip_ssh_wait,
             skip_fresh_snapshot=args.skip_fresh_snapshot,
         )
+
+    # Configure WireGuard spoke on the controller (this host).
+    # Play 4 in site-kvm.yml targets 'localhost' (connection: local).
+    # It is always skipped when --limit <vm> is used above, so we run it
+    # explicitly here.  Skip in single-target mode — user may be doing
+    # incremental work and doesn't want to reconfigure the host mid-flight.
+    if not args.target and not args.check:
+        banner("Configuring controller WireGuard spoke")
+        console.print("[cyan]ℹ️  Your sudo password is required to configure WireGuard on this host.[/cyan]")
+        run_ansible(limit="localhost", tags=args.tags, ask_become_pass=True)
 
     banner("✅ All provisioning complete!")
 

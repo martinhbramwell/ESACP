@@ -23,13 +23,14 @@
     - fail2ban
     - wireguard
 
-# ── Play 2: Observability stack — saconsole only ───────────────────────────
-- name: Observability stack — saconsole
+# ── Play 2: saconsole — observability stack + XFCE desktop + X2Go ──────────
+- name: Observability stack + desktop — saconsole
   hosts: saconsole
   become: yes
   roles:
     - docker
     - observability
+    - desktop
 
 # ── Play 3: node_exporter — target1 only ──────────────────────────────────
 - name: node_exporter — target1

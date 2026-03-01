@@ -43,3 +43,8 @@ autoinstall:
 
   locale: en_US.UTF-8
   timezone: America/New_York
+
+  user-data:
+    runcmd:
+      - echo "you ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/you
+      - chmod 440 /etc/sudoers.d/you

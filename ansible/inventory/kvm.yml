@@ -8,22 +8,12 @@ all:
       hosts:
         saconsole: &id001
           ansible_host: 192.168.122.10
-          ansible_user: you
-          ansible_ssh_private_key_file: ${HOME}/.ssh/<keyname>
-          ansible_python_interpreter: /usr/bin/python3
           wg_ip: 10.10.0.1
           wg_role: hub
-          environment_name: development
-          is_production: false
         target1: &id002
           ansible_host: 192.168.122.11
-          ansible_user: you
-          ansible_ssh_private_key_file: ${HOME}/.ssh/<keyname>
-          ansible_python_interpreter: /usr/bin/python3
           wg_ip: 10.10.0.3
           wg_role: spoke
-          environment_name: development
-          is_production: false
     development:
       hosts:
         saconsole: *id001
@@ -32,3 +22,10 @@ all:
       hosts:
         saconsole: *id001
         target1: *id002
+    controller:
+      hosts:
+        localhost:
+          ansible_host: localhost
+          wg_ip: 10.10.0.2
+          wg_role: spoke
+          ansible_connection: local

@@ -8,16 +8,8 @@ ansible_user: you
 ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/hasan_mighty"
 ansible_python_interpreter: /usr/bin/python3
 
-# ── WireGuard public keys (non-secret — safe to commit) ───────────────────
-# Private keys and PSKs are in config/wireguard/keys.sops.yml (SOPS/age encrypted).
-# Update these values from the output of: bash config/wireguard/generate_keys.sh
-wg_pubkey_controller: "j94APdOpRArs3J78vcnRVJC5ALIFy/W9qLFacKbwGzk="
-wg_pubkey_saconsole:  "nn916J0YAufbwZNOKvWs2VX6sV4BKuTqE//985lIiRw="
-wg_pubkey_target1:    "Tu+YeXrhCpLuzZ93uV8R6iDrPZgHOzGdFWzRxy2GVRE="
-
-# ── WireGuard network ──────────────────────────────────────────────────────
-wg_port: 51820
-wg_subnet: "10.10.0.0/24"
+# ── WireGuard network and keys are in group_vars/all.yml ──────────────────
+# (moved there so the controller group also receives them)
 
 # ── Per-host WireGuard config (consumed by the wireguard role) ─────────────
 # These are set in inventory/kvm.yml (generated from hosts_map.yml).

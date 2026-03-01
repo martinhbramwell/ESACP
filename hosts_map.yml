@@ -43,15 +43,20 @@ groups:
         - lab
 
   # ── Management controller (this host) ─────────────────────────────────────
-  # ansible_managed: false — Ansible runs FROM here, not against it.
+  # ansible_managed: true — WireGuard spoke config is applied by Ansible locally.
+  # connection: local bypasses SSH; become: yes handles privilege escalation.
   controller:
     local:
-      hostname: "${HOSTNAME}"
+      hostname: localhost       # Ansible inventory key — must be "localhost" to match Play 4
       nickname: "${HOSTNAME}"
+      ansible_host: localhost
+      ansible_connection: local
       wg_ip: "10.10.0.2"
       wg_role: spoke
-      ansible_managed: false
+      ansible_managed: true
       platform: kvm            # set to: kvm | vbox | macos
+      ansible_groups:
+        - controller
 
   # ── Future groups — define now, activate by populating ────────────────────
   dev_group: {}

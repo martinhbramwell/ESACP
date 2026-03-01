@@ -1,0 +1,24 @@
+---
+# desktop/tasks/main.yml — Minimal XFCE4 desktop + X2Go server
+#
+# X2Go tunnels remote desktop sessions over SSH — no extra ports or firewall
+# rules needed beyond the existing SSH (22) access.
+#
+# Client setup on the host:
+#   sudo apt install x2goclient
+#   Open x2goclient → New Session → Session type: XFCE
+
+- name: Install xfce4 and X2Go server
+  apt:
+    name:
+      - xfce4
+      - xfce4-terminal
+      - x2goserver
+    state: present
+    update_cache: yes
+
+- name: Enable and start x2goserver
+  systemd:
+    name: x2goserver
+    enabled: yes
+    state: started

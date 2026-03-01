@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 # create_vms.sh — Create saconsole and target1 KVM VMs
 #
-# saconsole (Xubuntu 24.04.1):
-#   Uses --cdrom method. Requires ONE manual step at first boot:
-#   Connect via 'virt-viewer saconsole', press 'e' at the GRUB menu,
-#   append 'autoinstall' to the linux kernel line, press F10.
-#   Installation then runs fully unattended.
+# saconsole (Ubuntu Server 24.04.4):
+#   Uses --location method with --extra-args. Fully automated, no manual step.
 #
 # target1 (Ubuntu Server 24.04.4):
 #   Uses --location method with --extra-args. Fully automated, no manual step.
@@ -28,10 +25,15 @@ TARGET="${1:-both}"
 
 IMAGES_DIR="/var/lib/libvirt/images"
 
-SACONSOLE_ISO="${PROJ_ROOT}/xubuntu-24.04.1-desktop-amd64.iso"
-TARGET1_ISO="${PROJ_ROOT}/ubuntu-24.04.4-live-server-amd64.iso"
-SACONSOLE_SEED="${SCRIPT_DIR}/saconsole-seed.iso"
-TARGET1_SEED="${SCRIPT_DIR}/target1-seed.iso"
+# Resolve symlinks so QEMU (libvirt-qemu user) can access the files without
+# needing search permission on /home/hasan.
+# Both VMs use the Ubuntu Server 24.04.4 ISO.
+SACONSOLE_ISO="$(readlink -f "${PROJ_ROOT}/ubuntu-24.04.4-live-server-amd64.iso")"
+TARGET1_ISO="$(readlink -f "${PROJ_ROOT}/ubuntu-24.04.4-live-server-amd64.iso")"
+
+# Seed ISOs must live in IMAGES_DIR so QEMU can read them.
+SACONSOLE_SEED="${IMAGES_DIR}/saconsole-seed.iso"
+TARGET1_SEED="${IMAGES_DIR}/target1-seed.iso"
 
 # ── Preflight ────────────────────────────────────────────────────────────────
 
@@ -51,11 +53,16 @@ check_iso() {
 }
 
 check_seed() {
-    local path="$1" vm="$2"
-    if [[ ! -f "${path}" ]]; then
-        echo "ERROR: Seed ISO not found: ${path}"
+    local dest="$1" vm="$2"
+    local src="${SCRIPT_DIR}/${vm}-seed.iso"
+    if [[ ! -f "${src}" ]]; then
+        echo "ERROR: Seed ISO not found: ${src}"
         echo "       Run: bash platforms/kvm/create_seeds.sh"
         exit 1
+    fi
+    if [[ ! -f "${dest}" ]]; then
+        echo "Copying ${vm} seed ISO to ${IMAGES_DIR}/ (needs sudo) ..."
+        sudo cp "${src}" "${dest}"
     fi
 }
 
@@ -72,33 +79,29 @@ create_saconsole() {
         return
     fi
 
-    check_iso "${SACONSOLE_ISO}" "Xubuntu ISO"
+    check_iso "${SACONSOLE_ISO}" "Ubuntu Server ISO"
     check_seed "${SACONSOLE_SEED}" "saconsole"
 
-    echo "Creating saconsole VM..."
+    echo "Creating saconsole VM (fully automated)..."
+    # Ubuntu Server 24.04.4 live ISO; kernel/initrd under casper/.
+    # The seed ISO is labeled 'cidata'; cloud-init auto-detects it (ds=nocloud).
     virt-install \
         --name saconsole \
         --ram 4096 \
         --vcpus 2 \
         --disk "path=${IMAGES_DIR}/saconsole.qcow2,size=20,format=qcow2" \
-        --cdrom "${SACONSOLE_ISO}" \
+        --location "${SACONSOLE_ISO},kernel=casper/vmlinuz,initrd=casper/initrd" \
         --disk "path=${SACONSOLE_SEED},device=cdrom,readonly=on" \
         --network network=default \
         --os-variant ubuntu24.04 \
+        --extra-args "autoinstall ds=nocloud" \
         --graphics vnc \
         --noautoconsole
 
     echo ""
-    echo "✅  saconsole VM created."
-    echo ""
-    echo "ACTION REQUIRED — one manual step for Xubuntu autoinstall:"
-    echo "  1. Run: virt-viewer saconsole"
-    echo "  2. At the GRUB menu, press 'e'"
-    echo "  3. Find the line starting with 'linux' — append:  autoinstall"
-    echo "  4. Press F10 to boot"
-    echo ""
-    echo "Installation will then run unattended (~10–15 min)."
-    echo "The VM will power off when complete."
+    echo "✅  saconsole VM created and autoinstall running."
+    echo "    Monitor: virt-viewer saconsole"
+    echo "    The VM will power off when installation is complete."
 }
 
 # ── target1 ──────────────────────────────────────────────────────────────────
@@ -114,16 +117,18 @@ create_target1() {
     check_seed "${TARGET1_SEED}" "target1"
 
     echo "Creating target1 VM (fully automated)..."
+    # Ubuntu 24.04.4 live-server ISO stores kernel/initrd under casper/.
+    # virt-install --location requires explicit paths for this ISO layout.
     virt-install \
         --name target1 \
         --ram 2048 \
         --vcpus 2 \
         --disk "path=${IMAGES_DIR}/target1.qcow2,size=20,format=qcow2" \
-        --location "${TARGET1_ISO}" \
+        --location "${TARGET1_ISO},kernel=casper/vmlinuz,initrd=casper/initrd" \
         --disk "path=${TARGET1_SEED},device=cdrom,readonly=on" \
         --network network=default \
         --os-variant ubuntu24.04 \
-        --extra-args "autoinstall ds=nocloud;s=/dev/sr1/" \
+        --extra-args "autoinstall ds=nocloud" \
         --graphics vnc \
         --noautoconsole
 

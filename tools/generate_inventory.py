@@ -22,7 +22,6 @@ from pathlib import Path
 PROJ_ROOT = Path(__file__).parent.parent
 HOSTS_MAP  = PROJ_ROOT / "hosts_map.yml"
 KVM_INV    = PROJ_ROOT / "ansible" / "inventory" / "kvm.yml"
-SSH_KEY    = "${HOME}/.ssh/<keyname>"   # placeholder — update in group_vars/kvm.yml
 
 
 def load_hosts_map() -> dict:
@@ -45,16 +44,18 @@ def build_inventory(data: dict) -> dict:
                 continue
 
             hostname = attrs["hostname"]
-            host_vars[hostname] = {
-                "ansible_host":               attrs.get("virbr0_ip", attrs["hostname"]),
-                "ansible_user":               "you",
-                "ansible_ssh_private_key_file": SSH_KEY,
-                "ansible_python_interpreter": "/usr/bin/python3",
-                "wg_ip":                      attrs.get("wg_ip"),
-                "wg_role":                    attrs.get("wg_role"),
-                "environment_name":           "development",
-                "is_production":              False,
+            # Only host-specific vars here; connection settings (ansible_user,
+            # ansible_ssh_private_key_file, etc.) live in group_vars/kvm.yml
+            # so they are not duplicated or overridden with placeholders.
+            # ansible_connection is included when explicitly set (e.g. "local" for controller).
+            hv = {
+                "ansible_host": attrs.get("virbr0_ip", attrs["hostname"]),
+                "wg_ip":        attrs.get("wg_ip"),
+                "wg_role":      attrs.get("wg_role"),
             }
+            if attrs.get("ansible_connection"):
+                hv["ansible_connection"] = attrs["ansible_connection"]
+            host_vars[hostname] = hv
 
             for grp in attrs.get("ansible_groups", []):
                 group_members.setdefault(grp, []).append(hostname)

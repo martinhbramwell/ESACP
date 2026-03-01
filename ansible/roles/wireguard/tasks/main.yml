@@ -69,6 +69,14 @@
     comment: "WireGuard"
   when: wg_role == 'hub'
 
+- name: Allow UFW to forward packets between WireGuard peers (hub only)
+  lineinfile:
+    path: /etc/default/ufw
+    regexp: '^DEFAULT_FORWARD_POLICY='
+    line: 'DEFAULT_FORWARD_POLICY="ACCEPT"'
+  notify: reload ufw
+  when: wg_role == 'hub'
+
 - name: Enable and start wg-quick@wg0
   systemd:
     name: wg-quick@wg0
