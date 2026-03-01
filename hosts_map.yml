@@ -1,0 +1,82 @@
+# hosts_map.yml — ESACP Authoritative Host Directory
+#
+# Single source of truth for all host identities.
+# Both Ansible inventory and WireGuard peer configs are derived from this file.
+#
+# After any change here, regenerate the Ansible inventory:
+#   python tools/generate_inventory.py
+#
+# ansible_managed: true  → host is provisioned by Ansible
+# ansible_managed: false → host appears as WireGuard peer only (manually configured)
+
+wireguard_subnet: "10.10.0.0/24"
+wireguard_port: 51820
+
+groups:
+
+  # ── KVM guests on this host ────────────────────────────────────────────────
+  kvm:
+    saconsole:
+      hostname: saconsole
+      nickname: sac
+      virbr0_ip: "192.168.122.10"
+      wg_ip: "10.10.0.1"
+      wg_role: hub
+      ansible_managed: true
+      platform: kvm
+      ansible_groups:
+        - kvm
+        - development
+        - lab
+
+    target1:
+      hostname: target1
+      nickname: tgt1
+      virbr0_ip: "192.168.122.11"
+      wg_ip: "10.10.0.3"
+      wg_role: spoke
+      ansible_managed: true
+      platform: kvm
+      ansible_groups:
+        - kvm
+        - development
+        - lab
+
+  # ── Management controller (this host) ─────────────────────────────────────
+  # ansible_managed: false — Ansible runs FROM here, not against it.
+  controller:
+    local:
+      hostname: "${HOSTNAME}"
+      nickname: "${HOSTNAME}"
+      wg_ip: "10.10.0.2"
+      wg_role: spoke
+      ansible_managed: false
+      platform: kvm            # set to: kvm | vbox | macos
+
+  # ── Future groups — define now, activate by populating ────────────────────
+  dev_group: {}
+  stage_group: {}
+  staff_group: {}
+  #
+  # Example entry (when ready to activate):
+  #
+  # dev_group:
+  #   dev1:
+  #     hostname: <real-hostname>
+  #     nickname: dev1
+  #     wg_ip: "10.10.0.10"
+  #     wg_role: spoke
+  #     ansible_managed: true
+  #     platform: kvm
+  #     ansible_groups:
+  #       - dev_group
+  #       - development
+  #
+  # staff_group:
+  #   staff1:
+  #     hostname: <bob-hostname>
+  #     nickname: staff1
+  #     wg_ip: "10.10.0.20"
+  #     wg_role: spoke
+  #     ansible_managed: false   # manually configured, VPN peer only
+  #     platform: macos

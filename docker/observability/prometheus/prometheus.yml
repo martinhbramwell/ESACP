@@ -53,6 +53,14 @@ scrape_configs:
     static_configs:
       - targets: ['promtail:9080']
 
+  # Stage 2.1: target1 node_exporter (via WireGuard 10.10.0.3)
+  - job_name: 'node-target1'
+    static_configs:
+      - targets: ['10.10.0.3:9100']
+        labels:
+          host: 'target1'
+          env: 'kvm-lab'
+
   # Future: ERPNext metrics endpoint
   # - job_name: 'erpnext'
   #   static_configs:

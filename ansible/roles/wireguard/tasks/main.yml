@@ -1,0 +1,86 @@
+---
+# wireguard role — install WireGuard and configure wg0 interface
+#
+# Required host vars (set in inventory/kvm.yml via hosts_map.yml):
+#   wg_ip    — this host's WireGuard IP (e.g. "10.10.0.1")
+#   wg_role  — "hub" or "spoke"
+#
+# Required group vars (group_vars/kvm.yml):
+#   wg_port, wg_pubkey_controller, wg_pubkey_saconsole, wg_pubkey_target1
+#
+# Private keys / PSKs are read from config/wireguard/keys.sops.yml at play time.
+
+- name: Install wireguard-tools
+  apt:
+    name: wireguard-tools
+    state: present
+    update_cache: yes
+
+- name: Create /etc/wireguard
+  file:
+    path: /etc/wireguard
+    state: directory
+    mode: '0700'
+    owner: root
+    group: root
+
+- name: Decrypt WireGuard keys.sops.yml
+  set_fact:
+    wg_keys: "{{ lookup('community.sops.sops',
+                 playbook_dir + '/../config/wireguard/keys.sops.yml',
+                 input_type='yaml') | from_yaml }}"
+  no_log: true
+
+- name: Derive this host's WireGuard identity
+  set_fact:
+    wg_host_key: >-
+      {%- if inventory_hostname == 'saconsole' -%}
+        {{ wg_keys.saconsole }}
+      {%- elif inventory_hostname == 'target1' -%}
+        {{ wg_keys.target1 }}
+      {%- else -%}
+        {{ wg_keys.controller }}
+      {%- endif -%}
+  no_log: true
+
+- name: Write WireGuard private key
+  copy:
+    content: "{{ wg_host_key.private_key }}\n"
+    dest: /etc/wireguard/private.key
+    mode: '0600'
+    owner: root
+    group: root
+  no_log: true
+
+- name: Deploy wg0.conf
+  template:
+    src: wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    mode: '0600'
+    owner: root
+    group: root
+  notify: restart wg0
+
+- name: Open WireGuard port in UFW (hub only)
+  ufw:
+    rule: allow
+    port: "{{ wg_port }}"
+    proto: udp
+    comment: "WireGuard"
+  when: wg_role == 'hub'
+
+- name: Enable and start wg-quick@wg0
+  systemd:
+    name: wg-quick@wg0
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+- name: Verify WireGuard interface is up
+  command: wg show wg0
+  register: wg_status
+  changed_when: false
+
+- name: Show WireGuard status
+  debug:
+    msg: "{{ wg_status.stdout_lines }}"

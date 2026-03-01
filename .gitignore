@@ -92,6 +92,10 @@ override.yml
 
 # Session/scratch files
 dialog*.txt
+DIALOG
+
+# Generated seed ISOs (built by platforms/kvm/create_seeds.sh)
+platforms/kvm/*.iso
 
 # Obsolete/superseded guides
 old_*.md

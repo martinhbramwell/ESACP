@@ -1,0 +1,51 @@
+---
+# site-kvm.yml — Top-level playbook for ESACP Stage 2.1 KVM hosts
+#
+# Play order:
+#   1. All KVM VMs:    common, ssh, firewall, fail2ban, wireguard
+#   2. saconsole only: docker, observability
+#   3. target1 only:   node_exporter
+#   4. Controller:     wireguard spoke config (connection: local)
+#
+# Usage:
+#   ansible-playbook -i ansible/inventory/kvm.yml ansible/site-kvm.yml
+#   ansible-playbook -i ansible/inventory/kvm.yml ansible/site-kvm.yml --limit saconsole
+#   ansible-playbook -i ansible/inventory/kvm.yml ansible/site-kvm.yml --tags wireguard
+
+# ── Play 1: Base configuration for all KVM VMs ────────────────────────────
+- name: Base configuration — all KVM hosts
+  hosts: kvm
+  become: yes
+  roles:
+    - common
+    - ssh
+    - firewall
+    - fail2ban
+    - wireguard
+
+# ── Play 2: Observability stack — saconsole only ───────────────────────────
+- name: Observability stack — saconsole
+  hosts: saconsole
+  become: yes
+  roles:
+    - docker
+    - observability
+
+# ── Play 3: node_exporter — target1 only ──────────────────────────────────
+- name: node_exporter — target1
+  hosts: target1
+  become: yes
+  roles:
+    - node_exporter
+
+# ── Play 4: WireGuard spoke — controller (this host, runs locally) ─────────
+- name: WireGuard spoke — controller
+  hosts: localhost
+  connection: local
+  become: yes
+  vars:
+    inventory_hostname: controller   # used by wg0.conf.j2 peer selection
+    wg_ip: "10.10.0.2"
+    wg_role: spoke
+  roles:
+    - wireguard
