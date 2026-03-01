@@ -102,12 +102,16 @@ export SNAPSHOT_NAME="Stage 1.5 Complete"
 - **`docker-compose up -d --force-recreate`** is used in the Ansible role so that config
   file changes (bind-mounted) are always picked up without manual container restarts.
 
-- **Grafana metrics path**: With `serve_from_sub_path = true` in grafana.ini, Grafana
-  serves metrics at `/grafana/metrics`, not `/metrics`. The Prometheus scrape job
-  includes `metrics_path: /grafana/metrics`.
+- **Grafana metrics path**: Grafana 10 serves `/metrics` at the HTTP root regardless
+  of `serve_from_sub_path` — it is a separate handler outside the application router.
+  The Prometheus scrape job uses the default `/metrics` path (no `metrics_path` override).
 
 - **Datasource UIDs must be pinned** in `datasources.yml` (`uid: prometheus`, `uid: loki`)
   so provisioned dashboard JSONs can reference them reliably.
+
+- **ContainerRestartLoop alert** uses `{name!=""}` filter. cAdvisor exposes a root
+  cgroup entry with an empty `name` label (representing the host machine) whose
+  `container_start_time_seconds` rate trips the threshold — the filter excludes it.
 
 - **Promtail docker_sd_configs** requires the Docker socket mounted:
   `/var/run/docker.sock:/var/run/docker.sock:ro`

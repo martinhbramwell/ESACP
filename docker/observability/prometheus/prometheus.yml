@@ -38,9 +38,8 @@ scrape_configs:
     static_configs:
       - targets: ['alertmanager:9093']
 
-  # Grafana (serve_from_sub_path=true routes metrics to /grafana/metrics)
+  # Grafana (/metrics is served at HTTP root regardless of serve_from_sub_path)
   - job_name: 'grafana'
-    metrics_path: /grafana/metrics
     static_configs:
       - targets: ['grafana:3000']
 

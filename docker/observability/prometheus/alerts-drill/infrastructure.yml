@@ -59,7 +59,7 @@ groups:
 
       # Container restart loop alert
       - alert: ContainerRestartLoop
-        expr: rate(container_start_time_seconds[5m]) > 0.01
+        expr: rate(container_start_time_seconds{name!=""}[5m]) > 0.01
         for: 30s
         labels:
           severity: warning
