@@ -48,6 +48,8 @@ services:
       - observability
     ports:
       - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # resolves to host IP; used to scrape node_exporter
     volumes:
       - prometheus_data:/prometheus
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -80,15 +82,17 @@ services:
       - '--storage.path=/alertmanager'
 
   # Node Exporter - Host Metrics
+  # network_mode: host gives the container the host's network namespace so that:
+  #   (a) nodename in node_uname_info matches the VM hostname (saconsole), not a container ID
+  #   (b) wg0 and all other host interfaces are visible to the collector
+  # Prometheus reaches it via host.docker.internal (see extra_hosts on prometheus service).
   node_exporter:
     image: prom/node-exporter:v1.7.0
     container_name: node_exporter
     restart: unless-stopped
+    network_mode: host
+    pid: host
     user: "65534"
-    networks:
-      - observability
-    ports:
-      - "9100:9100"
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
@@ -133,8 +137,11 @@ services:
       - loki
 
   # cAdvisor - Container Metrics (Optional)
+  # gcr.io images (≤v0.49.x) embed Docker SDK API v1.41 — incompatible with Docker CE 25+.
+  # v0.55.1+ ships with a newer SDK that supports v1.44+.
+  # Note: ghcr.io/google/cadvisor tags do NOT exist despite the README claiming migration there.
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
     container_name: cadvisor
     restart: unless-stopped
     privileged: true

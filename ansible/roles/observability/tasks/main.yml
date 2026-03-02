@@ -102,6 +102,14 @@
     mode: '0600'
   no_log: true
 
+- name: Allow node_exporter scraping from Docker bridge networks
+  ufw:
+    rule: allow
+    port: "9100"
+    proto: tcp
+    src: "172.16.0.0/12"
+    comment: "node_exporter — Prometheus scrape via Docker bridge (network_mode: host)"
+
 - name: Pull Docker images
   command: docker-compose -f /opt/observability/docker-compose.yml pull
   register: docker_pull
