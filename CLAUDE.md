@@ -116,6 +116,7 @@ The Ansible role refuses to run drill profile against production/protected hosts
 ```
 hosts_map.yml                       # Authoritative host directory (source of truth)
 tools/generate_inventory.py         # Derives ansible/inventory/kvm.yml from hosts_map.yml
+tools/esacp.py                      # Unified lab CLI (10 subcommands — see below)
 
 config/wireguard/
   generate_keys.sh                  # Generates keypairs + PSKs → keys.sops.yml
@@ -167,7 +168,40 @@ docker/observability/
 docs/
   RUNBOOK.md                        # Operational runbook for all 10 scenarios
   SETUP_GUIDE.md                    # Setup instructions (VirtualBox + KVM paths)
+  BuildOutProcedure.md              # Step-by-step operator rebuild guide (KVM path)
+  SystemOverview.md                 # Non-technical system description
+  SystemOverview_tech.md            # Technical system description (developer-facing)
 ```
+
+---
+
+## Unified CLI — tools/esacp.py
+
+Single entry point for the full lab lifecycle. All defaults come from config files
+(`hosts_map.yml`, `ansible/group_vars/`). Run from the project root:
+
+```
+python tools/esacp.py <subcommand> [options]
+```
+
+| Subcommand | What it does |
+|---|---|
+| `confirmPrerequisites` | Checks required tools and files; offers to `apt install` missing packages |
+| `validateKeys` | SOPS-decrypts `config/wireguard/keys.sops.yml`; verifies all key blocks exist |
+| `clearKnownHosts` | Removes stale `~/.ssh/known_hosts` entries for all ESACP VMs (hostnames, nicknames, IPs) |
+| `destroyVM <vm>` | Shows what will be deleted, asks for confirmation, then destroys VM + all storage |
+| `buildVM <vm>` | Builds seed ISO → creates VM → polls for autoinstall completion → polls SSH |
+| `provisionVM <vm>` | SSH check → Fresh Install snapshot → Ansible (task names + changes only) → Baseline snapshot |
+| `verifyVPN` | Pings each VM's WireGuard IP; shows `wg show` on hub; cross-VM pings |
+| `validateObservability` | Auto-retrieves Grafana creds (env → saconsole .env → prompt); runs 27-check suite |
+| `snapShotVM <vm> [name]` | Creates a named snapshot; if name omitted, lists existing snapshots |
+| `displayConfiguration` | Rich tree of all user-alterable settings, each annotated with its source file |
+
+`provisionVM` Ansible output filter: shows PLAY headers, ✓ ok tasks, ★ changed tasks, ❌ fatal errors,
+and the PLAY RECAP summary. All other output is suppressed.
+
+`validateObservability` credential resolution order: `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` env vars
+→ SSH to saconsole and read `/opt/observability/.env` → interactive prompt.
 
 ---
 
