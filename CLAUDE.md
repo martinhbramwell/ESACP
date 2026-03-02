@@ -298,6 +298,12 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   `revertToBaseline.py` previously matched only top-level snapshot names. Fixed to
   match `SnapshotName*=` prefix for nested snapshots.
 
+- **Docker daemon race on first boot** (fixed in docker role): after `daemon.json` is
+  written, the `notify: restart docker` handler can leave Docker in a failed state before
+  the observability role runs `docker-compose pull`. Fixed by adding `meta: flush_handlers`
+  + `service: state=started retries=5 delay=5` at the end of the docker role to confirm
+  the daemon is running before any downstream role uses it.
+
 - **Secrets**: `ansible/group_vars/all.sops.yml` holds encrypted credentials
   (Telegram bot token, Grafana admin password). Requires SOPS + age key to decrypt.
   See `SETUP_GUIDE.md` for key setup.

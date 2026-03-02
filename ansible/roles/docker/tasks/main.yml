@@ -84,6 +84,16 @@
       }
   notify: restart docker
 
+- name: Flush handlers (apply daemon.json restart before continuing)
+  meta: flush_handlers
+
+- name: Ensure Docker is running after daemon configuration
+  service:
+    name: docker
+    state: started
+  retries: 5
+  delay: 5
+
 # Docker networks are created by docker-compose on first 'up -d'.
 # Explicit pre-creation removed: community.docker.docker_network requires
 # the Python 'docker' library on the remote host, which is not installed.
