@@ -75,8 +75,7 @@ decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH
 |---|---|
 | Fresh Install | Post cloud-init, pre-Ansible |
 | Stage 2.1 Baseline | Full Ansible provision + WireGuard verified |
-| Stage 2.1 Validated | All observability fixes applied, 27/27 validation pass |
-| Stage 2.1 cAdvisor Fixed | cAdvisor dashboard `${DS_PROMETHEUS}` resolved, 27/27 re-confirmed |
+| Stage 2.1 Validated | 27/27 validation pass — full from-scratch rebuild confirmed |
 
 ### Observability Stack (Docker Compose on saconsole)
 All services run in Docker at `/opt/observability/`.
@@ -297,6 +296,17 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 - **VirtualBox snapshot detection bug** (fixed): `snapshot_exists()` in
   `revertToBaseline.py` previously matched only top-level snapshot names. Fixed to
   match `SnapshotName*=` prefix for nested snapshots.
+
+- **SSH polling timeout during autoinstall**: `provision_kvm.py` polls SSH with a 300s
+  timeout. Ubuntu 24.04 autoinstall takes 10–20 min — if the VMs are still installing,
+  the poll times out before SSH is available. Workaround: let VMs power off (autoinstall
+  done), then re-run `provision_kvm.py --target <vm>`. The provisioner starts the
+  powered-off VM and SSH is ready in ~30s from a normal boot.
+
+- **known_hosts must be cleared on VM rebuild**: after destroying and recreating VMs,
+  the new host keys differ from the cached entries and SSH rejects connections.
+  Clear with: `ssh-keygen -R saconsole && ssh-keygen -R target1 &&
+  ssh-keygen -R 192.168.122.10 && ssh-keygen -R 192.168.122.11`
 
 - **Docker daemon race on first boot** (fixed in docker role): after `daemon.json` is
   written, the `notify: restart docker` handler can leave Docker in a failed state before
