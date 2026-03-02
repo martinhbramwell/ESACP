@@ -76,6 +76,7 @@ decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH
 | Fresh Install | Post cloud-init, pre-Ansible |
 | Stage 2.1 Baseline | Full Ansible provision + WireGuard verified |
 | Stage 2.1 Validated | All observability fixes applied, 27/27 validation pass |
+| Stage 2.1 cAdvisor Fixed | cAdvisor dashboard `${DS_PROMETHEUS}` resolved, 27/27 re-confirmed |
 
 ### Observability Stack (Docker Compose on saconsole)
 All services run in Docker at `/opt/observability/`.
