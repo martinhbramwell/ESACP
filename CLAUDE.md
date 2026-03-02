@@ -12,19 +12,51 @@ A home-lab infrastructure automation and observability training project.
 | Stage 1 | ✅ Complete | Security-hardened Ubuntu 22.04 VM + full observability stack |
 | Stage 1.5 | ✅ Complete | Observability validation, alert profiles, dashboards, chaos framework |
 | Stage 2.1 | ✅ Complete | KVM/Xubuntu parallel path: WireGuard mesh, saconsole + target1, multi-host Prometheus |
-| Stage 2.x | 🔜 Next | Hypervisor abstraction, chaos framework on KVM, version watchdog pipeline |
+| Stage 2.x | 🔜 Next | 4-platform abstraction, VPS backend (CloudStack), chaos on KVM, version watchdog |
 
 ---
 
 ## Architecture
 
-### Stage 1–1.5: VirtualBox/WSL Path
+### Target Platform Model
+
+ESACP supports 4 controller platforms. Each controller manages a mix of local VMs
+and/or remote VPS hosts via Ansible + SSH. The configuration layer (`hosts_map.yml`)
+is designed to handle both in all 4 cases.
+
+| # | Controller OS | Hypervisor / VPS | Status |
+|---|---|---|---|
+| 1 | Windows 11 + WSL2 | VirtualBox (local VMs) | ✅ Stage 1–1.5 |
+| 2 | Xubuntu | KVM/libvirt (local VMs) | ✅ Stage 2.1 |
+| 3 | Ubuntu Server + XFCE + X2Go | External VPS (iwStack) | 🔜 Planned |
+| 4 | macOS | External VPS (iwStack) | 🔜 Planned |
+
+Platforms 3 and 4 are **controller-only** — no local hypervisor. The controller runs
+Ansible, Python orchestration scripts, SOPS/age, and SSH. All managed hosts
+(Grafana server + workhorse VMs) are external VPS instances.
+
+**VPS Provider: iwStack/cdStack (Prometeus)**
+- URL: https://prometeus.net — datacenters in Milan and Rome (Italy)
+- Underlying platform: **CloudStack** (not KVM-direct, not OpenStack)
+- API: **CloudStack API** accessible via `CloudMonkey` CLI or Python SDK
+- Snapshots: supported via API (disk-only; schedulable hourly/daily/weekly/monthly)
+- Billing: pay-as-you-go credit system (€1 = 1 cdCredit)
+- The VPS abstraction backend for `revertToBaseline.py` and `run_scenario.py`
+  will target the CloudStack API
+
+**macOS controller hosting** (for Platform 4 testing without physical hardware):
+MacStadium, Mac Mini Vault, HostMyApple, MacinCloud all offer bare-metal Mac hosting.
+Since the Mac is controller-only (just Ansible/Python/SSH), even the lowest tier suffices.
+Note: hosted Macs are current macOS on Apple Silicon; the end-user target is
+decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH, Ansible).
+
+### Stage 1–1.5: Platform 1 Detail (VirtualBox/WSL)
 - **Host**: Windows 11 with WSL2 (Ubuntu) + VirtualBox
 - **Guest VM**: Ubuntu 22.04 (`console`), bridged networking, DHCP
 - **Provisioning**: Ansible run from WSL via `orchestration/provision.py`
 - **Snapshot management**: VirtualBox via `orchestration/revertToBaseline.py`
 
-### Stage 2.1: KVM/Xubuntu Path
+### Stage 2.1: Platform 2 Detail (KVM/Xubuntu)
 - **Host**: Xubuntu workstation (`${HOSTNAME}`) with KVM/QEMU/libvirt
 - **Guest VMs** (both Ubuntu Server 24.04.4, created via cloud-init + virt-install):
 
@@ -233,15 +265,38 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 
 ## Stage 2.x Scope (next)
 
-Stage 2.1 (KVM parallel path) is complete. Remaining Stage 2 work:
+Stage 2.1 (KVM parallel path) is complete. Remaining work, in rough priority order:
 
-- Abstract hypervisor operations in `orchestration/revertToBaseline.py` and
-  `orchestration/chaos/run_scenario.py` (currently hardcoded to VirtualBox/`VBoxManage`)
-  → detect hypervisor from environment or config; add KVM equivalents via `virsh`
-- Port the chaos framework (`run_scenario.py`, `scenarios.yml`) to work on KVM VMs
-- Design a **version watchdog + staging rebuild pipeline**:
-  monitor upstream releases of all pinned components, trigger from-scratch rebuild
-  on staging VMs, run the proof-of-life checklist automatically, report pass/fail
-  before promoting to the main lab (motivated by cAdvisor/Promtail SDK compatibility
-  issues discovered during Stage 2.1 validation)
-- Update `SETUP_GUIDE.md` with the full KVM setup path
+### Abstraction layer (`revertToBaseline.py`, `run_scenario.py`)
+Currently hardcoded to VirtualBox/`VBoxManage`. Needs three backends:
+- **VirtualBox**: existing (Platform 1)
+- **KVM/virsh**: `virsh snapshot-create-as`, `virsh snapshot-revert`, `virsh start`
+- **CloudStack API**: via `CloudMonkey` or Python SDK for iwStack VPS hosts
+  (Platforms 3 & 4 — external VPS, no local hypervisor)
+Backend selected by environment variable or per-host config in `hosts_map.yml`.
+
+### Platform 3 (Ubuntu Server + XFCE + X2Go controller)
+- New `ansible/inventory/ubuntu-server.yml` + `ansible/site-ubuntu-server.yml`
+- External VPS workhorse VMs provisioned via CloudStack API
+- WireGuard mesh extended to VPS hosts
+
+### Platform 4 (macOS controller)
+- New `ansible/inventory/macos.yml` + provisioner script
+- macOS-specific dependency install (Homebrew, Python, SOPS/age)
+- External VPS workhorse VMs same as Platform 3
+
+### Mixed local + VPS inventory
+`hosts_map.yml` schema to be extended with a `backend:` field per host
+(`vbox` | `kvm` | `cloudstack`) so all 4 platforms can manage a mix of
+local VMs and remote VPS instances from the same inventory.
+
+### Chaos framework on KVM
+Port `orchestration/chaos/run_scenario.py` and `scenarios.yml` to work
+against KVM VMs (Platform 2), replacing VirtualBox-specific assumptions.
+
+### Version watchdog + staging rebuild pipeline
+Monitor upstream releases of all pinned components (Prometheus, Grafana, Loki,
+Promtail, cAdvisor, node_exporter, Alertmanager, Docker CE, Ansible collections,
+Ubuntu LTS). Trigger from-scratch rebuild on staging VMs, run the proof-of-life
+checklist automatically, report pass/fail before promoting to the main lab.
+Motivated by the cAdvisor/Promtail SDK compatibility issues found in Stage 2.1.
