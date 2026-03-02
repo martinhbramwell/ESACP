@@ -150,6 +150,39 @@ export SNAPSHOT_NAME="Stage 1.5 Complete"
 
 ---
 
+## Commit Conventions
+
+All commits must:
+1. **Follow Conventional Commits** format: `<type>[optional scope]: <description>`
+2. **Be GPG-signed** (`git commit -S`)
+3. **Include the co-author trailer**: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
+4. **Update CLAUDE.md** if the commit changes architecture, key files, stage status, or gotchas
+
+Common types and scopes used in this project:
+
+| Type | When to use |
+|---|---|
+| `feat` | New capability (new role, new VM, new script) |
+| `fix` | Bug or misconfiguration fix |
+| `docs` | CLAUDE.md, RUNBOOK.md, SETUP_GUIDE.md, comments |
+| `refactor` | Code restructure with no behaviour change |
+| `chore` | Dependency updates, generated files, housekeeping |
+| `ci` | Ansible playbook changes, provisioner scripts |
+| `perf` | Performance improvements |
+| `test` | Validation scripts, chaos scenarios |
+
+Common scopes: `kvm`, `vbox`, `observability`, `wireguard`, `ansible`, `claude`, `chaos`
+
+Examples:
+```
+feat(kvm): add Stage 2.1 parallel platform with WireGuard
+fix(observability): node_exporter host networking, cAdvisor v0.55.1
+docs(claude): update for Stage 2.1 completion — KVM architecture, new gotchas
+chore(ansible): regenerate kvm inventory from hosts_map.yml
+```
+
+---
+
 ## Known Decisions & Gotchas
 
 - **`docker-compose up -d --force-recreate`** is used in the Ansible role so that config
