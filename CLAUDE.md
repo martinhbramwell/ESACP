@@ -266,6 +266,15 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   instead: `label_values(container_cpu_usage_seconds_total, instance)` and
   `label_values(container_cpu_usage_seconds_total{instance=~"$host"}, name)`.
 
+- **Grafana provisioned dashboards — `${DS_PROMETHEUS}` unresolved**: dashboards
+  downloaded from Grafana.com use an `__inputs` block and `${DS_PROMETHEUS}` as a
+  datasource placeholder (the import-dialog maps this to a real datasource). When a
+  dashboard is provisioned from a file (not UI import), Grafana 10 does NOT resolve
+  `${DS_PROMETHEUS}` — every panel and template variable has no datasource and renders
+  nothing. Fix: replace all `${DS_PROMETHEUS}` occurrences with the pinned datasource
+  UID (`prometheus`) and remove the `__inputs` block. Use the object form:
+  `{"type": "prometheus", "uid": "prometheus"}` to match Grafana 10 native format.
+
 - **node_exporter host networking**: `network_mode: host` + `pid: host` gives correct
   hostname and interface visibility. Prometheus uses `host.docker.internal:9100`
   (via `extra_hosts: host-gateway` on the prometheus service). UFW must allow
