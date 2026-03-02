@@ -752,7 +752,7 @@
         "allValue": ".*",
         "current": {},
         "datasource": "${DS_PROMETHEUS}",
-        "definition": "label_values({__name__=~\"container.*\"},instance)",
+        "definition": "label_values(container_cpu_usage_seconds_total, instance)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -762,7 +762,7 @@
         "name": "host",
         "options": [],
         "query": {
-          "query": "label_values({__name__=~\"container.*\"},instance)",
+          "query": "label_values(container_cpu_usage_seconds_total, instance)",
           "refId": "Prometheus-host-Variable-Query"
         },
         "refresh": 1,
@@ -779,7 +779,7 @@
         "allValue": ".*",
         "current": {},
         "datasource": "${DS_PROMETHEUS}",
-        "definition": "label_values({__name__=~\"container.*\", instance=~\"$host\"},name)",
+        "definition": "label_values(container_cpu_usage_seconds_total{instance=~\"$host\"}, name)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -789,7 +789,7 @@
         "name": "container",
         "options": [],
         "query": {
-          "query": "label_values({__name__=~\"container.*\", instance=~\"$host\"},name)",
+          "query": "label_values(container_cpu_usage_seconds_total{instance=~\"$host\"}, name)",
           "refId": "Prometheus-container-Variable-Query"
         },
         "refresh": 1,
