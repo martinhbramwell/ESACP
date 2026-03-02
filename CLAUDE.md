@@ -127,6 +127,7 @@ orchestration/
   provision_kvm.py                  # KVM lifecycle: seeds, VMs, snapshots, Ansible
   provision.py                      # VirtualBox path (Stage 1-1.5, untouched)
   revertToBaseline.py               # VirtualBox snapshot restore (untouched)
+  validate_observability.py         # End-to-end stack validation (27 checks, 6 sections)
   chaos/
     run_scenario.py                 # 9-step failure injection lifecycle
     scenarios.yml                   # 10 scenarios with parameters
@@ -179,6 +180,17 @@ export SNAPSHOT_NAME="Stage 1.5 Complete"
 # provision_kvm.py reads these from ansible/group_vars/ and hosts_map.yml
 # No additional env vars required beyond SOPS age key at ~/.config/sops/age/keys.txt
 ```
+
+### Observability validation
+```bash
+export GRAFANA_ADMIN_USER=<user>
+export GRAFANA_ADMIN_PASSWORD=<password>
+python3 orchestration/validate_observability.py          # auto-detects saconsole
+python3 orchestration/validate_observability.py --obs-host <name>  # explicit host
+python3 orchestration/validate_observability.py -v       # verbose (show passing detail)
+```
+All check targets (jobs, nodenames, datasource UIDs, dashboard titles) are derived
+from the project's own config files — nothing is hardcoded in the script.
 
 ---
 
@@ -234,6 +246,18 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 - **Promtail docker_sd_configs** requires the Docker socket mounted:
   `/var/run/docker.sock:/var/run/docker.sock:ro`
   This provides `container_name` labels on all log streams.
+  Note: docker_sd_configs does NOT auto-set a `job` label — logs appear in Loki
+  under `container_name`, not `job=docker`. Query by `{container_name="..."}`.
+
+- **Promtail systemd-journal** requires three additional mounts to reach journald
+  from inside the container: `/run/log/journal`, `/var/log/journal`, `/etc/machine-id`
+  (all `:ro`). Without these, the `journal` scrape config silently produces no logs.
+
+- **cAdvisor dashboard template variables**: Grafana 10 blocks `label_values()` queries
+  that use `{__name__=~"..."}` regex selectors for performance reasons — the host and
+  container dropdowns return empty and all panels show no data. Use a concrete metric name
+  instead: `label_values(container_cpu_usage_seconds_total, instance)` and
+  `label_values(container_cpu_usage_seconds_total{instance=~"$host"}, name)`.
 
 - **node_exporter host networking**: `network_mode: host` + `pid: host` gives correct
   hostname and interface visibility. Prometheus uses `host.docker.internal:9100`
