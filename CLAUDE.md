@@ -69,6 +69,13 @@ decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH
 - **Provisioning**: `orchestration/provision_kvm.py` → runs `ansible/site-kvm.yml`
 - **Inventory source of truth**: `hosts_map.yml` → `tools/generate_inventory.py` → `ansible/inventory/kvm.yml`
 - **Snapshot management**: `platforms/kvm/snapshot.py` (virsh wrapper)
+- **Current snapshots** (both VMs):
+
+| Snapshot | State captured |
+|---|---|
+| Fresh Install | Post cloud-init, pre-Ansible |
+| Stage 2.1 Baseline | Full Ansible provision + WireGuard verified |
+| Stage 2.1 Validated | All observability fixes applied, 27/27 validation pass |
 
 ### Observability Stack (Docker Compose on saconsole)
 All services run in Docker at `/opt/observability/`.
