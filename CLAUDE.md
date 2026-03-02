@@ -297,11 +297,11 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   `revertToBaseline.py` previously matched only top-level snapshot names. Fixed to
   match `SnapshotName*=` prefix for nested snapshots.
 
-- **SSH polling timeout during autoinstall**: `provision_kvm.py` polls SSH with a 300s
-  timeout. Ubuntu 24.04 autoinstall takes 10–20 min — if the VMs are still installing,
-  the poll times out before SSH is available. Workaround: let VMs power off (autoinstall
-  done), then re-run `provision_kvm.py --target <vm>`. The provisioner starts the
-  powered-off VM and SSH is ready in ~30s from a normal boot.
+- **SSH polling and autoinstall** (handled automatically): `provision_kvm.py` detects
+  whether a VM is mid-autoinstall by probing SSH for 30s after `create_vms.sh`. If SSH
+  is unreachable, it waits up to 30 min for the VM to power off (autoinstall complete),
+  then starts it. Normal post-boot SSH is then ready in ~30s. Run `provision_kvm.py`
+  immediately after `create_vms.sh` — no manual waiting required.
 
 - **known_hosts must be cleared on VM rebuild**: after destroying and recreating VMs,
   the new host keys differ from the cached entries and SSH rejects connections.

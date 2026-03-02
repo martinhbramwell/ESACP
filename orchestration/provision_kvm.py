@@ -2,7 +2,15 @@
 """
 provision_kvm.py — ESACP KVM Provisioning Orchestrator (Stage 2.1)
 
-Full lifecycle for KVM VMs: SSH poll → "Fresh Install" snapshot → Ansible → "Stage 2.1 Baseline" snapshot.
+Full lifecycle for KVM VMs:
+  autoinstall wait (if needed) → start → SSH poll →
+  "Fresh Install" snapshot → Ansible → "Stage 2.1 Baseline" snapshot
+
+The provisioner detects whether a VM is mid-autoinstall and waits automatically:
+  - VM shut off        → start immediately (autoinstall already done)
+  - VM running + SSH up → already booted, proceed
+  - VM running + no SSH → autoinstall in progress; wait for poweroff (~10–20 min),
+                          then start the installed OS
 
 Usage:
     python3 orchestration/provision_kvm.py                     # provision both VMs
@@ -11,7 +19,7 @@ Usage:
     python3 orchestration/provision_kvm.py --check             # dry run (Ansible check mode)
     python3 orchestration/provision_kvm.py --tags wireguard    # run specific Ansible tags
     python3 orchestration/provision_kvm.py --skip-fresh-snapshot  # skip "Fresh Install" snapshot
-    python3 orchestration/provision_kvm.py --skip-ssh-wait     # VM already up, skip polling
+    python3 orchestration/provision_kvm.py --skip-ssh-wait     # skip post-start SSH poll
 """
 
 import argparse
@@ -103,15 +111,90 @@ def ansible_env() -> dict:
     return env
 
 
+# ── VM state helpers ──────────────────────────────────────────────────────────
+
+def vm_state(vm: str) -> str:
+    """Return the current virsh domain state string (e.g. 'running', 'shut off')."""
+    result = subprocess.run(["virsh", "domstate", vm], capture_output=True, text=True)
+    return result.stdout.strip()
+
+
+def _ansible_ping(vm: str) -> bool:
+    """Run a single ansible ping against vm. Returns True on SUCCESS."""
+    cmd = ["ansible", "all", "-i", f"inventory/{INVENTORY}", "-m", "ping",
+           "--one-line", "--limit", vm]
+    result = subprocess.run(cmd, capture_output=True, text=True,
+                            env=ansible_env(), cwd=str(ANSIBLE_DIR))
+    return result.returncode == 0 and "SUCCESS" in result.stdout
+
+
+def wait_for_poweroff(vm: str, timeout: int = 1800) -> bool:
+    """Poll virsh domstate until the VM powers off (autoinstall complete).
+
+    Ubuntu 24.04 autoinstall powers the VM off when finished. Typical duration
+    is 10–20 minutes depending on host speed.
+    """
+    banner(f"Waiting for {vm} autoinstall to complete")
+    console.print("  [dim]VM will power off automatically when installation finishes (~10–20 min)[/dim]")
+    start = time.time()
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[cyan]Autoinstall running... ({task.fields[elapsed]}s)[/cyan]"),
+        transient=True,
+    ) as progress:
+        task = progress.add_task("waiting", elapsed=0)
+        while time.time() - start < timeout:
+            if vm_state(vm) == "shut off":
+                elapsed = int(time.time() - start)
+                console.print(f"[green]✅  Autoinstall complete ({elapsed}s)[/green]")
+                return True
+            progress.update(task, elapsed=int(time.time() - start))
+            time.sleep(10)
+
+    console.print(f"[red]❌ Autoinstall did not complete within {timeout}s[/red]")
+    return False
+
+
+def ensure_vm_started(vm: str) -> None:
+    """Start the VM, handling the post-autoinstall case automatically.
+
+    Three cases:
+    - shut off  → start directly (autoinstall done, or VM was stopped normally)
+    - running + SSH reachable within 30s → already fully booted, nothing to do
+    - running + SSH not reachable → autoinstall in progress; wait for poweroff,
+                                    then start so it boots into the installed OS
+    """
+    state = vm_state(vm)
+
+    if state == "shut off":
+        console.print(f"  [cyan]{vm} is shut off — starting[/cyan]")
+        snapshot("start", vm)
+        return
+
+    if state != "running":
+        console.print(f"[red]❌ Unexpected VM state '{state}' for {vm}[/red]")
+        sys.exit(1)
+
+    # VM is running — probe SSH briefly to distinguish normal boot from autoinstall.
+    console.print(f"  [cyan]{vm} is running — probing SSH for 30s[/cyan]")
+    probe_start = time.time()
+    while time.time() - probe_start < 30:
+        if _ansible_ping(vm):
+            console.print(f"  [green]✅  {vm} SSH reachable — already up[/green]")
+            return
+        time.sleep(5)
+
+    # SSH not available in 30s → assume autoinstall is running.
+    console.print(f"  [yellow]SSH not reachable — autoinstall appears to be running[/yellow]")
+    if not wait_for_poweroff(vm):
+        sys.exit(1)
+    snapshot("start", vm)
+
+
 # ── SSH wait ──────────────────────────────────────────────────────────────────
 
-def wait_for_ssh(limit: str = None, timeout: int = 300) -> bool:
+def wait_for_ssh(limit: str = None, timeout: int = 120) -> bool:
     banner("Waiting for SSH")
-    # Run from ANSIBLE_DIR so Ansible resolves group_vars/ correctly.
-    cmd = ["ansible", "all", "-i", f"inventory/{INVENTORY}", "-m", "ping", "--one-line"]
-    if limit:
-        cmd += ["--limit", limit]
-
     env = ansible_env()
     start = time.time()
     with Progress(
@@ -121,14 +204,12 @@ def wait_for_ssh(limit: str = None, timeout: int = 300) -> bool:
     ) as progress:
         task = progress.add_task("waiting", elapsed=0, timeout=timeout)
         while time.time() - start < timeout:
-            result = subprocess.run(cmd, capture_output=True, text=True, env=env,
-                                    cwd=str(ANSIBLE_DIR))
-            if result.returncode == 0 and "SUCCESS" in result.stdout:
+            if _ansible_ping(limit):
                 console.print("[green]✅ SSH available[/green]")
                 return True
             elapsed = int(time.time() - start)
             progress.update(task, elapsed=elapsed)
-            time.sleep(10)
+            time.sleep(5)
 
     console.print(f"[red]❌ SSH timeout after {timeout}s[/red]")
     return False
@@ -178,8 +259,8 @@ def provision_vm(
     info = KVM_VMS[vm]
     banner(f"Provisioning {vm}  —  {info['description']}")
 
-    # 0. Ensure VM is running (it powers off after installation)
-    snapshot("start", vm)
+    # 0. Ensure VM is started, waiting out autoinstall if necessary.
+    ensure_vm_started(vm)
 
     # 1. SSH poll
     if not skip_ssh_wait:
@@ -217,7 +298,8 @@ def main() -> int:
     )
     parser.add_argument("--check",   action="store_true", help="Ansible check mode (dry run)")
     parser.add_argument("--tags",    help="Run specific Ansible tags only")
-    parser.add_argument("--skip-ssh-wait",       action="store_true")
+    parser.add_argument("--skip-ssh-wait",       action="store_true",
+                        help="Skip post-start SSH poll (VM already up and reachable)")
     parser.add_argument("--skip-fresh-snapshot", action="store_true",
                         help="Skip the 'Fresh Install' snapshot (VM was already snapshotted)")
 
