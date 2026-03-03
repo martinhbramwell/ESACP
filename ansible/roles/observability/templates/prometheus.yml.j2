@@ -1,0 +1,77 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'esacp'
+    environment: 'development'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules
+rule_files:
+  - '/etc/prometheus/alerts/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter - Host metrics
+  # node_exporter uses network_mode: host; Prometheus reaches it via host.docker.internal.
+  - job_name: 'node'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
+        labels:
+          host: '{{ inventory_hostname }}'
+
+  # cAdvisor - Container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # Alertmanager
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+
+  # Grafana (/metrics is served at HTTP root regardless of serve_from_sub_path)
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+
+  # Loki
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+
+  # Promtail
+  - job_name: 'promtail'
+    static_configs:
+      - targets: ['promtail:9080']
+
+{% if 'kvm' in group_names %}
+  # KVM Platform: target1 node_exporter (via WireGuard)
+  - job_name: 'node-target1'
+    static_configs:
+      - targets: ['10.10.0.3:9100']
+        labels:
+          host: 'target1'
+          env: 'kvm-lab'
+
+{% endif %}
+  # Future: ERPNext metrics endpoint
+  # - job_name: 'erpnext'
+  #   static_configs:
+  #     - targets: ['erpnext:8000']
+
+  # Future: MariaDB exporter
+  # - job_name: 'mariadb'
+  #   static_configs:
+  #     - targets: ['mariadb-exporter:9104']

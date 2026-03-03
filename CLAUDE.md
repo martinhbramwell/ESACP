@@ -153,12 +153,14 @@ ansible/
     wireguard/                      # Hub/spoke config; hub sets UFW forward policy
     node_exporter/                  # Binary install + systemd for target1
     desktop/                        # xfce4 + x2goserver for saconsole
-    observability/tasks/main.yml    # Profile-aware copy + force-recreate + UFW rules
+    observability/tasks/main.yml    # Profile-aware template + force-recreate + UFW rules
+    observability/templates/
+      prometheus.yml.j2             # Jinja2 template — host label = {{ inventory_hostname }};
+                                    #   node-target1 scrape job gated on 'kvm' in group_names
 
 docker/observability/
   docker-compose.yml                # Stack definition
-  prometheus/prometheus.yml         # 8 scrape jobs (prometheus, node, cadvisor,
-                                    #   alertmanager, grafana, loki, promtail, node-target1)
+  prometheus/prometheus.yml         # SOURCE — not deployed directly; rendered via template above
   prometheus/alerts/                # Production alert rules (12 alerts)
   prometheus/alerts-drill/          # Drill alert rules (same, faster)
   grafana/provisioning/
@@ -171,6 +173,12 @@ docs/
   BuildOutProcedure.md              # Step-by-step operator rebuild guide (KVM path)
   SystemOverview.md                 # Non-technical system description
   SystemOverview_tech.md            # Technical system description (developer-facing)
+
+prototypes/
+  cytoscape/                        # Cytoscape.js standalone prototype (Vite + vanilla JS)
+                                    # Dev: cd prototypes/cytoscape && npm run dev
+                                    # Access: http://localhost:5173 (WSL → Windows)
+                                    # node_modules/ and dist/ are gitignored
 ```
 
 ---
@@ -269,6 +277,13 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 ---
 
 ## Known Decisions & Gotchas
+
+- **`prometheus.yml` is a Jinja2 template**, not a static file. The source reference copy
+  lives in `docker/observability/prometheus/prometheus.yml` but is NOT deployed directly.
+  The Ansible observability role renders `templates/prometheus.yml.j2` to the VM. Two
+  platform-specific values are injected: `host: '{{ inventory_hostname }}'` on the `node`
+  scrape job, and the `node-target1` job block is gated on `{% if 'kvm' in group_names %}`.
+  Edit the `.j2` file, not the source copy.
 
 - **`docker-compose up -d --force-recreate`** is used in the Ansible role so that config
   file changes (bind-mounted) are always picked up without manual container restarts.

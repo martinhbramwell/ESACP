@@ -32,13 +32,11 @@
     - promtail
     - alertmanager
 
-- name: Copy Prometheus configuration
-  copy:
-    src: "{{ playbook_dir }}/../docker/observability/prometheus/{{ item }}"
-    dest: "/opt/observability/prometheus/{{ item }}"
+- name: Template Prometheus configuration
+  template:
+    src: prometheus.yml.j2
+    dest: /opt/observability/prometheus/prometheus.yml
     mode: '0644'
-  loop:
-    - prometheus.yml
 
 - name: Enforce production alert profile on production/protected hosts
   fail:
