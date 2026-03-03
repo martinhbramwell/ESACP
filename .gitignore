@@ -94,8 +94,8 @@ override.yml
 dialog*.txt
 DIALOG
 
-# Generated seed ISOs (built by platforms/kvm/create_seeds.sh)
-platforms/kvm/*.iso
+# ISOs — never track (seed ISOs, installer ISOs, symlinks to /var/lib/libvirt/images/)
+*.iso
 
 # Obsolete/superseded guides
 old_*.md
