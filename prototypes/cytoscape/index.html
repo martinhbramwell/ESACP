@@ -12,10 +12,26 @@
         <h1>ESACP Network Topology</h1>
       </header>
       <div id="cy"></div>
+      <div id="resize-handle"><span class="grip"></span></div>
       <div id="info-panel">
-        <p class="hint">Click a node or edge to inspect it.</p>
+        <p class="hint">Click a node or edge to inspect it. Click saconsole to explore its containers.</p>
       </div>
     </div>
+
+    <!-- Container popup — outside #app to avoid flex constraints -->
+    <div id="popup-overlay" class="hidden">
+      <div id="popup">
+        <div id="popup-header">
+          <span id="popup-title">saconsole — Docker containers</span>
+          <button id="popup-close" title="Close (Esc)">✕</button>
+        </div>
+        <div id="popup-cy"></div>
+        <div id="popup-info">
+          <p class="hint">Click a container to inspect it.</p>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

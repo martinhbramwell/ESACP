@@ -23,6 +23,7 @@ header {
   padding: 12px 20px;
   background: #16213e;
   border-bottom: 1px solid #0f3460;
+  flex-shrink: 0;
 }
 
 header h1 {
@@ -34,14 +35,50 @@ header h1 {
 
 #cy {
   flex: 1;
+  min-height: 80px;
   background: #1a1a2e;
 }
 
+/* ── Resize handle ────────────────────────────────────────────────────────── */
+
+#resize-handle {
+  height: 8px;
+  flex-shrink: 0;
+  background: #0f3460;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+#resize-handle:hover,
+#resize-handle.dragging {
+  background: #1a4a7a;
+}
+
+#resize-handle .grip {
+  display: block;
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: #2a5a9a;
+  transition: background 0.15s;
+}
+
+#resize-handle:hover .grip,
+#resize-handle.dragging .grip {
+  background: #a0c4ff;
+}
+
+/* ── Info panel ───────────────────────────────────────────────────────────── */
+
 #info-panel {
   height: 120px;
+  min-height: 40px;
+  flex-shrink: 0;
   background: #16213e;
-  border-top: 1px solid #0f3460;
-  padding: 12px 20px;
+  padding: 10px 20px;
   overflow-y: auto;
 }
 
@@ -62,6 +99,102 @@ header h1 {
 }
 
 #info-panel td:first-child {
+  color: #a0c4ff;
+  white-space: nowrap;
+}
+
+/* ── Container popup ──────────────────────────────────────────────────────── */
+
+#popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+#popup-overlay.hidden {
+  display: none;
+}
+
+#popup {
+  background: #16213e;
+  border: 1px solid #1a4a7a;
+  border-radius: 4px;
+  width: 72vw;
+  height: 72vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+#popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  background: #0f3460;
+  border-bottom: 1px solid #1a4a7a;
+  border-radius: 4px 4px 0 0;
+  flex-shrink: 0;
+}
+
+#popup-title {
+  font-size: 0.85rem;
+  color: #a0c4ff;
+}
+
+#popup-close {
+  background: none;
+  border: none;
+  color: #778ca3;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 2px;
+  line-height: 1;
+}
+
+#popup-close:hover {
+  background: #1a4a7a;
+  color: #e0e0e0;
+}
+
+#popup-cy {
+  flex: 1;
+  background: #1a1a2e;
+  min-height: 0;
+}
+
+#popup-info {
+  height: 72px;
+  flex-shrink: 0;
+  background: #16213e;
+  border-top: 1px solid #0f3460;
+  padding: 8px 14px;
+  overflow-y: auto;
+  border-radius: 0 0 4px 4px;
+}
+
+#popup-info .hint {
+  color: #555;
+  font-size: 0.8rem;
+}
+
+#popup-info table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  width: 100%;
+}
+
+#popup-info td {
+  padding: 1px 12px 1px 0;
+  vertical-align: top;
+}
+
+#popup-info td:first-child {
   color: #a0c4ff;
   white-space: nowrap;
 }

@@ -1,5 +1,6 @@
 import './style.css'
 import cytoscape from 'cytoscape'
+import { showContainerPopup } from './containers.js'
 
 // ── Topology data ─────────────────────────────────────────────────────────────
 // Mirrors hosts_map.yml. Swap static values for live API calls when ready.
@@ -17,7 +18,7 @@ const nodes = [
   {
     data: {
       id: 'saconsole',
-      label: 'saconsole',
+      label: 'saconsole\n[click to expand]',
       role: 'hub',
       platform: 'kvm',
       virbr0_ip: '192.168.122.10',
@@ -68,7 +69,7 @@ const edges = [
   },
 ]
 
-// ── Cytoscape instance ────────────────────────────────────────────────────────
+// ── Main Cytoscape instance ───────────────────────────────────────────────────
 
 const cy = cytoscape({
   container: document.getElementById('cy'),
@@ -98,6 +99,7 @@ const cy = cytoscape({
         'background-color': '#1a4a7a',
         'border-color': '#4fc3f7',
         'border-width': 2,
+        'border-style': 'double',
         'width': 100,
         'height': 100,
       }
@@ -162,11 +164,59 @@ function renderInfo(data) {
 }
 
 cy.on('tap', 'node, edge', (evt) => {
-  renderInfo(evt.target.data())
+  const data = evt.target.data()
+  if (data.id === 'saconsole') {
+    showContainerPopup()
+  } else {
+    renderInfo(data)
+  }
 })
 
 cy.on('tap', (evt) => {
   if (evt.target === cy) {
-    infoPanel.innerHTML = '<p class="hint">Click a node or edge to inspect it.</p>'
+    infoPanel.innerHTML = '<p class="hint">Click a node or edge to inspect it. Click saconsole to explore its containers.</p>'
   }
+})
+
+// ── Resize handle ─────────────────────────────────────────────────────────────
+
+const cyEl        = document.getElementById('cy')
+const infoPanelEl = document.getElementById('info-panel')
+const handle      = document.getElementById('resize-handle')
+const header      = document.querySelector('header')
+
+let resizing = false
+
+handle.addEventListener('mousedown', (e) => {
+  resizing = true
+  handle.classList.add('dragging')
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = 'ns-resize'
+  e.preventDefault()
+})
+
+document.addEventListener('mousemove', (e) => {
+  if (!resizing) return
+
+  const appTop    = header.getBoundingClientRect().bottom
+  const appBottom = document.getElementById('app').getBoundingClientRect().bottom
+  const handleH   = handle.offsetHeight
+
+  const newCyH   = e.clientY - appTop
+  const newInfoH = appBottom - e.clientY - handleH
+
+  if (newCyH > 80 && newInfoH > 40) {
+    cyEl.style.flex   = 'none'
+    cyEl.style.height = newCyH + 'px'
+    infoPanelEl.style.height = newInfoH + 'px'
+    cy.resize()
+  }
+})
+
+document.addEventListener('mouseup', () => {
+  if (!resizing) return
+  resizing = false
+  handle.classList.remove('dragging')
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
 })
