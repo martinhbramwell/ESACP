@@ -62,9 +62,9 @@ decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH
 
 | VM | virbr0 IP | WireGuard IP | Role |
 |---|---|---|---|
-| `saconsole` | 192.168.122.10 | 10.10.0.1 | WireGuard hub · full observability stack |
-| `target1` | 192.168.122.11 | 10.10.0.3 | WireGuard spoke · monitored host |
-| controller (host) | — | 10.10.0.2 | WireGuard spoke |
+| `saconsole` | 192.168.122.10 | 10.10.1.1 | WireGuard hub · full observability stack |
+| `target1` | 192.168.122.11 | 10.10.1.3 | WireGuard spoke · monitored host |
+| controller (host) | — | 10.10.1.2 | WireGuard spoke |
 
 - **Provisioning**: `orchestration/provision_kvm.py` → runs `ansible/site-kvm.yml`
 - **Inventory source of truth**: `hosts_map.yml` → `tools/generate_inventory.py` → `ansible/inventory/kvm.yml`
@@ -356,34 +356,69 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 
 ## Stage 2.x Scope (next)
 
-Stage 2.1 (KVM parallel path) is complete. Remaining work, in rough priority order:
+Stage 2.1 (KVM parallel path) is complete. The architectural direction for Stage 2.x
+and beyond was settled in a design session on 2026-03-03. See `docs/ControlPlaneDesign.md`
+for the full rationale.
 
-### Abstraction layer (`revertToBaseline.py`, `run_scenario.py`)
-Currently hardcoded to VirtualBox/`VBoxManage`. Needs three backends:
-- **VirtualBox**: existing (Platform 1)
-- **KVM/virsh**: `virsh snapshot-create-as`, `virsh snapshot-revert`, `virsh start`
-- **CloudStack API**: via `CloudMonkey` or Python SDK for iwStack VPS hosts
-  (Platforms 3 & 4 — external VPS, no local hypervisor)
-Backend selected by environment variable or per-host config in `hosts_map.yml`.
+### Architectural Direction: saconsole as Control Plane
 
-### Platform 3 (Ubuntu Server + XFCE + X2Go controller)
-- New `ansible/inventory/ubuntu-server.yml` + `ansible/site-ubuntu-server.yml`
-- External VPS workhorse VMs provisioned via CloudStack API
-- WireGuard mesh extended to VPS hosts
+The physical host's role is being reduced to a single responsibility: **bootstrap
+saconsole**. After that, saconsole manages all sibling VMs by calling back to the
+host hypervisor remotely:
 
-### Platform 4 (macOS controller)
-- New `ansible/inventory/macos.yml` + provisioner script
-- macOS-specific dependency install (Homebrew, Python, SOPS/age)
-- External VPS workhorse VMs same as Platform 3
+- **KVM**: via `qemu+ssh://host/system` (libvirt remote protocol)
+- **VirtualBox**: via VBoxWebSrv SOAP API or SSH → VBoxManage
+- **CloudStack**: via CloudStack API over HTTPS (cleanest case)
 
-### Mixed local + VPS inventory
-`hosts_map.yml` schema to be extended with a `backend:` field per host
-(`vbox` | `kvm` | `cloudstack`) so all 4 platforms can manage a mix of
-local VMs and remote VPS instances from the same inventory.
+This eliminates the need for `revertToBaseline.py`, `run_scenario.py`, and
+`provision_kvm.py` to run on the physical host after bootstrap. `esacp.py` becomes
+the pipeline engine called by saconsole's REST API, not a human-facing CLI.
+
+### Source of Truth: Generate Cloud-init from hosts_map.yml
+
+Cloud-init `user-data` files are currently static and duplicate data from
+`hosts_map.yml` (hostname, virbr0 IP, OS username). They must become generated
+artifacts, like `ansible/inventory/kvm.yml`:
+
+- Add `vm_user` to `hosts_map.yml` per host (or as KVM default)
+- Create `tools/generate_cloud_init.py` — renders `user-data.j2` templates
+- Add `esacp.py generateConfig` subcommand to run all generators
+- Cloud-init files: do not edit directly (same convention as inventory)
+
+### Production vs Lab/Dev Distinction
+
+Two classes of parameter, explicitly separated in `hosts_map.yml`:
+
+- **Live-safe** (Production): alert thresholds, scrape intervals, dashboards,
+  notification channels — Grafana manages these; Ansible pushes in-place, no rebuild
+- **Rebuild-required** (Lab/Dev): hostnames, IPs, WireGuard subnet, OS username —
+  changing these triggers `destroyVM → buildVM → provisionVM` pipeline
+
+### Grafana Control Plane (staged implementation)
+
+A REST API on saconsole wraps `esacp.py` and exposes VM lifecycle operations over
+HTTP. The Grafana UI calls this API. Implementation stages:
+
+1. **Canvas + HTML panel** — Grafana Canvas for topology visualisation (node colour
+   = live VM state); separate HTML panel with action buttons. Functional immediately.
+2. **draw.io embedded** — draw.io self-hosted on saconsole; shape actions POST to
+   the API; diagram XML mirrors `hosts_map.yml` structure.
+3. **Custom Grafana app plugin** — React + Cytoscape.js; live metric overlays;
+   inline job progress; integrated action menus.
+
+PlantUML and Mermaid.js are suitable for architecture documentation only — they
+cannot bind to live data or fire API calls.
+
+### Remaining Platform Work
+
+- **Platform 3** (Ubuntu Server + X2Go): external VPS via CloudStack API
+- **Platform 4** (macOS): Homebrew toolchain; external VPS same as Platform 3
+- `hosts_map.yml` `backend:` field per host (`vbox` | `kvm` | `cloudstack`)
 
 ### Chaos framework on KVM
 Port `orchestration/chaos/run_scenario.py` and `scenarios.yml` to work
 against KVM VMs (Platform 2), replacing VirtualBox-specific assumptions.
+Will be driven from the saconsole REST API once that exists.
 
 ### Version watchdog + staging rebuild pipeline
 Monitor upstream releases of all pinned components (Prometheus, Grafana, Loki,
