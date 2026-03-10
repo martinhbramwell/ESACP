@@ -12,9 +12,15 @@
 wireguard_subnet: "10.10.0.0/24"
 wireguard_port: 51820
 
+# backend values: kvm | vbox | cloudstack | vps
+# wg_hub_endpoint: the physical address spokes use to reach the hub.
+#   KVM:   virbr0 IP (192.168.122.10) — stable, internal to the host.
+#   vbox:  hub's bridged LAN IP — set in ansible/group_vars/vbox.yml since
+#          it varies by LAN. Leave blank here; group_vars overrides.
+
 groups:
 
-  # ── KVM guests on this host ────────────────────────────────────────────────
+  # ── KVM guests (Xubuntu workstation, Platform 2) ──────────────────────────
   kvm:
     saconsole:
       hostname: saconsole
@@ -22,8 +28,9 @@ groups:
       virbr0_ip: "192.168.122.10"
       wg_ip: "10.10.0.1"
       wg_role: hub
+      wg_hub_endpoint: "192.168.122.10"
       ansible_managed: true
-      platform: kvm
+      backend: kvm
       ansible_groups:
         - kvm
         - development
@@ -36,9 +43,67 @@ groups:
       wg_ip: "10.10.0.3"
       wg_role: spoke
       ansible_managed: true
-      platform: kvm
+      backend: kvm
       ansible_groups:
         - kvm
+        - targets
+        - development
+        - lab
+
+    target2:
+      hostname: target2
+      nickname: tgt2
+      virbr0_ip: "192.168.122.12"
+      wg_ip: "10.10.0.4"
+      wg_role: spoke
+      ansible_managed: true
+      backend: kvm
+      ansible_groups:
+        - kvm
+        - targets
+        - development
+        - lab
+
+  # ── VirtualBox guests (Windows/WSL workstation, Platform 1) ───────────────
+  # wg_hub_endpoint for vbox saconsole is the console VM's bridged LAN IP.
+  # Set it in ansible/group_vars/vbox.yml — it varies by LAN environment.
+  vbox:
+    saconsole:
+      hostname: saconsole
+      nickname: console
+      wg_ip: "10.10.0.1"
+      wg_role: hub
+      wg_hub_endpoint: ""          # overridden in group_vars/vbox.yml
+      ansible_managed: true
+      backend: vbox
+      ansible_groups:
+        - vbox
+        - development
+        - lab
+
+    target1:
+      hostname: target1
+      nickname: tgt1
+      wg_ip: "10.10.0.3"
+      wg_role: spoke
+      ansible_managed: true
+      backend: vbox
+      ansible_groups:
+        - vbox
+        - targets
+        - development
+        - lab
+
+    target2:
+      hostname: target2
+      nickname: tgt2
+      wg_ip: "10.10.0.4"
+      wg_role: spoke
+      ansible_managed: true
+      backend: vbox
+      ansible_groups:
+        - vbox
+        - targets
         - development
         - lab
 

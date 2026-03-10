@@ -5,6 +5,24 @@ A home-lab infrastructure automation and observability training project.
 
 ---
 
+## Session Protocol
+
+**At the start of every session**, before doing anything else:
+
+1. **Identify the platform** — WSL/VBox (Windows) or Xubuntu/KVM?
+2. **Run the sync check** for that platform:
+   - VBox/WSL: `bash platforms/vbox/sync_check.sh`
+   - KVM/Xubuntu: *(sync check TBD)*
+3. **Fix any failures** reported by the sync check, commit and push repairs.
+4. **State one objective** for the session. Do not pursue other issues that
+   arise — note them and handle in a dedicated session.
+
+**One objective per session.** This is a hard rule. Context degrades across
+long sessions and leads to poor triage decisions. If a blocking sub-problem
+emerges, assess whether it truly blocks the objective before diving in.
+
+---
+
 ## Current State
 
 | Stage | Status | Description |
@@ -120,8 +138,15 @@ tools/esacp.py                      # Unified lab CLI (10 subcommands — see be
 
 config/wireguard/
   generate_keys.sh                  # Generates keypairs + PSKs → keys.sops.yml
+  add_peer.sh                       # Surgically adds ONE new peer to existing keys.sops.yml
   keys.sops.yml                     # SOPS/age encrypted WireGuard keys (committed)
   .gitignore                        # Excludes plaintext keys/
+
+platforms/vbox/
+  create_target.sh                  # VBoxManage automation: create VM + cloud-init seed ISO
+  cloud-init/
+    target1/{user-data,meta-data}   # DHCP networking; WireGuard provides stable overlay
+    target2/{user-data,meta-data}
 
 platforms/kvm/
   create_seeds.sh                   # cloud-localds wrapper for seed ISOs
@@ -143,20 +168,25 @@ orchestration/
 
 ansible/
   inventory/kvm.yml                 # Generated — do not edit directly
-  inventory/dev.yml                 # Stage 1-1.5 VirtualBox hosts
+  inventory/dev.yml                 # VirtualBox hosts: saconsole, target1, target2
   group_vars/all.yml                # alert_profile default + WireGuard network vars
-  group_vars/kvm.yml                # SSH connection vars for KVM guests only
+  group_vars/kvm.yml                # SSH vars + wg_hub_endpoint for KVM guests
+  group_vars/vbox.yml               # SSH vars + wg_hub_endpoint for VBox guests
   group_vars/lab.yml                # alert_profile: drill
   group_vars/production.yml         # alert_profile: production (enforced)
   site-kvm.yml                      # Top-level KVM playbook (4 plays)
+  site-vbox.yml                     # Top-level VBox playbook (3 plays)
   roles/
     wireguard/                      # Hub/spoke config; hub sets UFW forward policy
-    node_exporter/                  # Binary install + systemd for target1
+    node_exporter/                  # Binary install + systemd for targets
+    mariadb/                        # Docker Compose: MariaDB 10.11 + mysqld_exporter 0.15.1
+                                    #   deploy_dir: /opt/mariadb; mysqld_exporter port: 9104
     desktop/                        # xfce4 + x2goserver for saconsole
     observability/tasks/main.yml    # Profile-aware template + force-recreate + UFW rules
     observability/templates/
       prometheus.yml.j2             # Jinja2 template — host label = {{ inventory_hostname }};
-                                    #   node-target1 scrape job gated on 'kvm' in group_names
+                                    #   target1+target2 jobs gated on 'kvm' OR 'vbox' in group_names;
+                                    #   mariadb-target1/target2 jobs included in same gate
 
 docker/observability/
   docker-compose.yml                # Stack definition
@@ -165,7 +195,7 @@ docker/observability/
   prometheus/alerts-drill/          # Drill alert rules (same, faster)
   grafana/provisioning/
     datasources/datasources.yml     # UIDs pinned: prometheus, loki
-    dashboards/json/                # node-exporter-full, cadvisor, management-console
+    dashboards/json/                # node-exporter-full, cadvisor, management-console, mariadb
 
 docs/
   RUNBOOK.md                        # Operational runbook for all 10 scenarios
@@ -341,6 +371,48 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 - **group_vars scope for WireGuard**: `wg_port`, `wg_subnet`, `wg_pubkey_*` live in
   `group_vars/all.yml` (not `kvm.yml`) so the `controller` group (localhost) also
   receives them when running the `wireguard` role.
+
+- **`wg_hub_endpoint`**: Platform-aware variable that replaces the formerly hardcoded
+  `192.168.122.10` in `wg0.conf.j2`. Set in `group_vars/kvm.yml` (192.168.122.10) and
+  `group_vars/vbox.yml` (operator must set this to console VM's current bridged DHCP IP).
+
+- **generate_inventory.py backend filter**: Only hosts with `backend: kvm` (or no backend
+  field) are written to `kvm.yml`. VBox and future CloudStack hosts are excluded via
+  `attrs.get("backend", "kvm") != "kvm"` check. VBox hosts use `ansible/inventory/dev.yml`.
+
+- **VBox bootstrap sequence**: Targets connect via WireGuard IPs after provisioning but
+  first Ansible run (before WireGuard) requires the bridged DHCP IP. Use `-e ansible_host=<IP>`
+  on the command line for the first run; revert to WireGuard IP thereafter.
+  Get DHCP IP: `VBoxManage.exe guestproperty get target1 '/VirtualBox/GuestInfo/Net/0/V4/IP'`
+
+- **MariaDB Docker Compose on targets**: Deployed to `/opt/mariadb/`. MariaDB port 3306 is
+  Docker-internal only (not exposed to host). mysqld_exporter port 9104 is UFW-restricted to
+  10.10.0.1 (saconsole). Credentials are in `/opt/mariadb/.env` (mode 0600).
+  The compose file is templated — edit `ansible/roles/mariadb/templates/docker-compose.mariadb.yml.j2`.
+
+- **mysqld_exporter v0.15.x — `DATA_SOURCE_NAME` removed**: In v0.15.x, the `DATA_SOURCE_NAME`
+  environment variable is no longer supported. Credentials must come from a `.my.cnf`-style
+  config file. Three pitfalls discovered:
+  1. The container's `HOME` may be unset, so the default `~/.my.cnf` resolves to `.my.cnf`
+     in the working directory — not `/root/.my.cnf`. Always pass `--config.my-cnf=<absolute-path>`
+     explicitly via `command:` in the compose service.
+  2. Volume mounts with relative paths (`./my.cnf`) don't resolve correctly when compose is
+     invoked with `-f /absolute/path/docker-compose.yml` from a different directory. Use
+     `{{ mariadb_deploy_dir }}/my.cnf` (absolute) in the compose template.
+  3. The container runs as non-root (`nobody`). The my.cnf file must be mode `0644` (not `0600`)
+     or the process cannot read it.
+  Template: `ansible/roles/mariadb/templates/my.cnf.j2`. Mounted at `/etc/mysqld_exporter/my.cnf`.
+
+- **VirtualBox NAT source IP in UFW**: SSH connections from WSL2 to VBox target VMs via NAT
+  port-forwarding (127.0.0.1:2222/2223) appear inside the VM as source `10.0.2.2` — the
+  VirtualBox NAT gateway address. `allowed_ssh_ips` in `group_vars/vbox.yml` must include
+  `10.0.2.2`, otherwise UFW blocks all Ansible connections and SSH banner exchange times out.
+  `10.0.2.2` is confirmed via `ss -tnp` and `/var/log/auth.log` inside the VM.
+
+- **`ansible_become_pass` required on fresh VMs**: Before the `common` role installs
+  passwordless sudo, Ansible cannot escalate privileges without being given the password
+  explicitly. Add `-e ansible_become_pass=wawa` (bootstrap password for OVA-built targets)
+  for any full provisioning run against a freshly imported VM. Not required on re-runs.
 
 - **VirtualBox snapshot detection bug** (fixed): `snapshot_exists()` in
   `revertToBaseline.py` previously matched only top-level snapshot names. Fixed to

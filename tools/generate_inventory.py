@@ -23,6 +23,9 @@ PROJ_ROOT = Path(__file__).parent.parent
 HOSTS_MAP  = PROJ_ROOT / "hosts_map.yml"
 KVM_INV    = PROJ_ROOT / "ansible" / "inventory" / "kvm.yml"
 
+# Only hosts with this backend (or no backend field) are included in kvm.yml.
+KVM_BACKEND = "kvm"
+
 
 def load_hosts_map() -> dict:
     with open(HOSTS_MAP) as f:
@@ -41,6 +44,10 @@ def build_inventory(data: dict) -> dict:
             continue
         for logical_name, attrs in hosts.items():
             if not attrs.get("ansible_managed", False):
+                continue
+            # kvm.yml only includes KVM-backend hosts; vbox/cloudstack hosts
+            # have their own inventories and must not pollute this file.
+            if attrs.get("backend", KVM_BACKEND) != KVM_BACKEND:
                 continue
 
             hostname = attrs["hostname"]

@@ -56,22 +56,31 @@ scrape_configs:
     static_configs:
       - targets: ['promtail:9080']
 
-{% if 'kvm' in group_names %}
-  # KVM Platform: target1 node_exporter (via WireGuard)
+{% if 'kvm' in group_names or 'vbox' in group_names %}
+  # Targets: node_exporter (via WireGuard — same IPs on both KVM and VBox platforms)
   - job_name: 'node-target1'
     static_configs:
       - targets: ['10.10.0.3:9100']
         labels:
           host: 'target1'
-          env: 'kvm-lab'
+
+  - job_name: 'node-target2'
+    static_configs:
+      - targets: ['10.10.0.4:9100']
+        labels:
+          host: 'target2'
+
+  # Targets: MariaDB exporter (via WireGuard)
+  - job_name: 'mariadb-target1'
+    static_configs:
+      - targets: ['10.10.0.3:9104']
+        labels:
+          host: 'target1'
+
+  - job_name: 'mariadb-target2'
+    static_configs:
+      - targets: ['10.10.0.4:9104']
+        labels:
+          host: 'target2'
 
 {% endif %}
-  # Future: ERPNext metrics endpoint
-  # - job_name: 'erpnext'
-  #   static_configs:
-  #     - targets: ['erpnext:8000']
-
-  # Future: MariaDB exporter
-  # - job_name: 'mariadb'
-  #   static_configs:
-  #     - targets: ['mariadb-exporter:9104']

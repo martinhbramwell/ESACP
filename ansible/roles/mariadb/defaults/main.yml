@@ -1,0 +1,19 @@
+---
+# ansible/roles/mariadb/defaults/main.yml
+
+mariadb_version: "10.11"
+mariadb_deploy_dir: "/opt/mariadb"
+
+# Database and credentials.
+# Override in group_vars/all.sops.yml (SOPS-encrypted) for real deployments.
+# These defaults are fine for a lab with no external exposure.
+mariadb_root_password: "esacp_root_changeme"
+mariadb_database: "labdb"
+mariadb_user: "labuser"
+mariadb_password: "esacp_lab_changeme"
+
+mariadb_port: 3306
+
+# mysqld_exporter — Prometheus MariaDB metrics exporter
+mysqld_exporter_version: "0.15.1"
+mysqld_exporter_port: 9104

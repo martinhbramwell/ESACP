@@ -1,0 +1,20 @@
+---
+# ansible/group_vars/vbox.yml
+# Variables for all hosts in the 'vbox' inventory group (Platform 1 — Windows/WSL/VirtualBox).
+
+# ── SSH connection ─────────────────────────────────────────────────────────
+ansible_user: you
+ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/id_ed25519"
+ansible_python_interpreter: /usr/bin/python3
+
+# ── WireGuard ──────────────────────────────────────────────────────────────
+# wg_hub_endpoint: the bridged LAN IP of the console VM (VirtualBox saconsole).
+# Spokes use this as the Endpoint in their wg0.conf.
+# Set this to the actual IP shown by 'ip addr' on the console VM after boot.
+wg_hub_endpoint: "192.168.40.49"    # REPLACE with your console VM's current LAN IP
+
+# ── SSH allowed IPs (VirtualBox — same LAN subnet as host) ────────────────
+allowed_ssh_ips:
+  - "10.0.2.2"          # VirtualBox NAT gateway — source IP for port-forwarded SSH (bootstrap)
+  - "192.168.40.0/24"   # LAN subnet — direct bridged access (saconsole)
+  - "10.10.0.0/24"      # WireGuard subnet — post-provision Ansible and peer access

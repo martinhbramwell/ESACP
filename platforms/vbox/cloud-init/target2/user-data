@@ -1,0 +1,29 @@
+#cloud-config
+# platforms/vbox/cloud-init/target2/user-data
+# Minimal cloud-init — hostname, user, SSH key only.
+# No package installs: Ansible handles all packages after SSH is up.
+# Expected completion: <60 seconds from first boot.
+
+datasource_list: [NoCloud, None]
+
+hostname: target2
+fqdn: target2
+manage_etc_hosts: true
+
+users:
+  - default
+  - name: you
+    groups: [sudo, adm]
+    shell: /bin/bash
+    lock_passwd: true
+    ssh_authorized_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDiKmu/uI7vZZ/GdmO9MhrRlzOhHne8gIK24ZFrmmpiH"
+
+ssh_pwauth: false
+
+timezone: America/New_York
+locale: en_US.UTF-8
+
+runcmd:
+  - echo "you ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/you
+  - chmod 440 /etc/sudoers.d/you

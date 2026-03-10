@@ -1,0 +1,51 @@
+---
+# docker-compose.mariadb.yml.j2 — MariaDB + mysqld_exporter
+# Deployed to {{ mariadb_deploy_dir }}/docker-compose.yml on {{ inventory_hostname }}
+#
+# MariaDB port 3306 is NOT exposed to the host — mysqld_exporter reaches it via
+# the internal Docker network. Only port {{ mysqld_exporter_port }} (mysqld_exporter)
+# is bound to the host, restricted to saconsole via UFW.
+
+services:
+  mariadb:
+    image: mariadb:{{ mariadb_version }}
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - mariadb_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mysqld_exporter:
+    image: prom/mysqld-exporter:v{{ mysqld_exporter_version }}
+    container_name: mysqld_exporter
+    restart: unless-stopped
+    command:
+      - "--config.my-cnf=/etc/mysqld_exporter/my.cnf"
+    volumes:
+      - {{ mariadb_deploy_dir }}/my.cnf:/etc/mysqld_exporter/my.cnf:ro
+    ports:
+      - "{{ mysqld_exporter_port }}:9104"
+    networks:
+      - mariadb_net
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+volumes:
+  mariadb_data:
+
+networks:
+  mariadb_net:
+    driver: bridge

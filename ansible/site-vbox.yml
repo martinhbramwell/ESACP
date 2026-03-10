@@ -1,0 +1,46 @@
+---
+# site-vbox.yml — Top-level playbook for ESACP VirtualBox hosts (Platform 1)
+#
+# Play order:
+#   1. All VBox hosts:  common, ssh, firewall, fail2ban, wireguard
+#   2. saconsole:       docker, observability
+#   3. targets:         docker, node_exporter, mariadb
+#
+# Usage (from project root):
+#   ansible-playbook -i ansible/inventory/dev.yml ansible/site-vbox.yml
+#   ansible-playbook -i ansible/inventory/dev.yml ansible/site-vbox.yml --limit saconsole
+#   ansible-playbook -i ansible/inventory/dev.yml ansible/site-vbox.yml --limit targets
+#   ansible-playbook -i ansible/inventory/dev.yml ansible/site-vbox.yml --tags wireguard
+#   ansible-playbook -i ansible/inventory/dev.yml ansible/site-vbox.yml --tags mariadb
+#
+# Bootstrap note: before WireGuard is up on targets, override ansible_host to the
+# bridged DHCP IP for the first run:
+#   ansible-playbook ... --limit target1 -e ansible_host=<DHCP_IP>
+
+# ── Play 1: Base configuration for all VirtualBox VMs ────────────────────────
+- name: Base configuration — all VBox hosts
+  hosts: vbox
+  become: yes
+  roles:
+    - common
+    - ssh
+    - firewall
+    - fail2ban
+    - wireguard
+
+# ── Play 2: saconsole — observability stack ───────────────────────────────────
+- name: Observability stack — saconsole
+  hosts: saconsole
+  become: yes
+  roles:
+    - docker
+    - observability
+
+# ── Play 3: Targets — Docker + node_exporter + MariaDB ───────────────────────
+- name: node_exporter + MariaDB — vbox targets
+  hosts: targets
+  become: yes
+  roles:
+    - docker
+    - node_exporter
+    - mariadb

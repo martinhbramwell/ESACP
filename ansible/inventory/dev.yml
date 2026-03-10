@@ -1,51 +1,59 @@
 ---
-# Development Environment - VirtualBox VM
-# Replace VM_IP_ADDRESS with your actual VM IP from DHCP
+# ansible/inventory/dev.yml
+# VirtualBox platform — Platform 1 (Windows 11 + WSL2 + VirtualBox)
+#
+# Connection settings (ansible_user, SSH key, python interpreter) are in
+# ansible/group_vars/vbox.yml — not duplicated here.
+#
+# BOOTSTRAP NOTE: Before WireGuard is provisioned on a target, ansible_host
+# must be the bridged DHCP IP (not the WireGuard IP). Two options:
+#
+#   Option A — override on the command line for first run:
+#     ansible-playbook ... --limit target1 -e ansible_host=<DHCP_IP>
+#
+#   Option B — temporarily edit ansible_host below, re-run, then revert.
+#
+# After WireGuard is up, Ansible connects via the WireGuard IPs shown below.
+#
+# Get a target's DHCP IP after autoinstall completes:
+#   VBoxManage.exe guestproperty get target1 '/VirtualBox/GuestInfo/Net/0/V4/IP'
 
 all:
   children:
 
+    vbox:
+      hosts:
+        saconsole:
+          ansible_host: "192.168.40.49"
+          ansible_user: ernest
+          wg_ip: "10.10.0.1"
+          wg_role: hub
+        target1:
+          # WireGuard IP — use DHCP IP for first bootstrap run (see note above)
+          ansible_host: "10.10.0.3"
+          wg_ip: "10.10.0.3"
+          wg_role: spoke
+        target2:
+          # WireGuard IP — use DHCP IP for first bootstrap run (see note above)
+          ansible_host: "10.10.0.4"
+          wg_ip: "10.10.0.4"
+          wg_role: spoke
+
+    targets:
+      hosts:
+        target1: {}
+        target2: {}
+
     development:
       hosts:
-        console:
-          ansible_user: ernest
-          ansible_python_interpreter: /usr/bin/python3
+        saconsole: {}
+        target1: {}
+        target2: {}
 
-          # Host-specific variables
-          environment_name: development
-          is_production: false
-
-          # Network configuration
-          allowed_ssh_ips:
-            - "192.168.40.0/24"  # REPLACE: Your local network
-
-          # VM specifications
-          vm_memory_gb: 6.144
-          vm_cpus: 4
-          vm_disk_gb: 45
-
-    # lab group: same host(s) as development but classified for drill alert profile.
-    # group_vars/lab.yml sets alert_profile: drill (overrides all.yml default).
+    # lab group: same hosts as development but sets alert_profile: drill
+    # (via group_vars/lab.yml) for faster alert testing.
     lab:
       hosts:
-        console: {}
-
-# SETUP INSTRUCTIONS:
-# 1. Create a minimal Ubuntu Server 22.04 VM in VirtualBox:
-#    - Name: console
-#    - Network: Bridged Adapter (gets IP via DHCP)
-#    - RAM: 6.144GB, CPU: 4 cores, Disk: 45GB
-#    - During install: enable SSH, create user, for example : 'you'
-#
-# 2. Boot the VM and get its IP:
-#    ip addr show
-#
-# 3. Replace VM_IP_ADDRESS above with the actual IP
-#
-# 4. Copy your SSH key to the VM:
-#    ssh-copy-id admin@VM_IP_ADDRESS
-#
-# 5. Test connection:
-#    ansible all -m ping
-#
-# 6. If ping succeeds, you're ready to run the playbook
+        saconsole: {}
+        target1: {}
+        target2: {}

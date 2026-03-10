@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # generate_keys.sh — WireGuard key generation for ESACP Stage 2.1
 #
-# Generates keypairs for: controller (${HOSTNAME}), saconsole, target1
-# Generates preshared keys for: controller↔saconsole, target1↔saconsole
+# Generates keypairs for: controller (${HOSTNAME}), saconsole, target1, target2
+# Generates preshared keys for: controller↔saconsole, target1↔saconsole, target2↔saconsole
 #
 # Output: config/wireguard/keys.sops.yml  (age-encrypted via SOPS, safe to commit)
 #
@@ -55,13 +55,16 @@ echo "Generating WireGuard keys..."
 CONTROLLER_PRIV=$(wg genkey)
 SACONSOLE_PRIV=$(wg genkey)
 TARGET1_PRIV=$(wg genkey)
+TARGET2_PRIV=$(wg genkey)
 
 CONTROLLER_PUB=$(echo "${CONTROLLER_PRIV}" | wg pubkey)
-SACONSOLE_PUB=$(echo "${SACONSOLE_PRIV}"  | wg pubkey)
-TARGET1_PUB=$(echo "${TARGET1_PRIV}"      | wg pubkey)
+SACONSOLE_PUB=$(echo "${SACONSOLE_PRIV}"   | wg pubkey)
+TARGET1_PUB=$(echo "${TARGET1_PRIV}"       | wg pubkey)
+TARGET2_PUB=$(echo "${TARGET2_PRIV}"       | wg pubkey)
 
 CONTROLLER_SACONSOLE_PSK=$(wg genpsk)
 TARGET1_SACONSOLE_PSK=$(wg genpsk)
+TARGET2_SACONSOLE_PSK=$(wg genpsk)
 
 # ── Encrypt and write ─────────────────────────────────────────────────────────
 
@@ -69,9 +72,10 @@ TMPFILE=$(mktemp --suffix=.sops.yml)
 trap 'rm -f "${TMPFILE}" "${KEYS_FILE}.tmp"' EXIT
 
 cat > "${TMPFILE}" <<YAML
-# WireGuard keys — ESACP Stage 2.1
+# WireGuard keys — ESACP
 # Encrypted with SOPS/age. Safe to commit.
 # Regenerate with: bash config/wireguard/generate_keys.sh  (after deleting this file)
+# Add a new peer: bash config/wireguard/add_peer.sh <peer-name>
 
 controller:
     private_key: "${CONTROLLER_PRIV}"
@@ -85,9 +89,14 @@ target1:
     private_key: "${TARGET1_PRIV}"
     public_key:  "${TARGET1_PUB}"
 
+target2:
+    private_key: "${TARGET2_PRIV}"
+    public_key:  "${TARGET2_PUB}"
+
 preshared_keys:
     controller_saconsole: "${CONTROLLER_SACONSOLE_PSK}"
     target1_saconsole:    "${TARGET1_SACONSOLE_PSK}"
+    target2_saconsole:    "${TARGET2_SACONSOLE_PSK}"
 YAML
 
 sops --encrypt \
@@ -103,10 +112,11 @@ sops --encrypt \
 echo ""
 echo "✅  config/wireguard/keys.sops.yml written and encrypted."
 echo ""
-echo "Public keys — paste into ansible/group_vars/kvm.yml:"
+echo "Public keys — paste into ansible/group_vars/all.yml:"
 echo ""
 echo "    wg_pubkey_controller: \"${CONTROLLER_PUB}\""
 echo "    wg_pubkey_saconsole:  \"${SACONSOLE_PUB}\""
 echo "    wg_pubkey_target1:    \"${TARGET1_PUB}\""
+echo "    wg_pubkey_target2:    \"${TARGET2_PUB}\""
 echo ""
 echo "Commit keys.sops.yml to git. The plaintext never touches disk beyond this run."

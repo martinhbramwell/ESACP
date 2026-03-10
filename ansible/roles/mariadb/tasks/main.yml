@@ -1,0 +1,86 @@
+---
+# mariadb role — Deploy MariaDB + mysqld_exporter via Docker Compose
+#
+# MariaDB listens on Docker-internal port 3306 (not exposed to host).
+# mysqld_exporter listens on host port 9104; UFW restricts to saconsole WG IP.
+
+- name: Create MariaDB deploy directory
+  file:
+    path: "{{ mariadb_deploy_dir }}"
+    state: directory
+    mode: '0750'
+    owner: root
+    group: root
+
+- name: Template Docker Compose file
+  template:
+    src: docker-compose.mariadb.yml.j2
+    dest: "{{ mariadb_deploy_dir }}/docker-compose.yml"
+    mode: '0644'
+  notify: recreate mariadb stack
+
+- name: Create .env file with MariaDB credentials
+  template:
+    src: mariadb.env.j2
+    dest: "{{ mariadb_deploy_dir }}/.env"
+    mode: '0600'
+    owner: root
+    group: root
+  no_log: true
+  notify: recreate mariadb stack
+
+- name: Create mysqld_exporter my.cnf credentials file
+  template:
+    src: my.cnf.j2
+    dest: "{{ mariadb_deploy_dir }}/my.cnf"
+    mode: '0644'
+    owner: root
+    group: root
+  no_log: true
+  notify: recreate mariadb stack
+
+- name: Allow mysqld_exporter scraping from saconsole (WireGuard only)
+  ufw:
+    rule: allow
+    port: "{{ mysqld_exporter_port | string }}"
+    proto: tcp
+    from_ip: "10.10.0.1"
+    comment: "mysqld_exporter — saconsole WireGuard only"
+
+- name: Pull MariaDB and mysqld_exporter images
+  command: docker-compose -f {{ mariadb_deploy_dir }}/docker-compose.yml pull
+  register: mariadb_pull
+  changed_when: >
+    'Pulling' in mariadb_pull.stderr or 'Downloaded' in mariadb_pull.stderr or
+    'Pulling' in mariadb_pull.stdout or 'Downloaded' in mariadb_pull.stdout
+
+- name: Start MariaDB stack
+  command: docker-compose -f {{ mariadb_deploy_dir }}/docker-compose.yml up -d --force-recreate
+  register: mariadb_up
+  changed_when: >
+    'Creating' in mariadb_up.stderr or 'Starting' in mariadb_up.stderr or
+    'Recreating' in mariadb_up.stderr or 'Creating' in mariadb_up.stdout or
+    'Starting' in mariadb_up.stdout or 'Recreating' in mariadb_up.stdout
+
+- name: Wait for MariaDB to be ready
+  command: >
+    docker exec mariadb mysqladmin ping
+    -u root -p{{ mariadb_root_password }} --silent
+  register: mariadb_ping
+  until: mariadb_ping.rc == 0
+  retries: 15
+  delay: 4
+  changed_when: false
+  no_log: true
+
+- name: Wait for mysqld_exporter to respond
+  uri:
+    url: "http://localhost:{{ mysqld_exporter_port }}/metrics"
+    status_code: 200
+  register: exporter_health
+  until: exporter_health.status == 200
+  retries: 30
+  delay: 5
+
+- name: Flush handlers
+  meta: flush_handlers

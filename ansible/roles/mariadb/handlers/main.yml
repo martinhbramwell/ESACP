@@ -1,0 +1,4 @@
+---
+- name: recreate mariadb stack
+  command: docker-compose -f {{ mariadb_deploy_dir }}/docker-compose.yml up -d --force-recreate
+  changed_when: true

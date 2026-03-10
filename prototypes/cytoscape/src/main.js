@@ -1,6 +1,7 @@
 import './style.css'
 import cytoscape from 'cytoscape'
-import { showContainerPopup } from './containers.js'
+import { openPopup } from './popup.js'
+import { registry } from './registry.js'
 
 // ── Topology data ─────────────────────────────────────────────────────────────
 // Mirrors hosts_map.yml. Swap static values for live API calls when ready.
@@ -165,8 +166,8 @@ function renderInfo(data) {
 
 cy.on('tap', 'node, edge', (evt) => {
   const data = evt.target.data()
-  if (data.id === 'saconsole') {
-    showContainerPopup()
+  if (registry[data.id]) {
+    openPopup(data.id)
   } else {
     renderInfo(data)
   }
@@ -174,7 +175,7 @@ cy.on('tap', 'node, edge', (evt) => {
 
 cy.on('tap', (evt) => {
   if (evt.target === cy) {
-    infoPanel.innerHTML = '<p class="hint">Click a node or edge to inspect it. Click saconsole to explore its containers.</p>'
+    infoPanel.innerHTML = '<p class="hint">Click a node or edge to inspect it. Nodes with a registry entry open a drill-down view.</p>'
   }
 })
 

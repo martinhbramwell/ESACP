@@ -23,13 +23,29 @@ PresharedKey        = {{ wg_keys.preshared_keys.target1_saconsole }}
 AllowedIPs          = 10.10.0.3/32
 # No Endpoint — target1 initiates the connection to the hub.
 
+# ── Peer: target2 ({{ wg_keys.target2.public_key }}) ──────────────────────
+[Peer]
+PublicKey           = {{ wg_keys.target2.public_key }}
+PresharedKey        = {{ wg_keys.preshared_keys.target2_saconsole }}
+AllowedIPs          = 10.10.0.4/32
+# No Endpoint — target2 initiates the connection to the hub.
+
 {% elif inventory_hostname == 'target1' %}
 # ── Peer: saconsole hub ────────────────────────────────────────────────────
 [Peer]
 PublicKey           = {{ wg_keys.saconsole.public_key }}
 PresharedKey        = {{ wg_keys.preshared_keys.target1_saconsole }}
 AllowedIPs          = 10.10.0.0/24
-Endpoint            = 192.168.122.10:{{ wg_port }}
+Endpoint            = {{ wg_hub_endpoint }}:{{ wg_port }}
+PersistentKeepalive = 25
+
+{% elif inventory_hostname == 'target2' %}
+# ── Peer: saconsole hub ────────────────────────────────────────────────────
+[Peer]
+PublicKey           = {{ wg_keys.saconsole.public_key }}
+PresharedKey        = {{ wg_keys.preshared_keys.target2_saconsole }}
+AllowedIPs          = 10.10.0.0/24
+Endpoint            = {{ wg_hub_endpoint }}:{{ wg_port }}
 PersistentKeepalive = 25
 
 {% else %}
@@ -38,7 +54,7 @@ PersistentKeepalive = 25
 PublicKey           = {{ wg_keys.saconsole.public_key }}
 PresharedKey        = {{ wg_keys.preshared_keys.controller_saconsole }}
 AllowedIPs          = 10.10.0.0/24
-Endpoint            = 192.168.122.10:{{ wg_port }}
+Endpoint            = {{ wg_hub_endpoint }}:{{ wg_port }}
 PersistentKeepalive = 25
 
 {% endif %}

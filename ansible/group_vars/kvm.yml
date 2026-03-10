@@ -8,7 +8,11 @@ ansible_user: you
 ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/hasan_mighty"
 ansible_python_interpreter: /usr/bin/python3
 
-# ── WireGuard network and keys are in group_vars/all.yml ──────────────────
+# ── WireGuard ──────────────────────────────────────────────────────────────
+# wg_hub_endpoint: the virbr0 IP of saconsole — stable, internal to the KVM host.
+wg_hub_endpoint: "192.168.122.10"
+
+# WireGuard network and keys are in group_vars/all.yml
 # (moved there so the controller group also receives them)
 
 # ── Per-host WireGuard config (consumed by the wireguard role) ─────────────
