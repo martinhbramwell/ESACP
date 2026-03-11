@@ -1,8 +1,10 @@
 ---
 - name: restart wg0
-  systemd:
-    name: wg-quick@wg0
-    state: restarted
+  # systemd restart does not reliably reload the running interface when the
+  # private key changes. Use wg-quick down/up for a clean reload.
+  shell: |
+    wg-quick down wg0 || true
+    wg-quick up wg0
 
 - name: reload ufw
   command: ufw reload

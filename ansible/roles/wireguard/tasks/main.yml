@@ -38,10 +38,21 @@
         {{ wg_keys.saconsole }}
       {%- elif inventory_hostname == 'target1' -%}
         {{ wg_keys.target1 }}
-      {%- else -%}
+      {%- elif inventory_hostname == 'target2' -%}
+        {{ wg_keys.target2 }}
+      {%- elif inventory_hostname in ['controller', 'localhost'] -%}
         {{ wg_keys.controller }}
+      {%- else -%}
+        UNKNOWN_HOST
       {%- endif -%}
   no_log: true
+
+- name: Fail if host has no WireGuard identity in keys.sops.yml
+  fail:
+    msg: >
+      No WireGuard key found for '{{ inventory_hostname }}' in keys.sops.yml.
+      Add a keypair for this host before provisioning.
+  when: wg_host_key == 'UNKNOWN_HOST'
 
 - name: Write WireGuard private key
   copy:
