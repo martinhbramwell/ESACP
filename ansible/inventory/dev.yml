@@ -24,8 +24,7 @@ all:
     vbox:
       hosts:
         saconsole:
-          ansible_host: "192.168.40.49"
-          ansible_user: ernest
+          ansible_host: "192.168.40.50"
           wg_ip: "10.10.0.1"
           wg_role: hub
         target1:

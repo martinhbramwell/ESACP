@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # create_target.sh — Create a VirtualBox target VM by importing the base OVA.
 #
-# Approach: import target1-base.ova (a manually-installed, clean Ubuntu 24.04
-# Server image) rather than running the unattended installer. Import is seconds,
-# not 40+ minutes. The unattended installer is non-viable under Hyper-V/NEM +
-# Memory Integrity due to severe virtual clock drift.
+# Approach: import esacp-base.ova (a clean Ubuntu 24.04 Server image with
+# VirtualBox Guest Additions and the operator SSH key pre-installed) rather than
+# running the unattended installer. Import is seconds, not 40+ minutes.
 #
-# The base OVA lives at D:\VM_images\target1-base.ova and was created by:
+# The base OVA lives at D:\VM_images\esacp-base.ova and was created by:
 #   1. Manual Ubuntu Server 24.04 install via VirtualBox GUI
-#   2. VBoxManage export target1 --output D:\VM_images\target1-base.ova --ovf20
+#   2. Install virtualbox-guest-utils inside the VM
+#   3. Install operator SSH public key (~/.ssh/id_ed25519.pub) into ~/.ssh/authorized_keys
+#   4. VBoxManage export <vm> --output D:\VM_images\esacp-base.ova --ovf20
 #
 # Network: NAT (VirtualBox built-in). WireGuard is the overlay for all
 # instrumentation; physical network mode doesn't matter once WG is up.
@@ -71,7 +72,7 @@ echo "VBoxManage: ${VBM}"
 
 # ── Locate base OVA ───────────────────────────────────────────────────────────
 
-BASE_OVA="/mnt/d/VM_images/target1-base.ova"
+BASE_OVA="/mnt/d/VM_images/esacp-base.ova"
 if [[ ! -f "${BASE_OVA}" ]]; then
     echo "ERROR: Base OVA not found at ${BASE_OVA}"
     echo "       Recreate it with:"
@@ -156,13 +157,14 @@ echo "  ✅  Import complete."
 echo ""
 echo "Configuring VM settings..."
 
-# Set hostname via description (actual hostname is set by Ansible)
+# Set NIC to NAT (OVA may have been exported from a bridged VM) and configure boot order.
 "${VBM}" modifyvm "${TARGET}" \
     --boot1 disk \
     --boot2 none \
     --boot3 none \
     --boot4 none \
-    --audio none
+    --audio none \
+    --nic1 nat
 
 # The OVA may already have a NAT rule from the source VM. Remove it and re-add
 # with the correct port for this target (2222/2223).

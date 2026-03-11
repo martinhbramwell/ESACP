@@ -177,15 +177,24 @@ if [[ -n "${VBM}" ]]; then
     done
 
     # saconsole via LAN
-    CONSOLE_IP=$(grep "ansible_host" ansible/inventory/dev.yml \
-        | grep "saconsole" -A1 | grep "ansible_host" | awk '{print $2}' | tr -d '"' | head -1)
-    if [[ -n "${CONSOLE_IP}" ]]; then
-        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes \
-               ernest@"${CONSOLE_IP}" true 2>/dev/null; then
-            ok "SSH to saconsole (${CONSOLE_IP}) — key auth working"
+    CONSOLE_IP=$(awk '/saconsole:/{found=1} found && /ansible_host:/{print $2; exit}' \
+        ansible/inventory/dev.yml | tr -d '"')
+    CONSOLE_STATE=$("${VBM}" showvminfo console --machinereadable 2>/dev/null \
+        | grep '^VMState=' | sed 's/VMState="\(.*\)"/\1/' || echo "not_found")
+    if [[ "${CONSOLE_STATE}" == "running" ]]; then
+        if [[ -n "${CONSOLE_IP}" ]]; then
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes \
+                   you@"${CONSOLE_IP}" true 2>/dev/null; then
+                ok "SSH to saconsole (${CONSOLE_IP}) — key auth working"
+            else
+                warn "SSH to saconsole (${CONSOLE_IP}) — key auth failed"
+                echo "      Check: is the operator SSH public key in saconsole's ~/.ssh/authorized_keys?"
+            fi
         else
-            warn "SSH to saconsole (${CONSOLE_IP}) failed"
+            warn "saconsole ansible_host not found in inventory/dev.yml"
         fi
+    else
+        warn "saconsole is not running (state: ${CONSOLE_STATE}) — skipping SSH check"
     fi
 fi
 
@@ -205,15 +214,55 @@ else
     warn "ansible.cfg missing — sops vars plugin may not load"
 fi
 
-# ── 9. OVA base image ─────────────────────────────────────────────────────────
+if grep -q "community.sops.sops" ansible.cfg 2>/dev/null; then
+    ok "ansible.cfg: community.sops.sops vars plugin enabled"
+else
+    fail "ansible.cfg missing vars_plugins_enabled — SOPS secrets (Telegram token etc) will be undefined"
+    echo "      Fix: add to ansible.cfg [defaults] section:"
+    echo "        vars_plugins_enabled = host_group_vars,community.sops.sops"
+fi
+
+# ── 9. Base OVA ───────────────────────────────────────────────────────────────
 hdr "9. Base OVA"
 
-if [[ -f "/mnt/d/VM_images/target1-base.ova" ]]; then
-    SIZE=$(du -h /mnt/d/VM_images/target1-base.ova | cut -f1)
-    ok "target1-base.ova present (${SIZE})"
+if [[ -f "/mnt/d/VM_images/esacp-base.ova" ]]; then
+    SIZE=$(du -h /mnt/d/VM_images/esacp-base.ova | cut -f1)
+    ok "esacp-base.ova present (${SIZE})"
 else
-    warn "target1-base.ova missing — VM rebuild will require manual install"
-    echo "      Rebuild: manual Ubuntu Server install → VBoxManage export"
+    fail "esacp-base.ova missing — all VM rebuilds will fail"
+    echo "      Rebuild: boot a clean Ubuntu 24.04 Server VM, then:"
+    echo "        1. apt install virtualbox-guest-utils"
+    echo "        2. Install operator SSH public key into ~/.ssh/authorized_keys"
+    echo "        3. VBoxManage export <vm> --output D:\\VM_images\\esacp-base.ova --ovf20"
+fi
+
+if [[ -f "/mnt/d/VM_images/target1-base.ova" ]]; then
+    warn "Stale target1-base.ova found — it has been superseded by esacp-base.ova"
+    echo "      Safe to delete: rm /mnt/d/VM_images/target1-base.ova"
+fi
+
+# ── 10. Bridged adapter (saconsole) ───────────────────────────────────────────
+hdr "10. Bridged adapter (saconsole)"
+
+if [[ -n "${VBM}" ]]; then
+    BRIDGED_ADAPTER="Intel(R) Wi-Fi 6E AX210 160MHz"
+    if "${VBM}" list bridgedifs 2>/dev/null | grep -qF "${BRIDGED_ADAPTER}"; then
+        ok "Bridged adapter found: ${BRIDGED_ADAPTER}"
+        # Check if VBox filter driver is actually bound by probing the console VM's NIC config
+        # (or if it's bridged to the right adapter if console is registered)
+        CONSOLE_NIC=$("${VBM}" showvminfo console --machinereadable 2>/dev/null \
+            | grep "^bridgeadapter1=" | sed 's/bridgeadapter1="\(.*\)"/\1/' || true)
+        if [[ -n "${CONSOLE_NIC}" && "${CONSOLE_NIC}" != "${BRIDGED_ADAPTER}" ]]; then
+            warn "console VM is bridged to '${CONSOLE_NIC}' — expected '${BRIDGED_ADAPTER}'"
+            echo "      Fix: VBoxManage.exe modifyvm console --bridgeadapter1 \"${BRIDGED_ADAPTER}\""
+        fi
+    else
+        fail "Bridged adapter '${BRIDGED_ADAPTER}' not listed — create_console.sh will fail"
+        echo "      Fix: ensure the adapter is connected and VirtualBox NDIS6 Bridged"
+        echo "           Networking Driver is bound to it:"
+        echo "           Windows → Network Connections → right-click adapter → Properties"
+        echo "           → tick 'VirtualBox NDIS6 Bridged Networking Driver'"
+    fi
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────

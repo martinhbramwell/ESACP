@@ -11,7 +11,7 @@ ansible_python_interpreter: /usr/bin/python3
 # wg_hub_endpoint: the bridged LAN IP of the console VM (VirtualBox saconsole).
 # Spokes use this as the Endpoint in their wg0.conf.
 # Set this to the actual IP shown by 'ip addr' on the console VM after boot.
-wg_hub_endpoint: "192.168.40.49"    # REPLACE with your console VM's current LAN IP
+wg_hub_endpoint: "192.168.40.50"
 
 # ── SSH allowed IPs (VirtualBox — same LAN subnet as host) ────────────────
 allowed_ssh_ips:
