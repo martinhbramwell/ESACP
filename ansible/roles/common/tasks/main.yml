@@ -2,6 +2,18 @@
 # Common Role - Base System Configuration
 # Handles: passwordless sudo, system packages, timezone, security updates
 
+- name: Set hostname
+  shell: |
+    echo "{{ inventory_hostname }}" > /etc/hostname
+    hostname "{{ inventory_hostname }}"
+  changed_when: false
+
+- name: Update /etc/hosts with correct hostname
+  lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ inventory_hostname }}"
+
 - name: Set system timezone
   timezone:
     name: "{{ system_timezone }}"
