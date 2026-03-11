@@ -205,10 +205,9 @@ echo "Polling SSH on 127.0.0.1:${SSH_HOST_PORT}..."
 SSH_TIMEOUT=180
 SSH_ELAPSED=0
 while true; do
-    if ssh -p "${SSH_HOST_PORT}" \
+    if sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -p "${SSH_HOST_PORT}" \
            -o StrictHostKeyChecking=no \
            -o ConnectTimeout=5 \
-           -o BatchMode=yes \
            "${BOOTSTRAP_USER}@127.0.0.1" true 2>/dev/null; then
         echo "  ✅  SSH ready."
         break

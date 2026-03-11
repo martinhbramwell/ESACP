@@ -207,12 +207,11 @@ if [[ -n "${VM_IP}" ]]; then
     SSH_TIMEOUT=120
     SSH_ELAPSED=0
     while true; do
-        if ssh \
+        if sshpass -p "${BOOTSTRAP_PASSWORD}" ssh \
                -o StrictHostKeyChecking=no \
                -o ConnectTimeout=5 \
-               -o BatchMode=yes \
                "${BOOTSTRAP_USER}@${VM_IP}" true 2>/dev/null; then
-            echo "  ✅  SSH ready (key auth)."
+            echo "  ✅  SSH ready."
             break
         fi
         sleep 5
