@@ -1,0 +1,86 @@
+---
+# control_plane role — saconsole as Ansible controller for target provisioning
+#
+# After this role runs:
+#   - ESACP repo is cloned at /opt/esacp
+#   - Ansible + SOPS + required collections are installed
+#   - SOPS age key is deployed for secret decryption
+#   - saconsole has an SSH keypair at ~/.ssh/id_ed25519
+#   - saconsole_ssh_pubkey fact is registered for use by sibling plays
+#
+# Applied to saconsole only (Play 3 in site-vbox.yml).
+# Play 4 reads saconsole_ssh_pubkey from hostvars and pushes it to targets.
+
+- name: Install Ansible
+  apt:
+    name: ansible
+    state: present
+
+- name: Check if SOPS binary is installed
+  stat:
+    path: /usr/local/bin/sops
+  register: sops_binary
+
+- name: Download SOPS binary
+  get_url:
+    url: "https://github.com/getsops/sops/releases/download/v{{ sops_version }}/sops-v{{ sops_version }}.linux.amd64"
+    dest: /usr/local/bin/sops
+    mode: '0755'
+  when: not sops_binary.stat.exists
+
+- name: Create /opt/esacp directory
+  file:
+    path: "{{ esacp_repo_dest }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Clone ESACP repository
+  become_user: "{{ ansible_user }}"
+  git:
+    repo: "{{ esacp_repo_url }}"
+    dest: "{{ esacp_repo_dest }}"
+    version: "{{ esacp_repo_version }}"
+    update: yes
+
+- name: Install required Ansible collections
+  become_user: "{{ ansible_user }}"
+  command:
+    cmd: "ansible-galaxy collection install -r {{ esacp_repo_dest }}/ansible/requirements.yml"
+  changed_when: false
+
+- name: Create SOPS age key directory
+  file:
+    path: "/home/{{ ansible_user }}/.config/sops/age"
+    state: directory
+    mode: '0700'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Deploy SOPS age key
+  copy:
+    content: "{{ lookup('file', lookup('env', 'HOME') + '/.config/sops/age/keys.txt') }}"
+    dest: "/home/{{ ansible_user }}/.config/sops/age/keys.txt"
+    mode: '0600'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Generate saconsole SSH keypair
+  become_user: "{{ ansible_user }}"
+  command:
+    cmd: >
+      ssh-keygen -t ed25519
+      -f /home/{{ ansible_user }}/.ssh/id_ed25519
+      -N ''
+      -C saconsole-control-plane
+    creates: "/home/{{ ansible_user }}/.ssh/id_ed25519"
+
+- name: Read saconsole public key
+  slurp:
+    src: "/home/{{ ansible_user }}/.ssh/id_ed25519.pub"
+  register: saconsole_pubkey_raw
+
+- name: Register saconsole public key as host fact
+  set_fact:
+    saconsole_ssh_pubkey: "{{ saconsole_pubkey_raw.content | b64decode | trim }}"

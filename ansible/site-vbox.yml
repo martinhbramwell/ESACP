@@ -4,7 +4,9 @@
 # Play order:
 #   1. All VBox hosts:  common, ssh, firewall, fail2ban, wireguard
 #   2. saconsole:       docker, observability
-#   3. targets:         docker, node_exporter, mariadb
+#   3. saconsole:       control_plane (repo, toolchain, SSH keypair)
+#   4. targets:         authorise saconsole SSH key
+#   5. targets:         docker, node_exporter, mariadb
 #
 # Usage (from project root):
 #   ansible-playbook -i ansible/inventory/dev.yml ansible/site-vbox.yml
@@ -36,7 +38,28 @@
     - docker
     - observability
 
-# ── Play 3: Targets — Docker + node_exporter + MariaDB ───────────────────────
+# ── Play 3: saconsole — control plane (repo, toolchain, SSH keypair) ─────────
+- name: Control plane — saconsole
+  hosts: saconsole
+  become: yes
+  roles:
+    - control_plane
+
+# ── Play 4: Push saconsole SSH key to targets ─────────────────────────────────
+# Reads saconsole_ssh_pubkey set by the control_plane role in Play 3.
+# Safe to skip when running --limit saconsole or --limit targets alone.
+- name: Authorise saconsole on targets
+  hosts: targets
+  become: yes
+  tasks:
+    - name: Add saconsole public key to authorized_keys
+      authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ hostvars['saconsole']['saconsole_ssh_pubkey'] }}"
+        state: present
+      when: hostvars['saconsole']['saconsole_ssh_pubkey'] is defined
+
+# ── Play 5: Targets — Docker + node_exporter + MariaDB ───────────────────────
 - name: node_exporter + MariaDB — vbox targets
   hosts: targets
   become: yes

@@ -1,0 +1,12 @@
+---
+# Ansible Galaxy collection requirements
+# Installed on saconsole by the control_plane role.
+# Also installable manually on any controller:
+#   ansible-galaxy collection install -r ansible/requirements.yml
+
+collections:
+  - name: community.sops
+  - name: community.general
+  - name: community.crypto
+  - name: community.docker
+  - name: ansible.posix
