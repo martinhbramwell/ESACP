@@ -4,7 +4,7 @@
 # Play order:
 #   1. All VBox hosts:  common, ssh, firewall, fail2ban, wireguard
 #   2. saconsole:       docker, observability
-#   3. saconsole:       control_plane (repo, toolchain, SSH keypair)
+#   3. saconsole:       control_plane (repo, toolchain, SSH keypair, Cytoscape on nginx:8090)
 #   4. targets:         authorise saconsole SSH key
 #   5. targets:         docker, node_exporter, mariadb
 #
