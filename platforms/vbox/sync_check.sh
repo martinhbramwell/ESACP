@@ -115,7 +115,7 @@ hdr "5. VirtualBox VMs"
 if [[ -n "${VBM}" ]]; then
     for vm in console target1 target2; do
         STATE=$("${VBM}" showvminfo "${vm}" --machinereadable 2>/dev/null \
-            | grep '^VMState=' | sed 's/VMState="\(.*\)"/\1/' || echo "not_found")
+            | grep '^VMState=' | sed 's/VMState="\(.*\)"/\1/' | tr -d '\r' || echo "not_found")
         if [[ "${STATE}" == "not_found" ]]; then
             fail "VM '${vm}' not registered in VirtualBox"
         else
@@ -128,7 +128,7 @@ if [[ -n "${VBM}" ]]; then
         vm="${vm_port%%:*}"
         port="${vm_port##*:}"
         RULE=$("${VBM}" showvminfo "${vm}" --machinereadable 2>/dev/null \
-            | grep "^Forwarding" | grep ":${port}:" || true)
+            | grep "^Forwarding" | grep ",${port}," || true)
         if [[ -n "${RULE}" ]]; then
             ok "NAT rule confirmed on ${vm} (port ${port})"
         else
@@ -157,7 +157,7 @@ if [[ -n "${VBM}" ]]; then
         vm="${vm_port%%:*}"
         port="${vm_port##*:}"
         STATE=$("${VBM}" showvminfo "${vm}" --machinereadable 2>/dev/null \
-            | grep '^VMState=' | sed 's/VMState="\(.*\)"/\1/' || echo "not_found")
+            | grep '^VMState=' | sed 's/VMState="\(.*\)"/\1/' | tr -d '\r' || echo "not_found")
         if [[ "${STATE}" == "running" ]]; then
             if ssh -p "${port}" \
                    -o StrictHostKeyChecking=no \
@@ -180,7 +180,7 @@ if [[ -n "${VBM}" ]]; then
     CONSOLE_IP=$(awk '/saconsole:/{found=1} found && /ansible_host:/{print $2; exit}' \
         ansible/inventory/dev.yml | tr -d '"')
     CONSOLE_STATE=$("${VBM}" showvminfo console --machinereadable 2>/dev/null \
-        | grep '^VMState=' | sed 's/VMState="\(.*\)"/\1/' || echo "not_found")
+        | grep '^VMState=' | sed 's/VMState="\(.*\)"/\1/' | tr -d '\r' || echo "not_found")
     if [[ "${CONSOLE_STATE}" == "running" ]]; then
         if [[ -n "${CONSOLE_IP}" ]]; then
             if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes \
@@ -251,7 +251,7 @@ if [[ -n "${VBM}" ]]; then
         # Check if VBox filter driver is actually bound by probing the console VM's NIC config
         # (or if it's bridged to the right adapter if console is registered)
         CONSOLE_NIC=$("${VBM}" showvminfo console --machinereadable 2>/dev/null \
-            | grep "^bridgeadapter1=" | sed 's/bridgeadapter1="\(.*\)"/\1/' || true)
+            | grep "^bridgeadapter1=" | sed 's/bridgeadapter1="\(.*\)"/\1/' | tr -d '\r' || true)
         if [[ -n "${CONSOLE_NIC}" && "${CONSOLE_NIC}" != "${BRIDGED_ADAPTER}" ]]; then
             warn "console VM is bridged to '${CONSOLE_NIC}' — expected '${BRIDGED_ADAPTER}'"
             echo "      Fix: VBoxManage.exe modifyvm console --bridgeadapter1 \"${BRIDGED_ADAPTER}\""
