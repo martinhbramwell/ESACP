@@ -2,6 +2,15 @@
 # Common Role - Base System Configuration
 # Handles: passwordless sudo, system packages, timezone, security updates
 
+- name: Wait for dpkg/apt lock (unattended-upgrades runs at first boot)
+  shell: |
+    while fuser /var/lib/dpkg/lock-frontend \
+                /var/lib/apt/lists/lock \
+                /var/cache/apt/archives/lock >/dev/null 2>&1; do
+      sleep 5
+    done
+  changed_when: false
+
 - name: Set hostname
   shell: |
     echo "{{ inventory_hostname }}" > /etc/hostname

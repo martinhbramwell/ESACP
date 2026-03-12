@@ -204,7 +204,7 @@ if [[ -n "${VM_IP}" ]]; then
     # Remove any stale known_hosts entry for this IP
     ssh-keygen -R "${VM_IP}" 2>/dev/null || true
 
-    SSH_TIMEOUT=120
+    SSH_TIMEOUT=300
     SSH_ELAPSED=0
     while true; do
         if sshpass -p "${BOOTSTRAP_PASSWORD}" ssh \
