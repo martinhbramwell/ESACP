@@ -63,7 +63,7 @@ while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock \
     sleep 5
 done
 
-sudo apt-get install -y ansible git
+sudo apt-get install -y ansible git sshpass
 
 if ! command -v sops &>/dev/null; then
     echo "  Installing SOPS ${SOPS_VERSION}..."
