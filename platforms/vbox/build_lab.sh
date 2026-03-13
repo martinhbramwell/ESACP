@@ -10,6 +10,7 @@
 #
 # You can also run the steps individually:
 #   bash platforms/vbox/create_vms.sh
+#   bash platforms/vbox/install_wireguard.sh
 #   bash platforms/vbox/handoff_console.sh
 #
 # Prerequisites:
@@ -27,4 +28,5 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${PROJECT_ROOT}"
 
 bash platforms/vbox/create_vms.sh
+bash platforms/vbox/install_wireguard.sh
 bash platforms/vbox/handoff_console.sh

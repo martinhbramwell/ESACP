@@ -41,6 +41,33 @@ VBM="$(find_vboxmanage)"
 
 hdr() { echo ""; echo "════════════════════════════════════════"; echo "  $1"; echo "════════════════════════════════════════"; }
 
+# ── Pre-flight: check if VMs already exist ────────────────────────────────────
+
+EXISTING=()
+for vm in console target1 target2; do
+    "${VBM}" showvminfo "${vm}" --machinereadable &>/dev/null && EXISTING+=("${vm}") || true
+done
+
+if [[ ${#EXISTING[@]} -gt 0 ]]; then
+    echo ""
+    echo "  ⚠️   The following VMs are already registered: ${EXISTING[*]}"
+    echo "  Importing OVAs would fail. Options:"
+    echo "    r) Revert all 3 VMs to \"Fresh Install\" snapshot (recommended)"
+    echo "    d) Exit — run destroy_vms.sh first, then re-run this script"
+    echo ""
+    read -rp "  Choice [r/d]: " choice
+    case "${choice}" in
+        r|R)
+            echo ""
+            exec bash platforms/vbox/revert_to_fresh.sh
+            ;;
+        *)
+            echo "  Run: bash platforms/vbox/destroy_vms.sh"
+            exit 1
+            ;;
+    esac
+fi
+
 # ── Phase 1: Create VMs ───────────────────────────────────────────────────────
 
 hdr "Phase 1 — Create VMs"

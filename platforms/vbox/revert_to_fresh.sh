@@ -55,8 +55,14 @@ done
 hdr "Phase 2 — Start VMs"
 
 for vm in "${ESACP_VMS[@]}"; do
-    echo "  Starting ${vm}..."
-    "${VBM}" startvm "${vm}" --type headless
+    STATE=$("${VBM}" showvminfo "${vm}" --machinereadable 2>/dev/null \
+        | grep '^VMState=' | cut -d'"' -f2 | tr -d '\r' || echo "unknown")
+    if [[ "${STATE}" == "running" ]]; then
+        echo "  ${vm}: already running — skipping."
+    else
+        echo "  Starting ${vm} (state: ${STATE})..."
+        "${VBM}" startvm "${vm}" --type headless
+    fi
 done
 
 # ── Phase 3: Detect saconsole LAN IP ─────────────────────────────────────────

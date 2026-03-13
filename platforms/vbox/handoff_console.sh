@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
-# handoff_console.sh — Bootstrap WireGuard and transfer control to saconsole.
+# handoff_console.sh — Transfer control to saconsole.
 #
-# Assumes all 3 VMs are already running and SSH-reachable (run create_vms.sh first).
-# Reads the saconsole LAN IP from /tmp/.esacp_console_ip (written by create_vms.sh),
-# or falls back to reading it from ansible/inventory/dev.yml.
+# Assumes WireGuard is already installed on all 3 VMs (run install_wireguard.sh first).
+# Reads saconsole LAN IP from /tmp/.esacp_console_ip or ansible/inventory/dev.yml.
 #
 # What this does:
-#   1. Installs WireGuard on all 3 VMs (site-bootstrap.yml — nothing else)
-#   2. Clones ESACP repo to saconsole at /opt/esacp
-#   3. Deploys SOPS age key to saconsole
-#   4. Brings up WSL WireGuard spoke
+#   1. Clones ESACP repo to saconsole at /opt/esacp
+#   2. Deploys SOPS age key to saconsole
+#   3. Brings up WSL WireGuard spoke
 #
-# After this script completes, WireGuard mesh is live and saconsole has
-# everything it needs to self-provision. Run from saconsole:
+# After this script, saconsole has everything it needs to self-provision:
 #   bash /opt/esacp/platforms/vbox/provision_targets.sh
 #
 # Usage (from project root):
@@ -34,7 +31,6 @@ hdr() { echo ""; echo "═══════════════════
 if [[ -f /tmp/.esacp_console_ip ]]; then
     CONSOLE_IP=$(</tmp/.esacp_console_ip)
 else
-    # Fallback: read from dev.yml (updated by create_vms.sh Phase 4)
     CONSOLE_IP=$(python3 -c "
 import yaml
 with open('ansible/inventory/dev.yml') as f:
@@ -43,33 +39,12 @@ print(inv['all']['children']['vbox']['hosts']['saconsole']['ansible_host'])
 ")
 fi
 
-[[ -z "${CONSOLE_IP}" ]] && echo "ERROR: Cannot determine saconsole IP. Run create_vms.sh first." && exit 1
+[[ -z "${CONSOLE_IP}" ]] && echo "ERROR: Cannot determine saconsole IP. Run create_vms.sh or revert_to_fresh.sh first." && exit 1
 echo "  saconsole LAN IP: ${CONSOLE_IP}"
 
-# ── Phase 1: Bootstrap WireGuard on all VMs ───────────────────────────────────
+# ── Phase 1: Clone ESACP repo + deploy age key to saconsole ──────────────────
 
-hdr "Phase 1 — Bootstrap WireGuard (all VMs)"
-
-echo "  saconsole..."
-ANSIBLE_HOST_KEY_CHECKING=false ansible-playbook \
-    -i ansible/inventory/dev.yml ansible/site-bootstrap.yml \
-    --limit saconsole \
-    -e "ansible_host=${CONSOLE_IP} ansible_password=${BOOTSTRAP_PASSWORD} ansible_become_pass=${BOOTSTRAP_PASSWORD}"
-
-for spec in "target1:2222" "target2:2223"; do
-    vm="${spec%%:*}"
-    port="${spec##*:}"
-    echo ""
-    echo "  ${vm}..."
-    ANSIBLE_HOST_KEY_CHECKING=false ansible-playbook \
-        -i ansible/inventory/dev.yml ansible/site-bootstrap.yml \
-        --limit "${vm}" \
-        -e "ansible_host=127.0.0.1 ansible_port=${port} ansible_password=${BOOTSTRAP_PASSWORD} ansible_become_pass=${BOOTSTRAP_PASSWORD}"
-done
-
-# ── Phase 2: Clone ESACP repo + deploy age key to saconsole ──────────────────
-
-hdr "Phase 2 — Deploy repo + secrets to saconsole"
+hdr "Phase 1 — Deploy repo + secrets to saconsole"
 
 ESACP_REPO_URL="https://github.com/martinhbramwell/ESACP.git"
 ESACP_REPO_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -98,9 +73,9 @@ sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -o StrictHostKeyChecking=no \
     "chmod 600 ~/.config/sops/age/keys.txt"
 echo "  ✅  Age key deployed."
 
-# ── Phase 3: WSL WireGuard ────────────────────────────────────────────────────
+# ── Phase 2: WSL WireGuard spoke ─────────────────────────────────────────────
 
-hdr "Phase 3 — WSL WireGuard"
+hdr "Phase 2 — WSL WireGuard"
 
 if ! command -v wg &>/dev/null; then
     echo "  Installing wireguard-tools on WSL..."
@@ -152,8 +127,7 @@ echo ""
 echo "════════════════════════════════════════════════════════════════"
 echo "  ✅  Handoff complete. WireGuard mesh is up."
 echo ""
-echo "  All 3 VMs have WireGuard. Repo + secrets are on saconsole."
-echo "  Full provisioning runs from saconsole:"
+echo "  Repo + secrets are on saconsole. Full provisioning runs from there:"
 echo ""
 echo "  Option A — interactive:"
 echo "    ssh ${BOOTSTRAP_USER}@${CONSOLE_IP}"
