@@ -1,6 +1,15 @@
 ---
 # Fail2ban Role - Intrusion Prevention
 
+- name: Wait for dpkg/apt lock before installing fail2ban
+  shell: |
+    while fuser /var/lib/dpkg/lock-frontend \
+                /var/lib/apt/lists/lock \
+                /var/cache/apt/archives/lock >/dev/null 2>&1; do
+      sleep 5
+    done
+  changed_when: false
+
 - name: Install Fail2ban
   apt:
     name: fail2ban

@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# build_lab.sh — Full VirtualBox lab bootstrap from scratch.
+# build_lab.sh — VirtualBox lab bootstrap (Phase 1 of 2).
 #
-# Creates all 3 VMs, auto-detects saconsole LAN IP, provisions everything.
-# After this script completes the lab is fully operational:
-#   - saconsole: observability stack + control plane + Cytoscape at :8090
-#   - target1, target2: node_exporter + MariaDB
-#   - WireGuard mesh up on all nodes including WSL
-#   - saconsole can re-provision targets independently
+# Phase 1 (this script — runs from WSL):
+#   1. Creates all 3 VMs from esacp-base.ova
+#   2. Installs WireGuard on all 3 VMs (and nothing else)
+#   3. Clones ESACP repo + deploys SOPS age key to saconsole
+#   4. Brings WSL WireGuard spoke up
+#
+# Phase 2 (runs from saconsole):
+#   Run:  bash /opt/esacp/platforms/vbox/provision_targets.sh
+#   Does: full Ansible provisioning (docker, observability, node_exporter, etc.)
 #
 # Prerequisites:
 #   - esacp-base.ova at D:\VM_images\
@@ -130,7 +133,7 @@ wait_ssh() {
         fi
         sleep 5; elapsed=$((elapsed + 5))
         [[ $((elapsed % 30)) -eq 0 ]] && echo "    ${elapsed}s..."
-        [[ ${elapsed} -ge 180 ]] && echo "ERROR: ${label} SSH timeout." && exit 1
+        [[ ${elapsed} -ge 300 ]] && echo "ERROR: ${label} SSH timeout." && exit 1
     done
 }
 
@@ -138,73 +141,130 @@ wait_ssh "${CONSOLE_IP}" 22   "saconsole"
 wait_ssh "127.0.0.1"     2222 "target1"
 wait_ssh "127.0.0.1"     2223 "target2"
 
-# ── Phase 7: Provision saconsole (Plays 1–3) ──────────────────────────────────
+# ── Phase 7: Bootstrap WireGuard on all VMs ──────────────────────────────────
+#
+# Runs site-bootstrap.yml: WireGuard + passwordless sudo only.
+# Full provisioning (docker, observability, node_exporter, mariadb, etc.)
+# happens from saconsole in Phase 8 / provision_targets.sh.
 
-hdr "Phase 7 — Provision saconsole"
+hdr "Phase 7 — Bootstrap WireGuard (all VMs)"
 
+echo "  saconsole..."
 ANSIBLE_HOST_KEY_CHECKING=false ansible-playbook \
-    -i ansible/inventory/dev.yml ansible/site-vbox.yml \
+    -i ansible/inventory/dev.yml ansible/site-bootstrap.yml \
     --limit saconsole \
     -e "ansible_host=${CONSOLE_IP} ansible_password=${BOOTSTRAP_PASSWORD} ansible_become_pass=${BOOTSTRAP_PASSWORD}"
-
-# ── Phase 8: Provision targets via NAT (Plays 1, 4, 5) ───────────────────────
-
-hdr "Phase 8 — Provision targets"
 
 for spec in "target1:2222" "target2:2223"; do
     vm="${spec%%:*}"
     port="${spec##*:}"
     echo ""
-    echo "  Provisioning ${vm} via NAT port ${port}..."
+    echo "  ${vm}..."
     ANSIBLE_HOST_KEY_CHECKING=false ansible-playbook \
-        -i ansible/inventory/dev.yml ansible/site-vbox.yml \
+        -i ansible/inventory/dev.yml ansible/site-bootstrap.yml \
         --limit "${vm}" \
         -e "ansible_host=127.0.0.1 ansible_port=${port} ansible_password=${BOOTSTRAP_PASSWORD} ansible_become_pass=${BOOTSTRAP_PASSWORD}"
 done
 
-# ── Phase 9: Push saconsole SSH key to targets ────────────────────────────────
+# ── Phase 8: Clone ESACP repo + deploy age key to saconsole ──────────────────
 
-hdr "Phase 9 — Push saconsole SSH key to targets"
+hdr "Phase 8 — Deploy repo + secrets to saconsole"
 
-SACONSOLE_KEY=$(ssh -o StrictHostKeyChecking=no \
-    "${BOOTSTRAP_USER}@${CONSOLE_IP}" "cat ~/.ssh/id_ed25519.pub")
+# The repo branch is whatever build_lab.sh is running from — keeps saconsole
+# and WSL in sync during development. Change to "main" after merging.
+ESACP_REPO_URL="https://github.com/martinhbramwell/ESACP.git"
+ESACP_REPO_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-for spec in "target1:2222" "target2:2223"; do
-    vm="${spec%%:*}"
-    port="${spec##*:}"
-    ssh -p "${port}" -o StrictHostKeyChecking=no "${BOOTSTRAP_USER}@127.0.0.1" \
-        "grep -qF '${SACONSOLE_KEY}' ~/.ssh/authorized_keys 2>/dev/null \
-         || echo '${SACONSOLE_KEY}' >> ~/.ssh/authorized_keys"
-    echo "  ✅  saconsole key → ${vm}"
-done
+echo "  Installing git on saconsole..."
+sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+    "${BOOTSTRAP_USER}@${CONSOLE_IP}" \
+    "sudo apt-get install -y git 2>&1 | tail -1"
 
-# ── Phase 10: WSL WireGuard ───────────────────────────────────────────────────
+echo "  Cloning ESACP (branch: ${ESACP_REPO_BRANCH}) → /opt/esacp..."
+sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+    "${BOOTSTRAP_USER}@${CONSOLE_IP}" \
+    "sudo mkdir -p /opt/esacp && sudo chown ${BOOTSTRAP_USER}:${BOOTSTRAP_USER} /opt/esacp && \
+     git clone --branch ${ESACP_REPO_BRANCH} ${ESACP_REPO_URL} /opt/esacp"
+echo "  ✅  Repo cloned."
 
-hdr "Phase 10 — WSL WireGuard"
+echo "  Deploying SOPS age key..."
+sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+    "${BOOTSTRAP_USER}@${CONSOLE_IP}" \
+    "mkdir -p ~/.config/sops/age && chmod 700 ~/.config/sops/age"
+sshpass -p "${BOOTSTRAP_PASSWORD}" scp -o StrictHostKeyChecking=no \
+    ~/.config/sops/age/keys.txt \
+    "${BOOTSTRAP_USER}@${CONSOLE_IP}:~/.config/sops/age/keys.txt"
+sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+    "${BOOTSTRAP_USER}@${CONSOLE_IP}" \
+    "chmod 600 ~/.config/sops/age/keys.txt"
+echo "  ✅  Age key deployed."
 
-if [[ -f /etc/wireguard/wg0.conf ]]; then
-    sudo wg-quick down wg0 2>/dev/null || true
-    sudo wg-quick up wg0
-    echo "  ✅  wg0 up."
-else
-    echo "  No wg0.conf found — running Ansible to configure WSL WireGuard."
-    echo "  (sudo password required)"
-    ANSIBLE_HOST_KEY_CHECKING=false ansible-playbook \
-        -i ansible/inventory/dev.yml ansible/site-vbox.yml \
-        --limit localhost -K
+# ── Phase 9: WSL WireGuard ────────────────────────────────────────────────────
+
+hdr "Phase 9 — WSL WireGuard"
+
+# WSL WireGuard is configured directly in shell — not via Ansible.
+# Ansible with become:yes + connection:local hangs inside a long-running
+# pipeline because sudo -S (stdin password passing) is unreliable in that
+# context. All required values are available here without Ansible.
+
+if ! command -v wg &>/dev/null; then
+    echo "  Installing wireguard-tools on WSL..."
+    sudo apt-get install -y wireguard-tools
 fi
+
+echo "  Decrypting WireGuard keys..."
+WG_KEYS=$(sops -d config/wireguard/keys.sops.yml)
+
+CONTROLLER_PRIVKEY=$(python3 -c "
+import sys, yaml
+d = yaml.safe_load('''${WG_KEYS}''')
+print(d['controller']['private_key'])
+")
+SACONSOLE_PUBKEY=$(python3 -c "
+import sys, yaml
+d = yaml.safe_load('''${WG_KEYS}''')
+print(d['saconsole']['public_key'])
+")
+PSK=$(python3 -c "
+import sys, yaml
+d = yaml.safe_load('''${WG_KEYS}''')
+print(d['preshared_keys']['controller_saconsole'])
+")
+
+echo "  Writing /etc/wireguard/wg0.conf..."
+sudo tee /etc/wireguard/wg0.conf > /dev/null <<EOF
+[Interface]
+Address    = 10.10.0.2/24
+PrivateKey = ${CONTROLLER_PRIVKEY}
+
+[Peer]
+PublicKey           = ${SACONSOLE_PUBKEY}
+PresharedKey        = ${PSK}
+AllowedIPs          = 10.10.0.0/24
+Endpoint            = ${CONSOLE_IP}:51820
+PersistentKeepalive = 25
+EOF
+sudo chmod 600 /etc/wireguard/wg0.conf
+
+echo "  Bringing up wg0..."
+sudo wg-quick down wg0 2>/dev/null || true
+sudo wg-quick up wg0
+echo "  ✅  wg0 up."
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""
 echo "════════════════════════════════════════════════════════════════"
-echo "  ✅  Lab build complete."
+echo "  ✅  Bootstrap complete. WireGuard mesh is up."
 echo ""
-echo "  Grafana:    http://${CONSOLE_IP}:3000"
-echo "  Cytoscape:  http://${CONSOLE_IP}:8090"
-echo "  Prometheus: http://${CONSOLE_IP}:9090"
+echo "  All 3 VMs have WireGuard configured. ESACP repo is on saconsole."
+echo "  Full provisioning must now run from saconsole:"
 echo ""
-echo "  To re-provision targets from saconsole:"
+echo "  Option A — interactive:"
 echo "    ssh ${BOOTSTRAP_USER}@${CONSOLE_IP}"
-echo "    bash /opt/esacp/provision_targets.sh"
+echo "    bash /opt/esacp/platforms/vbox/provision_targets.sh"
+echo ""
+echo "  Option B — single command from WSL:"
+echo "    ssh ${BOOTSTRAP_USER}@${CONSOLE_IP} 'bash /opt/esacp/platforms/vbox/provision_targets.sh'"
 echo "════════════════════════════════════════════════════════════════"

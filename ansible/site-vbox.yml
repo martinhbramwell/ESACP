@@ -72,10 +72,15 @@
 # ── Play 6: WireGuard spoke — controller (WSL, runs locally) ─────────────────
 # Mirrors site-kvm.yml Play 4. Configures wg0 on WSL so Ansible can reach
 # targets via WireGuard IPs (10.10.0.3/4) without NAT port-forward overrides.
+#
+# Tagged controller_wg so provision_targets.sh (runs on saconsole) can skip it.
+# saconsole IS the hub — running the spoke role on localhost would overwrite its config.
 - name: WireGuard spoke — controller
   hosts: localhost
   connection: local
   become: yes
+  gather_facts: no
+  tags: [controller_wg]
   vars:
     inventory_hostname: controller
     wg_ip: "10.10.0.2"

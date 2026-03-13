@@ -1,0 +1,53 @@
+---
+# site-bootstrap.yml — Minimal WSL-side bootstrap.
+#
+# Installs WireGuard (and nothing else) on all three VMs.
+# Called by build_lab.sh before handing control to saconsole.
+#
+# What this does:
+#   - Waits for dpkg lock (unattended-upgrades runs at first boot)
+#   - Grants passwordless sudo (saconsole will Ansible targets without a password)
+#   - Installs + configures WireGuard (wg0 up, keys from keys.sops.yml)
+#
+# What this deliberately does NOT do:
+#   - No common, ssh, firewall, fail2ban roles
+#   - No docker, observability, node_exporter, mariadb
+#   - No control_plane role (repo clone is handled by build_lab.sh Phase 8)
+#
+# Usage (from project root — one limit per call due to per-host connection overrides):
+#   ansible-playbook -i ansible/inventory/dev.yml ansible/site-bootstrap.yml \
+#       --limit saconsole \
+#       -e "ansible_host=<LAN_IP> ansible_password=wawa ansible_become_pass=wawa"
+#
+#   ansible-playbook -i ansible/inventory/dev.yml ansible/site-bootstrap.yml \
+#       --limit target1 \
+#       -e "ansible_host=127.0.0.1 ansible_port=2222 ansible_password=wawa ansible_become_pass=wawa"
+
+- name: Bootstrap — WireGuard only
+  hosts: vbox
+  become: yes
+  pre_tasks:
+    - name: Wait for dpkg/apt lock
+      shell: |
+        while fuser /var/lib/dpkg/lock-frontend \
+                    /var/lib/apt/lists/lock \
+                    /var/cache/apt/archives/lock >/dev/null 2>&1; do
+          sleep 5
+        done
+      changed_when: false
+
+    - name: Stop unattended-upgrades
+      service:
+        name: unattended-upgrades
+        state: stopped
+      failed_when: false
+
+    - name: Passwordless sudo for {{ ansible_user }}
+      copy:
+        content: "{{ ansible_user }} ALL=(ALL) NOPASSWD:ALL\n"
+        dest: "/etc/sudoers.d/{{ ansible_user }}-nopasswd"
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
+  roles:
+    - wireguard
