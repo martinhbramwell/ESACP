@@ -43,9 +43,14 @@ hdr() { echo ""; echo "═══════════════════
 
 hdr "Phase 1 — Create VMs"
 
+# Skip per-script SSH polling — build_lab.sh does a single Phase 6 SSH wait
+# for all three VMs after they are all created and resumed, which is faster
+# and avoids 300s+ of wasted polling while the next VM is being imported.
+export SKIP_SSH_WAIT=1
 bash platforms/vbox/create_console.sh
 bash platforms/vbox/create_target.sh target1
 bash platforms/vbox/create_target.sh target2
+unset SKIP_SSH_WAIT
 
 # ── Phase 2: Resume savestated VMs ────────────────────────────────────────────
 

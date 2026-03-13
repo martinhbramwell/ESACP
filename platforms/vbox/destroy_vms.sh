@@ -75,8 +75,11 @@ unregister_vm() {
         echo "  ${vm}: not registered — skipping unregister"
         return 0
     fi
-    echo "  ${vm}: unregistering and deleting storage..."
-    "${VBOXMANAGE}" unregistervm "${vm}" --delete 2>&1 | grep -v '^$' || true
+    # Do NOT use --delete here: --delete triggers async VBoxSVC storage cleanup
+    # that holds a registry lock; the next unregistervm starts during that window
+    # and hangs.  File deletion is handled by cleanup_dir (rm -rf) in Phase 3.
+    echo "  ${vm}: unregistering (registry only)..."
+    "${VBOXMANAGE}" unregistervm "${vm}" 2>&1 | grep -v '^$' || true
     echo "  ${vm}: ✅  unregistered"
 }
 
@@ -115,13 +118,14 @@ if [[ ${#failed_poweroff[@]} -gt 0 ]]; then
     exit 1
 fi
 
-# Brief pause to ensure VBoxSVC flushes all file handles before --delete
+# Brief pause to ensure VBoxSVC flushes all file handles before unregister
 sleep 3
 
 echo ""
-echo "── Phase 2: Unregister + delete storage ────────────"
+echo "── Phase 2: Unregister (registry only — files deleted in Phase 3) ──"
 for vm in "${ESACP_VMS[@]}"; do
     unregister_vm "${vm}"
+    sleep 3   # let VBoxSVC settle between registry writes
 done
 
 echo ""

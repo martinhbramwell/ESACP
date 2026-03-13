@@ -11,6 +11,12 @@
     done
   changed_when: false
 
+- name: Stop unattended-upgrades so it cannot re-acquire dpkg lock mid-run
+  service:
+    name: unattended-upgrades
+    state: stopped
+  failed_when: false
+
 - name: Set hostname
   shell: |
     echo "{{ inventory_hostname }}" > /etc/hostname

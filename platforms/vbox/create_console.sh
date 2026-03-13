@@ -197,8 +197,10 @@ while true; do
 done
 
 # ── Poll SSH ──────────────────────────────────────────────────────────────────
+# Skipped when SKIP_SSH_WAIT=1 (set by build_lab.sh, which does its own Phase 6
+# SSH wait for all VMs after all three have been created).
 
-if [[ -n "${VM_IP}" ]]; then
+if [[ -n "${VM_IP}" && -z "${SKIP_SSH_WAIT:-}" ]]; then
     echo ""
     echo "Polling SSH on ${VM_IP}:22..."
     # Remove any stale known_hosts entry for this IP
