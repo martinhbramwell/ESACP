@@ -143,10 +143,23 @@ config/wireguard/
   .gitignore                        # Excludes plaintext keys/
 
 platforms/vbox/
-  create_target.sh                  # VBoxManage automation: create VM + cloud-init seed ISO
+  build_lab.sh                      # Thin wrapper: create_vms → install_wireguard → handoff_console
+  create_vms.sh                     # Import OVAs, detect IP, update configs, wait SSH
+                                    #   Pre-flight: detects existing VMs, offers revert to Fresh Install
+  install_wireguard.sh              # Runs site-bootstrap.yml on all 3 VMs (WireGuard + passwordless sudo)
+  handoff_console.sh                # Clone repo + deploy age key to saconsole + bring up WSL wg0
+  revert_to_fresh.sh                # Revert all 3 VMs to "Fresh Install" snapshot + start + wait SSH
+  create_console.sh                 # VBoxManage: import console OVA (called by create_vms.sh)
+  create_target.sh                  # VBoxManage: import target OVA + NAT port forwarding
+  provision_targets.sh              # Runs on saconsole: full Ansible provisioning (all plays)
   cloud-init/
     target1/{user-data,meta-data}   # DHCP networking; WireGuard provides stable overlay
     target2/{user-data,meta-data}
+
+# VBox rebuild sequences:
+#   Full rebuild (VMs gone):  create_vms.sh → install_wireguard.sh → handoff_console.sh
+#   Iterative test loop:      revert_to_fresh.sh → install_wireguard.sh → handoff_console.sh
+#   From saconsole (both):    bash /opt/esacp/platforms/vbox/provision_targets.sh
 
 platforms/kvm/
   create_seeds.sh                   # cloud-localds wrapper for seed ISOs
@@ -438,6 +451,31 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 - **Secrets**: `ansible/group_vars/all.sops.yml` holds encrypted credentials
   (Telegram bot token, Grafana admin password). Requires SOPS + age key to decrypt.
   See `SETUP_GUIDE.md` for key setup.
+
+- **UFW enable hangs Ansible over WireGuard tunnel**: enabling UFW on a spoke briefly
+  disrupts the WireGuard tunnel, dropping Ansible's SSH connection and hanging
+  indefinitely. Fixed in the `firewall` role: `Enable UFW` uses `async: 10 / poll: 0`
+  (fire and forget) followed by `wait_for_connection: delay: 5 timeout: 60`.
+
+- **sshpass required on saconsole before running Ansible with `ansible_password`**:
+  Ansible wraps all SSH calls in sshpass when `ansible_password` is set, even when key
+  auth succeeds. `provision_targets.sh` installs sshpass via apt before invoking
+  any `ansible-playbook` command.
+
+- **`provision_targets.sh` pre-generates saconsole SSH keypair**: `dev.yml` uses the
+  LAN IP for saconsole (not localhost), so Ansible opens a real SSH connection even for
+  self-targeting plays. The keypair is generated and added to saconsole's own
+  `authorized_keys` before Ansible runs, so key auth works on the first connection.
+  `site-vbox.yml` Play 6 is tagged `controller_wg` and skipped via `--skip-tags` —
+  saconsole is the hub; running the spoke role on localhost would overwrite its config.
+
+- **VBoxManage `--machinereadable` silently omits NAT port forwarding rules**: `grep natpf`
+  or `grep -i rule` on machinereadable output returns nothing even when rules exist.
+  Use human-readable `showvminfo` (without `--machinereadable`) to verify NAT rules.
+
+- **dpkg lock race on `apt install`**: unattended-upgrades can reacquire the dpkg lock
+  between `apt-get update` and the install, even after the dpkg wait task passes.
+  Fixed in the `common` role with `retries: 10 / delay: 15` on `Install essential packages`.
 
 ---
 

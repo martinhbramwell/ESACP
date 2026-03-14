@@ -114,8 +114,33 @@ echo "  ✅  Done."
 
 hdr "Phase 6 — Wait for SSH"
 
+diag_vm() {
+    local vm="$1" port="$2"
+    echo "    ── diag: ${vm} ──────────────────────────────────"
+    # VM state
+    local state
+    state=$("${VBM}" showvminfo "${vm}" --machinereadable 2>/dev/null \
+        | grep '^VMState=' | cut -d'"' -f2 | tr -d '\r' || echo "unknown")
+    echo "    VMState: ${state}"
+    # NAT port forwarding rules (human-readable only — machinereadable omits them)
+    local rules
+    rules=$("${VBM}" showvminfo "${vm}" 2>/dev/null | grep -i "Rule" || true)
+    if [[ -n "${rules}" ]]; then
+        echo "    NAT rules:"
+        echo "${rules}" | sed 's/^/      /'
+    else
+        echo "    NAT rules: none found"
+    fi
+    # TCP port reachable?
+    if nc -z -w2 127.0.0.1 "${port}" 2>/dev/null; then
+        echo "    TCP ${port}: open"
+    else
+        echo "    TCP ${port}: CLOSED (VM may still be booting)"
+    fi
+}
+
 wait_ssh() {
-    local host="$1" port="$2" label="$3" elapsed=0
+    local host="$1" port="$2" label="$3" vm="$4" elapsed=0
     echo "  ${label} (${host}:${port})..."
     while true; do
         if sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -p "${port}" \
@@ -125,14 +150,18 @@ wait_ssh() {
             return 0
         fi
         sleep 5; elapsed=$((elapsed + 5))
-        [[ $((elapsed % 30)) -eq 0 ]] && echo "    ${elapsed}s..."
-        [[ ${elapsed} -ge 300 ]] && echo "ERROR: ${label} SSH timeout." && exit 1
+        [[ $((elapsed % 60)) -eq 0 ]] && echo "    ${elapsed}s..." && diag_vm "${vm}" "${port}"
+        if [[ ${elapsed} -ge 600 ]]; then
+            echo "  ERROR: ${label} SSH timeout after ${elapsed}s."
+            diag_vm "${vm}" "${port}"
+            exit 1
+        fi
     done
 }
 
-wait_ssh "${CONSOLE_IP}" 22   "saconsole"
-wait_ssh "127.0.0.1"     2222 "target1"
-wait_ssh "127.0.0.1"     2223 "target2"
+wait_ssh "${CONSOLE_IP}" 22   "saconsole" "console"
+wait_ssh "127.0.0.1"     2222 "target1"   "target1"
+wait_ssh "127.0.0.1"     2223 "target2"   "target2"
 
 echo "${CONSOLE_IP}" > /tmp/.esacp_console_ip
 
