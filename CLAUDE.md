@@ -490,6 +490,26 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   between `apt-get update` and the install, even after the dpkg wait task passes.
   Fixed in the `common` role with `retries: 10 / delay: 15` on `Install essential packages`.
 
+- **`pkill` SIGTERM kills the shell — `|| true` doesn't save it**: `pkill -f unattended-upgrade || true`
+  exits with `rc: -15` (SIGTERM) when `pkill` sends SIGTERM to a process that is an ancestor of the
+  current shell. The shell is killed before `|| true` can execute. The fix is `ignore_errors: true` on
+  the Ansible task — not a shell-level workaround. `|| true` only handles normal non-zero exit codes,
+  not signals.
+
+- **Loki /ready returns 503 for ~30s after fresh provision**: Loki's ingester emits
+  "waiting for 15s after being ready" on first startup. `validate_observability.py` will report
+  a FAIL on the Loki health check if run immediately after `provision_targets.sh` completes.
+  Wait ~30s and re-run — it resolves on its own.
+
+- **WSL sudoers rule required for non-interactive `handoff_console.sh`**: `handoff_console.sh`
+  calls `sudo tee /etc/wireguard/wg0.conf`, `sudo chmod`, and `sudo wg-quick` on the WSL host.
+  Without a sudoers rule these prompt interactively, breaking unattended runs. One-time setup:
+  ```
+  echo "you ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/wireguard/wg0.conf, /usr/bin/chmod 600 /etc/wireguard/wg0.conf, /usr/bin/wg-quick, /usr/sbin/wg-quick" \
+    | sudo tee /etc/sudoers.d/esacp-wireguard
+  sudo chmod 440 /etc/sudoers.d/esacp-wireguard
+  ```
+
 ---
 
 ## Stage 2.x Scope (next)
