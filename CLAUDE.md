@@ -152,11 +152,16 @@ platforms/vbox/
   create_console.sh                 # VBoxManage: import console OVA (called by create_vms.sh)
   create_target.sh                  # VBoxManage: import target OVA + NAT port forwarding
   provision_targets.sh              # Runs on saconsole: full Ansible provisioning (all plays)
+  utils.sh                          # Shared helpers sourced by all vbox scripts (tg_notify)
+  full_provision.sh                 # One-command wrapper: revert → wireguard → handoff → provision
+                                    #   Sets NO_TELEGRAM=1; sends single Telegram summary on exit
   cloud-init/
     target1/{user-data,meta-data}   # DHCP networking; WireGuard provides stable overlay
     target2/{user-data,meta-data}
 
 # VBox rebuild sequences:
+# VBox rebuild sequences:
+#   One-command (VMs exist):  bash platforms/vbox/full_provision.sh
 #   Full rebuild (VMs gone):  create_vms.sh → install_wireguard.sh → handoff_console.sh
 #   Iterative test loop:      revert_to_fresh.sh → install_wireguard.sh → handoff_console.sh
 #   From saconsole (both):    bash /opt/esacp/platforms/vbox/provision_targets.sh
