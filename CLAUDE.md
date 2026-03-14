@@ -469,6 +469,14 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   `site-vbox.yml` Play 6 is tagged `controller_wg` and skipped via `--skip-tags` —
   saconsole is the hub; running the spoke role on localhost would overwrite its config.
 
+- **VBox/NEM headless boot stall (intermittent)**: Under Memory Integrity + Hyper-V NEM,
+  VMs occasionally stall at the kernel initramfs stage (`Begin: Loading essential drivers`)
+  and never complete the boot when started headlessly. VMState shows "running" and VBox NAT
+  accepts TCP connections (false positive), but sshd never starts. Root cause: Hyper-V
+  starves the guest of CPU cycles until something forces framebuffer access. Almost always
+  resolves on the second attempt. `revert_to_fresh.sh` detects this after 300s, saves a
+  screenshot to `/tmp/esacp_<vm>_stuck.png`, and exits with a clear retry message.
+
 - **VBoxManage `--machinereadable` silently omits NAT port forwarding rules**: `grep natpf`
   or `grep -i rule` on machinereadable output returns nothing even when rules exist.
   Use human-readable `showvminfo` (without `--machinereadable`) to verify NAT rules.

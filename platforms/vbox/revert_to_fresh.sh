@@ -164,9 +164,25 @@ wait_ssh() {
         fi
         sleep 5; elapsed=$((elapsed + 5))
         [[ $((elapsed % 60)) -eq 0 ]] && echo "    ${elapsed}s..." && diag_vm "${vm}" "${port}"
-        if [[ ${elapsed} -ge 600 ]]; then
-            echo "  ERROR: ${label} SSH timeout after ${elapsed}s."
+        if [[ ${elapsed} -ge 300 ]]; then
+            echo ""
+            echo "  ⚠️  ${label} did not become reachable after ${elapsed}s."
+            echo ""
             diag_vm "${vm}" "${port}"
+            "${VBM}" controlvm "${vm}" screenshotpng "/tmp/esacp_${vm}_stuck.png" 2>/dev/null || true
+            echo ""
+            echo "  ┌─────────────────────────────────────────────────────────────────┐"
+            echo "  │  KNOWN VBOX/HYPER-V DEFECT                                      │"
+            echo "  │                                                                  │"
+            echo "  │  Under Memory Integrity + NEM, VMs occasionally stall during    │"
+            echo "  │  kernel init and never complete the boot headlessly.             │"
+            echo "  │                                                                  │"
+            echo "  │  A screenshot has been saved to /tmp/esacp_${vm}_stuck.png      │"
+            echo "  │                                                                  │"
+            echo "  │  Run again — it almost always succeeds on the second attempt:   │"
+            echo "  │    bash platforms/vbox/revert_to_fresh.sh                       │"
+            echo "  └─────────────────────────────────────────────────────────────────┘"
+            echo ""
             exit 1
         fi
     done
