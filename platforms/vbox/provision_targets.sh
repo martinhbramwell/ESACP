@@ -25,6 +25,19 @@ cd "${PROJECT_ROOT}"
 
 hdr() { echo ""; echo "════════════════════════════════════════"; echo "  $1"; echo "════════════════════════════════════════"; }
 
+# shellcheck source=utils.sh
+source "${PROJECT_ROOT}/platforms/vbox/utils.sh"
+
+_tg_on_exit() {
+    local rc=$?
+    if [[ $rc -eq 0 ]]; then
+        tg_notify "✅ provision_targets — full Ansible provision complete"
+    else
+        tg_notify "❌ provision_targets FAILED (exit ${rc})"
+    fi
+}
+trap '_tg_on_exit' EXIT
+
 # ── Prepare saconsole SSH keypair ─────────────────────────────────────────────
 #
 # saconsole must be able to SSH to itself before Ansible runs.
@@ -56,10 +69,17 @@ fi
 
 hdr "Install Ansible + SOPS + collections"
 
-# Wait for dpkg lock (unattended-upgrades may still be running)
-while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock \
-            /var/cache/apt/archives/lock >/dev/null 2>&1; do
-    echo "  Waiting for dpkg lock..."
+# Stop and mask apt-daily timers so unattended-upgrades cannot reacquire the dpkg lock.
+# Stopping the service alone is not sufficient — the timers restart it.
+echo "  Stopping and masking apt-daily timers..."
+sudo systemctl stop unattended-upgrades apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+sudo systemctl mask apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+sudo pkill -f unattended-upgrade 2>/dev/null || true
+
+echo "  Waiting for dpkg lock to clear..."
+while sudo fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock \
+                  /var/cache/apt/archives/lock >/dev/null 2>&1; do
+    echo "    lock held — retrying in 5s..."
     sleep 5
 done
 

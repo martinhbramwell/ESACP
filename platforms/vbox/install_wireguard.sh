@@ -22,6 +22,19 @@ BOOTSTRAP_PASSWORD="wawa"
 
 hdr() { echo ""; echo "════════════════════════════════════════"; echo "  $1"; echo "════════════════════════════════════════"; }
 
+# shellcheck source=utils.sh
+source "${SCRIPT_DIR}/utils.sh"
+
+_tg_on_exit() {
+    local rc=$?
+    if [[ $rc -eq 0 ]]; then
+        tg_notify "✅ install_wireguard — WireGuard up on all 3 VMs"
+    else
+        tg_notify "❌ install_wireguard FAILED (exit ${rc})"
+    fi
+}
+trap '_tg_on_exit' EXIT
+
 # ── Resolve saconsole LAN IP ──────────────────────────────────────────────────
 
 if [[ -f /tmp/.esacp_console_ip ]]; then

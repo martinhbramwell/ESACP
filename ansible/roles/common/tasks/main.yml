@@ -2,7 +2,24 @@
 # Common Role - Base System Configuration
 # Handles: passwordless sudo, system packages, timezone, security updates
 
-- name: Wait for dpkg/apt lock (unattended-upgrades runs at first boot)
+- name: Stop and mask apt-daily timers to prevent dpkg lock re-acquisition during provisioning
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    masked: yes
+  loop:
+    - unattended-upgrades
+    - apt-daily.service
+    - apt-daily-upgrade.service
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+  failed_when: false
+
+- name: Kill any lingering unattended-upgrade processes
+  shell: pkill -f unattended-upgrade || true
+  changed_when: false
+
+- name: Wait for dpkg/apt lock to clear
   shell: |
     while fuser /var/lib/dpkg/lock-frontend \
                 /var/lib/apt/lists/lock \
@@ -10,12 +27,6 @@
       sleep 5
     done
   changed_when: false
-
-- name: Stop unattended-upgrades so it cannot re-acquire dpkg lock mid-run
-  service:
-    name: unattended-upgrades
-    state: stopped
-  failed_when: false
 
 - name: Set hostname
   shell: |
@@ -137,6 +148,18 @@
       APT::Periodic::AutocleanInterval "7";
       APT::Periodic::Unattended-Upgrade "1";
   when: unattended_upgrades_enabled | default(true)
+
+- name: Unmask and re-enable apt-daily timers now that provisioning apt work is done
+  systemd:
+    name: "{{ item }}"
+    masked: no
+    enabled: yes
+    state: started
+  loop:
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+  when: unattended_upgrades_enabled | default(true)
+  failed_when: false
 
 - name: Disable SSH password authentication for root (defense in depth)
   lineinfile:

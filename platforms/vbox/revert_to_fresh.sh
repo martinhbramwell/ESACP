@@ -41,6 +41,19 @@ VBM="$(find_vboxmanage)"
 
 hdr() { echo ""; echo "════════════════════════════════════════"; echo "  $1"; echo "════════════════════════════════════════"; }
 
+# shellcheck source=utils.sh
+source "${SCRIPT_DIR}/utils.sh"
+
+_tg_on_exit() {
+    local rc=$?
+    if [[ $rc -eq 0 ]]; then
+        tg_notify "✅ revert_to_fresh — VMs at Fresh Install, SSH confirmed"
+    else
+        tg_notify "❌ revert_to_fresh FAILED (exit ${rc})"
+    fi
+}
+trap '_tg_on_exit' EXIT
+
 # ── Phase 1: Revert snapshots ─────────────────────────────────────────────────
 
 hdr "Phase 1 — Revert to \"${SNAPSHOT}\""
