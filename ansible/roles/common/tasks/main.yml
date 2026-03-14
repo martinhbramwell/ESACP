@@ -57,6 +57,10 @@
       - jq
     state: present
     update_cache: yes
+  register: apt_install
+  until: apt_install is succeeded
+  retries: 10
+  delay: 15
 
 - name: Configure passwordless sudo for admin users
   lineinfile:
