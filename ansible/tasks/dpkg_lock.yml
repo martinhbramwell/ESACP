@@ -1,0 +1,35 @@
+---
+# dpkg_lock.yml — Stop apt timers, kill lingering processes, wait for locks.
+#
+# Prevents dpkg lock conflicts caused by unattended-upgrades on first boot.
+# Include before any apt task in plays or roles that run early in provisioning.
+#
+# Usage:
+#   - include_tasks: "{{ playbook_dir }}/tasks/dpkg_lock.yml"
+
+- name: Stop and mask apt-daily timers to prevent dpkg lock re-acquisition during provisioning
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    masked: yes
+  loop:
+    - unattended-upgrades
+    - apt-daily.service
+    - apt-daily-upgrade.service
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+  failed_when: false
+
+- name: Kill any lingering unattended-upgrade processes
+  shell: pkill -f unattended-upgrade || true
+  changed_when: false
+  ignore_errors: true
+
+- name: Wait for dpkg/apt lock to clear
+  shell: |
+    while fuser /var/lib/dpkg/lock-frontend \
+                /var/lib/apt/lists/lock \
+                /var/cache/apt/archives/lock >/dev/null 2>&1; do
+      sleep 5
+    done
+  changed_when: false

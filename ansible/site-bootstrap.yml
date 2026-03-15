@@ -27,20 +27,7 @@
   hosts: vbox
   become: yes
   pre_tasks:
-    - name: Wait for dpkg/apt lock
-      shell: |
-        while fuser /var/lib/dpkg/lock-frontend \
-                    /var/lib/apt/lists/lock \
-                    /var/cache/apt/archives/lock >/dev/null 2>&1; do
-          sleep 5
-        done
-      changed_when: false
-
-    - name: Stop unattended-upgrades
-      service:
-        name: unattended-upgrades
-        state: stopped
-      failed_when: false
+    - include_tasks: "{{ playbook_dir }}/tasks/dpkg_lock.yml"
 
     - name: Passwordless sudo for {{ ansible_user }}
       copy:
