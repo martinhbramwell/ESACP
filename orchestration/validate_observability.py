@@ -12,8 +12,8 @@ Usage:
     python orchestration/validate_observability.py [--obs-host NAME] [--verbose]
 
     --obs-host  Name of the host running the observability stack as it appears
-                in hosts_map.yml (default: first host whose nickname is 'sac',
-                or the first kvm host found).
+                in hosts_map.yml (default: auto-detected — first reachable
+                wg_role=hub host; works across KVM and VBox platforms).
 
 Credentials (Grafana):
     Export GRAFANA_ADMIN_USER and GRAFANA_ADMIN_PASSWORD before running,
@@ -28,6 +28,7 @@ import argparse
 import base64
 import json
 import os
+import socket
 import sys
 import time
 import urllib.error
@@ -62,45 +63,70 @@ def load_hosts_map() -> dict:
         return yaml.safe_load(f)
 
 
+def _tcp_reachable(host: str, port: int = 22, timeout: float = 1.0) -> bool:
+    """Return True if a TCP connection to host:port succeeds within timeout."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 def find_obs_host(hosts_map: dict, name: Optional[str]) -> tuple[str, str]:
     """
     Return (hostname, ip) for the observability host.
 
-    Resolution order:
+    Resolution order (named):
       1. Exact key match in any group of hosts_map.yml
       2. Nickname match
-      3. If name is None: first ansible_managed host with nickname 'sac', else
-         first ansible_managed kvm host
+      3. Treat as literal hostname/IP
+
+    Resolution order (auto-detect):
+      Collect all ansible_managed wg_role=hub hosts from every group, then
+      return the first one reachable on port 22 (SSH). This works correctly
+      across platforms: on KVM the virbr0 IP is probed; on VBox the hostname
+      ('saconsole') resolves via /etc/hosts to the bridged LAN IP.
+      Falls back to the first candidate if none respond (stack may be down).
     """
-    all_hosts = {}
+    def ip_for(attrs: dict) -> str:
+        return attrs.get("virbr0_ip") or attrs.get("ansible_host") or attrs.get("hostname", "")
+
+    # Build a flat view for named lookups (last-writer-wins per key is fine here
+    # because named lookups check nickname/key directly).
+    all_hosts: dict[str, dict] = {}
     for group_hosts in hosts_map.get("groups", {}).values():
         if isinstance(group_hosts, dict):
             for hname, attrs in group_hosts.items():
                 if isinstance(attrs, dict):
                     all_hosts[hname] = attrs
 
-    def ip_for(attrs: dict) -> str:
-        return attrs.get("virbr0_ip") or attrs.get("ansible_host") or attrs.get("hostname", "")
-
     if name:
-        # exact key
         if name in all_hosts:
             return name, ip_for(all_hosts[name])
-        # nickname
         for hname, attrs in all_hosts.items():
             if attrs.get("nickname") == name:
                 return hname, ip_for(attrs)
-        # treat as literal hostname/IP
-        return name, name
+        return name, name  # treat as literal hostname/IP
 
-    # auto-detect: prefer nickname 'sac', then first kvm ansible_managed
-    for hname, attrs in all_hosts.items():
-        if attrs.get("ansible_managed") and attrs.get("nickname") == "sac":
-            return hname, ip_for(attrs)
-    kvm_hosts = hosts_map.get("groups", {}).get("kvm", {})
-    for hname, attrs in kvm_hosts.items():
-        if isinstance(attrs, dict) and attrs.get("ansible_managed"):
-            return hname, ip_for(attrs)
+    # auto-detect: gather all hub hosts across all groups (preserves duplicates
+    # across groups, unlike the flat all_hosts dict).
+    candidates: list[tuple[str, str]] = []
+    for group_hosts in hosts_map.get("groups", {}).values():
+        if not isinstance(group_hosts, dict):
+            continue
+        for hname, attrs in group_hosts.items():
+            if (isinstance(attrs, dict)
+                    and attrs.get("ansible_managed")
+                    and attrs.get("wg_role") == "hub"):
+                candidates.append((hname, ip_for(attrs)))
+
+    for hname, ip in candidates:
+        if _tcp_reachable(ip):
+            return hname, ip
+
+    if candidates:
+        # Nothing reachable — return first candidate so error messages are useful.
+        return candidates[0]
 
     raise SystemExit("Could not auto-detect observability host. Use --obs-host.")
 
@@ -400,7 +426,7 @@ def main() -> int:
     parser.add_argument(
         "--obs-host", default=None,
         help="Name/nickname from hosts_map.yml of the host running the observability stack "
-             "(default: auto-detected — first ansible_managed host with nickname 'sac')")
+             "(default: auto-detected — first reachable wg_role=hub host across all platform groups)")
     parser.add_argument(
         "--grafana-user",
         default=os.environ.get("GRAFANA_ADMIN_USER", "admin"),
