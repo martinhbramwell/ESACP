@@ -86,6 +86,17 @@ sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -o StrictHostKeyChecking=no \
     "chmod 600 ~/.config/sops/age/keys.txt"
 echo "  ✅  Age key deployed."
 
+echo "  Authorising operator SSH key on saconsole..."
+cat ~/.ssh/id_ed25519.pub | sshpass -p "${BOOTSTRAP_PASSWORD}" ssh \
+    -o StrictHostKeyChecking=no \
+    "${BOOTSTRAP_USER}@${CONSOLE_IP}" \
+    "cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+# Deploy a copy that Ansible reads on saconsole to install the operator key on all hosts.
+sshpass -p "${BOOTSTRAP_PASSWORD}" scp -o StrictHostKeyChecking=no \
+    ~/.ssh/id_ed25519.pub \
+    "${BOOTSTRAP_USER}@${CONSOLE_IP}:~/.ssh/operator.pub"
+echo "  ✅  Operator key authorised and deployed."
+
 # ── Phase 2: WSL WireGuard spoke ─────────────────────────────────────────────
 
 hdr "Phase 2 — WSL WireGuard"

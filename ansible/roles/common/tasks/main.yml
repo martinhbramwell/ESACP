@@ -30,16 +30,20 @@
   changed_when: false
 
 - name: Set hostname
-  shell: |
-    echo "{{ inventory_hostname }}" > /etc/hostname
-    hostname "{{ inventory_hostname }}"
-  changed_when: false
+  hostname:
+    name: "{{ inventory_hostname }}"
 
 - name: Update /etc/hosts with correct hostname
   lineinfile:
     path: /etc/hosts
     regexp: '^127\.0\.1\.1'
     line: "127.0.1.1 {{ inventory_hostname }}"
+
+- name: Preserve hostname across cloud-init reboots
+  copy:
+    dest: /etc/cloud/cloud.cfg.d/99_preserve_hostname.cfg
+    content: "preserve_hostname: true\n"
+    mode: '0644'
 
 - name: Set system timezone
   timezone:
@@ -110,6 +114,13 @@
   loop_control:
     label: "{{ item.username }}"
   when: item.ssh_key is defined
+
+- name: Add operator WSL key for direct SSH access
+  authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ operator_ssh_key }}"
+    state: present
+  when: operator_ssh_key | length > 0
 
 - name: Create useful shell aliases
   copy:
