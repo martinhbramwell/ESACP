@@ -56,3 +56,11 @@ all:
         saconsole: {}
         target1: {}
         target2: {}
+
+    controller:
+      hosts:
+        localhost:
+          ansible_host: localhost
+          wg_ip: "10.10.0.2"
+          wg_role: spoke
+          ansible_connection: local

@@ -5,8 +5,8 @@
 #   1. Detect state — skip gracefully if VM is not registered
 #   2. Force-poweroff if running / paused / saved / stuck
 #   3. Poll until VBoxSVC confirms poweroff state (VDI released)
-#   4. Unregister + delete storage
-#   5. Remove any residual directory on D:\VM_images
+#   4. Unregister (registry only — no --delete)
+#   5. Remove VM directory on D:\VM_images (rm -rf, bypasses VBoxSVC)
 
 set -euo pipefail
 
@@ -17,6 +17,8 @@ POWEROFF_TIMEOUT=30   # seconds to wait for poweroff confirmation
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+ts() { date '+%H:%M:%S'; }
+
 vm_state() {
     "${VBOXMANAGE}" showvminfo "$1" --machinereadable 2>/dev/null \
         | grep '^VMState=' | cut -d'"' -f2
@@ -24,6 +26,32 @@ vm_state() {
 
 vm_registered() {
     "${VBOXMANAGE}" showvminfo "$1" --machinereadable &>/dev/null
+}
+
+# Print all VDI paths attached to a VM (for open-handle diagnostics)
+vm_vdi_paths() {
+    local vm="$1"
+    "${VBOXMANAGE}" showvminfo "${vm}" --machinereadable 2>/dev/null \
+        | grep '^"Hard' \
+        | sed 's/.*="\(.*\)"/\1/' \
+        | grep -v '^$' || true
+}
+
+# Check whether any Windows/WSL process has a file in a directory open.
+# Uses /proc/*/fd (WSL can see Windows process fds for files on /mnt/).
+check_open_handles() {
+    local dir="$1"
+    local label="$2"
+    local hits
+    hits=$(find /proc/*/fd -maxdepth 0 -type d 2>/dev/null \
+           | xargs -I{} sh -c "ls -la {}/ 2>/dev/null | grep -F '${dir}'" 2>/dev/null \
+           | head -5 || true)
+    if [[ -n "${hits}" ]]; then
+        echo "    [diag] open handles on ${label}:"
+        echo "${hits}" | sed 's/^/      /'
+    else
+        echo "    [diag] no open handles detected on ${label}"
+    fi
 }
 
 poweroff_vm() {
@@ -41,7 +69,6 @@ poweroff_vm() {
             return 0
             ;;
         saved)
-            # discard saved state first, then it becomes poweroff
             echo "  ${vm}: discarding saved state..."
             "${VBOXMANAGE}" discardstate "${vm}" 2>&1 | grep -v '^$' || true
             ;;
@@ -51,7 +78,7 @@ poweroff_vm() {
             ;;
     esac
 
-    # Poll until VBoxSVC confirms poweroff (VDI file handles are released)
+    # Poll until VBoxSVC confirms poweroff
     local elapsed=0
     while true; do
         state=$(vm_state "${vm}" 2>/dev/null || echo "not_found")
@@ -72,22 +99,63 @@ poweroff_vm() {
 unregister_vm() {
     local vm="$1"
     if ! vm_registered "${vm}"; then
-        echo "  ${vm}: not registered — skipping unregister"
+        echo "  ${vm}: not registered — skipping"
         return 0
     fi
-    echo "  ${vm}: unregistering and deleting storage..."
-    "${VBOXMANAGE}" unregistervm "${vm}" --delete 2>&1 | grep -v '^$' || true
-    echo "  ${vm}: ✅  unregistered"
+
+    # Diagnostic: show VDI paths and any open handles before unregistering
+    local vdis
+    vdis=$(vm_vdi_paths "${vm}")
+    if [[ -n "${vdis}" ]]; then
+        echo "    [diag] ${vm} VDI paths:"
+        echo "${vdis}" | sed 's/^/      /'
+        while IFS= read -r vdi; do
+            local win_path="${vdi}"
+            # Convert Windows path to WSL path for fuser check
+            local wsl_path
+            wsl_path=$(wslpath "${win_path}" 2>/dev/null || true)
+            if [[ -n "${wsl_path}" && -f "${wsl_path}" ]]; then
+                local fuser_out
+                fuser_out=$(fuser "${wsl_path}" 2>/dev/null || true)
+                if [[ -n "${fuser_out}" ]]; then
+                    echo "    [diag] ⚠️  ${vm} VDI held open by PIDs: ${fuser_out}"
+                else
+                    echo "    [diag] ${vm} VDI: no fuser hits (file not locked)"
+                fi
+            else
+                echo "    [diag] ${vm} VDI path not reachable via WSL (${wsl_path:-conversion failed})"
+            fi
+        done <<< "${vdis}"
+    else
+        echo "    [diag] ${vm}: no VDI paths found in showvminfo"
+    fi
+
+    echo "  [$(ts)] ${vm}: calling unregistervm..."
+    "${VBOXMANAGE}" unregistervm "${vm}" 2>&1 | grep -v '^$' || true
+    echo "  [$(ts)] ${vm}: ✅  unregistervm returned"
+
+    # Diagnostic: confirm VM is gone from registry
+    if vm_registered "${vm}"; then
+        echo "    [diag] ⚠️  ${vm} still appears in VBoxManage list vms after unregister!"
+    else
+        echo "    [diag] ${vm} confirmed absent from registry"
+    fi
 }
 
 cleanup_dir() {
     local vm="$1"
     local dir="${VM_BASE}/${vm}"
-    if [[ -d "${dir}" ]]; then
-        echo "  ${vm}: removing residual directory ${dir}..."
-        rm -rf "${dir}"
-        echo "  ${vm}: ✅  directory removed"
+    if [[ ! -d "${dir}" ]]; then
+        echo "  ${vm}: directory already gone"
+        return 0
     fi
+
+    # Diagnostic: check for open handles before rm -rf
+    check_open_handles "${dir}" "${vm}"
+
+    echo "  [$(ts)] ${vm}: rm -rf ${dir}..."
+    rm -rf "${dir}"
+    echo "  [$(ts)] ${vm}: ✅  directory removed"
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -97,7 +165,12 @@ echo "ESACP VBox — Destroy All VMs"
 echo "════════════════════════════"
 echo ""
 
-# Phase 1: poweroff all VMs first (parallel where possible)
+# Diagnostic: show VBoxSVC and VBoxHeadless processes at start
+echo "── Diagnostic: VBox processes at start ─────────────"
+tasklist.exe 2>/dev/null | grep -iE 'VBoxSVC|VBoxHeadless' | sed 's/^/  /' || true
+echo ""
+
+# Phase 1: poweroff all VMs
 echo "── Phase 1: Power off ──────────────────────────────"
 failed_poweroff=()
 for vm in "${ESACP_VMS[@]}"; do
@@ -115,17 +188,24 @@ if [[ ${#failed_poweroff[@]} -gt 0 ]]; then
     exit 1
 fi
 
-# Brief pause to ensure VBoxSVC flushes all file handles before --delete
-sleep 3
-
+# Diagnostic: show VBox processes after poweroff, before unregister
 echo ""
-echo "── Phase 2: Unregister + delete storage ────────────"
+echo "── Diagnostic: VBox processes after poweroff ───────"
+tasklist.exe 2>/dev/null | grep -iE 'VBoxSVC|VBoxHeadless' | sed 's/^/  /' || echo "  (none)"
+echo ""
+
+echo "── Phase 2: Unregister (registry only — files deleted in Phase 3) ──"
 for vm in "${ESACP_VMS[@]}"; do
     unregister_vm "${vm}"
+    echo ""
 done
 
+# Diagnostic: show VBox processes after all unregisters
+echo "── Diagnostic: VBox processes after unregister ─────"
+tasklist.exe 2>/dev/null | grep -iE 'VBoxSVC|VBoxHeadless' | sed 's/^/  /' || echo "  (none)"
 echo ""
-echo "── Phase 3: Remove residual directories ────────────"
+
+echo "── Phase 3: Remove directories ─────────────────────"
 for vm in "${ESACP_VMS[@]}"; do
     cleanup_dir "${vm}"
 done

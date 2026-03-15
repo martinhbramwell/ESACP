@@ -26,6 +26,12 @@ admin_users:
       - sudo
       - docker
 
+# Operator SSH public key (WSL controller key).
+# handoff_console.sh copies ~/.ssh/id_ed25519.pub → saconsole:~/.ssh/operator.pub
+# so Ansible (running on saconsole) can install it on every managed host.
+# Gracefully absent when running Ansible directly from WSL (file won't exist there).
+operator_ssh_key: "{{ lookup('file', lookup('env', 'HOME') + '/.ssh/operator.pub', errors='ignore') | default('') }}"
+
 # SSH configuration
 ssh_port: 22
 ssh_permit_root_login: "no"

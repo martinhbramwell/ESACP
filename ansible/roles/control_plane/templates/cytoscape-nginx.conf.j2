@@ -1,0 +1,11 @@
+server {
+    listen {{ cytoscape_port }};
+    server_name _;
+
+    root {{ esacp_repo_dest }}/prototypes/cytoscape/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

@@ -141,6 +141,21 @@
   retries: 30
   delay: 2
 
+- name: Wait for Loki to be ready
+  uri:
+    url: "http://localhost:3100/ready"
+    status_code: 200
+  register: loki_health
+  until: loki_health.status == 200
+  retries: 20
+  delay: 3
+
+- name: Restart fail2ban to seed Promtail with fresh log lines after Loki is ready
+  service:
+    name: fail2ban
+    state: restarted
+  failed_when: false
+
 - name: Display observability stack status
   debug:
     msg:

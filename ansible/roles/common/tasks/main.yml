@@ -2,17 +2,23 @@
 # Common Role - Base System Configuration
 # Handles: passwordless sudo, system packages, timezone, security updates
 
+- include_tasks: "{{ playbook_dir }}/tasks/dpkg_lock.yml"
+
 - name: Set hostname
-  shell: |
-    echo "{{ inventory_hostname }}" > /etc/hostname
-    hostname "{{ inventory_hostname }}"
-  changed_when: false
+  hostname:
+    name: "{{ inventory_hostname }}"
 
 - name: Update /etc/hosts with correct hostname
   lineinfile:
     path: /etc/hosts
     regexp: '^127\.0\.1\.1'
     line: "127.0.1.1 {{ inventory_hostname }}"
+
+- name: Preserve hostname across cloud-init reboots
+  copy:
+    dest: /etc/cloud/cloud.cfg.d/99_preserve_hostname.cfg
+    content: "preserve_hostname: true\n"
+    mode: '0644'
 
 - name: Set system timezone
   timezone:
@@ -42,6 +48,10 @@
       - jq
     state: present
     update_cache: yes
+  register: apt_install
+  until: apt_install is succeeded
+  retries: 10
+  delay: 15
 
 - name: Configure passwordless sudo for admin users
   lineinfile:
@@ -79,6 +89,13 @@
   loop_control:
     label: "{{ item.username }}"
   when: item.ssh_key is defined
+
+- name: Add operator WSL key for direct SSH access
+  authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ operator_ssh_key }}"
+    state: present
+  when: operator_ssh_key | length > 0
 
 - name: Create useful shell aliases
   copy:
@@ -118,6 +135,18 @@
       APT::Periodic::AutocleanInterval "7";
       APT::Periodic::Unattended-Upgrade "1";
   when: unattended_upgrades_enabled | default(true)
+
+- name: Unmask and re-enable apt-daily timers now that provisioning apt work is done
+  systemd:
+    name: "{{ item }}"
+    masked: no
+    enabled: yes
+    state: started
+  loop:
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+  when: unattended_upgrades_enabled | default(true)
+  failed_when: false
 
 - name: Disable SSH password authentication for root (defense in depth)
   lineinfile:

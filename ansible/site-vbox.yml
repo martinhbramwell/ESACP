@@ -4,9 +4,10 @@
 # Play order:
 #   1. All VBox hosts:  common, ssh, firewall, fail2ban, wireguard
 #   2. saconsole:       docker, observability
-#   3. saconsole:       control_plane (repo, toolchain, SSH keypair)
+#   3. saconsole:       control_plane (repo, toolchain, SSH keypair, Cytoscape on nginx:8090)
 #   4. targets:         authorise saconsole SSH key
 #   5. targets:         docker, node_exporter, mariadb
+#   6. controller:      wireguard spoke (WSL — connection: local)
 #
 # Usage (from project root):
 #   ansible-playbook -i ansible/inventory/dev.yml ansible/site-vbox.yml
@@ -67,3 +68,23 @@
     - docker
     - node_exporter
     - mariadb
+
+# ── Play 6: WireGuard spoke — controller (WSL, runs locally) ─────────────────
+# Mirrors site-kvm.yml Play 4. Configures wg0 on WSL so Ansible can reach
+# targets via WireGuard IPs (10.10.0.3/4) without NAT port-forward overrides.
+#
+# Tagged controller_wg so provision_targets.sh (runs on saconsole) can skip it.
+# saconsole IS the hub — running the spoke role on localhost would overwrite its config.
+- name: WireGuard spoke — controller
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+  tags: [controller_wg]
+  vars:
+    inventory_hostname: controller
+    wg_ip: "10.10.0.2"
+    wg_role: spoke
+    wg_hub_endpoint: "{{ hostvars['saconsole']['ansible_host'] }}"
+  roles:
+    - wireguard

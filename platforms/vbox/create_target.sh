@@ -199,30 +199,34 @@ echo "Starting VM..."
 "${VBM}" startvm "${TARGET}" --type headless
 
 # ── Poll SSH until ready ──────────────────────────────────────────────────────
+# Skipped when SKIP_SSH_WAIT=1 (set by build_lab.sh, which does its own Phase 6
+# SSH wait for all VMs after all three have been created).
 
-echo ""
-echo "Polling SSH on 127.0.0.1:${SSH_HOST_PORT}..."
-SSH_TIMEOUT=180
-SSH_ELAPSED=0
-while true; do
-    if sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -p "${SSH_HOST_PORT}" \
-           -o StrictHostKeyChecking=no \
-           -o ConnectTimeout=5 \
-           "${BOOTSTRAP_USER}@127.0.0.1" true 2>/dev/null; then
-        echo "  ✅  SSH ready."
-        break
-    fi
-    sleep 5
-    SSH_ELAPSED=$((SSH_ELAPSED + 5))
-    echo "  ${SSH_ELAPSED}s — waiting for SSH..."
-    if [[ ${SSH_ELAPSED} -ge ${SSH_TIMEOUT} ]]; then
-        echo ""
-        echo "  ⚠️  SSH did not respond within ${SSH_TIMEOUT}s."
-        echo "  The VM may still be booting. Retry manually:"
-        echo "    ssh -p ${SSH_HOST_PORT} ${BOOTSTRAP_USER}@127.0.0.1"
-        break
-    fi
-done
+if [[ -z "${SKIP_SSH_WAIT:-}" ]]; then
+    echo ""
+    echo "Polling SSH on 127.0.0.1:${SSH_HOST_PORT}..."
+    SSH_TIMEOUT=180
+    SSH_ELAPSED=0
+    while true; do
+        if sshpass -p "${BOOTSTRAP_PASSWORD}" ssh -p "${SSH_HOST_PORT}" \
+               -o StrictHostKeyChecking=no \
+               -o ConnectTimeout=5 \
+               "${BOOTSTRAP_USER}@127.0.0.1" true 2>/dev/null; then
+            echo "  ✅  SSH ready."
+            break
+        fi
+        sleep 5
+        SSH_ELAPSED=$((SSH_ELAPSED + 5))
+        echo "  ${SSH_ELAPSED}s — waiting for SSH..."
+        if [[ ${SSH_ELAPSED} -ge ${SSH_TIMEOUT} ]]; then
+            echo ""
+            echo "  ⚠️  SSH did not respond within ${SSH_TIMEOUT}s."
+            echo "  The VM may still be booting. Retry manually:"
+            echo "    ssh -p ${SSH_HOST_PORT} ${BOOTSTRAP_USER}@127.0.0.1"
+            break
+        fi
+    done
+fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
