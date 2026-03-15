@@ -261,12 +261,22 @@ def check_prometheus_health(base: str) -> Check:
 
 
 def check_loki_health(base: str) -> Check:
-    try:
-        r = get(f"{base}/ready")
-        ok = isinstance(r, str) and "ready" in r.lower()
-        return Check("Loki /ready", ok, r.strip() if isinstance(r, str) else str(r))
-    except Exception as e:
-        return Check("Loki /ready", False, str(e))
+    """Poll Loki /ready; it returns 503 for ~30s on first startup."""
+    last_err = ""
+    for _ in range(10):
+        try:
+            r = get(f"{base}/ready")
+            if isinstance(r, str) and "ready" in r.lower():
+                return Check("Loki /ready", True, r.strip())
+            last_err = str(r)
+        except RuntimeError as e:
+            if "503" not in str(e):
+                return Check("Loki /ready", False, str(e))
+            last_err = str(e)
+        except Exception as e:
+            return Check("Loki /ready", False, str(e))
+        time.sleep(4)
+    return Check("Loki /ready", False, last_err)
 
 
 def check_alertmanager_health(base: str) -> Check:
