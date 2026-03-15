@@ -96,8 +96,19 @@ for i in $(seq 1 24); do
 done
 
 if [[ -z "${CONSOLE_IP}" || "${CONSOLE_IP}" == "No" ]]; then
-    echo "ERROR: Could not auto-detect console LAN IP."
-    exit 1
+    # Fallback: read the last-known IP from ansible/inventory/dev.yml.
+    # This handles the case where the console VM is freshly imported (no Guest
+    # Additions yet) but was previously reachable at its bridged DHCP address.
+    FALLBACK_IP=$(grep 'ansible_host:' ansible/inventory/dev.yml \
+        | head -1 | sed 's/.*"\(.*\)".*/\1/' | tr -d '[:space:]')
+    if [[ -n "${FALLBACK_IP}" ]]; then
+        echo "  ⚠️  Guest Additions timed out. Falling back to last-known IP from dev.yml: ${FALLBACK_IP}"
+        echo "  If this IP is wrong, update ansible/inventory/dev.yml → saconsole ansible_host: \"<correct IP>\""
+        CONSOLE_IP="${FALLBACK_IP}"
+    else
+        echo "ERROR: Could not auto-detect console LAN IP and no fallback found in dev.yml."
+        exit 1
+    fi
 fi
 
 # ── Phase 4: Update config files ─────────────────────────────────────────────
