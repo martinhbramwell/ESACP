@@ -224,6 +224,17 @@ docs/
   SystemOverview.md                 # Non-technical system description
   SystemOverview_tech.md            # Technical system description (developer-facing)
 
+api/
+  main.py                           # ESACP Control Plane API (FastAPI, port 8088)
+                                    #   Docker introspection via httpx + Unix socket (no docker-py SDK)
+                                    #   Endpoints: /docker/containers, /docker/networks, /system/info,
+                                    #   /prometheus/targets (proxy), /vm/status (stub), /jobs/{id}
+  Dockerfile                        # python:3.11-slim; mounts /var/run/docker.sock:ro
+  docker-compose.yml                # Joins observability_network; deployed to /opt/esacp-api/
+  requirements.txt                  # fastapi, uvicorn, httpx only — no docker-py
+ansible/
+  roles/esacp_api/                  # Deploy role: copy files → UFW 8088 → docker-compose up --build
+
 prototypes/
   cytoscape/                        # Cytoscape.js standalone prototype (Vite + vanilla JS)
                                     # Dev: cd prototypes/cytoscape && npm run dev
@@ -490,6 +501,19 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 - **VBoxManage `--machinereadable` silently omits NAT port forwarding rules**: `grep natpf`
   or `grep -i rule` on machinereadable output returns nothing even when rules exist.
   Use human-readable `showvminfo` (without `--machinereadable`) to verify NAT rules.
+
+- **docker-py SDK incompatible with urllib3 2.x** (resolved): `docker.from_env()` raises
+  "Not supported URL scheme http+docker" when `urllib3 2.x` is installed alongside
+  `docker==6.x` or `docker==7.x`. The SDK's Unix socket adapter relies on internal
+  urllib3 1.x APIs removed in 2.x. Fix: drop docker-py entirely. Use `httpx` with
+  `AsyncHTTPTransport(uds="/var/run/docker.sock")` to call the Docker REST API directly.
+  This is cleaner, has no SDK dependencies, and works on all Ubuntu versions.
+
+- **saconsole disk size**: OVA bakes a 12 GB disk — insufficient for a Docker host.
+  `create_console.sh` now resizes to 32 GB via `VBoxManage modifymedium --resize 32768`
+  after import (VM must be off). The Ansible `common` role then runs `growpart` +
+  `pvresize` + `lvextend` + `resize2fs` to expand the LVM to fill the new space.
+  This is idempotent — NOCHANGE if partition already fills the disk.
 
 - **dpkg lock race on `apt install`**: unattended-upgrades can reacquire the dpkg lock
   between `apt-get update` and the install, even after the dpkg wait task passes.

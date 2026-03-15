@@ -139,6 +139,29 @@ echo "Configuring VM settings..."
 
 echo "  ✅  Bridged networking set on adapter: ${BRIDGED_ADAPTER}"
 
+# ── Resize disk to 32 GB ──────────────────────────────────────────────────────
+# The OVA bakes a 12 GB disk — not enough for a Docker host.
+# modifymedium requires the VM to be powered off (it is at this point).
+# Partition + LVM expansion is handled by the Ansible common role on first provision.
+
+echo ""
+echo "Resizing disk to 32 GB..."
+DISK_WIN=$("${VBM}" showvminfo "${VM_NAME}" --machinereadable \
+    | grep -E '"[A-Z]+-[0-9]+-[0-9]+"=' \
+    | grep -v '"none"' \
+    | head -1 \
+    | cut -d'=' -f2 \
+    | tr -d '"')
+
+if [[ -z "${DISK_WIN}" ]]; then
+    echo "  ⚠️  Could not auto-detect disk path — skipping resize."
+    echo "  Run manually: VBoxManage modifymedium disk <path> --resize 32768"
+else
+    echo "  Disk: ${DISK_WIN}"
+    "${VBM}" modifymedium disk "${DISK_WIN}" --resize 32768
+    echo "  ✅  Disk resized to 32 GB."
+fi
+
 # ── Take Fresh Install snapshot ───────────────────────────────────────────────
 
 echo ""

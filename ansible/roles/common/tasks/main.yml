@@ -46,6 +46,7 @@
       - python3
       - python3-pip
       - jq
+      - cloud-guest-utils
     state: present
     update_cache: yes
   register: apt_install
@@ -155,6 +156,25 @@
     line: 'PermitRootLogin no'
     state: present
   notify: restart sshd
+
+- name: Expand root LVM to fill disk
+  shell: |
+    PV=$(pvs --noheadings -o pv_name 2>/dev/null | tr -d ' ' | head -1)
+    [ -z "$PV" ] && echo "NOCHANGE: no LVM PV" && exit 0
+    DISK=$(echo "$PV" | sed 's/[0-9]*$//')
+    PART=$(echo "$PV" | grep -oE '[0-9]+$')
+    GROW=$(growpart $DISK $PART 2>&1) || true
+    if echo "$GROW" | grep -q "^CHANGED"; then
+        pvresize $PV
+        lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv 2>&1 || true
+        resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv 2>&1 || true
+        echo "CHANGED"
+    else
+        echo "NOCHANGE"
+    fi
+  register: lvm_expand
+  changed_when: "'CHANGED' in lvm_expand.stdout"
+  failed_when: false
 
 - name: Create scripts directory
   file:
