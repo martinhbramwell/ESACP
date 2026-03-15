@@ -153,6 +153,7 @@ platforms/vbox/
   create_target.sh                  # VBoxManage: import target OVA + NAT port forwarding
   provision_targets.sh              # Runs on saconsole: full Ansible provisioning (all plays)
   utils.sh                          # Shared helpers sourced by all vbox scripts (tg_notify)
+  take_snapshots.sh                 # Snapshot all 3 VMs: bash take_snapshots.sh "name" (defaults to "Stage 1.5 Baseline")
   full_provision.sh                 # One-command wrapper: ensure_vms → revert → wireguard → handoff → provision
                                     #   Phase 0 creates any missing VMs from esacp-base.ova (SKIP_SSH_WAIT=1)
                                     #   Sets NO_TELEGRAM=1; sends single Telegram summary on exit
@@ -482,6 +483,9 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   starves the guest of CPU cycles until something forces framebuffer access. Almost always
   resolves on the second attempt. `revert_to_fresh.sh` detects this after 300s, saves a
   screenshot to `/tmp/esacp_<vm>_stuck.png`, and exits with a clear retry message.
+
+- **`esacp.py snapShotVM` is KVM-only**: hardwired to `platforms/kvm/snapshot.py` → `virsh`.
+  On VBox/WSL use `bash platforms/vbox/take_snapshots.sh "name"` instead.
 
 - **VBoxManage `--machinereadable` silently omits NAT port forwarding rules**: `grep natpf`
   or `grep -i rule` on machinereadable output returns nothing even when rules exist.
