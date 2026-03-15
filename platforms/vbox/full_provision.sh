@@ -24,10 +24,21 @@ hdr() { echo ""; echo "═══════════════════
 # shellcheck source=utils.sh
 source "${SCRIPT_DIR}/utils.sh"
 
+# ── Cache sudo credentials upfront ───────────────────────────────────────────
+# Phase 3 (handoff_console) needs sudo for wireguard-tools install and wg0 setup.
+# Prompt once here, then keep the token alive for the duration of the script.
+
+echo ""
+echo "  Caching sudo credentials (needed for Phase 3 WireGuard setup)..."
+sudo -v
+( while true; do sudo -v; sleep 240; done ) &
+_SUDO_KEEPALIVE=$!
+
 _PHASE="init"
 
 _tg_on_exit() {
     local rc=$?
+    kill "${_SUDO_KEEPALIVE}" 2>/dev/null || true
     if [[ $rc -eq 0 ]]; then
         tg_notify "✅ ESACP full provision complete
 Branch: ${BRANCH}

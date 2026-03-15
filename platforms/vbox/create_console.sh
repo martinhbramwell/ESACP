@@ -146,19 +146,17 @@ echo "  ✅  Bridged networking set on adapter: ${BRIDGED_ADAPTER}"
 
 echo ""
 echo "Resizing disk to 32 GB..."
-DISK_WIN=$("${VBM}" showvminfo "${VM_NAME}" --machinereadable \
-    | grep -E '"[A-Z]+-[0-9]+-[0-9]+"=' \
-    | grep ':\\' \
-    | head -1 \
+DISK_UUID=$("${VBM}" showvminfo "${VM_NAME}" --machinereadable \
+    | grep '"SATA-0-0-ImageUUID"=' \
     | cut -d'=' -f2 \
-    | tr -d '"')
+    | tr -d '"\r\n')
 
-if [[ -z "${DISK_WIN}" ]]; then
-    echo "  ⚠️  Could not auto-detect disk path — skipping resize."
-    echo "  Run manually: VBoxManage modifymedium disk <path> --resize 32768"
+if [[ -z "${DISK_UUID}" ]]; then
+    echo "  ⚠️  Could not detect disk UUID — skipping resize."
+    echo "  Run manually: VBoxManage modifymedium disk <uuid> --resize 32768"
 else
-    echo "  Disk: ${DISK_WIN}"
-    "${VBM}" modifymedium disk "${DISK_WIN}" --resize 32768
+    echo "  Disk UUID: ${DISK_UUID}"
+    "${VBM}" modifymedium disk "${DISK_UUID}" --resize 32768
     echo "  ✅  Disk resized to 32 GB."
 fi
 
