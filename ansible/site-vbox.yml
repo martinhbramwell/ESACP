@@ -38,7 +38,7 @@
   roles:
     - docker
     - observability
-    - esacp_api
+    - { role: esacp_api, tags: [esacp_api] }
 
 # ── Play 3: saconsole — control plane (repo, toolchain, SSH keypair) ─────────
 - name: Control plane — saconsole

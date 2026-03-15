@@ -30,7 +30,7 @@
   roles:
     - docker
     - observability
-    - esacp_api
+    - { role: esacp_api, tags: [esacp_api] }
     - desktop
 
 # ── Play 3: node_exporter — target1 only ──────────────────────────────────
