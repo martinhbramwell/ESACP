@@ -2,6 +2,6 @@
 sops_version: "3.9.4"
 esacp_repo_url: "https://github.com/martinhbramwell/ESACP.git"
 esacp_repo_dest: "/opt/esacp"
-esacp_repo_version: "feat/control-plane"
+esacp_repo_version: "main"
 nodejs_version: "20"
 cytoscape_port: 8090
