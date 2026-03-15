@@ -495,8 +495,10 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   resolves on the second attempt. `revert_to_fresh.sh` detects this after 300s, saves a
   screenshot to `/tmp/esacp_<vm>_stuck.png`, and exits with a clear retry message.
 
-- **`esacp.py snapShotVM` is KVM-only**: hardwired to `platforms/kvm/snapshot.py` → `virsh`.
-  On VBox/WSL use `bash platforms/vbox/take_snapshots.sh "name"` instead.
+- **`esacp.py snapShotVM` and `destroyVM` are KVM-only**: both hardwired to virsh/libvirt.
+  On VBox/WSL: snapshots → `bash platforms/vbox/take_snapshots.sh "name"`;
+  destroy → `VBoxManage.exe controlvm <vm> poweroff; VBoxManage.exe unregistervm <vm> --delete`
+  Note: VBox VM name is `console` (not `saconsole`) — that is the `--vmname` set in `create_console.sh`.
 
 - **VBoxManage `--machinereadable` silently omits NAT port forwarding rules**: `grep natpf`
   or `grep -i rule` on machinereadable output returns nothing even when rules exist.

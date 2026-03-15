@@ -148,7 +148,7 @@ echo ""
 echo "Resizing disk to 32 GB..."
 DISK_WIN=$("${VBM}" showvminfo "${VM_NAME}" --machinereadable \
     | grep -E '"[A-Z]+-[0-9]+-[0-9]+"=' \
-    | grep -v '"none"' \
+    | grep ':\\' \
     | head -1 \
     | cut -d'=' -f2 \
     | tr -d '"')
