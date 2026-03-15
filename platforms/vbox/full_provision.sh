@@ -41,6 +41,58 @@ Exit: ${rc}"
 }
 trap '_tg_on_exit' EXIT
 
+# ── Phase 0: Ensure all VMs exist ────────────────────────────────────────────
+# Create any missing VMs from esacp-base.ova. Existing VMs are left as-is;
+# Phase 1 (revert_to_fresh) will restore all of them to "Fresh Install".
+
+_PHASE="ensure_vms"
+hdr "Phase 0 — Ensure VMs exist"
+
+find_vboxmanage() {
+    for candidate in "VBoxManage" "VBoxManage.exe"; do
+        command -v "${candidate}" &>/dev/null && echo "${candidate}" && return
+    done
+    local p="/mnt/c/Program Files/Oracle/VirtualBox/VBoxManage.exe"
+    [[ -f "${p}" ]] && echo "${p}" && return
+    echo ""
+}
+VBM="$(find_vboxmanage)"
+[[ -z "${VBM}" ]] && echo "ERROR: VBoxManage not found." && exit 1
+
+vm_exists() { "${VBM}" showvminfo "$1" --machinereadable &>/dev/null; }
+
+MISSING=()
+for vm in console target1 target2; do
+    if vm_exists "${vm}"; then
+        echo "  ${vm}: ✅  registered"
+    else
+        echo "  ${vm}: ❌  missing — will create"
+        MISSING+=("${vm}")
+    fi
+done
+
+if [[ ${#MISSING[@]} -gt 0 ]]; then
+    echo ""
+    echo "  Creating ${#MISSING[@]} missing VM(s) with SKIP_SSH_WAIT=1..."
+    echo "  (Phase 1 revert_to_fresh handles SSH polling for all VMs)"
+    export SKIP_SSH_WAIT=1
+    for vm in "${MISSING[@]}"; do
+        echo ""
+        case "${vm}" in
+            console)
+                bash platforms/vbox/create_console.sh
+                ;;
+            target1|target2)
+                bash platforms/vbox/create_target.sh "${vm}"
+                ;;
+        esac
+    done
+    unset SKIP_SSH_WAIT
+else
+    echo ""
+    echo "  All 3 VMs registered. Proceeding to revert."
+fi
+
 # ── Phase 1: Revert to Fresh Install ─────────────────────────────────────────
 
 _PHASE="revert_to_fresh"

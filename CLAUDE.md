@@ -147,13 +147,14 @@ platforms/vbox/
   create_vms.sh                     # Import OVAs, detect IP, update configs, wait SSH
                                     #   Pre-flight: detects existing VMs, offers revert to Fresh Install
   install_wireguard.sh              # Runs site-bootstrap.yml on all 3 VMs (WireGuard + passwordless sudo)
-  handoff_console.sh                # Clone repo + deploy age key to saconsole + bring up WSL wg0
+  handoff_console.sh                # Clone repo + deploy age key + operator SSH key to saconsole + bring up WSL wg0
   revert_to_fresh.sh                # Revert all 3 VMs to "Fresh Install" snapshot + start + wait SSH
   create_console.sh                 # VBoxManage: import console OVA (called by create_vms.sh)
   create_target.sh                  # VBoxManage: import target OVA + NAT port forwarding
   provision_targets.sh              # Runs on saconsole: full Ansible provisioning (all plays)
   utils.sh                          # Shared helpers sourced by all vbox scripts (tg_notify)
-  full_provision.sh                 # One-command wrapper: revert → wireguard → handoff → provision
+  full_provision.sh                 # One-command wrapper: ensure_vms → revert → wireguard → handoff → provision
+                                    #   Phase 0 creates any missing VMs from esacp-base.ova (SKIP_SSH_WAIT=1)
                                     #   Sets NO_TELEGRAM=1; sends single Telegram summary on exit
   cloud-init/
     target1/{user-data,meta-data}   # DHCP networking; WireGuard provides stable overlay
@@ -161,7 +162,7 @@ platforms/vbox/
 
 # VBox rebuild sequences:
 # VBox rebuild sequences:
-#   One-command (VMs exist):  bash platforms/vbox/full_provision.sh
+#   One-command (any state):  bash platforms/vbox/full_provision.sh  ← Phase 0 creates missing VMs
 #   Full rebuild (VMs gone):  create_vms.sh → install_wireguard.sh → handoff_console.sh
 #   Iterative test loop:      revert_to_fresh.sh → install_wireguard.sh → handoff_console.sh
 #   From saconsole (both):    bash /opt/esacp/platforms/vbox/provision_targets.sh
@@ -500,6 +501,19 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   "waiting for 15s after being ready" on first startup. `validate_observability.py` will report
   a FAIL on the Loki health check if run immediately after `provision_targets.sh` completes.
   Wait ~30s and re-run — it resolves on its own.
+
+- **Operator SSH key flow (VBox path)**: `handoff_console.sh` copies `~/.ssh/id_ed25519.pub`
+  into saconsole's `~/.ssh/authorized_keys` (direct operator SSH access) and to
+  `~/.ssh/operator.pub` (read by Ansible). The `common` role reads `operator_ssh_key`
+  (from `~/. ssh/operator.pub` on the control node) and installs it on every managed host,
+  so the WSL operator can SSH directly to any VM. `operator_ssh_key` is silently skipped
+  if `operator.pub` is absent (safe when running Ansible from WSL rather than saconsole).
+
+- **VBox cloud-init files are not applied**: `platforms/vbox/cloud-init/` exists but the
+  OVA-based VMs do not use a seed ISO — cloud-init in those files is never executed.
+  Hostname, SSH keys, and user setup come entirely from the OVA and Ansible. The `common`
+  role sets hostname via the `hostname` module and writes
+  `/etc/cloud/cloud.cfg.d/99_preserve_hostname.cfg` to prevent any cloud-init override.
 
 - **WSL sudoers rule required for non-interactive `handoff_console.sh`**: `handoff_console.sh`
   calls `sudo tee /etc/wireguard/wg0.conf`, `sudo chmod`, and `sudo wg-quick` on the WSL host.
