@@ -31,13 +31,14 @@
     - fail2ban
     - wireguard
 
-# ── Play 2: saconsole — observability stack ───────────────────────────────────
+# ── Play 2: saconsole — observability stack + control plane API ──────────────
 - name: Observability stack — saconsole
   hosts: saconsole
   become: yes
   roles:
     - docker
     - observability
+    - esacp_api
 
 # ── Play 3: saconsole — control plane (repo, toolchain, SSH keypair) ─────────
 - name: Control plane — saconsole

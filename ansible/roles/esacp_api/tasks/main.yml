@@ -1,0 +1,56 @@
+---
+# esacp_api role — Build and run the ESACP Control Plane API on saconsole.
+#
+# The API container joins observability_network (must be up first) and
+# mounts the Docker socket read-only to serve container/system data.
+# Port 8088 is the Cytoscape prototype and future Grafana plugin endpoint.
+
+- name: Create ESACP API deploy directory
+  file:
+    path: "{{ esacp_api_deploy_dir }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Copy API source files
+  copy:
+    src: "{{ playbook_dir }}/../api/"
+    dest: "{{ esacp_api_deploy_dir }}/"
+    mode: '0644'
+
+- name: Allow ESACP API from LAN and WireGuard subnets
+  ufw:
+    rule: allow
+    port: "{{ esacp_api_port | string }}"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "ESACP API — Cytoscape prototype + Grafana plugin"
+  loop:
+    - "192.168.0.0/16"
+    - "10.0.0.0/8"
+
+- name: Build and start ESACP API
+  command: docker-compose -f {{ esacp_api_deploy_dir }}/docker-compose.yml up -d --build
+  register: api_up
+  changed_when: >
+    'Creating' in api_up.stderr or 'Starting' in api_up.stderr or
+    'Recreating' in api_up.stderr or 'Building' in api_up.stderr or
+    'Creating' in api_up.stdout or 'Starting' in api_up.stdout or
+    'Recreating' in api_up.stdout or 'Building' in api_up.stdout
+
+- name: Wait for ESACP API to be ready
+  uri:
+    url: "http://localhost:{{ esacp_api_port }}/health"
+    status_code: 200
+  register: api_health
+  until: api_health.status == 200
+  retries: 15
+  delay: 2
+
+- name: Display ESACP API status
+  debug:
+    msg:
+      - "✅ ESACP API is running"
+      - "API:  http://{{ ansible_host }}:{{ esacp_api_port }}"
+      - "Docs: http://{{ ansible_host }}:{{ esacp_api_port }}/docs"

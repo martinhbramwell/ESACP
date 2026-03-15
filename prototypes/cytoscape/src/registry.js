@@ -4,15 +4,16 @@
 // fetch() returns the graph data for that level.
 // children keys must match node IDs returned by the parent's fetch().
 //
-// Network note: live API calls require the browser to reach saconsole's ports.
-// From WSL/Windows (Platform 1), the KVM network is unreachable — fallback data
-// is used automatically. From Xubuntu (Platform 2), live calls will succeed
-// provided CORS headers are present. Add a Vite proxy in vite.config.js to work
-// around CORS without touching the VMs.
+// All live data flows through the ESACP API (port 8088) on saconsole.
+// This avoids CORS issues: the API returns Access-Control-Allow-Origin: *
+// and proxies Prometheus internally over observability_network.
+//
+// Platform configuration: set VITE_SACONSOLE in prototypes/cytoscape/.env.local
+//   KVM/Xubuntu:  VITE_SACONSOLE=http://192.168.122.10   (default)
+//   VBox/WSL:     VITE_SACONSOLE=http://192.168.40.50
 
-const SACONSOLE  = 'http://192.168.122.10'
-const PROMETHEUS = `${SACONSOLE}:9090`
-const DOCKER_API = `${SACONSOLE}:8088`   // future saconsole REST bridge; not live yet
+const SACONSOLE  = import.meta.env.VITE_SACONSOLE ?? 'http://192.168.122.10'
+const DOCKER_API = `${SACONSOLE}:8088`
 
 // ── Fallback static data ───────────────────────────────────────────────────
 // Realistic snapshots used when the live API is unreachable.
@@ -21,13 +22,14 @@ const FALLBACK = {
 
   saconsole_containers: {
     nodes: [
-      { data: { id: 'grafana',       label: 'grafana',       image: 'grafana/grafana:10.2.3',            status: 'Up', state: 'running', ports: '3000' } },
-      { data: { id: 'prometheus',    label: 'prometheus',    image: 'prom/prometheus:v2.48.1',           status: 'Up', state: 'running', ports: '9090' } },
-      { data: { id: 'alertmanager',  label: 'alertmanager',  image: 'prom/alertmanager:v0.26.0',         status: 'Up', state: 'running', ports: '9093' } },
-      { data: { id: 'loki',          label: 'loki',          image: 'grafana/loki:2.9.3',               status: 'Up', state: 'running', ports: '3100' } },
-      { data: { id: 'promtail',      label: 'promtail',      image: 'grafana/promtail:3.3.2',           status: 'Up', state: 'running', ports: '9080' } },
-      { data: { id: 'node_exporter', label: 'node_exporter', image: 'prom/node-exporter:v1.7.0',        status: 'Up', state: 'running', ports: '9100', network: 'host' } },
-      { data: { id: 'cadvisor',      label: 'cadvisor',      image: 'gcr.io/cadvisor/cadvisor:v0.55.1', status: 'Up', state: 'running', ports: '8080' } },
+      { data: { id: 'grafana',       label: 'grafana',       image: 'grafana/grafana:10.2.3',            status: 'running', state: 'running', ports: '3000' } },
+      { data: { id: 'prometheus',    label: 'prometheus',    image: 'prom/prometheus:v2.48.1',           status: 'running', state: 'running', ports: '9090' } },
+      { data: { id: 'alertmanager',  label: 'alertmanager',  image: 'prom/alertmanager:v0.26.0',         status: 'running', state: 'running', ports: '9093' } },
+      { data: { id: 'loki',          label: 'loki',          image: 'grafana/loki:2.9.3',               status: 'running', state: 'running', ports: '3100' } },
+      { data: { id: 'promtail',      label: 'promtail',      image: 'grafana/promtail:3.3.2',           status: 'running', state: 'running', ports: '9080' } },
+      { data: { id: 'node_exporter', label: 'node_exporter', image: 'prom/node-exporter:v1.7.0',        status: 'running', state: 'running', ports: '9100', network: 'host' } },
+      { data: { id: 'cadvisor',      label: 'cadvisor',      image: 'gcr.io/cadvisor/cadvisor:v0.55.1', status: 'running', state: 'running', ports: '8080' } },
+      { data: { id: 'esacp-api',     label: 'esacp-api',     image: 'esacp-api',                        status: 'running', state: 'running', ports: '8088' } },
     ],
     edges: [
       { data: { source: 'prometheus',   target: 'node_exporter', label: 'scrape' } },
@@ -79,25 +81,26 @@ const FALLBACK = {
 // ── Data transformers ──────────────────────────────────────────────────────
 
 function dockerContainersToGraph(containers) {
-  // containers: array from Docker GET /containers/json
+  // containers: array from ESACP API GET /docker/containers
+  // { id, name, image, status, state, ports: string[] }
+  //
+  // Edges: the flat container list has no relationship data.
+  // Network topology comes from GET /docker/networks (future drill-down level).
   const nodes = containers.map(c => ({
     data: {
-      id:     c.Names?.[0]?.replace(/^\//, '') ?? c.Id.slice(0, 12),
-      label:  c.Names?.[0]?.replace(/^\//, '') ?? c.Id.slice(0, 12),
-      image:  c.Image,
-      status: c.Status,
-      state:  c.State,
-      ports:  Object.values(c.Ports ?? {}).flat()
-                .map(p => p.PublicPort ?? p.PrivatePort)
-                .filter(Boolean).join(', ') || '—',
+      id:     c.id,
+      label:  c.name,
+      image:  c.image,
+      status: c.status,
+      state:  c.state,
+      ports:  Array.isArray(c.ports) ? (c.ports.join(', ') || '—') : (c.ports || '—'),
     }
   }))
-  // No meaningful edges from a flat container list; will come from docker inspect / networks
   return { nodes, edges: [] }
 }
 
 function prometheusTargetsToGraph(data) {
-  // data: body.data from GET /api/v1/targets
+  // data: body.data from GET /api/v1/targets (passed through from API proxy)
   const nodes = []
   const edges = []
   const jobSeen = {}
@@ -132,9 +135,6 @@ function prometheusTargetsToGraph(data) {
 // ── Fetch functions ────────────────────────────────────────────────────────
 
 async function fetchDockerContainers() {
-  // Docker daemon does not expose HTTP by default.
-  // This targets a future saconsole REST bridge at DOCKER_API.
-  // Falls back to static data when unreachable.
   try {
     const res = await fetch(`${DOCKER_API}/docker/containers`, {
       signal: AbortSignal.timeout(3000),
@@ -144,17 +144,16 @@ async function fetchDockerContainers() {
     console.info('[registry] Docker containers: live data (%d)', data.length)
     return dockerContainersToGraph(data)
   } catch (err) {
-    console.warn('[registry] Docker API unreachable — using fallback:', err.message)
+    console.warn('[registry] ESACP API unreachable — using fallback:', err.message)
     return FALLBACK.saconsole_containers
   }
 }
 
 async function fetchPrometheusTargets() {
-  // Prometheus exposes /api/v1/targets over HTTP.
-  // Reachable from Xubuntu (Platform 2); CORS may block a browser on Windows.
-  // Add a Vite proxy (server.proxy in vite.config.js) to work around CORS.
+  // Routes through the ESACP API proxy (/prometheus/targets) so the browser
+  // does not need direct access to Prometheus and CORS is not an issue.
   try {
-    const res = await fetch(`${PROMETHEUS}/api/v1/targets`, {
+    const res = await fetch(`${DOCKER_API}/prometheus/targets`, {
       signal: AbortSignal.timeout(3000),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -162,7 +161,7 @@ async function fetchPrometheusTargets() {
     console.info('[registry] Prometheus targets: live data (%d active)', data.activeTargets?.length ?? 0)
     return prometheusTargetsToGraph(data)
   } catch (err) {
-    console.warn('[registry] Prometheus API unreachable — using fallback:', err.message)
+    console.warn('[registry] Prometheus proxy unreachable — using fallback:', err.message)
     return FALLBACK.prometheus_targets
   }
 }

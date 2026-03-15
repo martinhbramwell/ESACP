@@ -1,0 +1,25 @@
+version: '3.8'
+
+# ESACP Control Plane API
+# Joins observability_network so it can reach prometheus:9090 by service name.
+# Deploy dir on saconsole: /opt/esacp-api/
+# Managed by: ansible/roles/esacp_api
+
+services:
+  esacp-api:
+    build: .
+    container_name: esacp-api
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - observability_network
+    environment:
+      - PROMETHEUS_URL=http://prometheus:9090
+
+networks:
+  observability_network:
+    external: true
+    name: observability_network
