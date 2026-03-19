@@ -95,8 +95,9 @@ decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH
 - **Storage**: system disk 98% full — ALL VM images on LUKS-encrypted 1TB disk
   - Stable mount: `/mnt/esacp-disk` (fstab + crypttab, requires passphrase on reboot)
   - libvirt pool `esacp` → `/mnt/esacp-disk/var/lib/libvirt/images/` (540 GB free)
-- **`--os-variant`**: toshiba's osinfo-db (Ubuntu 20.04) does not know `ubuntu24.04`
-  Use `ubuntu22.04` in all `virt-install` calls on this host.
+- **`--os-variant`**: toshiba's osinfo-db (Ubuntu 20.04 stock) tops out at `ubuntu20.04` —
+  both `ubuntu22.04` and `ubuntu24.04` are absent. Use `ubuntu20.04` in all `virt-install`
+  calls on this host.
 - **virsh session**: plain `virsh` = user session (`qemu:///session`). Always use
   `virsh --connect qemu:///system` or `sudo virsh` for pool/VM operations.
 - **Bootstrap**: `platforms/kvm/bootstrap_saconsole.sh` *(built — Stage 2.2)*
@@ -370,6 +371,37 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 ---
 
 ## Known Decisions & Gotchas
+
+- **`virsh snapshot-create-as` on libvirt 6.0.0 via SSH**: multi-word snapshot names are
+  split at spaces when passed through SSH (argv is joined into a single shell string).
+  Use `ssh host bash -c "virsh ... 'Name With Spaces' --atomic"` — not `remote virsh ...`.
+  `bootstrap_saconsole.sh` uses this pattern in `take_snapshot()` and `snapshot_exists()`.
+
+- **docker.io → docker-ce transition leaves Docker in start-limit-hit state**: cloud-init
+  pre-installs `docker.io`; Ansible removes it and installs `docker-ce`. After `daemon.json`
+  is written, the `restart docker` handler triggers a rapid restart loop that hits systemd's
+  start limit on the `docker.socket` unit. Fix: `systemctl reset-failed docker.service
+  docker.socket` before restarting. This is now in the docker role handler.
+
+- **iptables FORWARD ordering on KVM hosts**: libvirt + Docker both add chains to FORWARD.
+  The default FORWARD policy is DROP. Any custom ACCEPT rule appended with `-A` lands after
+  libvirt's `LIBVIRT_FWI` chain (which REJECTs unmatched traffic to virbr0). Always insert
+  with `-I FORWARD 1` to place the rule before libvirt/Docker chains.
+
+- **toshiba WireGuard port-forward**: for Mighty's wg0 to reach saconsole's hub (virbr0
+  192.168.122.10:51820) via toshiba (192.168.40.16), two iptables rules are required on
+  toshiba — the DNAT in nat/PREROUTING and an ACCEPT inserted at position 1 in FORWARD:
+    sudo iptables -t nat -A PREROUTING -i wlp2s0 -p udp --dport 51820 \
+        -j DNAT --to-destination 192.168.122.10:51820
+    sudo iptables -I FORWARD 1 -i wlp2s0 -o virbr0 -p udp \
+        -d 192.168.122.10 --dport 51820 -j ACCEPT
+  These rules are not persistent across reboots — see Stage 2.x for persistence plan.
+
+- **Both controller and hypervisor virbr0 share 192.168.122.0/24**: every KVM host gets
+  this subnet by default. Mighty's routing table claims 192.168.122.0/24 for its own
+  virbr0, so it can never reach toshiba's 192.168.122.10 directly. ProxyJump through
+  toshy is structurally required (not optional) for all Ansible and SSH access to
+  toshiba-hosted VMs. Mighty's wg0 endpoint must always be toshiba's LAN IP, not virbr0.
 
 - **`prometheus.yml` is a Jinja2 template**, not a static file. The source reference copy
   lives in `docker/observability/prometheus/prometheus.yml` but is NOT deployed directly.

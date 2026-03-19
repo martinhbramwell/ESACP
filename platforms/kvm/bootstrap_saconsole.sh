@@ -70,7 +70,12 @@ vm_state() {
 }
 
 snapshot_exists() {
-    remote virsh --connect qemu:///system snapshot-list saconsole --name 2>/dev/null \
+    # Use bash -c so the name is a single quoted token on the remote shell.
+    # Plain `remote virsh ... | grep` works for single-word names but SSH joins
+    # all argv into one string before the remote shell parses them, so
+    # multi-word names must be protected by quoting on the remote side.
+    ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
+        bash -c "virsh --connect qemu:///system snapshot-list saconsole --name 2>/dev/null" \
         | grep -qxF "$1"
 }
 
@@ -92,10 +97,9 @@ take_snapshot() {
         return
     fi
     log "  Creating snapshot '${name}' ..."
-    remote virsh --connect qemu:///system snapshot-create-as saconsole \
-        --name "${name}" \
-        --description "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        --atomic
+    # bash -c preserves the quoted name as a single token on the remote shell.
+    ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
+        bash -c "virsh --connect qemu:///system snapshot-create-as saconsole '${name}' --atomic"
     log "  ✅  '${name}'"
 }
 
@@ -180,8 +184,8 @@ else
     # Run via SSH heredoc to avoid shell quoting issues with multi-argument commands.
     # Variables are expanded locally before being sent to the remote shell.
     #
-    # --os-variant ubuntu22.04: toshiba runs Ubuntu 20.04 — its osinfo-db does not
-    #   include ubuntu24.04. ubuntu22.04 is the correct fallback.
+    # --os-variant ubuntu20.04: toshiba's osinfo-db (Ubuntu 20.04 stock) tops out at
+    #   ubuntu20.04 — ubuntu22.04 and ubuntu24.04 are both absent.
     # --disk pool=esacp: stores saconsole.qcow2 in the esacp pool
     #   (/mnt/esacp-disk/var/lib/libvirt/images) — system disk is 98% full.
     # --noautoconsole: returns immediately; autoinstall runs headlessly.
@@ -195,7 +199,7 @@ virt-install \
     --location "${REMOTE_ISO},kernel=casper/vmlinuz,initrd=casper/initrd" \
     --disk "path=${REMOTE_SEED},device=cdrom,readonly=on" \
     --network network=default \
-    --os-variant ubuntu22.04 \
+    --os-variant ubuntu20.04 \
     --extra-args 'autoinstall ds=nocloud' \
     --graphics vnc \
     --noautoconsole

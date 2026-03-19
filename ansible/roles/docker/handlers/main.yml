@@ -2,6 +2,10 @@
 # Docker role handlers
 
 - name: restart docker
-  service:
-    name: docker
-    state: restarted
+  # reset-failed clears the systemd start-limit-hit state that occurs when
+  # docker.io (cloud-init pre-install) is replaced by docker-ce mid-session.
+  # Without this, rapid restart loops leave docker.socket in a failed state.
+  shell: >
+    systemctl reset-failed docker.service docker.socket 2>/dev/null || true;
+    systemctl restart docker
+  changed_when: true
