@@ -99,9 +99,13 @@ decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH
   Use `ubuntu22.04` in all `virt-install` calls on this host.
 - **virsh session**: plain `virsh` = user session (`qemu:///session`). Always use
   `virsh --connect qemu:///system` or `sudo virsh` for pool/VM operations.
-- **Bootstrap**: `platforms/kvm/bootstrap_saconsole.sh` *(planned — next to build)*
-  Single idempotent script: seed ISO → VM creation on toshiba → Ansible provision →
-  handoff (saconsole SSH key → toshiba authorized_keys). Controller job ends here.
+- **Bootstrap**: `platforms/kvm/bootstrap_saconsole.sh` *(built — Stage 2.2)*
+  Single idempotent script (9 phases): seed ISO → upload to toshiba → VM creation →
+  autoinstall wait → "Fresh Install" snapshot → Ansible provision (saconsole only,
+  ProxyJump through toshy) → "Stage 2.2 Baseline" snapshot → handoff (saconsole SSH
+  pubkey → toshiba authorized_keys). Controller job ends here.
+  **Note**: Play 4 (controller WireGuard spoke) is NOT run by this script — requires
+  toshiba UDP 51820 port-forward first. See script "Next steps" output for details.
 - saconsole then manages sibling VMs via `qemu+ssh://hasan@toshiba/system`
 
 ### Stage 1–1.5: Platform 1 Detail (VirtualBox/WSL — on hold)
@@ -205,6 +209,9 @@ platforms/vbox/
 #   From saconsole (both):    bash /opt/esacp/platforms/vbox/provision_targets.sh
 
 platforms/kvm/
+  bootstrap_saconsole.sh            # Stage 2.2: idempotent 9-phase bootstrap for toshiba-hosted saconsole
+                                    #   Phases: seed ISO → upload → VM create → wait → snapshot → Ansible → snapshot → handoff
+                                    #   ProxyJump through toshy; skips Play 4 (controller WireGuard)
   create_seeds.sh                   # cloud-localds wrapper for seed ISOs
   create_vms.sh                     # virt-install for both VMs
   snapshot.py                       # virsh snapshot lifecycle CLI
