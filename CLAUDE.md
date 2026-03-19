@@ -9,10 +9,10 @@ A home-lab infrastructure automation and observability training project.
 
 **At the start of every session**, before doing anything else:
 
-1. **Identify the platform** — WSL/VBox (Windows) or Xubuntu/KVM?
+1. **Identify the platform** — which controller machine are you on?
 2. **Run the sync check** for that platform:
-   - VBox/WSL: `bash platforms/vbox/sync_check.sh`
-   - KVM/Xubuntu: *(sync check TBD)*
+   - KVM/Xubuntu (Mighty): *(sync check TBD)*
+   - VBox/WSL: `bash platforms/vbox/sync_check.sh` *(platform retired — for reference only)*
 3. **Fix any failures** reported by the sync check, commit and push repairs.
 4. **State one objective** for the session. Do not pursue other issues that
    arise — note them and handle in a dedicated session.
@@ -30,28 +30,48 @@ emerges, assess whether it truly blocks the objective before diving in.
 | Stage 1 | ✅ Complete | Security-hardened Ubuntu 22.04 VM + full observability stack |
 | Stage 1.5 | ✅ Complete | Observability validation, alert profiles, dashboards, chaos framework |
 | Stage 2.1 | ✅ Complete | KVM/Xubuntu parallel path: WireGuard mesh, saconsole + target1, multi-host Prometheus |
-| Stage 2.x | 🔜 Next | 4-platform abstraction, VPS backend (CloudStack), chaos on KVM, version watchdog |
+| Stage 2.2 | 🔧 In Progress | Remote KVM hypervisor (toshiba): bootstrap_saconsole.sh, saconsole-as-control-plane |
+| Stage 2.x | 🔜 Next | Heterogeneous fleet: CloudStack backend, chaos on KVM, version watchdog |
 
 ---
 
 ## Architecture
 
-### Target Platform Model
+### Controller Role (bootstrap only)
 
-ESACP supports 4 controller platforms. Each controller manages a mix of local VMs
-and/or remote VPS hosts via Ansible + SSH. The configuration layer (`hosts_map.yml`)
-is designed to handle both in all 4 cases.
+Controller machines (Mighty, Ultra, a future MacBook, any Ubuntu Server) have **one
+job**: bootstrap saconsole. After saconsole is running, the controller steps back.
+saconsole manages all sibling VMs by calling back to the hypervisor directly.
+
+**Ultra** (the specific Windows 11 machine) died — hardware failure, spontaneous
+reboots, 2026-03-17. **VirtualBox will never be used again** — Hyper-V always made
+more sense. Windows/WSL2 as a controller platform remains valid and may be revisited
+on a future machine. VBox scripts in `platforms/vbox/` are preserved as reference;
+they will need adaptation for a Hyper-V/WSL2 path if that work resumes.
 
 | # | Controller OS | Hypervisor / VPS | Status |
 |---|---|---|---|
-| 1 | Windows 11 + WSL2 | VirtualBox (local VMs) | ✅ Stage 1–1.5 |
-| 2 | Xubuntu | KVM/libvirt (local VMs) | ✅ Stage 2.1 |
-| 3 | Ubuntu Server + XFCE + X2Go | External VPS (iwStack) | 🔜 Planned |
-| 4 | macOS | External VPS (iwStack) | 🔜 Planned |
+| 1 | Windows 11 + WSL2 | Hyper-V (replaces VBox) | ⏸ On hold — no hardware |
+| 2 | Xubuntu (Mighty) | KVM/libvirt — remote (toshiba) | 🔧 Stage 2.2 in progress |
+| 3 | Ubuntu Server + XFCE + X2Go | External VPS (iwStack/CloudStack) | 🔜 Planned |
+| 4 | macOS | External VPS (iwStack/CloudStack) | 🔜 Planned |
 
-Platforms 3 and 4 are **controller-only** — no local hypervisor. The controller runs
-Ansible, Python orchestration scripts, SOPS/age, and SSH. All managed hosts
-(Grafana server + workhorse VMs) are external VPS instances.
+### Production Topology (target state)
+
+The final fleet is **heterogeneous by design**. saconsole manages all targets
+regardless of where they live. The `backend:` field in `hosts_map.yml` is a
+per-host routing key — not a lab-wide flag. A single chaos run can span local
+KVM VMs, CloudStack pay-by-the-minute instances, and dedicated servers simultaneously.
+
+| Layer | Hosting | Backend |
+|---|---|---|
+| saconsole (control plane) | VM on 1 owned physical server (e.g. toshiba) | kvm |
+| Production targets | 2 pay-by-month dedicated/VPS servers | kvm or cloudstack |
+| Dev targets | Local KVM VMs on owned server | kvm |
+| Staging targets | CloudStack VMs (pay-by-minute, ephemeral) | cloudstack |
+
+Example mixed config: 2 local KVM dev targets + 2 CloudStack staging targets, all
+provisioned and managed from saconsole in a single Ansible run.
 
 **VPS Provider: iwStack/cdStack (Prometeus)**
 - URL: https://prometeus.net — datacenters in Milan and Rome (Italy)
@@ -68,11 +88,27 @@ Since the Mac is controller-only (just Ansible/Python/SSH), even the lowest tier
 Note: hosted Macs are current macOS on Apple Silicon; the end-user target is
 decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH, Ansible).
 
-### Stage 1–1.5: Platform 1 Detail (VirtualBox/WSL)
-- **Host**: Windows 11 with WSL2 (Ubuntu) + VirtualBox
-- **Guest VM**: Ubuntu 22.04 (`console`), bridged networking, DHCP
-- **Provisioning**: Ansible run from WSL via `orchestration/provision.py`
-- **Snapshot management**: VirtualBox via `orchestration/revertToBaseline.py`
+### Stage 2.2: toshiba — Remote KVM Hypervisor
+
+- **Hypervisor host**: toshiba — Ubuntu 20.04.6, KVM/libvirt 6.0.0, virt-install 2.2.1
+- **LAN IP**: 192.168.40.16 — SSH alias: `toshy` — SSH user: `hasan`
+- **Storage**: system disk 98% full — ALL VM images on LUKS-encrypted 1TB disk
+  - Stable mount: `/mnt/esacp-disk` (fstab + crypttab, requires passphrase on reboot)
+  - libvirt pool `esacp` → `/mnt/esacp-disk/var/lib/libvirt/images/` (540 GB free)
+- **`--os-variant`**: toshiba's osinfo-db (Ubuntu 20.04) does not know `ubuntu24.04`
+  Use `ubuntu22.04` in all `virt-install` calls on this host.
+- **virsh session**: plain `virsh` = user session (`qemu:///session`). Always use
+  `virsh --connect qemu:///system` or `sudo virsh` for pool/VM operations.
+- **Bootstrap**: `platforms/kvm/bootstrap_saconsole.sh` *(planned — next to build)*
+  Single idempotent script: seed ISO → VM creation on toshiba → Ansible provision →
+  handoff (saconsole SSH key → toshiba authorized_keys). Controller job ends here.
+- saconsole then manages sibling VMs via `qemu+ssh://hasan@toshiba/system`
+
+### Stage 1–1.5: Platform 1 Detail (VirtualBox/WSL — on hold)
+- **Host**: Windows 11 (Ultra) + WSL2 + VirtualBox — **Ultra is dead (hardware failure)**
+- Windows/WSL2 as a controller platform is not abandoned — may resume on future hardware
+- VirtualBox will not be used again; Hyper-V is the intended hypervisor for any Windows path
+- Scripts in `platforms/vbox/` preserved as reference; will need Hyper-V adaptation if resumed
 
 ### Stage 2.1: Platform 2 Detail (KVM/Xubuntu)
 - **Host**: Xubuntu workstation (`${HOSTNAME}`) with KVM/QEMU/libvirt

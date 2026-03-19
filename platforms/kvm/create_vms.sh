@@ -93,7 +93,7 @@ create_saconsole() {
         --location "${SACONSOLE_ISO},kernel=casper/vmlinuz,initrd=casper/initrd" \
         --disk "path=${SACONSOLE_SEED},device=cdrom,readonly=on" \
         --network network=default \
-        --os-variant ubuntu24.04 \
+        --os-variant ubuntu22.04 \
         --extra-args "autoinstall ds=nocloud" \
         --graphics vnc \
         --noautoconsole
@@ -127,7 +127,7 @@ create_target1() {
         --location "${TARGET1_ISO},kernel=casper/vmlinuz,initrd=casper/initrd" \
         --disk "path=${TARGET1_SEED},device=cdrom,readonly=on" \
         --network network=default \
-        --os-variant ubuntu24.04 \
+        --os-variant ubuntu22.04 \
         --extra-args "autoinstall ds=nocloud" \
         --graphics vnc \
         --noautoconsole
