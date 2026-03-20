@@ -14,14 +14,24 @@ all:
           ansible_host: 192.168.122.11
           wg_ip: 10.10.0.3
           wg_role: spoke
+        target2: &id003
+          ansible_host: 192.168.122.12
+          wg_ip: 10.10.0.4
+          wg_role: spoke
     development:
       hosts:
         saconsole: *id001
         target1: *id002
+        target2: *id003
     lab:
       hosts:
         saconsole: *id001
         target1: *id002
+        target2: *id003
+    targets:
+      hosts:
+        target1: *id002
+        target2: *id003
     controller:
       hosts:
         localhost:

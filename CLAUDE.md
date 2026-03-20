@@ -30,7 +30,7 @@ emerges, assess whether it truly blocks the objective before diving in.
 | Stage 1 | ✅ Complete | Security-hardened Ubuntu 22.04 VM + full observability stack |
 | Stage 1.5 | ✅ Complete | Observability validation, alert profiles, dashboards, chaos framework |
 | Stage 2.1 | ✅ Complete | KVM/Xubuntu parallel path: WireGuard mesh, saconsole + target1, multi-host Prometheus |
-| Stage 2.2 | 🔧 In Progress | Remote KVM hypervisor (toshiba): bootstrap_saconsole.sh, saconsole-as-control-plane |
+| Stage 2.2 | 🔧 In Progress | Remote KVM hypervisor (toshiba): saconsole bootstraps target1+target2 with MariaDB+MariaDB MCP+Nginx UI+node_exporter; mcp-grafana on saconsole |
 | Stage 2.x | 🔜 Next | Heterogeneous fleet: CloudStack backend, chaos on KVM, version watchdog |
 
 ---
@@ -100,13 +100,25 @@ decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH
   calls on this host.
 - **virsh session**: plain `virsh` = user session (`qemu:///session`). Always use
   `virsh --connect qemu:///system` or `sudo virsh` for pool/VM operations.
-- **Bootstrap**: `platforms/kvm/bootstrap_saconsole.sh` *(built — Stage 2.2)*
-  Single idempotent script (9 phases): seed ISO → upload to toshiba → VM creation →
-  autoinstall wait → "Fresh Install" snapshot → Ansible provision (saconsole only,
-  ProxyJump through toshy) → "Stage 2.2 Baseline" snapshot → handoff (saconsole SSH
-  pubkey → toshiba authorized_keys). Controller job ends here.
-  **Note**: Play 4 (controller WireGuard spoke) is NOT run by this script — requires
-  toshiba UDP 51820 port-forward first. See script "Next steps" output for details.
+- **Bootstrap — saconsole**: `platforms/kvm/bootstrap_saconsole.sh` *(built — Stage 2.2)*
+  9 phases: seed ISO → upload → VM create → autoinstall wait → "Fresh Install" snapshot →
+  Ansible provision (saconsole only, ProxyJump through toshy) → "Stage 2.2 Baseline"
+  snapshot → handoff (saconsole SSH pubkey → toshiba authorized_keys). Controller ends here.
+  **Note**: Play 5 (controller WireGuard spoke) requires toshiba UDP 51820 port-forward first.
+- **Bootstrap — targets**: `platforms/kvm/bootstrap_targets.sh` *(built — Stage 2.2)*
+  Runs FROM saconsole after `control_plane` role applied. 9 phases: inject saconsole pubkey →
+  build seed ISOs (envsubst) → upload → VM create → wait → "Fresh Install" snapshot →
+  Ansible provision (direct virbr0 — no ProxyJump) → "Stage 2.2 Targets Baseline" snapshot.
+  Cloud-init templates: `platforms/kvm/cloud-init/toshiba-target{1,2}/`
+- **site-kvm.yml plays** (5 total): base-all → saconsole (docker+obs+desktop+control_plane+mcp_grafana)
+  → authorise saconsole pubkey on targets → targets (node_exporter+docker+mariadb+nginx_ui) → controller WG
+- **MCP servers** (Stage 2.2):
+  - `mcp-grafana` on saconsole — `grafana/mcp-grafana:0.11.3`, SSE on port 8000,
+    joins `observability_network`, endpoint: `http://10.10.0.1:8000/sse`
+  - `MariaDB MCP` on each target — built from source (no published image), SSE on port 9001,
+    endpoint: `http://10.10.0.3:9001/sse` / `http://10.10.0.4:9001/sse`
+  - `Nginx UI MCP` on each target — `uozi/nginx-ui:v2.3.5`, admin/MCP on port 9000,
+    endpoint: `http://10.10.0.3:9000/mcp?node_secret=<secret>`
 - saconsole then manages sibling VMs via `qemu+ssh://hasan@toshiba/system`
 
 ### Stage 1–1.5: Platform 1 Detail (VirtualBox/WSL — on hold)
@@ -210,15 +222,20 @@ platforms/vbox/
 #   From saconsole (both):    bash /opt/esacp/platforms/vbox/provision_targets.sh
 
 platforms/kvm/
-  bootstrap_saconsole.sh            # Stage 2.2: idempotent 9-phase bootstrap for toshiba-hosted saconsole
+  bootstrap_saconsole.sh            # Stage 2.2: idempotent 9-phase bootstrap for toshiba saconsole
                                     #   Phases: seed ISO → upload → VM create → wait → snapshot → Ansible → snapshot → handoff
-                                    #   ProxyJump through toshy; skips Play 4 (controller WireGuard)
-  create_seeds.sh                   # cloud-localds wrapper for seed ISOs
-  create_vms.sh                     # virt-install for both VMs
+                                    #   ProxyJump through toshy; skips Play 5 (controller WireGuard)
+  bootstrap_targets.sh              # Stage 2.2: idempotent 9-phase bootstrap for toshiba targets
+                                    #   Runs FROM saconsole; injects saconsole pubkey via envsubst
+                                    #   Direct virbr0 SSH (no ProxyJump); provisions both target1+target2
+  create_seeds.sh                   # cloud-localds wrapper for seed ISOs (Mighty path — Stage 2.1)
+  create_vms.sh                     # virt-install for both VMs (Mighty path — Stage 2.1)
   snapshot.py                       # virsh snapshot lifecycle CLI
   cloud-init/
     saconsole/{user-data,meta-data}
-    target1/{user-data,meta-data}
+    target1/{user-data,meta-data}         # Stage 2.1 (Mighty) — hardcoded hasan_mighty pubkey
+    toshiba-target1/{user-data,meta-data} # Stage 2.2 (toshiba) — ${CONTROLLER_PUBKEY} placeholder
+    toshiba-target2/{user-data,meta-data} # Stage 2.2 (toshiba) — ${CONTROLLER_PUBKEY} placeholder
 
 orchestration/
   provision_kvm.py                  # KVM lifecycle: seeds, VMs, snapshots, Ansible
@@ -243,8 +260,16 @@ ansible/
   roles/
     wireguard/                      # Hub/spoke config; hub sets UFW forward policy
     node_exporter/                  # Binary install + systemd for targets
-    mariadb/                        # Docker Compose: MariaDB 10.11 + mysqld_exporter 0.15.1
-                                    #   deploy_dir: /opt/mariadb; mysqld_exporter port: 9104
+    mariadb/                        # Docker Compose: MariaDB 10.11 + mysqld_exporter 0.15.1 + MariaDB MCP
+                                    #   deploy_dir: /opt/mariadb; mysqld_exporter port: 9104; mcp port: 9001
+                                    #   mariadb-mcp image built from source (no published image): /opt/mariadb-mcp-build
+    mcp_grafana/                    # Docker Compose: grafana/mcp-grafana:0.11.3 on saconsole
+                                    #   deploy_dir: /opt/mcp-grafana; SSE port: 8000; joins observability_network
+                                    #   endpoint: http://10.10.0.1:8000/sse (WireGuard peers only)
+    nginx_ui/                       # Docker Compose: uozi/nginx-ui:v2.3.5 on targets
+                                    #   deploy_dir: /opt/nginx-ui; HTTP port: 80; admin/MCP port: 9000
+                                    #   MCP endpoint: http://<target-wg-ip>:9000/mcp?node_secret=<secret>
+                                    #   Headless setup via NGINX_UI_NODE_SKIP_INSTALLATION env var
     desktop/                        # xfce4 + x2goserver for saconsole
     observability/tasks/main.yml    # Profile-aware template + force-recreate + UFW rules
     observability/templates/
@@ -371,6 +396,43 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 ---
 
 ## Known Decisions & Gotchas
+
+- **MariaDB MCP has no published Docker image**: `MariaDB/mcp` must be built from source.
+  The `mariadb` Ansible role clones `https://github.com/MariaDB/mcp.git` to
+  `/opt/mariadb-mcp-build` and runs `docker build -t mariadb-mcp:local` on first deploy.
+  The build is skipped if the `mariadb-mcp:local` image already exists. SSE transport
+  runs on port 9001; `ALLOWED_HOSTS: "*"` is set (lab is WireGuard-isolated).
+  UFW restricts port 9001 to saconsole's WireGuard IP (10.10.0.1) only.
+
+- **Nginx UI bundles nginx — do not run a separate nginx container**: `uozi/nginx-ui`
+  is built on top of the official `nginx` image. A separate nginx container is not needed.
+  The `/etc/nginx` volume must be EMPTY on first run — map a fresh directory.
+  Port 80 = nginx HTTP; port 9000 = nginx-ui admin UI + REST API + MCP SSE endpoint.
+  nginx-ui does NOT expose Prometheus-format metrics; rely on node_exporter for host metrics.
+
+- **nginx-ui headless setup**: Set `NGINX_UI_NODE_SKIP_INSTALLATION=true` plus
+  `NGINX_UI_PREDEFINED_USER_NAME`, `NGINX_UI_PREDEFINED_USER_PASSWORD`, and
+  `NGINX_UI_NODE_SECRET` in the env file to bypass the first-run web wizard.
+  Without these, the container waits at the `/install` page and MCP is unavailable.
+  Credentials are in the `nginx_ui` role's `.env` template (sourced from SOPS vars).
+
+- **mcp-grafana joins observability_network as external network**: The observability
+  stack creates `observability_network` (name: `observability_network`). The mcp-grafana
+  compose declares it as `external: true` and joins it — this lets mcp-grafana reach
+  `grafana:3000` by container name without port exposure. Start the observability stack
+  before starting mcp-grafana or the network will not exist.
+
+- **Claude Code MCP configuration** (add to `~/.claude/settings.json` on Mighty after
+  target VMs are up and WireGuard mesh is verified):
+  ```json
+  "mcpServers": {
+    "grafana": { "type": "sse", "url": "http://10.10.0.1:8000/sse" },
+    "mariadb-target1": { "type": "sse", "url": "http://10.10.0.3:9001/sse" },
+    "mariadb-target2": { "type": "sse", "url": "http://10.10.0.4:9001/sse" },
+    "nginx-target1": { "type": "sse", "url": "http://10.10.0.3:9000/mcp?node_secret=<secret>" },
+    "nginx-target2": { "type": "sse", "url": "http://10.10.0.4:9000/mcp?node_secret=<secret>" }
+  }
+  ```
 
 - **`virsh snapshot-create-as` on libvirt 6.0.0 via SSH**: multi-word snapshot names are
   split at spaces when passed through SSH (argv is joined into a single shell string).

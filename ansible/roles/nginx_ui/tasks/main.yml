@@ -1,0 +1,79 @@
+---
+# nginx_ui role — Deploy Nginx UI (bundled nginx + web management UI + MCP server)
+#
+# nginx-ui bundles nginx inside the image (no separate nginx container needed).
+# Port {{ nginx_ui_http_port }}: nginx HTTP (allow from WireGuard subnet)
+# Port {{ nginx_ui_api_port }}: nginx-ui admin API + MCP SSE endpoint (allow from saconsole WG only)
+#
+# MCP endpoint: http://<target-wg-ip>:{{ nginx_ui_api_port }}/mcp?node_secret=<NGINX_UI_NODE_SECRET>
+# First-run setup is headless via NGINX_UI_NODE_SKIP_INSTALLATION env var.
+
+- name: Create nginx-ui directory structure
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "{{ nginx_ui_deploy_dir }}"
+    - "{{ nginx_ui_deploy_dir }}/nginx-config"
+    - "{{ nginx_ui_deploy_dir }}/nginx-ui-data"
+    - "/var/www"
+
+- name: Template nginx-ui Docker Compose file
+  template:
+    src: docker-compose.nginx-ui.yml.j2
+    dest: "{{ nginx_ui_deploy_dir }}/docker-compose.yml"
+    mode: '0644'
+  notify: recreate nginx-ui stack
+
+- name: Create nginx-ui .env file
+  template:
+    src: nginx-ui.env.j2
+    dest: "{{ nginx_ui_deploy_dir }}/.env"
+    mode: '0600'
+    owner: root
+    group: root
+  no_log: true
+  notify: recreate nginx-ui stack
+
+- name: Allow nginx HTTP from WireGuard subnet
+  ufw:
+    rule: allow
+    port: "{{ nginx_ui_http_port | string }}"
+    proto: tcp
+    from_ip: "10.10.0.0/24"
+    comment: "nginx HTTP — WireGuard subnet"
+
+- name: Allow nginx-ui admin/MCP from saconsole (WireGuard only)
+  ufw:
+    rule: allow
+    port: "{{ nginx_ui_api_port | string }}"
+    proto: tcp
+    from_ip: "10.10.0.1"
+    comment: "nginx-ui admin/MCP — saconsole WireGuard only"
+
+- name: Pull nginx-ui image
+  command: docker-compose -f {{ nginx_ui_deploy_dir }}/docker-compose.yml pull
+  register: nginx_pull
+  changed_when: "'Downloaded' in nginx_pull.stderr or 'Downloaded' in nginx_pull.stdout"
+
+- name: Start nginx-ui stack
+  command: docker-compose -f {{ nginx_ui_deploy_dir }}/docker-compose.yml up -d --force-recreate
+  register: nginx_up
+  changed_when: >
+    'Creating' in nginx_up.stderr or 'Starting' in nginx_up.stderr or
+    'Recreating' in nginx_up.stderr or 'Creating' in nginx_up.stdout
+
+- name: Wait for nginx-ui to respond on port {{ nginx_ui_http_port }}
+  uri:
+    url: "http://localhost:{{ nginx_ui_http_port }}/"
+    status_code: [200, 301, 302]
+  register: nginx_health
+  until: nginx_health.status in [200, 301, 302]
+  retries: 20
+  delay: 5
+
+- name: Flush handlers
+  meta: flush_handlers

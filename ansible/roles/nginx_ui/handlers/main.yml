@@ -1,0 +1,4 @@
+---
+- name: recreate nginx-ui stack
+  command: docker-compose -f {{ nginx_ui_deploy_dir }}/docker-compose.yml up -d --force-recreate
+  changed_when: true

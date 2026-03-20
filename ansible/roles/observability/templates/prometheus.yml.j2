@@ -83,4 +83,8 @@ scrape_configs:
         labels:
           host: 'target2'
 
+  # nginx-ui Prometheus metrics: TBD — verify endpoint in a running instance.
+  # nginx-ui v2.x may not expose Prometheus-format metrics. The admin API (port 9000)
+  # serves JSON, not /metrics. Add scrape jobs here once confirmed.
+
 {% endif %}

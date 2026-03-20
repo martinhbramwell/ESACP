@@ -1,0 +1,67 @@
+---
+# mcp_grafana role — Deploy grafana/mcp-grafana in SSE mode on saconsole
+#
+# Joins the observability_network Docker network so it can reach grafana:3000
+# by container name, without needing port exposure between containers.
+# Exposed to the WireGuard mesh (port {{ mcp_grafana_port }}) so Claude Code
+# can connect from the controller via http://10.10.0.1:{{ mcp_grafana_port }}/sse.
+#
+# Credentials: grafana_admin_user and grafana_admin_password come from
+# ansible/group_vars/all.sops.yml (same variables used by the observability role).
+
+- name: Create mcp-grafana deploy directory
+  file:
+    path: "{{ mcp_grafana_deploy_dir }}"
+    state: directory
+    mode: '0750'
+    owner: root
+    group: root
+
+- name: Template mcp-grafana Docker Compose file
+  template:
+    src: docker-compose.mcp-grafana.yml.j2
+    dest: "{{ mcp_grafana_deploy_dir }}/docker-compose.yml"
+    mode: '0644'
+  notify: recreate mcp-grafana stack
+
+- name: Create mcp-grafana .env file
+  template:
+    src: mcp-grafana.env.j2
+    dest: "{{ mcp_grafana_deploy_dir }}/.env"
+    mode: '0600'
+    owner: root
+    group: root
+  no_log: true
+  notify: recreate mcp-grafana stack
+
+- name: Allow mcp-grafana MCP access from WireGuard peers
+  ufw:
+    rule: allow
+    port: "{{ mcp_grafana_port | string }}"
+    proto: tcp
+    from_ip: "10.10.0.0/24"
+    comment: "mcp-grafana SSE — WireGuard peers only"
+
+- name: Pull mcp-grafana image
+  command: docker-compose -f {{ mcp_grafana_deploy_dir }}/docker-compose.yml pull
+  register: mcp_pull
+  changed_when: "'Downloaded' in mcp_pull.stderr or 'Downloaded' in mcp_pull.stdout"
+
+- name: Start mcp-grafana stack
+  command: docker-compose -f {{ mcp_grafana_deploy_dir }}/docker-compose.yml up -d --force-recreate
+  register: mcp_up
+  changed_when: >
+    'Creating' in mcp_up.stderr or 'Starting' in mcp_up.stderr or
+    'Recreating' in mcp_up.stderr or 'Creating' in mcp_up.stdout
+
+- name: Wait for mcp-grafana to be ready
+  uri:
+    url: "http://localhost:{{ mcp_grafana_port }}/healthz"
+    status_code: 200
+  register: mcp_health
+  until: mcp_health.status == 200
+  retries: 15
+  delay: 4
+
+- name: Flush handlers
+  meta: flush_handlers

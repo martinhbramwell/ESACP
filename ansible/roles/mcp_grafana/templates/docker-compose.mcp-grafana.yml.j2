@@ -1,0 +1,23 @@
+---
+# docker-compose.mcp-grafana.yml.j2
+# Deployed to {{ mcp_grafana_deploy_dir }}/docker-compose.yml on {{ inventory_hostname }}
+#
+# Joins observability_network so it can reach grafana:3000 by container name.
+# SSE endpoint: http://10.10.0.1:{{ mcp_grafana_port }}/sse (WireGuard IP for external clients)
+
+services:
+  mcp-grafana:
+    image: grafana/mcp-grafana:{{ mcp_grafana_version }}
+    container_name: mcp-grafana
+    restart: unless-stopped
+    command: ["-t", "sse", "--address", "0.0.0.0:{{ mcp_grafana_port }}"]
+    env_file:
+      - {{ mcp_grafana_deploy_dir }}/.env
+    ports:
+      - "{{ mcp_grafana_port }}:{{ mcp_grafana_port }}"
+    networks:
+      - observability_network
+
+networks:
+  observability_network:
+    external: true

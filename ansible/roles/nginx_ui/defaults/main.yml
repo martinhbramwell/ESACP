@@ -1,0 +1,14 @@
+---
+# ansible/roles/nginx_ui/defaults/main.yml
+
+nginx_ui_version: "v2.3.5"
+nginx_ui_deploy_dir: "/opt/nginx-ui"
+nginx_ui_http_port: 80
+nginx_ui_api_port: 9000
+
+# Override these in ansible/group_vars/all.sops.yml for production use.
+# Defaults here are for reference only — all.sops.yml values take precedence.
+nginx_ui_admin_user: "admin"
+nginx_ui_admin_password: "esacp_nginx_changeme"
+nginx_ui_node_secret: "esacp_node_secret_changeme"
+nginx_ui_jwt_secret: "esacp_jwt_secret_changeme"

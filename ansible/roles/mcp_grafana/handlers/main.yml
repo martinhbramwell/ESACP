@@ -1,0 +1,4 @@
+---
+- name: recreate mcp-grafana stack
+  command: docker-compose -f {{ mcp_grafana_deploy_dir }}/docker-compose.yml up -d --force-recreate
+  changed_when: true

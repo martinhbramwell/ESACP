@@ -1,0 +1,24 @@
+---
+# docker-compose.nginx-ui.yml.j2
+# Deployed to {{ nginx_ui_deploy_dir }}/docker-compose.yml on {{ inventory_hostname }}
+#
+# nginx-ui bundles nginx — no separate nginx container needed.
+# Port {{ nginx_ui_http_port }}: nginx HTTP traffic
+# Port {{ nginx_ui_api_port }}: nginx-ui admin UI, REST API, and MCP SSE endpoint
+#
+# MCP: http://{{ ansible_host }}:{{ nginx_ui_api_port }}/mcp?node_secret=<NGINX_UI_NODE_SECRET>
+
+services:
+  nginx-ui:
+    image: uozi/nginx-ui:{{ nginx_ui_version }}
+    container_name: nginx-ui
+    restart: unless-stopped
+    env_file:
+      - {{ nginx_ui_deploy_dir }}/.env
+    volumes:
+      - "{{ nginx_ui_deploy_dir }}/nginx-config:/etc/nginx"
+      - "{{ nginx_ui_deploy_dir }}/nginx-ui-data:/etc/nginx-ui"
+      - "/var/www:/var/www"
+    ports:
+      - "{{ nginx_ui_http_port }}:80"
+      - "{{ nginx_ui_api_port }}:9000"

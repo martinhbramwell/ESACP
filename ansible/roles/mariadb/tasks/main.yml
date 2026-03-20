@@ -82,5 +82,35 @@
   retries: 30
   delay: 5
 
+# ── MariaDB MCP server ────────────────────────────────────────────────────────
+
+- name: Check if mariadb-mcp image exists
+  command: docker image inspect mariadb-mcp:local
+  register: mariadb_mcp_image
+  ignore_errors: true
+  changed_when: false
+
+- name: Clone MariaDB MCP source
+  git:
+    repo: "https://github.com/MariaDB/mcp.git"
+    dest: "{{ mariadb_mcp_build_dir }}"
+    version: main
+    update: yes
+  when: mariadb_mcp_image.rc != 0
+
+- name: Build mariadb-mcp Docker image
+  command: docker build -t mariadb-mcp:local {{ mariadb_mcp_build_dir }}
+  when: mariadb_mcp_image.rc != 0
+  register: mariadb_mcp_build
+  changed_when: true
+
+- name: Allow MariaDB MCP access from saconsole (WireGuard only)
+  ufw:
+    rule: allow
+    port: "{{ mariadb_mcp_port | string }}"
+    proto: tcp
+    from_ip: "10.10.0.1"
+    comment: "mariadb-mcp SSE — saconsole WireGuard only"
+
 - name: Flush handlers
   meta: flush_handlers

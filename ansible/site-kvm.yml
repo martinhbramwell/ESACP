@@ -1,16 +1,18 @@
 ---
-# site-kvm.yml — Top-level playbook for ESACP Stage 2.1 KVM hosts
+# site-kvm.yml — Top-level playbook for ESACP KVM hosts
 #
 # Play order:
 #   1. All KVM VMs:    common, ssh, firewall, fail2ban, wireguard
-#   2. saconsole only: docker, observability
-#   3. target1 only:   node_exporter
-#   4. Controller:     wireguard spoke config (connection: local)
+#   2. saconsole:      docker, observability, desktop, control_plane, mcp_grafana
+#   3. targets:        authorise saconsole SSH pubkey (set by control_plane in Play 2)
+#   4. targets:        node_exporter, docker, mariadb, nginx_ui
+#   5. Controller:     wireguard spoke config (connection: local)
 #
 # Usage:
-#   ansible-playbook -i ansible/inventory/kvm.yml ansible/site-kvm.yml
-#   ansible-playbook -i ansible/inventory/kvm.yml ansible/site-kvm.yml --limit saconsole
-#   ansible-playbook -i ansible/inventory/kvm.yml ansible/site-kvm.yml --tags wireguard
+#   ansible-playbook -i inventory/kvm.yml site-kvm.yml
+#   ansible-playbook -i inventory/kvm.yml site-kvm.yml --limit saconsole
+#   ansible-playbook -i inventory/kvm.yml site-kvm.yml --limit targets
+#   ansible-playbook -i inventory/kvm.yml site-kvm.yml --tags wireguard
 
 # ── Play 1: Base configuration for all KVM VMs ────────────────────────────
 - name: Base configuration — all KVM hosts
@@ -23,23 +25,51 @@
     - fail2ban
     - wireguard
 
-# ── Play 2: saconsole — observability stack + XFCE desktop + X2Go ──────────
-- name: Observability stack + desktop — saconsole
+# ── Play 2: saconsole — observability + desktop + control plane + MCP ─────
+- name: Observability + control plane — saconsole
   hosts: saconsole
   become: yes
   roles:
     - docker
     - observability
     - desktop
+    - control_plane
+    - mcp_grafana
 
-# ── Play 3: node_exporter — target1 only ──────────────────────────────────
-- name: node_exporter — target1
-  hosts: target1
+# ── Play 3: Authorise saconsole SSH pubkey on targets ─────────────────────
+# control_plane (Play 2) generates saconsole's keypair and registers
+# saconsole_ssh_pubkey as a host fact. This play pushes it to targets so
+# saconsole can Ansible-provision and manage them directly.
+#
+# When running --limit targets (e.g. from bootstrap_targets.sh), saconsole's
+# play does not execute and the fact is not in memory. Pass the pubkey via
+# --extra-vars "saconsole_override_pubkey=..." to satisfy this task.
+# Safe to skip when running --limit saconsole alone.
+- name: Authorise saconsole on targets
+  hosts: targets
+  become: yes
+  tasks:
+    - name: Add saconsole public key to authorized_keys
+      authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ saconsole_override_pubkey | default(hostvars['saconsole']['saconsole_ssh_pubkey'] | default('')) }}"
+        state: present
+      when: >
+        saconsole_override_pubkey is defined
+        or (hostvars['saconsole']['saconsole_ssh_pubkey'] is defined
+            and hostvars['saconsole']['saconsole_ssh_pubkey'] != '')
+
+# ── Play 4: Target services — target1 + target2 ───────────────────────────
+- name: Target services — targets
+  hosts: targets
   become: yes
   roles:
     - node_exporter
+    - docker
+    - mariadb
+    - nginx_ui
 
-# ── Play 4: WireGuard spoke — controller (this host, runs locally) ─────────
+# ── Play 5: WireGuard spoke — controller (this host, runs locally) ─────────
 - name: WireGuard spoke — controller
   hosts: localhost
   connection: local
