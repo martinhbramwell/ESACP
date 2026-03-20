@@ -195,31 +195,7 @@ config/wireguard/
   keys.sops.yml                     # SOPS/age encrypted WireGuard keys (committed)
   .gitignore                        # Excludes plaintext keys/
 
-platforms/vbox/
-  build_lab.sh                      # Thin wrapper: create_vms → install_wireguard → handoff_console
-  create_vms.sh                     # Import OVAs, detect IP, update configs, wait SSH
-                                    #   Pre-flight: detects existing VMs, offers revert to Fresh Install
-  install_wireguard.sh              # Runs site-bootstrap.yml on all 3 VMs (WireGuard + passwordless sudo)
-  handoff_console.sh                # Clone repo + deploy age key + operator SSH key to saconsole + bring up WSL wg0
-  revert_to_fresh.sh                # Revert all 3 VMs to "Fresh Install" snapshot + start + wait SSH
-  create_console.sh                 # VBoxManage: import console OVA (called by create_vms.sh)
-  create_target.sh                  # VBoxManage: import target OVA + NAT port forwarding
-  provision_targets.sh              # Runs on saconsole: full Ansible provisioning (all plays)
-  utils.sh                          # Shared helpers sourced by all vbox scripts (tg_notify)
-  take_snapshots.sh                 # Snapshot all 3 VMs: bash take_snapshots.sh "name" (defaults to "Stage 1.5 Baseline")
-  full_provision.sh                 # One-command wrapper: ensure_vms → revert → wireguard → handoff → provision
-                                    #   Phase 0 creates any missing VMs from esacp-base.ova (SKIP_SSH_WAIT=1)
-                                    #   Sets NO_TELEGRAM=1; sends single Telegram summary on exit
-  cloud-init/
-    target1/{user-data,meta-data}   # DHCP networking; WireGuard provides stable overlay
-    target2/{user-data,meta-data}
-
-# VBox rebuild sequences:
-# VBox rebuild sequences:
-#   One-command (any state):  bash platforms/vbox/full_provision.sh  ← Phase 0 creates missing VMs
-#   Full rebuild (VMs gone):  create_vms.sh → install_wireguard.sh → handoff_console.sh
-#   Iterative test loop:      revert_to_fresh.sh → install_wireguard.sh → handoff_console.sh
-#   From saconsole (both):    bash /opt/esacp/platforms/vbox/provision_targets.sh
+platforms/vbox/                     # RETIRED (Stage 1–1.5, VBox). Scripts preserved as reference for future Hyper-V/WSL2 adaptation.
 
 platforms/kvm/
   bootstrap_saconsole.sh            # Stage 2.2: idempotent 9-phase bootstrap for toshiba saconsole
@@ -334,15 +310,6 @@ and the PLAY RECAP summary. All other output is suppressed.
 
 ## Environment Variables
 
-### Stage 1–1.5 (VirtualBox path)
-```bash
-export VM_IP=<VM IP address>
-export VM_HOSTNAME=console          # VirtualBox VM name
-export VM_USER=ernest               # SSH username on VM
-export SSH_KEY_PATH=~/.ssh/id_ed25519
-export SNAPSHOT_NAME="Stage 1.5 Complete"
-```
-
 ### Stage 2.1 (KVM path)
 ```bash
 # provision_kvm.py reads these from ansible/group_vars/ and hosts_map.yml
@@ -434,31 +401,14 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   }
   ```
 
-- **ERPNext MCP (future — add when ERPNext is deployed as a workload)**:
-  `Frappe_Assistant_Core` (buildswithpaul/promantia-ai) is the strongest community option —
-  installs as a Frappe bench app, OAuth 2.0 + ERPNext role enforcement + audit logging,
-  20+ tools (document CRUD, search, reports, analytics). Alternative: `rakeshgangwar/erpnext-mcp-server`
-  (TypeScript, wraps Frappe REST API, no bench install required).
-  Once ERPNext is a target workload, add its MCP endpoint to `~/.claude/settings.json`
-  alongside the other MCP servers already configured.
+- **ERPNext MCP (future)**: `Frappe_Assistant_Core` (buildswithpaul/promantia-ai) — bench app, OAuth 2.0, 20+ tools. Alt: `rakeshgangwar/erpnext-mcp-server` (TypeScript, no bench required). Add MCP endpoint to `~/.claude/settings.json` when ERPNext is deployed.
 
-- **Cloudflare MCP container (future consideration)**:
-  Adding the Cloudflare MCP docker container was assessed as worthwhile — it gives Claude
-  direct access to DNS, R2, Workers, and other Cloudflare surface areas. Key caution:
-  the service account or API token used must be **tightly scoped** — read-only where
-  possible, zone-locked where write access is required. A broadly-scoped token
-  in an MCP container is a significant blast-radius risk.
+- **Cloudflare MCP (future)**: Assessed as worthwhile. Key caution: API token must be tightly scoped (read-only where possible, zone-locked for writes) — a broad token in an MCP container is high blast-radius.
 
 - **`virsh snapshot-create-as` on libvirt 6.0.0 via SSH**: multi-word snapshot names are
   split at spaces when passed through SSH (argv is joined into a single shell string).
   Use `ssh host bash -c "virsh ... 'Name With Spaces' --atomic"` — not `remote virsh ...`.
   `bootstrap_saconsole.sh` uses this pattern in `take_snapshot()` and `snapshot_exists()`.
-
-- **docker.io → docker-ce transition leaves Docker in start-limit-hit state**: cloud-init
-  pre-installs `docker.io`; Ansible removes it and installs `docker-ce`. After `daemon.json`
-  is written, the `restart docker` handler triggers a rapid restart loop that hits systemd's
-  start limit on the `docker.socket` unit. Fix: `systemctl reset-failed docker.service
-  docker.socket` before restarting. This is now in the docker role handler.
 
 - **iptables FORWARD ordering on KVM hosts**: libvirt + Docker both add chains to FORWARD.
   The default FORWARD policy is DROP. Any custom ACCEPT rule appended with `-A` lands after
@@ -552,11 +502,6 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   field) are written to `kvm.yml`. VBox and future CloudStack hosts are excluded via
   `attrs.get("backend", "kvm") != "kvm"` check. VBox hosts use `ansible/inventory/dev.yml`.
 
-- **VBox bootstrap sequence**: Targets connect via WireGuard IPs after provisioning but
-  first Ansible run (before WireGuard) requires the bridged DHCP IP. Use `-e ansible_host=<IP>`
-  on the command line for the first run; revert to WireGuard IP thereafter.
-  Get DHCP IP: `VBoxManage.exe guestproperty get target1 '/VirtualBox/GuestInfo/Net/0/V4/IP'`
-
 - **MariaDB Docker Compose on targets**: Deployed to `/opt/mariadb/`. MariaDB port 3306 is
   Docker-internal only (not exposed to host). mysqld_exporter port 9104 is UFW-restricted to
   10.10.0.1 (saconsole). Credentials are in `/opt/mariadb/.env` (mode 0600).
@@ -575,21 +520,6 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
      or the process cannot read it.
   Template: `ansible/roles/mariadb/templates/my.cnf.j2`. Mounted at `/etc/mysqld_exporter/my.cnf`.
 
-- **VirtualBox NAT source IP in UFW**: SSH connections from WSL2 to VBox target VMs via NAT
-  port-forwarding (127.0.0.1:2222/2223) appear inside the VM as source `10.0.2.2` — the
-  VirtualBox NAT gateway address. `allowed_ssh_ips` in `group_vars/vbox.yml` must include
-  `10.0.2.2`, otherwise UFW blocks all Ansible connections and SSH banner exchange times out.
-  `10.0.2.2` is confirmed via `ss -tnp` and `/var/log/auth.log` inside the VM.
-
-- **`ansible_become_pass` required on fresh VMs**: Before the `common` role installs
-  passwordless sudo, Ansible cannot escalate privileges without being given the password
-  explicitly. Add `-e ansible_become_pass=wawa` (bootstrap password for OVA-built targets)
-  for any full provisioning run against a freshly imported VM. Not required on re-runs.
-
-- **VirtualBox snapshot detection bug** (fixed): `snapshot_exists()` in
-  `revertToBaseline.py` previously matched only top-level snapshot names. Fixed to
-  match `SnapshotName*=` prefix for nested snapshots.
-
 - **SSH polling and autoinstall** (handled automatically): `provision_kvm.py` detects
   whether a VM is mid-autoinstall by probing SSH for 30s after `create_vms.sh`. If SSH
   is unreachable, it waits up to 30 min for the VM to power off (autoinstall complete),
@@ -601,84 +531,17 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   Clear with: `ssh-keygen -R saconsole && ssh-keygen -R target1 &&
   ssh-keygen -R 192.168.122.10 && ssh-keygen -R 192.168.122.11`
 
-- **Docker daemon race on first boot** (fixed in docker role): after `daemon.json` is
-  written, the `notify: restart docker` handler can leave Docker in a failed state before
-  the observability role runs `docker-compose pull`. Fixed by adding `meta: flush_handlers`
-  + `service: state=started retries=5 delay=5` at the end of the docker role to confirm
-  the daemon is running before any downstream role uses it.
-
 - **Secrets**: `ansible/group_vars/all.sops.yml` holds encrypted credentials
   (Telegram bot token, Grafana admin password). Requires SOPS + age key to decrypt.
   See `SETUP_GUIDE.md` for key setup.
 
-- **UFW enable hangs Ansible over WireGuard tunnel**: enabling UFW on a spoke briefly
-  disrupts the WireGuard tunnel, dropping Ansible's SSH connection and hanging
-  indefinitely. Fixed in the `firewall` role: `Enable UFW` uses `async: 10 / poll: 0`
-  (fire and forget) followed by `wait_for_connection: delay: 5 timeout: 60`.
-
-- **sshpass required on saconsole before running Ansible with `ansible_password`**:
-  Ansible wraps all SSH calls in sshpass when `ansible_password` is set, even when key
-  auth succeeds. `provision_targets.sh` installs sshpass via apt before invoking
-  any `ansible-playbook` command.
-
-- **`provision_targets.sh` pre-generates saconsole SSH keypair**: `dev.yml` uses the
-  LAN IP for saconsole (not localhost), so Ansible opens a real SSH connection even for
-  self-targeting plays. The keypair is generated and added to saconsole's own
-  `authorized_keys` before Ansible runs, so key auth works on the first connection.
-  `site-vbox.yml` Play 6 is tagged `controller_wg` and skipped via `--skip-tags` —
-  saconsole is the hub; running the spoke role on localhost would overwrite its config.
-
-- **VBox/NEM headless boot stall (intermittent)**: Under Memory Integrity + Hyper-V NEM,
-  VMs occasionally stall at the kernel initramfs stage (`Begin: Loading essential drivers`)
-  and never complete the boot when started headlessly. VMState shows "running" and VBox NAT
-  accepts TCP connections (false positive), but sshd never starts. Root cause: Hyper-V
-  starves the guest of CPU cycles until something forces framebuffer access. Almost always
-  resolves on the second attempt. `revert_to_fresh.sh` detects this after 300s, saves a
-  screenshot to `/tmp/esacp_<vm>_stuck.png`, and exits with a clear retry message.
-
 - **`esacp.py snapShotVM` is KVM-only**: hardwired to `platforms/kvm/snapshot.py` → `virsh`.
   On VBox/WSL use `bash platforms/vbox/take_snapshots.sh "name"` instead.
-
-- **VBoxManage `--machinereadable` silently omits NAT port forwarding rules**: `grep natpf`
-  or `grep -i rule` on machinereadable output returns nothing even when rules exist.
-  Use human-readable `showvminfo` (without `--machinereadable`) to verify NAT rules.
-
-- **dpkg lock race on `apt install`**: unattended-upgrades can reacquire the dpkg lock
-  between `apt-get update` and the install, even after the dpkg wait task passes.
-  Fixed in the `common` role with `retries: 10 / delay: 15` on `Install essential packages`.
-
-- **`pkill` SIGTERM kills the shell — `|| true` doesn't save it**: `pkill -f unattended-upgrade || true`
-  exits with `rc: -15` (SIGTERM) when `pkill` sends SIGTERM to a process that is an ancestor of the
-  current shell. The shell is killed before `|| true` can execute. The fix is `ignore_errors: true` on
-  the Ansible task — not a shell-level workaround. `|| true` only handles normal non-zero exit codes,
-  not signals.
 
 - **Loki /ready returns 503 for ~30s after fresh provision**: Loki's ingester emits
   "waiting for 15s after being ready" on first startup. `validate_observability.py` will report
   a FAIL on the Loki health check if run immediately after `provision_targets.sh` completes.
   Wait ~30s and re-run — it resolves on its own.
-
-- **Operator SSH key flow (VBox path)**: `handoff_console.sh` copies `~/.ssh/id_ed25519.pub`
-  into saconsole's `~/.ssh/authorized_keys` (direct operator SSH access) and to
-  `~/.ssh/operator.pub` (read by Ansible). The `common` role reads `operator_ssh_key`
-  (from `~/. ssh/operator.pub` on the control node) and installs it on every managed host,
-  so the WSL operator can SSH directly to any VM. `operator_ssh_key` is silently skipped
-  if `operator.pub` is absent (safe when running Ansible from WSL rather than saconsole).
-
-- **VBox cloud-init files are not applied**: `platforms/vbox/cloud-init/` exists but the
-  OVA-based VMs do not use a seed ISO — cloud-init in those files is never executed.
-  Hostname, SSH keys, and user setup come entirely from the OVA and Ansible. The `common`
-  role sets hostname via the `hostname` module and writes
-  `/etc/cloud/cloud.cfg.d/99_preserve_hostname.cfg` to prevent any cloud-init override.
-
-- **WSL sudoers rule required for non-interactive `handoff_console.sh`**: `handoff_console.sh`
-  calls `sudo tee /etc/wireguard/wg0.conf`, `sudo chmod`, and `sudo wg-quick` on the WSL host.
-  Without a sudoers rule these prompt interactively, breaking unattended runs. One-time setup:
-  ```
-  echo "you ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/wireguard/wg0.conf, /usr/bin/chmod 600 /etc/wireguard/wg0.conf, /usr/bin/wg-quick, /usr/sbin/wg-quick" \
-    | sudo tee /etc/sudoers.d/esacp-wireguard
-  sudo chmod 440 /etc/sudoers.d/esacp-wireguard
-  ```
 
 ---
 
