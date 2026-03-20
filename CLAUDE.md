@@ -73,20 +73,9 @@ KVM VMs, CloudStack pay-by-the-minute instances, and dedicated servers simultane
 Example mixed config: 2 local KVM dev targets + 2 CloudStack staging targets, all
 provisioned and managed from saconsole in a single Ansible run.
 
-**VPS Provider: iwStack/cdStack (Prometeus)**
-- URL: https://prometeus.net — datacenters in Milan and Rome (Italy)
-- Underlying platform: **CloudStack** (not KVM-direct, not OpenStack)
-- API: **CloudStack API** accessible via `CloudMonkey` CLI or Python SDK
-- Snapshots: supported via API (disk-only; schedulable hourly/daily/weekly/monthly)
-- Billing: pay-as-you-go credit system (€1 = 1 cdCredit)
-- The VPS abstraction backend for `revertToBaseline.py` and `run_scenario.py`
-  will target the CloudStack API
+**VPS Provider**: iwStack/cdStack (Prometeus, Milan/Rome) — CloudStack API via `CloudMonkey` or Python SDK; pay-as-you-go (€1 = 1 cdCredit); disk snapshots schedulable via API.
 
-**macOS controller hosting** (for Platform 4 testing without physical hardware):
-MacStadium, Mac Mini Vault, HostMyApple, MacinCloud all offer bare-metal Mac hosting.
-Since the Mac is controller-only (just Ansible/Python/SSH), even the lowest tier suffices.
-Note: hosted Macs are current macOS on Apple Silicon; the end-user target is
-decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH, Ansible).
+**macOS hosting** (Platform 4): MacStadium/Mac Mini Vault/MacinCloud — controller-only workload, lowest tier suffices.
 
 ### Stage 2.2: toshiba — Remote KVM Hypervisor
 
@@ -140,13 +129,6 @@ decade-old Intel Macs — functionally equivalent for the toolchain (Python, SSH
 - **Provisioning**: `orchestration/provision_kvm.py` → runs `ansible/site-kvm.yml`
 - **Inventory source of truth**: `hosts_map.yml` → `tools/generate_inventory.py` → `ansible/inventory/kvm.yml`
 - **Snapshot management**: `platforms/kvm/snapshot.py` (virsh wrapper)
-- **Current snapshots** (both VMs):
-
-| Snapshot | State captured |
-|---|---|
-| Fresh Install | Post cloud-init, pre-Ansible |
-| Stage 2.1 Baseline | Full Ansible provision + WireGuard verified |
-| Stage 2.1 Validated | 27/27 validation pass — full from-scratch rebuild confirmed |
 
 ### Observability Stack (Docker Compose on saconsole)
 All services run in Docker at `/opt/observability/`.
@@ -170,15 +152,7 @@ the container inherits the host's UTS namespace (nodename = "saconsole", not a c
 and sees all host interfaces including wg0. Prometheus reaches it via
 `host.docker.internal:9100` (docker compose `extra_hosts: host-gateway`).
 
-### Alert Profiles
-Two sets of alert rules, selected by Ansible based on inventory group:
-- `docker/observability/prometheus/alerts/` — **production** profile (`for:` 2–10m)
-- `docker/observability/prometheus/alerts-drill/` — **drill** profile (`for:` 20–30s)
-
-`ansible/inventory/kvm.yml` places KVM hosts in `development` and `lab` groups.
-`group_vars/lab.yml` sets `alert_profile: drill`.
-`group_vars/production.yml` enforces `alert_profile: production`.
-The Ansible role refuses to run drill profile against production/protected hosts.
+**Alert profiles**: `alerts/` = production (`for:` 2–10m); `alerts-drill/` = drill (20–30s). KVM hosts land in `lab` group → drill. Ansible role refuses to run drill profile against `production` group.
 
 ---
 
@@ -280,52 +254,13 @@ prototypes/
 
 ## Unified CLI — tools/esacp.py
 
-Single entry point for the full lab lifecycle. All defaults come from config files
-(`hosts_map.yml`, `ansible/group_vars/`). Run from the project root:
+`python tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands.
 
-```
-python tools/esacp.py <subcommand> [options]
-```
-
-| Subcommand | What it does |
-|---|---|
-| `confirmPrerequisites` | Checks required tools and files; offers to `apt install` missing packages |
-| `validateKeys` | SOPS-decrypts `config/wireguard/keys.sops.yml`; verifies all key blocks exist |
-| `clearKnownHosts` | Removes stale `~/.ssh/known_hosts` entries for all ESACP VMs (hostnames, nicknames, IPs) |
-| `destroyVM <vm>` | Shows what will be deleted, asks for confirmation, then destroys VM + all storage |
-| `buildVM <vm>` | Builds seed ISO → creates VM → polls for autoinstall completion → polls SSH |
-| `provisionVM <vm>` | SSH check → Fresh Install snapshot → Ansible (task names + changes only) → Baseline snapshot |
-| `verifyVPN` | Pings each VM's WireGuard IP; shows `wg show` on hub; cross-VM pings |
-| `validateObservability` | Auto-retrieves Grafana creds (env → saconsole .env → prompt); runs 27-check suite |
-| `snapShotVM <vm> [name]` | Creates a named snapshot; if name omitted, lists existing snapshots |
-| `displayConfiguration` | Rich tree of all user-alterable settings, each annotated with its source file |
-
-`provisionVM` Ansible output filter: shows PLAY headers, ✓ ok tasks, ★ changed tasks, ❌ fatal errors,
-and the PLAY RECAP summary. All other output is suppressed.
-
-`validateObservability` credential resolution order: `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` env vars
-→ SSH to saconsole and read `/opt/observability/.env` → interactive prompt.
+Non-obvious behaviours:
+- `provisionVM` Ansible output filter: shows PLAY headers, ✓ ok, ★ changed, ❌ fatal, RECAP only.
+- `validateObservability` credential order: `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` env vars → SSH saconsole `/opt/observability/.env` → interactive prompt.
 
 ---
-
-## Environment Variables
-
-### Stage 2.1 (KVM path)
-```bash
-# provision_kvm.py reads these from ansible/group_vars/ and hosts_map.yml
-# No additional env vars required beyond SOPS age key at ~/.config/sops/age/keys.txt
-```
-
-### Observability validation
-```bash
-export GRAFANA_ADMIN_USER=<user>
-export GRAFANA_ADMIN_PASSWORD=<password>
-python3 orchestration/validate_observability.py          # auto-detects saconsole
-python3 orchestration/validate_observability.py --obs-host <name>  # explicit host
-python3 orchestration/validate_observability.py -v       # verbose (show passing detail)
-```
-All check targets (jobs, nodenames, datasource UIDs, dashboard titles) are derived
-from the project's own config files — nothing is hardcoded in the script.
 
 ---
 
@@ -437,16 +372,6 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   scrape job, and the `node-target1` job block is gated on `{% if 'kvm' in group_names %}`.
   Edit the `.j2` file, not the source copy.
 
-- **`docker-compose up -d --force-recreate`** is used in the Ansible role so that config
-  file changes (bind-mounted) are always picked up without manual container restarts.
-
-- **Grafana metrics path**: Grafana 10 serves `/metrics` at the HTTP root regardless
-  of `serve_from_sub_path` — it is a separate handler outside the application router.
-  The Prometheus scrape job uses the default `/metrics` path (no `metrics_path` override).
-
-- **Datasource UIDs must be pinned** in `datasources.yml` (`uid: prometheus`, `uid: loki`)
-  so provisioned dashboard JSONs can reference them reliably.
-
 - **ContainerRestartLoop alert** uses `{name!=""}` filter. cAdvisor exposes a root
   cgroup entry with an empty `name` label (representing the host machine) whose
   `container_start_time_seconds` rate trips the threshold — the filter excludes it.
@@ -476,27 +401,10 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   UID (`prometheus`) and remove the `__inputs` block. Use the object form:
   `{"type": "prometheus", "uid": "prometheus"}` to match Grafana 10 native format.
 
-- **node_exporter host networking**: `network_mode: host` + `pid: host` gives correct
-  hostname and interface visibility. Prometheus uses `host.docker.internal:9100`
-  (via `extra_hosts: host-gateway` on the prometheus service). UFW must allow
-  `172.16.0.0/12 → port 9100` (the observability bridge range) — set by Ansible role.
-
 - **cAdvisor Docker SDK**: `gcr.io/cadvisor/cadvisor:v0.47.2` and `v0.49.1` embed
   Docker SDK API v1.41; Docker CE 25+ requires v1.44 minimum. Use `v0.55.1`.
   `ghcr.io/google/cadvisor` tags do NOT exist despite the README claiming migration there —
   stay on `gcr.io/cadvisor/cadvisor`.
-
-- **WireGuard hub forward policy**: saconsole (hub) must have
-  `DEFAULT_FORWARD_POLICY="ACCEPT"` in `/etc/default/ufw` for spoke-to-spoke routing.
-  This is set by the `wireguard` Ansible role (hub hosts only).
-
-- **group_vars scope for WireGuard**: `wg_port`, `wg_subnet`, `wg_pubkey_*` live in
-  `group_vars/all.yml` (not `kvm.yml`) so the `controller` group (localhost) also
-  receives them when running the `wireguard` role.
-
-- **`wg_hub_endpoint`**: Platform-aware variable that replaces the formerly hardcoded
-  `192.168.122.10` in `wg0.conf.j2`. Set in `group_vars/kvm.yml` (192.168.122.10) and
-  `group_vars/vbox.yml` (operator must set this to console VM's current bridged DHCP IP).
 
 - **generate_inventory.py backend filter**: Only hosts with `backend: kvm` (or no backend
   field) are written to `kvm.yml`. VBox and future CloudStack hosts are excluded via
@@ -520,12 +428,6 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
      or the process cannot read it.
   Template: `ansible/roles/mariadb/templates/my.cnf.j2`. Mounted at `/etc/mysqld_exporter/my.cnf`.
 
-- **SSH polling and autoinstall** (handled automatically): `provision_kvm.py` detects
-  whether a VM is mid-autoinstall by probing SSH for 30s after `create_vms.sh`. If SSH
-  is unreachable, it waits up to 30 min for the VM to power off (autoinstall complete),
-  then starts it. Normal post-boot SSH is then ready in ~30s. Run `provision_kvm.py`
-  immediately after `create_vms.sh` — no manual waiting required.
-
 - **known_hosts must be cleared on VM rebuild**: after destroying and recreating VMs,
   the new host keys differ from the cached entries and SSH rejects connections.
   Clear with: `ssh-keygen -R saconsole && ssh-keygen -R target1 &&
@@ -547,73 +449,11 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 
 ## Stage 2.x Scope (next)
 
-Stage 2.1 (KVM parallel path) is complete. The architectural direction for Stage 2.x
-and beyond was settled in a design session on 2026-03-03. See `docs/ControlPlaneDesign.md`
-for the full rationale.
+See `docs/ControlPlaneDesign.md` for full rationale (design session 2026-03-03).
 
-### Architectural Direction: saconsole as Control Plane
-
-The physical host's role is being reduced to a single responsibility: **bootstrap
-saconsole**. After that, saconsole manages all sibling VMs by calling back to the
-host hypervisor remotely:
-
-- **KVM**: via `qemu+ssh://host/system` (libvirt remote protocol)
-- **VirtualBox**: via VBoxWebSrv SOAP API or SSH → VBoxManage
-- **CloudStack**: via CloudStack API over HTTPS (cleanest case)
-
-This eliminates the need for `revertToBaseline.py`, `run_scenario.py`, and
-`provision_kvm.py` to run on the physical host after bootstrap. `esacp.py` becomes
-the pipeline engine called by saconsole's REST API, not a human-facing CLI.
-
-### Source of Truth: Generate Cloud-init from hosts_map.yml
-
-Cloud-init `user-data` files are currently static and duplicate data from
-`hosts_map.yml` (hostname, virbr0 IP, OS username). They must become generated
-artifacts, like `ansible/inventory/kvm.yml`:
-
-- Add `vm_user` to `hosts_map.yml` per host (or as KVM default)
-- Create `tools/generate_cloud_init.py` — renders `user-data.j2` templates
-- Add `esacp.py generateConfig` subcommand to run all generators
-- Cloud-init files: do not edit directly (same convention as inventory)
-
-### Production vs Lab/Dev Distinction
-
-Two classes of parameter, explicitly separated in `hosts_map.yml`:
-
-- **Live-safe** (Production): alert thresholds, scrape intervals, dashboards,
-  notification channels — Grafana manages these; Ansible pushes in-place, no rebuild
-- **Rebuild-required** (Lab/Dev): hostnames, IPs, WireGuard subnet, OS username —
-  changing these triggers `destroyVM → buildVM → provisionVM` pipeline
-
-### Grafana Control Plane (staged implementation)
-
-A REST API on saconsole wraps `esacp.py` and exposes VM lifecycle operations over
-HTTP. The Grafana UI calls this API. Implementation stages:
-
-1. **Canvas + HTML panel** — Grafana Canvas for topology visualisation (node colour
-   = live VM state); separate HTML panel with action buttons. Functional immediately.
-2. **draw.io embedded** — draw.io self-hosted on saconsole; shape actions POST to
-   the API; diagram XML mirrors `hosts_map.yml` structure.
-3. **Custom Grafana app plugin** — React + Cytoscape.js; live metric overlays;
-   inline job progress; integrated action menus.
-
-PlantUML and Mermaid.js are suitable for architecture documentation only — they
-cannot bind to live data or fire API calls.
-
-### Remaining Platform Work
-
-- **Platform 3** (Ubuntu Server + X2Go): external VPS via CloudStack API
-- **Platform 4** (macOS): Homebrew toolchain; external VPS same as Platform 3
-- `hosts_map.yml` `backend:` field per host (`vbox` | `kvm` | `cloudstack`)
-
-### Chaos framework on KVM
-Port `orchestration/chaos/run_scenario.py` and `scenarios.yml` to work
-against KVM VMs (Platform 2), replacing VirtualBox-specific assumptions.
-Will be driven from the saconsole REST API once that exists.
-
-### Version watchdog + staging rebuild pipeline
-Monitor upstream releases of all pinned components (Prometheus, Grafana, Loki,
-Promtail, cAdvisor, node_exporter, Alertmanager, Docker CE, Ansible collections,
-Ubuntu LTS). Trigger from-scratch rebuild on staging VMs, run the proof-of-life
-checklist automatically, report pass/fail before promoting to the main lab.
-Motivated by the cAdvisor/Promtail SDK compatibility issues found in Stage 2.1.
+- saconsole becomes control plane: manages VMs via `qemu+ssh://host/system`, CloudStack API, or VBoxWebSrv; `esacp.py` becomes its REST API pipeline engine
+- Cloud-init → generated from `hosts_map.yml` via `tools/generate_cloud_init.py`; do not edit directly (same as inventory)
+- Live-safe params (thresholds, dashboards): push in-place. Rebuild-required params (IPs, hostnames, WG subnet): trigger `destroyVM → buildVM → provisionVM`
+- Grafana control plane: Canvas+HTML panel (immediate) → draw.io embedded → custom React+Cytoscape app plugin
+- Platform 3 (Ubuntu+X2Go on CloudStack VPS), Platform 4 (macOS on hosted Mac)
+- Chaos on KVM: port `run_scenario.py`+`scenarios.yml`; version watchdog: monitor pinned components, auto-rebuild staging on release
