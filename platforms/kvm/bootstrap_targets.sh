@@ -315,11 +315,21 @@ cd "${ANSIBLE_DIR}"
 # --limit targets, saconsole's play does not execute and the fact is not populated.
 # We pass the pubkey explicitly via saconsole_override_pubkey — Play 3 checks for
 # this var before falling back to hostvars. See site-kvm.yml Play 3 comment.
+#
+# Use a temp YAML vars file so the SSH public key (which contains spaces) is
+# preserved as a single value. Ansible's key=value --extra-vars splits on spaces.
+TMPVARS=$(mktemp /tmp/ansible-vars-XXXXXX.yml)
+trap "rm -f ${TMPVARS}" EXIT
+cat > "${TMPVARS}" << ENDVARS
+saconsole_override_pubkey: "$(cat ${SSH_KEY}.pub)"
+ansible_ssh_private_key_file: "${SSH_KEY}"
+ENDVARS
+
 ansible-playbook \
     -i inventory/kvm.yml \
     site-kvm.yml \
     --limit targets \
-    --extra-vars "saconsole_override_pubkey=$(cat ${SSH_KEY}.pub) ansible_ssh_private_key_file=${SSH_KEY}"
+    --extra-vars "@${TMPVARS}"
 
 log "Ansible provision complete."
 
