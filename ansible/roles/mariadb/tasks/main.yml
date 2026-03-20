@@ -47,6 +47,32 @@
     from_ip: "10.10.0.1"
     comment: "mysqld_exporter — saconsole WireGuard only"
 
+# ── MariaDB MCP server — build first (no published image) ────────────────────
+# mariadb-mcp:local must exist before docker-compose up, otherwise compose
+# attempts to pull it from Docker Hub and fails with "repository does not exist".
+
+- name: Check if mariadb-mcp image exists
+  command: docker image inspect mariadb-mcp:local
+  register: mariadb_mcp_image
+  ignore_errors: true
+  changed_when: false
+
+- name: Clone MariaDB MCP source
+  git:
+    repo: "https://github.com/MariaDB/mcp.git"
+    dest: "{{ mariadb_mcp_build_dir }}"
+    version: main
+    update: yes
+  when: mariadb_mcp_image.rc != 0
+
+- name: Build mariadb-mcp Docker image
+  command: docker build -t mariadb-mcp:local {{ mariadb_mcp_build_dir }}
+  when: mariadb_mcp_image.rc != 0
+  register: mariadb_mcp_build
+  changed_when: true
+
+# ── Pull registry images and start stack ─────────────────────────────────────
+
 - name: Pull MariaDB and mysqld_exporter images
   command: docker-compose -f {{ mariadb_deploy_dir }}/docker-compose.yml pull mariadb mysqld_exporter
   register: mariadb_pull
@@ -81,28 +107,6 @@
   until: exporter_health.status == 200
   retries: 30
   delay: 5
-
-# ── MariaDB MCP server ────────────────────────────────────────────────────────
-
-- name: Check if mariadb-mcp image exists
-  command: docker image inspect mariadb-mcp:local
-  register: mariadb_mcp_image
-  ignore_errors: true
-  changed_when: false
-
-- name: Clone MariaDB MCP source
-  git:
-    repo: "https://github.com/MariaDB/mcp.git"
-    dest: "{{ mariadb_mcp_build_dir }}"
-    version: main
-    update: yes
-  when: mariadb_mcp_image.rc != 0
-
-- name: Build mariadb-mcp Docker image
-  command: docker build -t mariadb-mcp:local {{ mariadb_mcp_build_dir }}
-  when: mariadb_mcp_image.rc != 0
-  register: mariadb_mcp_build
-  changed_when: true
 
 - name: Allow MariaDB MCP access from saconsole (WireGuard only)
   ufw:
