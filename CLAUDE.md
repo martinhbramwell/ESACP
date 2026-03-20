@@ -1,7 +1,29 @@
 # ESACP — Claude Code Project Context
 
-Enterprise System Administration & Chaos Planning
-A home-lab infrastructure automation and observability training project.
+---
+
+## Mission & Vision
+
+**Mission**: A family-owned manufacturing business runs a heavily customised ERPNext system
+built by one developer who cannot be permanently available. A replacement cannot be hired or
+trained. The mission is a self-repairing, AI-assisted platform that lets family members
+maintain and enhance the ERP themselves — guided step by step, with graphical tutorials, by
+an AI that has live access to every layer of the system via MCP connectors.
+
+**Vision**: The system is never finished. It grows with the business — deepening its
+understanding of operations, trajectory, and each person's role. The owner and family have
+an advisor that knows their systems as well as the original developer did, is always available,
+and compounds in value over time rather than walking out the door.
+
+**What this means for every session**:
+- The ERPNext MCP connector is the core deliverable. The VMs, observability stack, WireGuard
+  mesh, and MCP framework all exist to make that connector reliable and permanently accessible.
+- Every commit, doc, and CLAUDE.md update is a deposit into institutional memory. A future
+  session on any machine must be able to sit beside a family member and be useful immediately.
+- Self-repair means the system survives the absence of any single person — including the
+  original developer and the current operator.
+- The Cytoscape/Grafana control plane is the family's operational window into their business.
+  It is not a network diagram for engineers.
 
 ---
 
