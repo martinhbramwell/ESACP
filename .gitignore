@@ -99,6 +99,12 @@ DIALOG
 
 # ISOs — never track (seed ISOs, installer ISOs, symlinks to /var/lib/libvirt/images/)
 *.iso
+# Disk images — never track (covers accidental blank/space-named files that bypass *.iso)
+*.img
+*.qcow2
+*.vmdk
+*.vhd
+*.raw
 
 # Obsolete/superseded guides
 old_*.md
