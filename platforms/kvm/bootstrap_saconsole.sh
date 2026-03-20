@@ -70,12 +70,13 @@ vm_state() {
 }
 
 snapshot_exists() {
-    # Use bash -c so the name is a single quoted token on the remote shell.
-    # Plain `remote virsh ... | grep` works for single-word names but SSH joins
-    # all argv into one string before the remote shell parses them, so
-    # multi-word names must be protected by quoting on the remote side.
+    # Pass the command as a single double-quoted string to SSH — the remote
+    # shell receives it verbatim and interprets the single quotes around the
+    # snapshot name correctly.  The old "bash -c" wrapper was broken: SSH
+    # joins all argv[] with spaces before the remote shell parses them, so
+    # `ssh host bash -c "cmd"` became `bash -c cmd` (cmd = first word only).
     ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-        bash -c "virsh --connect qemu:///system snapshot-list saconsole --name 2>/dev/null" \
+        "virsh --connect qemu:///system snapshot-list saconsole --name 2>/dev/null" \
         | grep -qxF "$1"
 }
 
@@ -97,9 +98,8 @@ take_snapshot() {
         return
     fi
     log "  Creating snapshot '${name}' ..."
-    # bash -c preserves the quoted name as a single token on the remote shell.
     ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-        bash -c "virsh --connect qemu:///system snapshot-create-as saconsole '${name}' --atomic"
+        "virsh --connect qemu:///system snapshot-create-as saconsole '${name}' --atomic"
     log "  ✅  '${name}'"
 }
 

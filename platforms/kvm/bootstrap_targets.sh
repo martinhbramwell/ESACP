@@ -78,7 +78,7 @@ vm_state() {
 snapshot_exists() {
     local vm="$1" name="$2"
     ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-        bash -c "virsh --connect qemu:///system snapshot-list ${vm} --name 2>/dev/null" \
+        "virsh --connect qemu:///system snapshot-list ${vm} --name 2>/dev/null" \
         | grep -qxF "${name}"
 }
 
@@ -90,7 +90,7 @@ take_snapshot() {
     fi
     log "  Creating snapshot '${name}' on ${vm} ..."
     ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-        bash -c "virsh --connect qemu:///system snapshot-create-as ${vm} '${name}' --atomic"
+        "virsh --connect qemu:///system snapshot-create-as ${vm} '${name}' --atomic"
     log "  ✓  '${name}'"
 }
 
