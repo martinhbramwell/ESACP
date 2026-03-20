@@ -48,7 +48,7 @@
     comment: "mysqld_exporter — saconsole WireGuard only"
 
 - name: Pull MariaDB and mysqld_exporter images
-  command: docker-compose -f {{ mariadb_deploy_dir }}/docker-compose.yml pull
+  command: docker-compose -f {{ mariadb_deploy_dir }}/docker-compose.yml pull mariadb mysqld_exporter
   register: mariadb_pull
   changed_when: >
     'Pulling' in mariadb_pull.stderr or 'Downloaded' in mariadb_pull.stderr or
