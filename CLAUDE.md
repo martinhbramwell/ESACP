@@ -434,6 +434,21 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   }
   ```
 
+- **ERPNext MCP (future — add when ERPNext is deployed as a workload)**:
+  `Frappe_Assistant_Core` (buildswithpaul/promantia-ai) is the strongest community option —
+  installs as a Frappe bench app, OAuth 2.0 + ERPNext role enforcement + audit logging,
+  20+ tools (document CRUD, search, reports, analytics). Alternative: `rakeshgangwar/erpnext-mcp-server`
+  (TypeScript, wraps Frappe REST API, no bench install required).
+  Once ERPNext is a target workload, add its MCP endpoint to `~/.claude/settings.json`
+  alongside the other MCP servers already configured.
+
+- **Cloudflare MCP container (future consideration)**:
+  Adding the Cloudflare MCP docker container was assessed as worthwhile — it gives Claude
+  direct access to DNS, R2, Workers, and other Cloudflare surface areas. Key caution:
+  the service account or API token used must be **tightly scoped** — read-only where
+  possible, zone-locked where write access is required. A broadly-scoped token
+  in an MCP container is a significant blast-radius risk.
+
 - **`virsh snapshot-create-as` on libvirt 6.0.0 via SSH**: multi-word snapshot names are
   split at spaces when passed through SSH (argv is joined into a single shell string).
   Use `ssh host bash -c "virsh ... 'Name With Spaces' --atomic"` — not `remote virsh ...`.
