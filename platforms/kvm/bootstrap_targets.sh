@@ -319,7 +319,7 @@ ansible-playbook \
     -i inventory/kvm.yml \
     site-kvm.yml \
     --limit targets \
-    --extra-vars "saconsole_override_pubkey=$(cat ${SSH_KEY}.pub)"
+    --extra-vars "saconsole_override_pubkey=$(cat ${SSH_KEY}.pub) ansible_ssh_private_key_file=${SSH_KEY}"
 
 log "Ansible provision complete."
 
