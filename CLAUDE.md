@@ -195,6 +195,10 @@ config/wireguard/
 platforms/vbox/                     # RETIRED (Stage 1–1.5, VBox). Scripts preserved as reference for future Hyper-V/WSL2 adaptation.
 
 platforms/kvm/
+  prepare_hypervisor.sh             # Pre-bootstrap: check + apply controller prereqs; check hypervisor state
+                                    #   Controller side auto-installs (cloud-image-utils, ansible, collections)
+                                    #   Hypervisor side: check + fix guidance (no sudo over SSH)
+                                    #   Run before bootstrap_saconsole.sh on any new hypervisor host
   rebuild_lab.sh                    # One-command full rebuild: destroy → bootstrap_saconsole → bootstrap_targets
                                     #   Phase 3 SSHes to saconsole (ProxyJump toshy) and runs bootstrap_targets.sh there
                                     #   Sends Telegram notification on success/failure

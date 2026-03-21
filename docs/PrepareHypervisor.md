@@ -6,8 +6,14 @@ Step-by-step checklist for bringing a bare Ubuntu 20.04 machine to the point whe
 **Status:** Draft — not yet validated on a clean install. Planned test: dual-boot
 toshiba (or equivalent) with fresh Ubuntu 20.04 and walk this end-to-end.
 
-A companion script (`platforms/kvm/prepare_hypervisor.sh`) is planned to automate
-everything automatable. Steps that require a human are marked **[MANUAL]**.
+A companion script automates controller-side installs and reports hypervisor state:
+
+```bash
+bash platforms/kvm/prepare_hypervisor.sh
+```
+
+Steps that require a human are marked **[MANUAL]** in the script output.
+When all checks pass, `bootstrap_saconsole.sh` will run without errors.
 
 ---
 
