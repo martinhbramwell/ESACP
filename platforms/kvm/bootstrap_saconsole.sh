@@ -339,6 +339,24 @@ log "    saconsole can now connect: qemu+ssh://hasan@toshiba/system"
 # BatchMode=yes — on a fresh saconsole the known_hosts is empty and
 # BatchMode refuses the unknown key instead of prompting.
 # Base64 transfer avoids quoting/newline issues with multi-line key content.
+# Add toshiba to saconsole's /etc/hosts.
+# A fresh saconsole uses 8.8.8.8/1.1.1.1 (from cloud-init) and cannot
+# resolve the local hostname 'toshiba'. bootstrap_targets.sh uses
+# HYPERVISOR_ALIAS="toshiba" throughout — without this, all its SSH and
+# virsh calls fail with "Temporary failure in name resolution".
+log "Adding toshiba → ${HYPERVISOR_LAN_IP} to saconsole /etc/hosts ..."
+ssh \
+    "${SACONSOLE_SSH_OPTS[@]}" \
+    "${SACONSOLE_USER}@${SACONSOLE_IP}" \
+    "grep -qF 'toshiba' /etc/hosts 2>/dev/null \
+         || echo '${HYPERVISOR_LAN_IP} toshiba' | sudo tee -a /etc/hosts > /dev/null"
+log "✅  toshiba in saconsole /etc/hosts."
+
+# Seed toshiba's host key into saconsole's known_hosts.
+# bootstrap_targets.sh runs FROM saconsole and SSHes to toshiba with
+# BatchMode=yes — on a fresh saconsole the known_hosts is empty and
+# BatchMode refuses the unknown key instead of prompting.
+# Base64 transfer avoids quoting/newline issues with multi-line key content.
 log "Seeding ${HYPERVISOR_ALIAS} host key into saconsole known_hosts ..."
 HYPER_KEYS_B64=$(ssh-keyscan -H toshiba "${HYPERVISOR_LAN_IP}" 2>/dev/null \
     | base64 -w0 || true)
@@ -349,6 +367,21 @@ ssh \
      echo '${HYPER_KEYS_B64}' | base64 -d >> ~/.ssh/known_hosts
      chmod 600 ~/.ssh/known_hosts"
 log "✅  toshiba host key seeded into saconsole known_hosts."
+
+# Remove stale saconsole pubkeys from toshiba's authorized_keys.
+# Each rebuild generates a new keypair and appends the new pubkey.
+# Keep only the current saconsole's pubkey to avoid accumulation.
+log "Replacing stale saconsole pubkeys on ${HYPERVISOR_ALIAS} ..."
+remote bash <<REMOTE
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+# Remove all lines from previous saconsole builds (comment = saconsole@esacp
+# or saconsole-control-plane), then append the current one.
+grep -v 'saconsole' ~/.ssh/authorized_keys > /tmp/ak_clean 2>/dev/null || true
+echo '${SACONSOLE_PUBKEY}' >> /tmp/ak_clean
+mv /tmp/ak_clean ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+REMOTE
+log "✅  toshiba authorized_keys updated (current saconsole pubkey only)."
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 
