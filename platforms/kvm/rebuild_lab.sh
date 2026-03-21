@@ -78,6 +78,8 @@ _PHASE="bootstrap_targets"
 hdr "Phase 3 — Bootstrap targets (from saconsole)"
 ssh \
     -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
+    -o LogLevel=ERROR \
     -o ServerAliveInterval=30 \
     -o ServerAliveCountMax=20 \
     -J "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \

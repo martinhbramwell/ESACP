@@ -80,13 +80,25 @@ snapshot_exists() {
         | grep -qxF "$1"
 }
 
+# SSH options used for all direct connections FROM THIS CONTROLLER TO SACONSOLE.
+# UserKnownHostsFile=/dev/null: cloud-init regenerates saconsole's SSH host keys
+# on first boot AFTER autoinstall completes. The key seen in Phase 5 (ssh_ready)
+# differs from the key seen in Phase 9 (handoff). StrictHostKeyChecking=no alone
+# is not enough — SSH still rejects a *changed* key even with that option set.
+# Using /dev/null bypasses known_hosts entirely for these bootstrap connections.
+SACONSOLE_SSH_OPTS=(
+    -o StrictHostKeyChecking=no
+    -o UserKnownHostsFile=/dev/null
+    -o LogLevel=ERROR
+    -o ConnectTimeout=5
+    -o BatchMode=yes
+    -J "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}"
+    -i "${SSH_KEY}"
+)
+
 ssh_ready() {
     ssh \
-        -o StrictHostKeyChecking=no \
-        -o ConnectTimeout=5 \
-        -o BatchMode=yes \
-        -J "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-        -i "${SSH_KEY}" \
+        "${SACONSOLE_SSH_OPTS[@]}" \
         "${SACONSOLE_USER}@${SACONSOLE_IP}" \
         "echo ok" &>/dev/null
 }
@@ -300,20 +312,14 @@ step "Phase 9: Handoff"
 # Generate a keypair on saconsole if one doesn't exist yet.
 log "Generating SSH keypair on saconsole (if absent) ..."
 ssh \
-    -o StrictHostKeyChecking=no \
-    -o BatchMode=yes \
-    -J "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-    -i "${SSH_KEY}" \
+    "${SACONSOLE_SSH_OPTS[@]}" \
     "${SACONSOLE_USER}@${SACONSOLE_IP}" \
     "test -f ~/.ssh/id_ed25519 \
         || ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519 -C 'saconsole@esacp'"
 
 # Retrieve saconsole's public key.
 SACONSOLE_PUBKEY=$(ssh \
-    -o StrictHostKeyChecking=no \
-    -o BatchMode=yes \
-    -J "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-    -i "${SSH_KEY}" \
+    "${SACONSOLE_SSH_OPTS[@]}" \
     "${SACONSOLE_USER}@${SACONSOLE_IP}" \
     "cat ~/.ssh/id_ed25519.pub")
 
@@ -337,10 +343,7 @@ log "Seeding ${HYPERVISOR_ALIAS} host key into saconsole known_hosts ..."
 HYPER_KEYS_B64=$(ssh-keyscan -H toshiba "${HYPERVISOR_LAN_IP}" 2>/dev/null \
     | base64 -w0 || true)
 ssh \
-    -o StrictHostKeyChecking=no \
-    -o BatchMode=yes \
-    -J "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-    -i "${SSH_KEY}" \
+    "${SACONSOLE_SSH_OPTS[@]}" \
     "${SACONSOLE_USER}@${SACONSOLE_IP}" \
     "mkdir -p ~/.ssh
      echo '${HYPER_KEYS_B64}' | base64 -d >> ~/.ssh/known_hosts
