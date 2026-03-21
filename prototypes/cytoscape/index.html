@@ -10,11 +10,12 @@
     <div id="app">
       <header>
         <h1>ESACP Network Topology</h1>
+        <span id="api-status" class="api-status api-status--unknown" title="API status">API</span>
       </header>
       <div id="cy"></div>
       <div id="resize-handle"><span class="grip"></span></div>
       <div id="info-panel">
-        <p class="hint">Click a node or edge to inspect it. Click saconsole to explore its containers.</p>
+        <p class="hint">Click a node or edge to inspect it. Right-click the canvas to add a target.</p>
       </div>
     </div>
 
@@ -30,6 +31,48 @@
         <div id="popup-info">
           <p class="hint">Click a node to inspect it.</p>
         </div>
+      </div>
+    </div>
+
+    <!-- Right-click context menu -->
+    <div id="ctx-menu" class="hidden">
+      <button id="ctx-add-target">+ Add Target</button>
+    </div>
+
+    <!-- Add Target dialog -->
+    <div id="dialog-overlay" class="hidden">
+      <div id="dialog">
+        <h2>Add Target</h2>
+        <form id="add-target-form" autocomplete="off">
+          <div class="field">
+            <label for="f-hostname">Hostname</label>
+            <input id="f-hostname" type="text" placeholder="target3" required
+                   pattern="[a-z][a-z0-9-]*" title="lowercase letters, digits, hyphens" />
+          </div>
+          <div class="field">
+            <label for="f-nickname">Nickname <span class="opt">(optional)</span></label>
+            <input id="f-nickname" type="text" placeholder="tgt3" />
+          </div>
+          <div class="field">
+            <label for="f-wg-ip">WireGuard IP</label>
+            <input id="f-wg-ip" type="text" placeholder="10.10.0.5" required />
+          </div>
+          <div class="field">
+            <label for="f-virbr0-ip">virbr0 IP</label>
+            <input id="f-virbr0-ip" type="text" placeholder="192.168.122.13" required />
+          </div>
+          <div class="field">
+            <label for="f-backend">Backend</label>
+            <select id="f-backend">
+              <option value="kvm">kvm</option>
+            </select>
+          </div>
+          <p id="dialog-error" class="dialog-error hidden"></p>
+          <div class="dialog-actions">
+            <button type="button" id="dialog-cancel">Cancel</button>
+            <button type="submit" id="dialog-submit">Add</button>
+          </div>
+        </form>
       </div>
     </div>
 

@@ -1,0 +1,71 @@
+// api.js — fetch helpers for the ESACP Control Plane API (tools/api.py)
+//
+// All calls go through Vite's /api proxy → localhost:8088.
+// Each function throws on network error or non-2xx response.
+
+const TIMEOUT_MS = 5000
+
+function signal() {
+  return AbortSignal.timeout(TIMEOUT_MS)
+}
+
+async function post(path, body) {
+  const res = await fetch(path, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+    signal:  signal(),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail ?? `HTTP ${res.status}`)
+  return data
+}
+
+// Returns { hosts: [...], suggestions: { wg_ip, virbr0_ip } }
+export async function fetchHosts() {
+  const res = await fetch('/api/hosts', { signal: signal() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+// Returns { ok: true, hostname }
+export async function addHost({ hostname, nickname, virbr0_ip, wg_ip, backend = 'kvm' }) {
+  return post('/api/hosts/add', { hostname, nickname, virbr0_ip, wg_ip, backend })
+}
+
+// Returns { job_id }
+export async function startProvision(hostname) {
+  return post(`/api/provision/${hostname}`, {})
+}
+
+// Poll a job every intervalMs until it reaches a terminal state.
+// onLines(newLines[])  — called whenever new log lines arrive
+// onDone(status)       — called once with 'done' or 'error' when the job ends
+export function pollJob(jobId, onLines, onDone, intervalMs = 1500) {
+  let seen = 0
+
+  const id = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/jobs/${jobId}`)
+      if (!res.ok) { clearInterval(id); onDone('error'); return }
+
+      const job      = await res.json()
+      const newLines = job.log.slice(seen)
+      if (newLines.length) {
+        onLines(newLines)
+        seen = job.log.length
+      }
+
+      if (job.status !== 'running') {
+        clearInterval(id)
+        onDone(job.status)
+      }
+    } catch {
+      clearInterval(id)
+      onDone('error')
+    }
+  }, intervalMs)
+
+  // Return a cancel handle
+  return () => clearInterval(id)
+}
