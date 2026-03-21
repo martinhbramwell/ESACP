@@ -52,7 +52,7 @@ emerges, assess whether it truly blocks the objective before diving in.
 | Stage 1 | ✅ Complete | Security-hardened Ubuntu 22.04 VM + full observability stack |
 | Stage 1.5 | ✅ Complete | Observability validation, alert profiles, dashboards, chaos framework |
 | Stage 2.1 | ✅ Complete | KVM/Xubuntu parallel path: WireGuard mesh, saconsole + target1, multi-host Prometheus |
-| Stage 2.2 | 🔧 In Progress | Remote KVM hypervisor (toshiba): saconsole bootstraps target1+target2 with MariaDB+MariaDB MCP+Nginx UI+node_exporter; mcp-grafana on saconsole |
+| Stage 2.2 | ✅ Complete | Remote KVM hypervisor (toshiba): saconsole bootstraps target1+target2 with MariaDB+dbhub MCP+Nginx UI+node_exporter; mcp-grafana on saconsole; all 5 MCP servers configured in Claude Code settings |
 | Stage 2.x | 🔜 Next | Heterogeneous fleet: CloudStack backend, chaos on KVM, version watchdog |
 
 ---
@@ -232,9 +232,9 @@ ansible/
   roles/
     wireguard/                      # Hub/spoke config; hub sets UFW forward policy
     node_exporter/                  # Binary install + systemd for targets
-    mariadb/                        # Docker Compose: MariaDB 10.11 + mysqld_exporter 0.15.1 + MariaDB MCP
+    mariadb/                        # Docker Compose: MariaDB 10.11 + mysqld_exporter 0.15.1 + bytebase/dbhub MCP
                                     #   deploy_dir: /opt/mariadb; mysqld_exporter port: 9104; mcp port: 9001
-                                    #   mariadb-mcp image built from source (no published image): /opt/mariadb-mcp-build
+                                    #   dbhub:0.18.0 published image (no local build); SSE at /sse on port 9001
     mcp_grafana/                    # Docker Compose: grafana/mcp-grafana:0.11.3 on saconsole
                                     #   deploy_dir: /opt/mcp-grafana; SSE port: 8000; joins observability_network
                                     #   endpoint: http://10.10.0.1:8000/sse (WireGuard peers only)
@@ -321,12 +321,14 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 
 ## Known Decisions & Gotchas
 
-- **MariaDB MCP has no published Docker image**: `MariaDB/mcp` must be built from source.
-  The `mariadb` Ansible role clones `https://github.com/MariaDB/mcp.git` to
-  `/opt/mariadb-mcp-build` and runs `docker build -t mariadb-mcp:local` on first deploy.
-  The build is skipped if the `mariadb-mcp:local` image already exists. SSE transport
-  runs on port 9001; `ALLOWED_HOSTS: "*"` is set (lab is WireGuard-isolated).
+- **MariaDB MCP uses bytebase/dbhub (not MariaDB/mcp)**: `MariaDB/mcp` main branch now
+  pulls `sentence-transformers` → PyTorch/CUDA (~3.5GB), causing `docker build` to fail
+  on 20GB target VMs with "no space left on device". Switched to `bytebase/dbhub:0.18.0` —
+  a lightweight published image (no local build). SSE transport on port 9001 (internal 8080,
+  `--transport http`); endpoint `http://<target-wg-ip>:9001/sse` unchanged.
   UFW restricts port 9001 to saconsole's WireGuard IP (10.10.0.1) only.
+  DSN passed via `--dsn mariadb://${MYSQL_USER}:${MYSQL_PASSWORD}@mariadb:3306/${MYSQL_DATABASE}`
+  in the compose command (docker-compose expands `.env` vars before passing to container).
 
 - **Nginx UI bundles nginx — do not run a separate nginx container**: `uozi/nginx-ui`
   is built on top of the official `nginx` image. A separate nginx container is not needed.
@@ -366,6 +368,13 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   split at spaces when passed through SSH (argv is joined into a single shell string).
   Use `ssh host bash -c "virsh ... 'Name With Spaces' --atomic"` — not `remote virsh ...`.
   `bootstrap_saconsole.sh` uses this pattern in `take_snapshot()` and `snapshot_exists()`.
+
+- **Play 5 (controller WireGuard) requires `wg_hub_endpoint` in site-kvm.yml vars**:
+  Play 5 runs on `hosts: localhost` with `connection: local` and does not inherit
+  `group_vars/kvm.yml` (which defines `wg_hub_endpoint: "192.168.122.10"`). The controller's
+  hub endpoint is toshiba's LAN IP (`192.168.40.16`) — not saconsole's virbr0 IP — because
+  Mighty's own virbr0 owns `192.168.122.0/24`. The var is now hardcoded in the Play 5 vars
+  block in `site-kvm.yml`: `wg_hub_endpoint: "192.168.40.16"`.
 
 - **iptables FORWARD ordering on KVM hosts**: libvirt + Docker both add chains to FORWARD.
   The default FORWARD policy is DROP. Any custom ACCEPT rule appended with `-A` lands after
