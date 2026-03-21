@@ -91,9 +91,15 @@ command -v ansible-playbook &>/dev/null \
     && ok "ansible-playbook: $(ansible --version | head -1)" \
     || fail "ansible-playbook not found — install Ansible"
 
-command -v sops &>/dev/null \
-    && ok "sops: $(sops --version 2>&1)" \
-    || fail "sops not found — install sops (see SETUP_GUIDE.md)"
+if command -v sops &>/dev/null; then
+    _sops_out=$(sops --version --check-for-updates 2>/dev/null)
+    ok "sops: $(echo "$_sops_out" | head -1)"
+    _sops_update=$(echo "$_sops_out" | grep -i 'new version' | sed 's/^\[info\] //' || true)
+    [[ -n "$_sops_update" ]] && warn "sops update available — $_sops_update" \
+        && fix "https://github.com/getsops/sops/releases"
+else
+    fail "sops not found — install sops (see SETUP_GUIDE.md)"
+fi
 
 command -v virsh &>/dev/null \
     && ok "virsh available (local KVM tools present)" \
