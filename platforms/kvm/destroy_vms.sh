@@ -42,8 +42,35 @@ remote() {
     ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" "$@"
 }
 
+STOP_TIMEOUT=30   # seconds to wait for a VM to reach 'shut off' after destroy
+
 vm_exists() {
     remote virsh --connect qemu:///system dominfo "$1" &>/dev/null
+}
+
+vm_state() {
+    remote virsh --connect qemu:///system domstate "$1" 2>/dev/null \
+        | tr -d '[:space:]' \
+        || echo "unknown"
+}
+
+# Wait for VM to reach 'shut off' after virsh destroy.
+# virsh destroy sends SIGKILL but libvirt's internal state machine may take
+# a moment to transition — undefine --remove-all-storage fails on a running domain.
+wait_stopped() {
+    local vm="$1"
+    local elapsed=0
+    while [[ ${elapsed} -lt ${STOP_TIMEOUT} ]]; do
+        local state
+        state=$(vm_state "${vm}")
+        if [[ "${state}" == "shutoff" ]]; then
+            return 0
+        fi
+        sleep 2
+        elapsed=$(( elapsed + 2 ))
+    done
+    log "  ⚠️  ${vm}: did not reach 'shut off' within ${STOP_TIMEOUT}s (state=$(vm_state "${vm}"))"
+    return 1
 }
 
 # ── Phase 1: Stop and undefine VMs ────────────────────────────────────────────
@@ -61,11 +88,16 @@ for vm in "${ESACP_VMS[@]}"; do
     fi
     log "  ${vm}: force-stopping..."
     remote virsh --connect qemu:///system destroy "${vm}" 2>/dev/null || true
+    wait_stopped "${vm}"
     log "  ${vm}: undefining + removing storage..."
-    if remote virsh --connect qemu:///system undefine "${vm}" --remove-all-storage 2>/dev/null; then
+    # --remove-all-storage: delete the qcow2 disk image
+    # --snapshots-metadata: remove snapshot XML definitions (required when snapshots exist)
+    # --managed-save: remove any managed-save state file
+    if remote virsh --connect qemu:///system undefine "${vm}" \
+            --remove-all-storage --snapshots-metadata --managed-save 2>&1; then
         log "  ✅  ${vm}: removed"
     else
-        log "  ⚠️  ${vm}: undefine failed — storage may need manual cleanup"
+        log "  ⚠️  ${vm}: undefine reported an error — check output above"
     fi
     echo ""
 done
