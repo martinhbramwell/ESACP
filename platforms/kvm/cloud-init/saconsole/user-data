@@ -39,6 +39,7 @@ autoinstall:
     - python3
     - python3-pip
     - docker.io          # Ansible replaces this with official Docker CE post-install
+    - cloud-image-utils  # provides cloud-localds — required by bootstrap_targets.sh
 
   storage:
     layout:

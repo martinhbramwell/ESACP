@@ -194,6 +194,12 @@ config/wireguard/
 platforms/vbox/                     # RETIRED (Stage 1–1.5, VBox). Scripts preserved as reference for future Hyper-V/WSL2 adaptation.
 
 platforms/kvm/
+  rebuild_lab.sh                    # One-command full rebuild: destroy → bootstrap_saconsole → bootstrap_targets
+                                    #   Phase 3 SSHes to saconsole (ProxyJump toshy) and runs bootstrap_targets.sh there
+                                    #   Sends Telegram notification on success/failure
+  destroy_vms.sh                    # Tear down all 3 VMs on toshiba (virsh destroy + undefine --remove-all-storage)
+                                    #   Also removes local + remote seed ISOs and clears known_hosts
+  utils.sh                          # Shared Telegram helper (tg_notify) — sourced by rebuild_lab.sh
   bootstrap_saconsole.sh            # Stage 2.2: idempotent 9-phase bootstrap for toshiba saconsole
                                     #   Phases: seed ISO → upload → VM create → wait → snapshot → Ansible → snapshot → handoff
                                     #   ProxyJump through toshy; skips Play 5 (controller WireGuard)
@@ -204,7 +210,7 @@ platforms/kvm/
   create_vms.sh                     # virt-install for both VMs (Mighty path — Stage 2.1)
   snapshot.py                       # virsh snapshot lifecycle CLI
   cloud-init/
-    saconsole/{user-data,meta-data}
+    saconsole/{user-data,meta-data} # includes cloud-image-utils in packages (required by bootstrap_targets.sh)
     target1/{user-data,meta-data}         # Stage 2.1 (Mighty) — hardcoded hasan_mighty pubkey
     toshiba-target1/{user-data,meta-data} # Stage 2.2 (toshiba) — ${CONTROLLER_PUBKEY} placeholder
     toshiba-target2/{user-data,meta-data} # Stage 2.2 (toshiba) — ${CONTROLLER_PUBKEY} placeholder
@@ -320,6 +326,13 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 ---
 
 ## Known Decisions & Gotchas
+
+- **`bootstrap_targets.sh` runs FROM saconsole, not the controller**: The script uses
+  saconsole's `~/.ssh/id_ed25519` — the only key authorised in targets' cloud-init. The
+  controller (`hasan_mighty`) has no access to fresh targets. It also requires
+  `cloud-image-utils` (cloud-localds) on saconsole — not installed by any Ansible role,
+  so it must be in saconsole's cloud-init packages (added to saconsole/user-data).
+  The one-command rebuild entry point is `platforms/kvm/rebuild_lab.sh`.
 
 - **MariaDB MCP uses bytebase/dbhub (not MariaDB/mcp)**: `MariaDB/mcp` main branch now
   pulls `sentence-transformers` → PyTorch/CUDA (~3.5GB), causing `docker build` to fail
