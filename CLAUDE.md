@@ -53,7 +53,8 @@ emerges, assess whether it truly blocks the objective before diving in.
 | Stage 1.5 | ✅ Complete | Observability validation, alert profiles, dashboards, chaos framework |
 | Stage 2.1 | ✅ Complete | KVM/Xubuntu parallel path: WireGuard mesh, saconsole + target1, multi-host Prometheus |
 | Stage 2.2 | ✅ Complete | Remote KVM hypervisor (toshiba): saconsole bootstraps target1+target2 with MariaDB+dbhub MCP+Nginx UI+node_exporter; mcp-grafana on saconsole; all 5 MCP servers configured in Claude Code settings |
-| Stage 2.2 rebuild | ✅ Verified | `bash platforms/kvm/rebuild_lab.sh` proven end-to-end from bare disk; 3 cold-start bugs found and fixed (issues #6 #7 #8); **estate currently bare — rebuild is first action next session** |
+| Stage 2.2 rebuild | ✅ Verified | `bash platforms/kvm/rebuild_lab.sh` proven end-to-end from bare disk; 3 cold-start bugs found and fixed (issues #6 #7 #8); estate rebuilt and **fully operational** (all 3 VMs running, all 5 MCP endpoints healthy) |
+| Stage 2.3 | 🔧 In progress | Cytoscape control plane prototype: draw-to-provision UI + FastAPI backend; diagram design spec (master/slave pairs, blue-green DNS flip) captured in `docs/DiagramDesign.md` |
 | Stage 2.x | 🔜 Next | Heterogeneous fleet: CloudStack backend, chaos on KVM, version watchdog |
 
 ---
@@ -275,12 +276,27 @@ docs/
   BuildOutProcedure.md              # Step-by-step operator rebuild guide (KVM path)
   SystemOverview.md                 # Non-technical system description
   SystemOverview_tech.md            # Technical system description (developer-facing)
+  DiagramDesign.md                  # Cytoscape control plane diagram spec: 3-level hierarchy,
+                                    #   master/slave VM pairs, blue-green DNS flip, MCP source mapping
+
+tools/
+  api.py                            # FastAPI control plane backend (port 8088) — prototype
+                                    #   GET  /api/hosts              → kvm hosts + IP suggestions
+                                    #   POST /api/hosts/add          → append to hosts_map.yml, regen inventory
+                                    #   POST /api/provision/{host}   → job: cloud-init + WG + buildVM + provisionVM
+                                    #   GET  /api/jobs/{id}          → poll job status + log
+                                    #   Start: uvicorn tools.api:app --port 8088 --reload (from project root)
+                                    #   Will move to saconsole when promoted from prototype
 
 prototypes/
   cytoscape/                        # Cytoscape.js standalone prototype (Vite + vanilla JS)
-                                    # Dev: cd prototypes/cytoscape && npm run dev
-                                    # Access: http://localhost:5173 (WSL → Windows)
+                                    # Run: Terminal 1: uvicorn tools.api:app --port 8088 --reload
+                                    #       Terminal 2: cd prototypes/cytoscape && bash doCytoscape.sh
+                                    # Access: http://localhost:5173
+                                    # Right-click canvas → Add Target → configure → Provision
+                                    # Unprovisioned nodes: dashed amber border; click → Provision button
                                     # node_modules/ and dist/ are gitignored
+  cytoscape/src/api.js              # Fetch helpers for the FastAPI backend (/api proxy via Vite)
 ```
 
 ---
