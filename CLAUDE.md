@@ -33,7 +33,7 @@ and compounds in value over time rather than walking out the door.
 
 1. **Identify the platform** — which controller machine are you on?
 2. **Run the sync check** for that platform:
-   - KVM/Xubuntu (Mighty): *(sync check TBD)*
+   - KVM/Xubuntu (Mighty): `bash platforms/kvm/sync_check.sh`
    - VBox/WSL: `bash platforms/vbox/sync_check.sh` *(platform retired — for reference only)*
 3. **Fix any failures** reported by the sync check, commit and push repairs.
 4. **State one objective** for the session. Do not pursue other issues that
