@@ -21,6 +21,7 @@
 #  10.  Observability stack (saconsole)
 #  11.  Target stacks (target1, target2)
 #  12.  MCP endpoints
+#  13.  GitHub MCP server (binary + settings.json)
 
 PASS=0; FAIL=0; WARN=0
 
@@ -321,6 +322,25 @@ for label_url in \
         warn "MCP ${label} — HTTP ${HTTP_CODE} (unexpected)"
     fi
 done
+
+# ── 13. GitHub MCP server ─────────────────────────────────────────────────────
+hdr "13. GitHub MCP server"
+
+GITHUB_MCP_BIN="/usr/local/bin/github-mcp-server"
+if [[ -x "${GITHUB_MCP_BIN}" ]]; then
+    _ghver=$("${GITHUB_MCP_BIN}" --version 2>/dev/null | awk '/Version:/{print $2}')
+    ok "github-mcp-server ${_ghver} present"
+else
+    fail "github-mcp-server not found at ${GITHUB_MCP_BIN}"
+    fix "bash platforms/kvm/prepare_hypervisor.sh (or install manually from github/github-mcp-server releases)"
+fi
+
+if grep -q 'github-mcp-server' "${HOME}/.claude/settings.json" 2>/dev/null; then
+    ok "github MCP entry present in ~/.claude/settings.json"
+else
+    fail "github MCP not configured in ~/.claude/settings.json"
+    fix "Add github-mcp-server entry (type: stdio) with GITHUB_PERSONAL_ACCESS_TOKEN"
+fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 

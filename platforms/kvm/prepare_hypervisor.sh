@@ -183,8 +183,23 @@ else
     fi
 fi
 
+# ── github-mcp-server ─────────────────────────────────────────────────────────
+hdr "1i. Controller — github-mcp-server"
+
+GITHUB_MCP_BIN="/usr/local/bin/github-mcp-server"
+if [[ -x "${GITHUB_MCP_BIN}" ]]; then
+    _ghver=$("${GITHUB_MCP_BIN}" --version 2>/dev/null | awk '/Version:/{print $2}')
+    ok "github-mcp-server ${_ghver}"
+else
+    fail "github-mcp-server not found at ${GITHUB_MCP_BIN}"
+    fix "Download from https://github.com/github/github-mcp-server/releases"
+    info "cd /tmp && curl -sL <Linux_x86_64.tar.gz URL> | tar -xz"
+    info "sudo install -m755 /tmp/github-mcp-server /usr/local/bin/github-mcp-server"
+fi
+
 # ── ESACP repo ────────────────────────────────────────────────────────────────
-hdr "1i. Controller — ESACP repo"
+hdr "1j. Controller — ESACP repo"
+
 
 if [[ -f "${PROJ_ROOT}/hosts_map.yml" ]]; then
     ok "ESACP repo present: ${PROJ_ROOT}"

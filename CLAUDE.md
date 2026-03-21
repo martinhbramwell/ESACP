@@ -378,6 +378,11 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   }
   ```
 
+- **GitHub MCP** (`github/github-mcp-server` v0.32.0): binary at `/usr/local/bin/github-mcp-server`;
+  configured in `~/.claude/settings.json` as `type: stdio`. Uses `gh auth token` (gho_*) scoped to
+  `repo, read:org, admin:public_key, gist`. Gives AI sessions direct query access to Issues, PRs,
+  and repo content — the institutional memory query interface. Repo: `martinhbramwell/ESACP`.
+
 - **ERPNext MCP (future)**: `Frappe_Assistant_Core` (buildswithpaul/promantia-ai) — bench app, OAuth 2.0, 20+ tools. Alt: `rakeshgangwar/erpnext-mcp-server` (TypeScript, no bench required). Add MCP endpoint to `~/.claude/settings.json` when ERPNext is deployed.
 
 - **Cloudflare MCP (future)**: Assessed as worthwhile. Key caution: API token must be tightly scoped (read-only where possible, zone-locked for writes) — a broad token in an MCP container is high blast-radius.
