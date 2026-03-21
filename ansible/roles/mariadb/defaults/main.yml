@@ -18,6 +18,6 @@ mariadb_port: 3306
 mysqld_exporter_version: "0.15.1"
 mysqld_exporter_port: 9104
 
-# MariaDB MCP server
+# MariaDB MCP server (bytebase/dbhub — lightweight, published image, SSE transport)
 mariadb_mcp_port: 9001
-mariadb_mcp_build_dir: "/opt/mariadb-mcp-build"
+dbhub_version: "0.18.0"

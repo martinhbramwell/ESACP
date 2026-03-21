@@ -44,19 +44,18 @@ services:
         condition: service_healthy
 
   mariadb_mcp:
-    image: mariadb-mcp:local
+    image: bytebase/dbhub:{{ dbhub_version }}
     container_name: mariadb_mcp
     restart: unless-stopped
-    environment:
-      DB_HOST: mariadb
-      DB_PORT: "3306"
-      DB_USER: ${MYSQL_USER}
-      DB_PASSWORD: ${MYSQL_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
-      MCP_READ_ONLY: "true"
-      ALLOWED_HOSTS: "*"
+    command:
+      - "--transport"
+      - "http"
+      - "--port"
+      - "8080"
+      - "--dsn"
+      - "mariadb://${MYSQL_USER}:${MYSQL_PASSWORD}@mariadb:3306/${MYSQL_DATABASE}"
     ports:
-      - "{{ mariadb_mcp_port }}:9001"
+      - "{{ mariadb_mcp_port }}:8080"
     networks:
       - mariadb_net
     depends_on:
