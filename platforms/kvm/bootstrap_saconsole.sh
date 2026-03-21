@@ -328,6 +328,25 @@ REMOTE
 log "✅  saconsole SSH pubkey installed on ${HYPERVISOR_ALIAS}."
 log "    saconsole can now connect: qemu+ssh://hasan@toshiba/system"
 
+# Seed toshiba's host key into saconsole's known_hosts.
+# bootstrap_targets.sh runs FROM saconsole and SSHes to toshiba with
+# BatchMode=yes — on a fresh saconsole the known_hosts is empty and
+# BatchMode refuses the unknown key instead of prompting.
+# Base64 transfer avoids quoting/newline issues with multi-line key content.
+log "Seeding ${HYPERVISOR_ALIAS} host key into saconsole known_hosts ..."
+HYPER_KEYS_B64=$(ssh-keyscan -H toshiba "${HYPERVISOR_LAN_IP}" 2>/dev/null \
+    | base64 -w0 || true)
+ssh \
+    -o StrictHostKeyChecking=no \
+    -o BatchMode=yes \
+    -J "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
+    -i "${SSH_KEY}" \
+    "${SACONSOLE_USER}@${SACONSOLE_IP}" \
+    "mkdir -p ~/.ssh
+     echo '${HYPER_KEYS_B64}' | base64 -d >> ~/.ssh/known_hosts
+     chmod 600 ~/.ssh/known_hosts"
+log "✅  toshiba host key seeded into saconsole known_hosts."
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 step "Done"
