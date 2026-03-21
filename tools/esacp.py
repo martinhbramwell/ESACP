@@ -505,7 +505,254 @@ def cmd_destroy_vm(args, config: dict) -> int:
 
 # ── 5. buildVM ────────────────────────────────────────────────────────────────
 
-def _build_seed_iso(vm: str) -> bool:
+# Toshiba remote hypervisor constants (see CLAUDE.md — Stage 2.2)
+TOSHIBA_SSH_ALIAS  = "toshiba"
+TOSHIBA_USER       = "hasan"
+TOSHIBA_IMAGES_DIR = "/mnt/esacp-disk/var/lib/libvirt/images"
+TOSHIBA_UBUNTU_ISO = f"{TOSHIBA_IMAGES_DIR}/ubuntu-24.04.4-live-server-amd64.iso"
+TOSHIBA_POOL       = "esacp"
+
+
+def _toshiba_vm_exists(vm: str) -> bool:
+    return subprocess.run(
+        ["ssh", TOSHIBA_SSH_ALIAS, "virsh", "--connect", "qemu:///system", "dominfo", vm],
+        capture_output=True,
+    ).returncode == 0
+
+
+def _toshiba_vm_state(vm: str) -> Optional[str]:
+    r = subprocess.run(
+        ["ssh", TOSHIBA_SSH_ALIAS, "virsh", "--connect", "qemu:///system", "domstate", vm],
+        capture_output=True, text=True,
+    )
+    return r.stdout.strip().lower() if r.returncode == 0 else None
+
+
+def _toshiba_tcp_probe(virbr0_ip: str) -> bool:
+    """Probe TCP port 22 on a toshiba-internal IP via ProxyJump — no known_hosts check."""
+    r = subprocess.run(
+        ["ssh",
+         "-o", "ConnectTimeout=5",
+         "-o", "StrictHostKeyChecking=no",
+         "-o", "BatchMode=yes",
+         "-J", f"{TOSHIBA_USER}@{TOSHIBA_SSH_ALIAS}",
+         f"you@{virbr0_ip}", "true"],
+        capture_output=True,
+    )
+    return r.returncode == 0
+
+
+def _toshiba_add_known_hosts(virbr0_ip: str) -> None:
+    """Collect the host key via toshiba and append it to local known_hosts."""
+    known_hosts = Path.home() / ".ssh" / "known_hosts"
+    # ssh-keyscan via ProxyJump: run keyscan from toshiba, capture output locally
+    r = subprocess.run(
+        ["ssh", TOSHIBA_SSH_ALIAS, "ssh-keyscan", "-H", "-T", "5", virbr0_ip],
+        capture_output=True, text=True,
+    )
+    if r.stdout.strip():
+        with open(known_hosts, "a") as fh:
+            fh.write(r.stdout)
+        console.print(f"  [dim]Host key for {virbr0_ip} added to known_hosts[/dim]")
+
+
+def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
+    """Build a VM on the toshiba remote hypervisor."""
+    virbr0_ip   = vm_info.get("virbr0_ip", "")
+    ram         = 4096 if vm == "saconsole" else 2048
+    remote_seed = f"{TOSHIBA_IMAGES_DIR}/{vm}-seed.iso"
+
+    vm_exists = _toshiba_vm_exists(vm)
+
+    # ── Steps 1 & 2: Seed ISO + VM creation ──────────────────────────────────
+    if vm_exists:
+        console.print(f"[bold]Steps 1–2:[/bold] Seed ISO + VM creation")
+        console.print(f"  [green]✓[/green] VM already exists on toshiba — skipping")
+    else:
+        # Step 1 — Seed ISO (build locally if needed, then scp to toshiba)
+        console.print("[bold]Step 1/4:[/bold] Seed ISO")
+        seed_local = PLATFORMS_KVM / f"{vm}-seed.iso"
+        if seed_local.exists():
+            console.print(f"  [green]✓[/green] {seed_local.name} already built locally")
+        else:
+            if not _build_seed_iso_local(vm):
+                return 1
+
+        console.print(f"  Uploading seed ISO to toshiba:{TOSHIBA_IMAGES_DIR}/...")
+        r = subprocess.run(
+            ["scp", str(seed_local), f"{TOSHIBA_USER}@{TOSHIBA_SSH_ALIAS}:{remote_seed}"],
+            capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            console.print(f"[red]❌  scp failed: {r.stderr.strip()}[/red]")
+            return 1
+        console.print(f"  [green]✓[/green] Seed ISO uploaded")
+
+        # Step 2 — Create VM on toshiba via SSH
+        console.print()
+        console.print("[bold]Step 2/4:[/bold] Create VM on toshiba")
+        virt_cmd = (
+            f"virt-install --connect qemu:///system"
+            f" --name {vm}"
+            f" --ram {ram}"
+            f" --vcpus 2"
+            f" --disk pool={TOSHIBA_POOL},size=20,format=qcow2"
+            f" --location '{TOSHIBA_UBUNTU_ISO},kernel=casper/vmlinuz,initrd=casper/initrd'"
+            f" --disk path={remote_seed},device=cdrom,readonly=on"
+            f" --network network=default"
+            f" --os-variant ubuntu20.04"
+            f" --extra-args 'autoinstall ds=nocloud'"
+            f" --graphics vnc"
+            f" --noautoconsole"
+        )
+        r = subprocess.run(
+            ["ssh", TOSHIBA_SSH_ALIAS, "bash", "-c", virt_cmd],
+            capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            console.print(f"[red]❌  virt-install on toshiba failed:\n{r.stderr.strip()}[/red]")
+            return 1
+        console.print(f"  [green]✓[/green] {vm} created on toshiba, autoinstall in progress")
+
+    # ── Step 3: Clear stale known_hosts ──────────────────────────────────────
+    console.print()
+    console.print("[bold]Step 3/4:[/bold] Clear stale known_hosts entries")
+    entries = _known_hosts_entries(vm_info)
+    removed = _remove_known_hosts(entries)
+    if removed:
+        console.print(f"  [green]✓[/green] Cleared {removed} stale entry/entries")
+    else:
+        console.print(f"  [dim]No stale entries found[/dim]")
+
+    # ── Step 4: Wait for SSH via ProxyJump ───────────────────────────────────
+    console.print()
+    console.print("[bold]Step 4/4:[/bold] Ensure VM is running and SSH-ready (via ProxyJump)")
+
+    if not virbr0_ip:
+        console.print("[red]❌  No virbr0_ip in host config — cannot poll[/red]")
+        return 1
+
+    state = _toshiba_vm_state(vm)
+    console.print(f"  Current state: [cyan]{state or 'unknown'}[/cyan]")
+    if not state:
+        console.print(f"[red]❌  Could not determine VM state on toshiba[/red]")
+        return 1
+    if state not in ("running", "shut off"):
+        console.print(f"[red]❌  Unexpected VM state: {state!r}[/red]")
+        return 1
+    if state == "shut off":
+        console.print(f"  Starting {vm} on toshiba...")
+        subprocess.run(
+            ["ssh", TOSHIBA_SSH_ALIAS,
+             "virsh", "--connect", "qemu:///system", "start", vm],
+            check=True,
+        )
+
+    console.print(f"  [dim]Polling {virbr0_ip} via ProxyJump through toshiba...[/dim]")
+    poll_start   = time.time()
+    poll_timeout = 1800
+    powered_off  = False
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[cyan]Waiting for SSH or autoinstall completion... ({task.fields[elapsed]}s)[/cyan]"),
+        transient=True,
+    ) as progress:
+        task = progress.add_task("wait", elapsed=0)
+        while time.time() - poll_start < poll_timeout:
+            if _toshiba_vm_state(vm) == "shut off":
+                powered_off = True
+                break
+            if _toshiba_tcp_probe(virbr0_ip):
+                break
+            progress.update(task, elapsed=int(time.time() - poll_start))
+            time.sleep(10)
+        else:
+            console.print(f"[red]❌  Timed out after {poll_timeout // 60} min[/red]")
+            return 1
+
+    elapsed = int(time.time() - poll_start)
+
+    if powered_off:
+        console.print(f"  [green]✓[/green] Autoinstall complete ({elapsed}s) — starting {vm}")
+        subprocess.run(
+            ["ssh", TOSHIBA_SSH_ALIAS,
+             "virsh", "--connect", "qemu:///system", "start", vm],
+            check=True,
+        )
+        console.print(f"  [dim]Waiting for SSH after reboot...[/dim]")
+        reboot_start = time.time()
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[cyan]Waiting for SSH... ({task.fields[elapsed]}s)[/cyan]"),
+            transient=True,
+        ) as progress:
+            task = progress.add_task("ssh", elapsed=0)
+            while time.time() - reboot_start < 300:
+                if _toshiba_tcp_probe(virbr0_ip):
+                    break
+                progress.update(task, elapsed=int(time.time() - reboot_start))
+                time.sleep(5)
+            else:
+                console.print("[red]❌  SSH did not come up within 5 min after reboot[/red]")
+                return 1
+    else:
+        console.print(f"  [green]✓[/green] TCP port 22 open ({elapsed}s)")
+
+    # Populate known_hosts so Ansible can connect
+    console.print(f"  Updating known_hosts via toshiba keyscan...")
+    _toshiba_add_known_hosts(virbr0_ip)
+
+    # Ansible ping to confirm
+    console.print(f"  Confirming Ansible connectivity...")
+    for attempt in range(6):
+        if ansible_ping(vm, config):
+            break
+        time.sleep(5)
+    else:
+        console.print(f"[red]❌  Ansible cannot reach {vm}[/red]")
+        console.print(f"    Check: ansible user '{vm_user(config)}', key '{ssh_key_path(config)}'")
+        return 1
+
+    console.print()
+    console.print(f"[green]✅  {vm} is built on toshiba and SSH-ready.[/green]")
+    console.print(f"    Next: [cyan]python tools/esacp.py provisionVM {vm}[/cyan]")
+    return 0
+
+
+def _virsh_vol_upload(seed_local: Path, vm: str) -> bool:
+    """Upload seed ISO into the default libvirt pool via virsh — no sudo needed."""
+    iso_name = f"{vm}-seed.iso"
+    size     = seed_local.stat().st_size
+
+    # Remove stale volume if present (ignore failure)
+    subprocess.run(
+        ["virsh", "vol-delete", iso_name, "--pool", "default"],
+        capture_output=True,
+    )
+
+    result = subprocess.run(
+        ["virsh", "vol-create-as", "default", iso_name, str(size), "--format", "raw"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        console.print(f"[red]❌  vol-create-as failed: {result.stderr.strip()}[/red]")
+        return False
+
+    result = subprocess.run(
+        ["virsh", "vol-upload", "--pool", "default", iso_name, str(seed_local)],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        console.print(f"[red]❌  vol-upload failed: {result.stderr.strip()}[/red]")
+        return False
+
+    console.print(f"  [green]✓[/green] {iso_name} uploaded to default pool")
+    return True
+
+
+def _build_seed_iso_local(vm: str) -> bool:
+    """Build the seed ISO locally (platforms/kvm/<vm>-seed.iso). No upload."""
     cloud_init = PLATFORMS_KVM / "cloud-init" / vm
     user_data  = cloud_init / "user-data"
     meta_data  = cloud_init / "meta-data"
@@ -514,9 +761,7 @@ def _build_seed_iso(vm: str) -> bool:
             console.print(f"[red]❌  Missing cloud-init file: {f}[/red]")
             return False
 
-    seed_local  = PLATFORMS_KVM / f"{vm}-seed.iso"
-    seed_images = IMAGES_DIR / f"{vm}-seed.iso"
-
+    seed_local = PLATFORMS_KVM / f"{vm}-seed.iso"
     console.print(f"  Building {vm}-seed.iso...")
     result = subprocess.run(
         ["cloud-localds", str(seed_local), str(user_data), str(meta_data)],
@@ -525,14 +770,19 @@ def _build_seed_iso(vm: str) -> bool:
     if result.returncode != 0:
         console.print(f"[red]❌  cloud-localds failed: {result.stderr.strip()}[/red]")
         return False
+    console.print(f"  [green]✓[/green] {vm}-seed.iso built")
+    return True
 
-    console.print(f"  Copying seed ISO to {IMAGES_DIR}/ (sudo)...")
-    result = subprocess.run(["sudo", "cp", str(seed_local), str(seed_images)])
-    if result.returncode != 0:
-        console.print("[red]❌  Failed to copy seed ISO — is sudo available?[/red]")
+
+def _build_seed_iso(vm: str) -> bool:
+    """Build seed ISO and upload it into the local default libvirt pool."""
+    if not _build_seed_iso_local(vm):
         return False
-
-    console.print(f"  [green]✓[/green] {vm}-seed.iso ready at {seed_images}")
+    seed_local = PLATFORMS_KVM / f"{vm}-seed.iso"
+    console.print(f"  Uploading seed ISO to default libvirt pool...")
+    if not _virsh_vol_upload(seed_local, vm):
+        return False
+    console.print(f"  [green]✓[/green] {vm}-seed.iso ready at {IMAGES_DIR / (vm + '-seed.iso')}")
     return True
 
 
@@ -613,6 +863,10 @@ def cmd_build_vm(args, config: dict) -> int:
     vm_info = kvm_hosts(config).get(vm, {})
     banner(f"Build VM: {vm}")
 
+    hypervisor = vm_info.get("hypervisor", "local")
+    if hypervisor == "toshiba":
+        return _build_vm_toshiba(vm, vm_info, config)
+
     vm_exists = subprocess.run(["virsh", "dominfo", vm], capture_output=True).returncode == 0
 
     # ── Steps 1 & 2: Seed ISO + VM creation ──────────────────────────────────
@@ -628,12 +882,9 @@ def cmd_build_vm(args, config: dict) -> int:
         if seed_dest.exists():
             console.print(f"  [green]✓[/green] {seed_dest} already present — skipping build")
         elif seed_local.exists():
-            console.print(f"  Seed ISO built — copying to {IMAGES_DIR}/...")
-            result = subprocess.run(["sudo", "cp", str(seed_local), str(seed_dest)])
-            if result.returncode != 0:
-                console.print("[red]❌  Failed to copy seed ISO — is sudo available?[/red]")
+            console.print(f"  Seed ISO built — uploading to default libvirt pool...")
+            if not _virsh_vol_upload(seed_local, vm):
                 return 1
-            console.print(f"  [green]✓[/green] Copied")
         else:
             if not _build_seed_iso(vm):
                 return 1

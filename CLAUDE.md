@@ -480,6 +480,27 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   field) are written to `kvm.yml`. VBox and future CloudStack hosts are excluded via
   `attrs.get("backend", "kvm") != "kvm"` check. VBox hosts use `ansible/inventory/dev.yml`.
 
+- **`hypervisor` field in hosts_map.yml**: Optional per-host field that controls where
+  `esacp.py buildVM` creates the VM. `hypervisor: <hypervisor-alias>` routes to the remote
+  KVM host via SSH (`scp` seed ISO, `ssh <hypervisor-alias> bash -c "virt-install --connect
+  qemu:///system ..."`). No field → local controller KVM (Stage 2.1 path). All current
+  remote-hosted VMs carry the appropriate hypervisor value.
+  `generate_inventory.py` reads this field and injects
+  `ansible_ssh_common_args: "-o ProxyJump=<user>@<hypervisor-alias>"` for all remote-hosted
+  hosts — so Ansible reaches them via ProxyJump from the controller.
+
+- **Remote-hosted VMs: SSH key authorisation split**: target1 and target2 were bootstrapped
+  via saconsole (saconsole's pubkey in authorized_keys). Ansible from the controller reaches
+  them via ProxyJump but cannot authenticate with the controller key — saconsole's key is
+  required for those hosts. New VMs built through the Cytoscape prototype use the target1/
+  cloud-init template which hardcodes the controller's pubkey, so the controller can
+  provision them directly via ProxyJump. This split is intentional for the prototype stage.
+
+- **`esacp.py buildVM` — local seed ISO copy no longer uses sudo**: replaced with
+  `virsh vol-create-as default` + `virsh vol-upload` (controller user is in `libvirt` group).
+  The `sudo cp` approach hung indefinitely when called from uvicorn background threads
+  (sudo prompts via `/dev/tty`; no TTY available in that context).
+
 - **MariaDB Docker Compose on targets**: Deployed to `/opt/mariadb/`. MariaDB port 3306 is
   Docker-internal only (not exposed to host). mysqld_exporter port 9104 is UFW-restricted to
   10.10.0.1 (saconsole). Credentials are in `/opt/mariadb/.env` (mode 0600).

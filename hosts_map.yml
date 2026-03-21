@@ -31,6 +31,7 @@ groups:
       wg_hub_endpoint: "192.168.122.10"
       ansible_managed: true
       backend: kvm
+      hypervisor: toshiba
       ansible_groups:
         - kvm
         - development
@@ -44,6 +45,7 @@ groups:
       wg_role: spoke
       ansible_managed: true
       backend: kvm
+      hypervisor: toshiba
       ansible_groups:
         - kvm
         - targets
@@ -58,12 +60,27 @@ groups:
       wg_role: spoke
       ansible_managed: true
       backend: kvm
+      hypervisor: toshiba
       ansible_groups:
         - kvm
         - targets
         - development
         - lab
 
+    tgt3:
+      hostname: tgt3
+      nickname: tgt3
+      virbr0_ip: "192.168.122.13"
+      wg_ip: "10.10.0.5"
+      wg_role: spoke
+      ansible_managed: true
+      backend: kvm
+      hypervisor: toshiba
+      ansible_groups:
+        - kvm
+        - targets
+        - development
+        - lab
   # ── VirtualBox guests (Windows/WSL workstation, Platform 1) ───────────────
   # wg_hub_endpoint for vbox saconsole is the console VM's bridged LAN IP.
   # Set it in ansible/group_vars/vbox.yml — it varies by LAN environment.
