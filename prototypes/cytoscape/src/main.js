@@ -110,7 +110,8 @@ const CY_STYLE = [
   },
   {
     // Unprovisioned (newly drawn) targets — dashed amber border
-    selector: 'node[?provisioned = false]',
+    // [!provisioned] matches falsy: false, 0, '', null, undefined
+    selector: 'node[!provisioned]',
     style: {
       'background-color': '#1a1a0a',
       'border-color':     '#f0a020',
