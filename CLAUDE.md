@@ -278,6 +278,9 @@ docs/
   SystemOverview_tech.md            # Technical system description (developer-facing)
   DiagramDesign.md                  # Cytoscape control plane diagram spec: 3-level hierarchy,
                                     #   master/slave VM pairs, blue-green DNS flip, MCP source mapping
+  FailoverDesign.md                 # Production master failover design (artisan SLA, human-triggered)
+                                    #   DRAFT — must be revised once ERPNext v13 is in staging
+                                    #   Covers: topology, gaps, procedure, UI implications, open questions
 
 tools/
   api.py                            # FastAPI control plane backend (port 8088) — prototype
