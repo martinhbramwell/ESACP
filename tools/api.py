@@ -139,6 +139,7 @@ def get_hosts():
             "backend":       h.get("backend", "kvm"),
             "provisioned":   provisioned,
             "ansible_groups": h.get("ansible_groups", []),
+            "vm_role":       h.get("vm_role", "dev"),
         })
         wg = h.get("wg_ip", "")
         if wg:
@@ -166,6 +167,13 @@ def get_hosts():
 
 # ── POST /api/hosts/add ───────────────────────────────────────────────────────
 
+_ZONE_GROUPS: dict[str, list[str]] = {
+    "development": ["kvm", "targets", "development", "lab"],
+    "staging":     ["kvm", "targets", "staging",     "lab"],
+    "production":  ["kvm", "targets", "production"],
+}
+
+
 class NewHost(BaseModel):
     hostname:   str
     nickname:   str = ""
@@ -173,6 +181,8 @@ class NewHost(BaseModel):
     wg_ip:      str
     backend:    str = "kvm"
     hypervisor: str = "toshiba"
+    zone:       str = "development"   # development | staging | production
+    vm_role:    str = "dev"           # dev | master | slave
 
 
 @app.post("/api/hosts/add")
@@ -194,6 +204,9 @@ def add_host(host: NewHost):
             raise HTTPException(409, f"virbr0 IP {host.virbr0_ip} already used by '{name}'")
 
     nickname = host.nickname or host.hostname[:4]
+    groups   = _ZONE_GROUPS.get(host.zone, _ZONE_GROUPS["development"])
+    groups_yaml = "\n".join(f"        - {g}" for g in groups)
+    role_line = f"      vm_role: {host.vm_role}\n" if host.vm_role and host.vm_role != "dev" else ""
 
     # Build the YAML block, matching existing file indentation (4-space host key, 6-space fields)
     block = (
@@ -206,11 +219,9 @@ def add_host(host: NewHost):
         f"      ansible_managed: true\n"
         f"      backend: {host.backend}\n"
         f"      hypervisor: {host.hypervisor}\n"
+        f"{role_line}"
         f"      ansible_groups:\n"
-        f"        - kvm\n"
-        f"        - targets\n"
-        f"        - development\n"
-        f"        - lab\n"
+        f"{groups_yaml}\n"
     )
 
     text   = HOSTS_MAP.read_text()
@@ -230,6 +241,19 @@ def add_host(host: NewHost):
         raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
 
     return {"ok": True, "hostname": host.hostname}
+
+
+# ── POST /api/promote ────────────────────────────────────────────────────────
+
+@app.post("/api/promote")
+def promote_staging():
+    """Stub: initiate Staging → Production promotion.
+
+    Full implementation: validate staging state, send Telegram approval request
+    to configured approvers, await 2 confirmations, then execute DNS flip via
+    Cloudflare API and swap quadrant labels. Deferred pending v13 staging.
+    """
+    return {"ok": True, "message": "Promotion initiated — awaiting Telegram approval (stub; DNS flip not yet implemented)"}
 
 
 # ── POST /api/provision/{hostname} ───────────────────────────────────────────

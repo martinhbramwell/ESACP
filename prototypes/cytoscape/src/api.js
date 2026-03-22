@@ -29,8 +29,8 @@ export async function fetchHosts() {
 }
 
 // Returns { ok: true, hostname }
-export async function addHost({ hostname, nickname, virbr0_ip, wg_ip, backend = 'kvm', hypervisor = 'toshiba' }) {
-  return post('/api/hosts/add', { hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor })
+export async function addHost({ hostname, nickname, virbr0_ip, wg_ip, backend = 'kvm', hypervisor = 'toshiba', zone = 'development', vm_role = 'dev' }) {
+  return post('/api/hosts/add', { hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor, zone, vm_role })
 }
 
 // Returns { job_id: { status, hostname }, ... }

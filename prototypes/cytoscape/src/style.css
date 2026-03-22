@@ -176,6 +176,27 @@ pre.job-log {
 
 #btn-add-target:hover { background: #1a5080; }
 
+#btn-promote {
+  padding: 4px 12px;
+  background: #1a1a00;
+  border: 1px solid #cc8833;
+  color: #cc8833;
+  font-family: monospace;
+  font-size: 0.82rem;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+#btn-promote:hover:not(:disabled) { background: #2a2a00; }
+
+#btn-promote:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 /* ── Info panel action bar ────────────────────────────────────────────────── */
 
 .action-bar {
@@ -213,6 +234,14 @@ pre.job-log {
 }
 
 .action-btn--inspect:hover { background: #1a4a30; }
+
+.action-btn--clone {
+  background: #1a2200;
+  border-color: #88aa44;
+  color: #88aa44;
+}
+
+.action-btn--clone:hover { background: #283200; }
 
 /* ── Canvas right-click menu (power-user fallback) ────────────────────────── */
 
@@ -424,6 +453,70 @@ pre.job-log {
 }
 
 #confirm-submit:hover { background: #5a1a1a; }
+
+/* ── Promote modal ────────────────────────────────────────────────────────── */
+
+#promote-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 170;
+}
+
+#promote-overlay.hidden { display: none; }
+
+#promote-dialog {
+  background: #16213e;
+  border: 1px solid #cc8833;
+  border-radius: 4px;
+  padding: 24px 28px;
+  width: 380px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+}
+
+#promote-dialog h2 {
+  font-size: 0.95rem;
+  font-weight: normal;
+  color: #cc8833;
+  margin-bottom: 14px;
+  letter-spacing: 0.05em;
+}
+
+.promote-status {
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  margin-bottom: 12px;
+  line-height: 1.7;
+}
+
+.promote-note {
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.promote-warning {
+  font-size: 0.78rem;
+  color: #f06050;
+  margin-bottom: 4px;
+}
+
+#promote-submit {
+  background: #1a1a00;
+  border: 1px solid #cc8833;
+  color: #cc8833;
+  padding: 5px 16px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+#promote-submit:hover { background: #2a2a00; }
 
 /* ── Drill-down popup ─────────────────────────────────────────────────────── */
 

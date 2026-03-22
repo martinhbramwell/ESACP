@@ -285,9 +285,12 @@ docs/
 tools/
   api.py                            # FastAPI control plane backend (port 8088) — prototype
                                     #   GET  /api/hosts              → kvm hosts + IP suggestions + default hypervisor
+                                    #                                   (returns vm_role field: dev | master | slave)
                                     #   POST /api/hosts/add          → append to hosts_map.yml, regen inventory
+                                    #                                   (accepts zone, vm_role; writes zone-based ansible_groups)
                                     #   POST /api/provision/{host}   → job: cloud-init + WG + buildVM + provisionVM
                                     #                                   + saconsole WireGuard hub update (Step 5)
+                                    #   POST /api/promote            → stub: Staging→Production initiation (Telegram approval deferred)
                                     #   GET  /api/jobs               → list all jobs (for page-refresh reconnect)
                                     #   GET  /api/jobs/{id}          → poll job status + log
                                     #   provisioned = VM has a snapshot containing "Baseline" (not just VM exists)
@@ -299,7 +302,16 @@ prototypes/
                                     # Run: Terminal 1: uvicorn tools.api:app --port 8088 --reload
                                     #       Terminal 2: cd prototypes/cytoscape && bash doCytoscape.sh
                                     # Access: http://localhost:5173
-                                    # Right-click canvas → Add Target → configure → Provision
+                                    # 4-Quadrant layout: Console (white) / Development (green) /
+                                    #   Staging (amber) / Production (red)
+                                    # Stockroom in Console zone: 3 template tiles (Basic VM / MariaDB / ERPNext)
+                                    #   Click a template → Deploy from Template pre-fills Add dialog with zone+role
+                                    # Node icons by vm_role: dev=computer, master=rack server, slave=disk cylinders
+                                    # Add Target dialog: Zone selector + Role selector (1M+1S slot enforcement per zone)
+                                    # Promote → button: active only when Staging has exactly 1 Master + 1 Slave
+                                    #   Click → confirm modal → POST /api/promote (stub; Telegram/DNS deferred)
+                                    # Clone to Staging button: appears on provisioned dev nodes;
+                                    #   opens Add dialog pre-filled with staging zone
                                     # Unprovisioned nodes: dashed amber border; click → Provision button
                                     # node_modules/ and dist/ are gitignored
   cytoscape/src/api.js              # Fetch helpers for the FastAPI backend (/api proxy via Vite)

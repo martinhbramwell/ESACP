@@ -12,6 +12,7 @@
         <h1>ESACP Network Topology</h1>
         <span id="api-status" class="api-status api-status--unknown" title="API status">API</span>
         <button id="btn-add-target" title="Add a new target VM">+ Add Target</button>
+        <button id="btn-promote" disabled title="Promote Staging → Production (requires 1 Master + 1 Slave in Staging)">Promote →</button>
       </header>
       <div id="cy"></div>
       <div id="resize-handle"><span class="grip"></span></div>
@@ -90,12 +91,42 @@
             <label for="f-hypervisor">Hypervisor</label>
             <input id="f-hypervisor" type="text" placeholder="toshiba" required />
           </div>
+          <div class="field">
+            <label for="f-zone">Zone</label>
+            <select id="f-zone">
+              <option value="development">Development</option>
+              <option value="staging">Staging</option>
+              <option value="production">Production</option>
+            </select>
+          </div>
+          <div class="field" id="field-vm-role" style="display:none">
+            <label for="f-vm-role">Role</label>
+            <select id="f-vm-role">
+              <option value="dev">Dev</option>
+              <option value="master">Master</option>
+              <option value="slave">Slave</option>
+            </select>
+          </div>
           <p id="dialog-error" class="dialog-error hidden"></p>
           <div class="dialog-actions">
             <button type="button" id="dialog-cancel">Cancel</button>
             <button type="submit" id="dialog-submit">Add</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Promote Staging → Production modal -->
+    <div id="promote-overlay" class="hidden">
+      <div id="promote-dialog">
+        <h2>Promote Staging → Production</h2>
+        <div id="promote-staging-status" class="promote-status"></div>
+        <p class="promote-note">This initiates a DNS flip via Cloudflare API. Telegram approval from 2 administrators is required before the switch happens.</p>
+        <p class="promote-warning">Staged VMs become immutable. The current Production VMs are demoted to Staging.</p>
+        <div class="dialog-actions">
+          <button type="button" id="promote-cancel">Cancel</button>
+          <button type="button" id="promote-submit">Initiate Promotion</button>
+        </div>
       </div>
     </div>
 
