@@ -136,21 +136,6 @@ header h1 {
   white-space: nowrap;
 }
 
-.provision-btn {
-  margin-top: 8px;
-  padding: 4px 14px;
-  background: #0f3460;
-  border: 1px solid #4fc3f7;
-  color: #4fc3f7;
-  font-family: monospace;
-  font-size: 0.82rem;
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-.provision-btn:hover {
-  background: #1a5080;
-}
 
 pre.job-log {
   font-size: 0.75rem;
@@ -174,7 +159,62 @@ pre.job-log {
 
 .hint.error { color: #f06050; }
 
-/* ── Context menu ─────────────────────────────────────────────────────────── */
+/* ── Header toolbar button ────────────────────────────────────────────────── */
+
+#btn-add-target {
+  padding: 4px 12px;
+  background: #0f3460;
+  border: 1px solid #4fc3f7;
+  color: #4fc3f7;
+  font-family: monospace;
+  font-size: 0.82rem;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#btn-add-target:hover { background: #1a5080; }
+
+/* ── Info panel action bar ────────────────────────────────────────────────── */
+
+.action-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 4px 14px;
+  background: #0f3460;
+  border: 1px solid #4fc3f7;
+  color: #4fc3f7;
+  font-family: monospace;
+  font-size: 0.82rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.action-btn:hover { background: #1a5080; }
+
+.action-btn--danger {
+  background: #3a0f0f;
+  border-color: #c04040;
+  color: #e07070;
+}
+
+.action-btn--danger:hover { background: #5a1a1a; }
+
+.action-btn--inspect {
+  background: #0f2a20;
+  border-color: #44aa66;
+  color: #44aa66;
+}
+
+.action-btn--inspect:hover { background: #1a4a30; }
+
+/* ── Canvas right-click menu (power-user fallback) ────────────────────────── */
 
 #ctx-menu {
   position: fixed;
@@ -321,6 +361,69 @@ pre.job-log {
   opacity: 0.5;
   cursor: default;
 }
+
+/* ── Destroy confirmation modal ───────────────────────────────────────────── */
+
+#confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 160;
+}
+
+#confirm-overlay.hidden { display: none; }
+
+#confirm-dialog {
+  background: #16213e;
+  border: 1px solid #6a2a2a;
+  border-radius: 4px;
+  padding: 24px 28px;
+  width: 360px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+}
+
+#confirm-dialog h2 {
+  font-size: 0.95rem;
+  font-weight: normal;
+  color: #e07070;
+  margin-bottom: 12px;
+  letter-spacing: 0.05em;
+}
+
+#confirm-body {
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  margin-bottom: 12px;
+}
+
+.confirm-consequences {
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  margin: 0 0 12px 16px;
+  line-height: 1.6;
+}
+
+.confirm-warning {
+  font-size: 0.78rem;
+  color: #f06050;
+  margin-bottom: 4px;
+}
+
+#confirm-submit {
+  background: #3a0f0f;
+  border: 1px solid #c04040;
+  color: #e07070;
+  padding: 5px 16px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+#confirm-submit:hover { background: #5a1a1a; }
 
 /* ── Drill-down popup ─────────────────────────────────────────────────────── */
 

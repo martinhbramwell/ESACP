@@ -45,6 +45,11 @@ export async function startProvision(hostname) {
   return post(`/api/provision/${hostname}`, {})
 }
 
+// Returns { job_id }
+export async function startDestroy(hostname) {
+  return post(`/api/destroy/${hostname}`, {})
+}
+
 // Poll a job every intervalMs until it reaches a terminal state.
 // onLines(newLines[])  — called whenever new log lines arrive
 // onDone(status)       — called once with 'done' or 'error' when the job ends

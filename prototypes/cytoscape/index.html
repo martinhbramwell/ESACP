@@ -11,11 +11,12 @@
       <header>
         <h1>ESACP Network Topology</h1>
         <span id="api-status" class="api-status api-status--unknown" title="API status">API</span>
+        <button id="btn-add-target" title="Add a new target VM">+ Add Target</button>
       </header>
       <div id="cy"></div>
       <div id="resize-handle"><span class="grip"></span></div>
       <div id="info-panel">
-        <p class="hint">Click a node or edge to inspect it. Right-click the canvas to add a target.</p>
+        <p class="hint">Click a node or edge to inspect it. Use + Add Target in the toolbar.</p>
       </div>
     </div>
 
@@ -34,9 +35,27 @@
       </div>
     </div>
 
-    <!-- Right-click context menu -->
+    <!-- Canvas right-click fallback menu (power-user shortcut) -->
     <div id="ctx-menu" class="hidden">
       <button id="ctx-add-target">+ Add Target</button>
+    </div>
+
+    <!-- Destroy confirmation modal -->
+    <div id="confirm-overlay" class="hidden">
+      <div id="confirm-dialog">
+        <h2>Destroy VM</h2>
+        <p id="confirm-body"></p>
+        <ul class="confirm-consequences">
+          <li>VM and disk permanently deleted</li>
+          <li>WireGuard peer removed from mesh</li>
+          <li>All config entries removed</li>
+        </ul>
+        <p class="confirm-warning">This cannot be undone.</p>
+        <div class="dialog-actions">
+          <button type="button" id="confirm-cancel">Cancel</button>
+          <button type="button" id="confirm-submit">Confirm Destroy</button>
+        </div>
+      </div>
     </div>
 
     <!-- Add Target dialog -->

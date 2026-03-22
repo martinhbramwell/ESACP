@@ -13,7 +13,9 @@ Endpoints:
 """
 
 import re
+import shutil
 import subprocess
+import tempfile
 import threading
 import uuid
 from pathlib import Path
@@ -128,14 +130,15 @@ def get_hosts():
             provisioned = vm_map.get(name, False)  # False = not yet created
 
         hosts.append({
-            "id":          name,
-            "hostname":    h.get("hostname", name),
-            "nickname":    h.get("nickname", ""),
-            "virbr0_ip":   h.get("virbr0_ip", ""),
-            "wg_ip":       h.get("wg_ip", ""),
-            "wg_role":     h.get("wg_role", "spoke"),
-            "backend":     h.get("backend", "kvm"),
-            "provisioned": provisioned,
+            "id":            name,
+            "hostname":      h.get("hostname", name),
+            "nickname":      h.get("nickname", ""),
+            "virbr0_ip":     h.get("virbr0_ip", ""),
+            "wg_ip":         h.get("wg_ip", ""),
+            "wg_role":       h.get("wg_role", "spoke"),
+            "backend":       h.get("backend", "kvm"),
+            "provisioned":   provisioned,
+            "ansible_groups": h.get("ansible_groups", []),
         })
         wg = h.get("wg_ip", "")
         if wg:
@@ -370,7 +373,7 @@ def _add_wg_peer(hostname: str, emit):
         raise RuntimeError(f"add_peer.sh failed:\n{result.stderr.strip()}")
 
     # Extract "wg_pubkey_<name>: "<key>"" from add_peer.sh stdout
-    match = re.search(r'(wg_pubkey_\w+):\s+"([^"]+)"', result.stdout)
+    match = re.search(r'(wg_pubkey_[\w-]+):\s+"([^"]+)"', result.stdout)
     if match:
         key_name, key_value = match.group(1), match.group(2)
         content = GROUP_VARS_ALL.read_text()
@@ -387,6 +390,281 @@ def _add_wg_peer(hostname: str, emit):
             emit(f"  [OK] {key_name} already present in group_vars/all.yml")
     else:
         emit("  [WARN] Could not parse public key from add_peer.sh output — update group_vars/all.yml manually")
+
+
+# ── POST /api/destroy/{hostname} ─────────────────────────────────────────────
+
+@app.post("/api/destroy/{hostname}")
+def start_destroy(hostname: str):
+    """Start a background job to destroy a KVM host: remove WG peer, delete VM,
+    strip from hosts_map.yml / keys.sops.yml / group_vars/all.yml, regen inventory."""
+    data = load_hosts_map()
+    kvm  = data["groups"].get("kvm", {})
+    if hostname not in kvm:
+        raise HTTPException(404, f"'{hostname}' not found in the kvm group of hosts_map.yml")
+    host_cfg = kvm[hostname]
+    if host_cfg.get("wg_role") == "hub":
+        raise HTTPException(400, f"Cannot destroy hub node '{hostname}' — this would break the entire mesh")
+
+    job_id       = str(uuid.uuid4())[:8]
+    jobs[job_id] = {"status": "running", "log": [], "hostname": hostname, "type": "destroy"}
+
+    threading.Thread(
+        target=_run_destroy,
+        args=(job_id, hostname, host_cfg),
+        daemon=True,
+    ).start()
+
+    return {"job_id": job_id}
+
+
+def _run_destroy(job_id: str, hostname: str, host_cfg: dict):
+    job = jobs[job_id]
+
+    def emit(line: str):
+        job["log"].append(line)
+        print(f"[job {job_id}] {line}", flush=True)
+
+    try:
+        # ── Step 1: Get public key + remove live WireGuard peer ──────────────
+        emit("── Remove live WireGuard peer ──")
+        pubkey = _get_wg_pubkey(hostname)
+        if pubkey:
+            _remove_wg_peer_live(hostname, pubkey, emit)
+        else:
+            emit(f"  [WARN] No pubkey found for {hostname} — skipping live WG removal")
+
+        # ── Step 2: Destroy VM on hypervisor ─────────────────────────────────
+        emit("── Destroy VM ──")
+        _destroy_vm(hostname, host_cfg, emit)
+
+        # ── Step 3: Remove from hosts_map.yml ────────────────────────────────
+        emit("── Update hosts_map.yml ──")
+        _remove_from_hosts_map(hostname, emit)
+
+        # ── Step 4: Remove pubkey from group_vars/all.yml ────────────────────
+        emit("── Update group_vars/all.yml ──")
+        _remove_from_group_vars_all(hostname, emit)
+
+        # ── Step 5: Regenerate inventory ─────────────────────────────────────
+        emit("── Regenerate inventory ──")
+        result = subprocess.run(
+            ["python3", "tools/generate_inventory.py"],
+            cwd=PROJECT_ROOT, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"generate_inventory.py failed:\n{result.stderr}")
+        emit("  [OK] inventory regenerated")
+
+        # ── Step 6: Update saconsole wg0.conf via Ansible wireguard role ─────
+        emit("── Update saconsole WireGuard config (Ansible) ──")
+        proc = subprocess.Popen(
+            [
+                "ansible-playbook",
+                "-i", "inventory/kvm.yml",
+                "site-kvm.yml",
+                "--limit", "saconsole",
+                "--tags", "wireguard",
+            ],
+            cwd=str(PROJECT_ROOT / "ansible"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        for line in proc.stdout:
+            emit(line.rstrip())
+        proc.wait()
+        if proc.returncode != 0:
+            emit(f"  [WARN] Ansible wireguard update failed (exit {proc.returncode}) — wg0.conf may still list old peer")
+        else:
+            emit("  [OK] saconsole wg0.conf updated")
+
+        # ── Step 7: Remove keys from keys.sops.yml ───────────────────────────
+        emit("── Remove WireGuard keys ──")
+        _remove_keys_from_sops(hostname, emit)
+
+        # ── Step 8: Remove cloud-init dir if present ─────────────────────────
+        ci_dir = CLOUD_INIT_DIR / hostname
+        if ci_dir.exists():
+            shutil.rmtree(ci_dir)
+            emit(f"  [OK] Removed cloud-init dir {ci_dir}")
+
+        job["status"] = "done"
+        emit("── Destroy complete ──")
+
+    except Exception as exc:
+        emit(f"[ERROR] {exc}")
+        job["status"] = "error"
+
+
+def _get_wg_pubkey(hostname: str) -> str | None:
+    """Decrypt keys.sops.yml and return the WireGuard public key for hostname, or None."""
+    if not KEYS_SOPS.exists():
+        return None
+    dec = subprocess.run(
+        ["sops", "-d", str(KEYS_SOPS)],
+        cwd=PROJECT_ROOT, capture_output=True, text=True,
+    )
+    if dec.returncode != 0:
+        return None
+    keys_data = yaml.safe_load(dec.stdout)
+    peer = keys_data.get(hostname, {})
+    return peer.get("public_key") if isinstance(peer, dict) else None
+
+
+def _remove_wg_peer_live(hostname: str, pubkey: str, emit):
+    """Remove the WireGuard peer from saconsole hub live (wg set ... remove)."""
+    data = load_hosts_map()
+    kvm  = data["groups"].get("kvm", {})
+    hub  = next((h for h in kvm.values() if h.get("wg_role") == "hub"), None)
+    if not hub:
+        emit("  [WARN] Cannot find hub in hosts_map.yml — skipping live WG removal")
+        return
+    hub_ip  = hub.get("virbr0_ip", "192.168.122.10")
+    hub_hv  = hub.get("hypervisor", "toshiba")
+    r = subprocess.run(
+        ["ssh", "-o", f"ProxyJump={hub_hv}", "-o", "StrictHostKeyChecking=no",
+         f"you@{hub_ip}", f"sudo wg set wg0 peer {pubkey} remove"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if r.returncode != 0:
+        emit(f"  [WARN] wg set peer remove failed: {r.stderr.strip()}")
+    else:
+        emit(f"  [OK] Live WireGuard peer for {hostname} removed from hub")
+
+
+def _destroy_vm(hostname: str, host_cfg: dict, emit):
+    """Destroy (stop) then undefine (delete + storage) the VM on its hypervisor."""
+    hypervisor = host_cfg.get("hypervisor")
+    if not hypervisor:
+        raise RuntimeError(f"No hypervisor configured for '{hostname}'")
+
+    # Delete all snapshots first — libvirt 6.0.0 refuses to undefine a domain
+    # that has snapshots. Loop until snapshot-list returns empty (handles
+    # hierarchical snapshot trees where a parent can't be deleted before children).
+    for _attempt in range(20):
+        snap_r = subprocess.run(
+            ["ssh", hypervisor,
+             f"virsh --connect qemu:///system snapshot-list {hostname} --name"],
+            capture_output=True, text=True, timeout=30,
+        )
+        snapshots = [s.strip() for s in snap_r.stdout.strip().splitlines() if s.strip()]
+        if not snapshots:
+            break
+        for snap_name in snapshots:
+            # Single-string SSH command so the remote shell handles quoting.
+            # ["ssh", host, "bash", "-c", "cmd"] is WRONG in subprocess — SSH
+            # joins args with spaces → bash -c only sees the first word as its
+            # script and hangs reading stdin. Pass one string; the remote shell
+            # then parses the single-quotes around the snapshot name correctly.
+            del_r = subprocess.run(
+                ["ssh", hypervisor,
+                 f"virsh --connect qemu:///system snapshot-delete {hostname} '{snap_name}'"],
+                capture_output=True, text=True, timeout=60,
+            )
+            if del_r.returncode == 0:
+                emit(f"  [OK] Deleted snapshot: {snap_name}")
+            else:
+                emit(f"  [WARN] snapshot-delete {snap_name}: {del_r.stderr.strip()}")
+
+    for virsh_cmd in (
+        f"virsh --connect qemu:///system destroy {hostname}",
+        f"virsh --connect qemu:///system undefine {hostname} --remove-all-storage",
+    ):
+        r = subprocess.run(
+            ["ssh", hypervisor, virsh_cmd],
+            capture_output=True, text=True, timeout=60,
+        )
+        combined = (r.stdout + r.stderr).lower()
+        if r.returncode != 0:
+            if "domain is not running" in combined or "failed to get domain" in combined:
+                emit(f"  [OK] {virsh_cmd} — VM was already stopped or absent, continuing")
+            else:
+                raise RuntimeError(f"'{virsh_cmd}' failed: {r.stderr.strip()}")
+        else:
+            emit(f"  [OK] {virsh_cmd}")
+
+
+def _remove_from_hosts_map(hostname: str, emit):
+    """Remove the host YAML block from hosts_map.yml using regex."""
+    text    = HOSTS_MAP.read_text()
+    pattern = rf'\n    {re.escape(hostname)}:\n(?:[ ]{{6}}[^\n]*\n)+'
+    new_text = re.sub(pattern, "\n", text)
+    # Collapse any triple+ newlines left by the removal
+    new_text = re.sub(r'\n{3,}', "\n\n", new_text)
+    if new_text == text:
+        emit(f"  [WARN] '{hostname}' block not found in hosts_map.yml — nothing removed")
+    else:
+        HOSTS_MAP.write_text(new_text)
+        emit(f"  [OK] Removed '{hostname}' from hosts_map.yml")
+
+
+def _remove_from_group_vars_all(hostname: str, emit):
+    """Remove the wg_pubkey_<hostname> line from group_vars/all.yml."""
+    key_name = f"wg_pubkey_{hostname}"
+    content  = GROUP_VARS_ALL.read_text()
+    if key_name not in content:
+        emit(f"  [OK] {key_name} not in group_vars/all.yml — nothing to remove")
+        return
+    lines    = [l for l in content.splitlines(keepends=True) if not l.startswith(f"{key_name}")]
+    GROUP_VARS_ALL.write_text("".join(lines))
+    emit(f"  [OK] Removed {key_name} from group_vars/all.yml")
+
+
+def _remove_keys_from_sops(hostname: str, emit):
+    """Decrypt keys.sops.yml, remove hostname entries, re-encrypt in place."""
+    if not KEYS_SOPS.exists():
+        emit("  [WARN] keys.sops.yml not found — skipping")
+        return
+
+    # Read age recipient from .sops.yaml
+    sops_conf = PROJECT_ROOT / ".sops.yaml"
+    match     = re.search(r'age1[a-z0-9]+', sops_conf.read_text())
+    if not match:
+        raise RuntimeError(f"Cannot find age recipient in {sops_conf}")
+    age_recipient = match.group(0)
+
+    dec = subprocess.run(
+        ["sops", "-d", str(KEYS_SOPS)],
+        cwd=PROJECT_ROOT, capture_output=True, text=True,
+    )
+    if dec.returncode != 0:
+        raise RuntimeError(f"sops decrypt failed: {dec.stderr.strip()}")
+
+    keys_data = yaml.safe_load(dec.stdout)
+    removed   = []
+
+    if hostname in keys_data:
+        del keys_data[hostname]
+        removed.append(hostname)
+
+    psks = keys_data.get("preshared_keys", {})
+    for k in [k for k in psks if hostname in k]:
+        del psks[k]
+        removed.append(f"preshared_keys.{k}")
+
+    if not removed:
+        emit(f"  [WARN] No keys for '{hostname}' found in keys.sops.yml")
+        return
+
+    work_dir = Path(tempfile.mkdtemp())
+    try:
+        plain = work_dir / "keys.sops.yml"
+        plain.write_text(yaml.dump(keys_data, default_flow_style=False, sort_keys=False))
+
+        enc = subprocess.run(
+            ["sops", "--encrypt", "--age", age_recipient,
+             "--input-type", "yaml", "--output-type", "yaml", str(plain)],
+            capture_output=True, text=True,
+        )
+        if enc.returncode != 0:
+            raise RuntimeError(f"sops encrypt failed: {enc.stderr.strip()}")
+        KEYS_SOPS.write_text(enc.stdout)
+        emit(f"  [OK] Removed from keys.sops.yml: {', '.join(removed)}")
+    finally:
+        for f in work_dir.iterdir():
+            subprocess.run(["shred", "-u", str(f)], capture_output=True)
+        work_dir.rmdir()
 
 
 # ── GET /api/jobs ─────────────────────────────────────────────────────────────
