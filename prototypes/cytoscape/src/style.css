@@ -107,8 +107,8 @@ header h1 {
 /* ── Info panel ───────────────────────────────────────────────────────────── */
 
 #info-panel {
-  height: 120px;
-  min-height: 40px;
+  height: 220px;
+  min-height: 80px;
   flex-shrink: 0;
   background: #16213e;
   padding: 10px 20px;

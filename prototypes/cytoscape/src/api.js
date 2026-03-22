@@ -29,8 +29,15 @@ export async function fetchHosts() {
 }
 
 // Returns { ok: true, hostname }
-export async function addHost({ hostname, nickname, virbr0_ip, wg_ip, backend = 'kvm' }) {
-  return post('/api/hosts/add', { hostname, nickname, virbr0_ip, wg_ip, backend })
+export async function addHost({ hostname, nickname, virbr0_ip, wg_ip, backend = 'kvm', hypervisor = 'toshiba' }) {
+  return post('/api/hosts/add', { hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor })
+}
+
+// Returns { job_id: { status, hostname }, ... }
+export async function fetchJobs() {
+  const res = await fetch('/api/jobs', { signal: signal() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
 }
 
 // Returns { job_id }

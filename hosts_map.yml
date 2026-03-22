@@ -81,6 +81,21 @@ groups:
         - targets
         - development
         - lab
+
+    target4:
+      hostname: target4
+      nickname: tgt4
+      virbr0_ip: "192.168.122.14"
+      wg_ip: "10.10.0.6"
+      wg_role: spoke
+      ansible_managed: true
+      backend: kvm
+      hypervisor: toshiba
+      ansible_groups:
+        - kvm
+        - targets
+        - development
+        - lab
   # ── VirtualBox guests (Windows/WSL workstation, Platform 1) ───────────────
   # wg_hub_endpoint for vbox saconsole is the console VM's bridged LAN IP.
   # Set it in ansible/group_vars/vbox.yml — it varies by LAN environment.

@@ -21,9 +21,9 @@
   failed_when: false
 
 - name: Kill any lingering unattended-upgrade processes
-  shell: pkill -f unattended-upgrade || true
+  shell: pkill -f unattended-upgrade; true
   changed_when: false
-  ignore_errors: true
+  failed_when: false
 
 - name: Wait for dpkg/apt lock to clear
   shell: |

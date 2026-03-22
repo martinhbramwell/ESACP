@@ -35,18 +35,9 @@
 
 - name: Derive this host's WireGuard identity
   set_fact:
-    wg_host_key: >-
-      {%- if inventory_hostname == 'saconsole' -%}
-        {{ wg_keys.saconsole }}
-      {%- elif inventory_hostname == 'target1' -%}
-        {{ wg_keys.target1 }}
-      {%- elif inventory_hostname == 'target2' -%}
-        {{ wg_keys.target2 }}
-      {%- elif inventory_hostname in ['controller', 'localhost'] -%}
-        {{ wg_keys.controller }}
-      {%- else -%}
-        UNKNOWN_HOST
-      {%- endif -%}
+    wg_host_key: "{{ wg_keys[_wg_key_name] | default('UNKNOWN_HOST') }}"
+  vars:
+    _wg_key_name: "{{ 'controller' if inventory_hostname in ['controller', 'localhost'] else inventory_hostname }}"
   no_log: true
 
 - name: Fail if host has no WireGuard identity in keys.sops.yml

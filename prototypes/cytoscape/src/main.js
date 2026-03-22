@@ -2,7 +2,7 @@ import './style.css'
 import cytoscape from 'cytoscape'
 import { openPopup } from './popup.js'
 import { registry } from './registry.js'
-import { fetchHosts, addHost, startProvision, pollJob } from './api.js'
+import { fetchHosts, fetchJobs, addHost, startProvision, pollJob } from './api.js'
 
 // ── Fallback topology (used when API is unreachable) ─────────────────────────
 // Mirrors the current Stage 2.2 estate on toshiba.
@@ -36,14 +36,14 @@ function buildNodesEdges(apiHosts) {
     ...hosts.map(h => ({
       data: {
         id:          h.hostname,
-        label:       h.provisioned === false
-                       ? `${h.hostname}\n[unprovisioned]`
-                       : h.hostname,
+        label:       h.provisioned === false  ? `${h.hostname}\n[unprovisioned]`
+                 : h.provisioned === null   ? `${h.hostname}\n[unknown]`
+                 : h.hostname,
         role:        h.wg_role === 'hub' ? 'hub' : 'spoke',
         platform:    h.backend ?? 'kvm',
         wg_ip:       h.wg_ip    ?? '',
         virbr0_ip:   h.virbr0_ip ?? '',
-        provisioned: h.provisioned !== false,
+        provisioned: !!h.provisioned,
       }
     })),
   ]
@@ -150,7 +150,7 @@ const CY_STYLE = [
 // ── Initialise graph ──────────────────────────────────────────────────────────
 
 let cy = null
-let apiSuggestions = { wg_ip: '10.10.0.5', virbr0_ip: '192.168.122.13' }
+let apiSuggestions = { wg_ip: '10.10.0.5', virbr0_ip: '192.168.122.13', hypervisor: 'toshiba' }
 
 const apiStatusEl = document.getElementById('api-status')
 
@@ -186,6 +186,7 @@ async function init() {
   })
 
   attachHandlers()
+  _reconnectActiveJob()
 }
 
 // ── Info panel ────────────────────────────────────────────────────────────────
@@ -235,28 +236,51 @@ function renderJobLog(lines, done, status) {
 
 // ── Provision flow ────────────────────────────────────────────────────────────
 
+const JOB_KEY = 'esacp_active_job'
+
 function runProvision(hostname) {
   infoPanel.innerHTML = `<pre class="job-log">Starting provisioning for ${hostname}...\n</pre>`
 
   startProvision(hostname)
     .then(({ job_id }) => {
-      pollJob(
-        job_id,
-        lines  => renderJobLog(lines, false, null),
-        status => {
-          renderJobLog([], true, status)
-          // Update node styling on success
-          if (status === 'done') {
-            const node = cy.$(`#${hostname}`)
-            node.data('provisioned', true)
-            node.data('label', hostname)
-          }
-        }
-      )
+      localStorage.setItem(JOB_KEY, JSON.stringify({ job_id, hostname }))
+      _attachJobPoller(job_id, hostname)
     })
     .catch(err => {
       infoPanel.innerHTML = `<p class="hint error">Provision failed: ${err.message}</p>`
     })
+}
+
+function _attachJobPoller(job_id, hostname) {
+  pollJob(
+    job_id,
+    lines  => renderJobLog(lines, false, null),
+    status => {
+      renderJobLog([], true, status)
+      localStorage.removeItem(JOB_KEY)
+      if (status === 'done') {
+        const node = cy.$(`#${hostname}`)
+        node.data('provisioned', true)
+        node.data('label', hostname)
+      }
+    }
+  )
+}
+
+async function _reconnectActiveJob() {
+  const stored = localStorage.getItem(JOB_KEY)
+  if (!stored) return
+  try {
+    const { job_id, hostname } = JSON.parse(stored)
+    const allJobs = await fetchJobs()
+    const job = allJobs[job_id]
+    if (!job) { localStorage.removeItem(JOB_KEY); return }
+    if (job.status !== 'running') { localStorage.removeItem(JOB_KEY); return }
+    infoPanel.innerHTML = `<pre class="job-log">Reconnected to in-progress job for ${hostname}...\n</pre>`
+    _attachJobPoller(job_id, hostname)
+  } catch {
+    localStorage.removeItem(JOB_KEY)
+  }
 }
 
 // ── Event handlers ────────────────────────────────────────────────────────────
@@ -266,7 +290,7 @@ function attachHandlers() {
   cy.on('tap', 'node, edge', evt => {
     const data = evt.target.data()
 
-    if (data.provisioned === false) {
+    if (!data.provisioned) {
       renderInfoWithProvision(data)
       return
     }
@@ -329,14 +353,16 @@ const fNickname     = document.getElementById('f-nickname')
 const fWgIp         = document.getElementById('f-wg-ip')
 const fVirbr0Ip     = document.getElementById('f-virbr0-ip')
 const fBackend      = document.getElementById('f-backend')
+const fHypervisor   = document.getElementById('f-hypervisor')
 const submitBtn     = document.getElementById('dialog-submit')
 
 function openDialog() {
-  fHostname.value  = ''
-  fNickname.value  = ''
-  fWgIp.value      = apiSuggestions.wg_ip
-  fVirbr0Ip.value  = apiSuggestions.virbr0_ip
-  fBackend.value   = 'kvm'
+  fHostname.value   = ''
+  fNickname.value   = ''
+  fWgIp.value       = apiSuggestions.wg_ip
+  fVirbr0Ip.value   = apiSuggestions.virbr0_ip
+  fBackend.value    = 'kvm'
+  fHypervisor.value = apiSuggestions.hypervisor ?? 'toshiba'
   dialogError.classList.add('hidden')
   dialogError.textContent = ''
   submitBtn.disabled = false
@@ -360,14 +386,15 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
   submitBtn.disabled = true
   submitBtn.textContent = 'Adding…'
 
-  const hostname  = fHostname.value.trim()
-  const nickname  = fNickname.value.trim()
-  const wg_ip     = fWgIp.value.trim()
-  const virbr0_ip = fVirbr0Ip.value.trim()
-  const backend   = fBackend.value
+  const hostname   = fHostname.value.trim()
+  const nickname   = fNickname.value.trim()
+  const wg_ip      = fWgIp.value.trim()
+  const virbr0_ip  = fVirbr0Ip.value.trim()
+  const backend    = fBackend.value
+  const hypervisor = fHypervisor.value.trim()
 
   try {
-    await addHost({ hostname, nickname, virbr0_ip, wg_ip, backend })
+    await addHost({ hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor })
     closeDialog()
     _addNodeToGraph({ hostname, nickname, virbr0_ip, wg_ip, backend })
     // Refresh suggestions for the next add

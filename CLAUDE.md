@@ -284,10 +284,13 @@ docs/
 
 tools/
   api.py                            # FastAPI control plane backend (port 8088) — prototype
-                                    #   GET  /api/hosts              → kvm hosts + IP suggestions
+                                    #   GET  /api/hosts              → kvm hosts + IP suggestions + default hypervisor
                                     #   POST /api/hosts/add          → append to hosts_map.yml, regen inventory
                                     #   POST /api/provision/{host}   → job: cloud-init + WG + buildVM + provisionVM
+                                    #                                   + saconsole WireGuard hub update (Step 5)
+                                    #   GET  /api/jobs               → list all jobs (for page-refresh reconnect)
                                     #   GET  /api/jobs/{id}          → poll job status + log
+                                    #   provisioned = VM has a snapshot containing "Baseline" (not just VM exists)
                                     #   Start: uvicorn tools.api:app --port 8088 --reload (from project root)
                                     #   Will move to saconsole when promoted from prototype
 

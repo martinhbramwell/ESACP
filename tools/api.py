@@ -59,26 +59,83 @@ def _last_octet(ip: str) -> int:
 
 # ── GET /api/hosts ────────────────────────────────────────────────────────────
 
+def _query_provisioned(hypervisor: str | None) -> dict[str, bool] | None:
+    """Return a dict mapping VM name → provisioned (True/False), or None if unreachable.
+
+    provisioned=True  → VM has a 'Baseline' snapshot (Ansible completed)
+    provisioned=False → VM exists but has no 'Baseline' snapshot (in-flight or partial)
+
+    One SSH call per hypervisor; the remote shell loops over all VMs.
+    """
+    script = (
+        "for vm in $(virsh --connect qemu:///system list --all --name | grep -v '^$'); do "
+        "  if virsh --connect qemu:///system snapshot-list $vm --name 2>/dev/null "
+        "     | grep -qi 'baseline'; then "
+        "    echo provisioned:$vm; "
+        "  else "
+        "    echo exists:$vm; "
+        "  fi; "
+        "done"
+    )
+    try:
+        if hypervisor:
+            cmd = ["ssh", hypervisor, script]
+        else:
+            cmd = ["bash", "-c", script]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        if r.returncode == 0:
+            result = {}
+            for line in r.stdout.splitlines():
+                line = line.strip()
+                if line.startswith("provisioned:"):
+                    result[line[len("provisioned:"):]] = True
+                elif line.startswith("exists:"):
+                    result[line[len("exists:"):]] = False
+            return result
+    except Exception:
+        pass
+    return None
+
+
 @app.get("/api/hosts")
 def get_hosts():
-    """Return current KVM hosts and suggested next-available IPs."""
+    """Return current KVM hosts and suggested next-available IPs.
+
+    provisioned=True  → VM has 'Baseline' snapshot (Ansible-provisioned)
+    provisioned=False → in hosts_map.yml but VM not found on hypervisor
+    provisioned=None  → hypervisor unreachable, state unknown
+    """
     data = load_hosts_map()
     kvm  = data["groups"].get("kvm", {})
+
+    # Batch: one SSH call per unique hypervisor
+    vm_cache: dict[str | None, dict[str, bool] | None] = {}
+    for h in kvm.values():
+        hv = h.get("hypervisor") or None
+        if hv not in vm_cache:
+            vm_cache[hv] = _query_provisioned(hv)
 
     hosts            = []
     wg_octets        = []
     virbr0_octets    = []
 
     for name, h in kvm.items():
+        hv      = h.get("hypervisor") or None
+        vm_map  = vm_cache.get(hv)
+        if vm_map is None:
+            provisioned = None          # hypervisor unreachable
+        else:
+            provisioned = vm_map.get(name, False)  # False = not yet created
+
         hosts.append({
-            "id":         name,
-            "hostname":   h.get("hostname", name),
-            "nickname":   h.get("nickname", ""),
-            "virbr0_ip":  h.get("virbr0_ip", ""),
-            "wg_ip":      h.get("wg_ip", ""),
-            "wg_role":    h.get("wg_role", "spoke"),
-            "backend":    h.get("backend", "kvm"),
-            "provisioned": True,
+            "id":          name,
+            "hostname":    h.get("hostname", name),
+            "nickname":    h.get("nickname", ""),
+            "virbr0_ip":   h.get("virbr0_ip", ""),
+            "wg_ip":       h.get("wg_ip", ""),
+            "wg_role":     h.get("wg_role", "spoke"),
+            "backend":     h.get("backend", "kvm"),
+            "provisioned": provisioned,
         })
         wg = h.get("wg_ip", "")
         if wg:
@@ -90,11 +147,16 @@ def get_hosts():
     next_wg  = max(wg_octets,     default=0) + 1
     next_vbr = max(virbr0_octets, default=9) + 1
 
+    # Default hypervisor for new hosts: match the most common one in the current fleet
+    hypervisors = [h.get("hypervisor") for h in kvm.values() if h.get("hypervisor")]
+    default_hv  = max(set(hypervisors), key=hypervisors.count) if hypervisors else "toshiba"
+
     return {
         "hosts": hosts,
         "suggestions": {
-            "wg_ip":     f"10.10.0.{next_wg}",
-            "virbr0_ip": f"192.168.122.{next_vbr}",
+            "wg_ip":      f"10.10.0.{next_wg}",
+            "virbr0_ip":  f"192.168.122.{next_vbr}",
+            "hypervisor": default_hv,
         },
     }
 
@@ -107,6 +169,7 @@ class NewHost(BaseModel):
     virbr0_ip:  str
     wg_ip:      str
     backend:    str = "kvm"
+    hypervisor: str = "toshiba"
 
 
 @app.post("/api/hosts/add")
@@ -139,6 +202,7 @@ def add_host(host: NewHost):
         f"      wg_role: spoke\n"
         f"      ansible_managed: true\n"
         f"      backend: {host.backend}\n"
+        f"      hypervisor: {host.hypervisor}\n"
         f"      ansible_groups:\n"
         f"        - kvm\n"
         f"        - targets\n"
@@ -236,6 +300,30 @@ def _run_provision(job_id: str, hostname: str, host_cfg: dict):
                 return
             emit(f"[OK] {sub} complete")
 
+        # ── Step 5: Update saconsole hub WireGuard config ────────────────────
+        # saconsole's wg0.conf must be regenerated to include the new spoke peer.
+        emit("── Update saconsole WireGuard (add new peer) ──")
+        proc = subprocess.Popen(
+            [
+                "ansible-playbook",
+                "-i", "inventory/kvm.yml",
+                "site-kvm.yml",
+                "--limit", "saconsole",
+                "--tags", "wireguard",
+            ],
+            cwd=str(PROJECT_ROOT / "ansible"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        for line in proc.stdout:
+            emit(line.rstrip())
+        proc.wait()
+        if proc.returncode != 0:
+            emit(f"[WARN] saconsole WireGuard update failed (exit {proc.returncode}) — new peer may not connect")
+        else:
+            emit("[OK] saconsole WireGuard updated")
+
         job["status"] = "done"
         emit("── Provisioning complete ──")
 
@@ -299,6 +387,17 @@ def _add_wg_peer(hostname: str, emit):
             emit(f"  [OK] {key_name} already present in group_vars/all.yml")
     else:
         emit("  [WARN] Could not parse public key from add_peer.sh output — update group_vars/all.yml manually")
+
+
+# ── GET /api/jobs ─────────────────────────────────────────────────────────────
+
+@app.get("/api/jobs")
+def list_jobs():
+    """Return all jobs — allows the frontend to reconnect after a page refresh."""
+    return {
+        jid: {"status": j["status"], "hostname": j["hostname"]}
+        for jid, j in jobs.items()
+    }
 
 
 # ── GET /api/jobs/{job_id} ────────────────────────────────────────────────────

@@ -23,7 +23,8 @@
     - ssh
     - firewall
     - fail2ban
-    - wireguard
+    - role: wireguard
+      tags: [wireguard]
 
 # ── Play 2: saconsole — observability + desktop + control plane + MCP ─────
 - name: Observability + control plane — saconsole
@@ -83,4 +84,5 @@
     # 192.168.122.0/24 so it cannot reach that IP directly.
     wg_hub_endpoint: "192.168.40.16"
   roles:
-    - wireguard
+    - role: wireguard
+      tags: [wireguard]

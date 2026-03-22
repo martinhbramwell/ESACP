@@ -606,7 +606,7 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
             f" --noautoconsole"
         )
         r = subprocess.run(
-            ["ssh", TOSHIBA_SSH_ALIAS, "bash", "-c", virt_cmd],
+            ["ssh", TOSHIBA_SSH_ALIAS, virt_cmd],
             capture_output=True, text=True,
         )
         if r.returncode != 0:
@@ -1057,9 +1057,34 @@ def _filter_ansible_line(line: str, state: dict) -> Optional[str]:
     return None
 
 
+def _virsh_snapshot_list(vm: str, hypervisor: str) -> list[str]:
+    """Return snapshot names for a VM, routing to the correct hypervisor."""
+    if hypervisor == "toshiba":
+        cmd = ["ssh", TOSHIBA_SSH_ALIAS,
+               f"virsh --connect qemu:///system snapshot-list {vm} --name"]
+    else:
+        cmd = ["virsh", "snapshot-list", vm, "--name"]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    return r.stdout.strip().splitlines() if r.returncode == 0 else []
+
+
+def _virsh_snapshot_create(vm: str, name: str, hypervisor: str) -> bool:
+    """Take a snapshot, routing to the correct hypervisor. Returns True on success."""
+    if hypervisor == "toshiba":
+        cmd = ["ssh", TOSHIBA_SSH_ALIAS,
+               f"virsh --connect qemu:///system snapshot-create-as {vm} '{name}' --atomic"]
+    else:
+        cmd = ["virsh", "snapshot-create-as", vm, name, "--atomic"]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    return r.returncode == 0
+
+
 def cmd_provision_vm(args, config: dict) -> int:
     vm = args.vm
     banner(f"Provision VM: {vm}")
+
+    vm_info    = kvm_hosts(config).get(vm, {})
+    hypervisor = vm_info.get("hypervisor", "local")
 
     # Step 1 — Verify SSH
     console.print("[bold]Step 1/4:[/bold] Verify SSH reachable")
@@ -1072,17 +1097,15 @@ def cmd_provision_vm(args, config: dict) -> int:
     # Step 2 — Fresh Install snapshot
     console.print()
     console.print("[bold]Step 2/4:[/bold] Fresh Install snapshot")
-    existing = subprocess.run(
-        ["virsh", "snapshot-list", vm, "--name"], capture_output=True, text=True
-    ).stdout.strip().splitlines()
+    existing = _virsh_snapshot_list(vm, hypervisor)
 
     if args.skip_fresh_snapshot or "Fresh Install" in existing:
         console.print("  [dim]Skipping (already exists or --skip-fresh-snapshot)[/dim]")
     else:
-        subprocess.run(
-            ["virsh", "snapshot-create-as", vm, "Fresh Install", "--atomic"], check=True
-        )
-        console.print("  [green]✓[/green] 'Fresh Install' snapshot taken")
+        if _virsh_snapshot_create(vm, "Fresh Install", hypervisor):
+            console.print("  [green]✓[/green] 'Fresh Install' snapshot taken")
+        else:
+            console.print("  [yellow]⚠️  Snapshot failed — continuing[/yellow]")
 
     # Step 3 — Ansible
     console.print()
@@ -1124,15 +1147,14 @@ def cmd_provision_vm(args, config: dict) -> int:
 
     # Step 4 — Baseline snapshot
     console.print()
-    console.print("[bold]Step 4/4:[/bold] Stage 2.1 Baseline snapshot")
+    console.print("[bold]Step 4/4:[/bold] Baseline snapshot")
     if args.check:
         console.print("  [dim]Skipping (check mode)[/dim]")
     else:
-        subprocess.run(
-            ["virsh", "snapshot-create-as", vm, "Stage 2.1 Baseline", "--atomic"],
-            capture_output=True,
-        )
-        console.print("  [green]✓[/green] 'Stage 2.1 Baseline' snapshot taken")
+        if _virsh_snapshot_create(vm, "Baseline", hypervisor):
+            console.print("  [green]✓[/green] 'Baseline' snapshot taken")
+        else:
+            console.print("  [yellow]⚠️  Snapshot failed — continuing[/yellow]")
 
     console.print()
     console.print(f"[green]✅  {vm} provisioned.[/green]")

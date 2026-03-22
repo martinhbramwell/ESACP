@@ -12,6 +12,7 @@ wg_pubkey_saconsole:  "nn916J0YAufbwZNOKvWs2VX6sV4BKuTqE//985lIiRw="
 wg_pubkey_target1:    "Tu+YeXrhCpLuzZ93uV8R6iDrPZgHOzGdFWzRxy2GVRE="
 wg_pubkey_target2: "YUgqFAbx/694ss2d9D65nCE2x2D0Eo+/bd6iHrWf6Ws="
 wg_pubkey_tgt3: "foigjriTPbsRk3Ym2BCMzU3N6ZKGjY6sV4gvR2HVBng="
+wg_pubkey_target4: "E0TSQFhmtNiMmjgWIvD6Dasv2GDu918ZE0Oq/lcjRRc="
 
 # ── System configuration ───────────────────────────────────────────────────
 system_timezone: "America/New_York"
