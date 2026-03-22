@@ -427,7 +427,10 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
         -j DNAT --to-destination 192.168.122.10:51820
     sudo iptables -I FORWARD 1 -i wlp2s0 -o virbr0 -p udp \
         -d 192.168.122.10 --dport 51820 -j ACCEPT
-  These rules are not persistent across reboots — see Stage 2.x for persistence plan.
+  These rules are persistent: `iptables-persistent` is installed on toshiba and rules are
+  saved to `/etc/iptables/rules.v4` via `netfilter-persistent save`. To reapply or update,
+  run `platforms/kvm/persist_iptables_toshiba.sh` directly on toshiba (requires sudo TTY —
+  use `scp` + `ssh -t`, not pipe via stdin).
 
 - **Both controller and hypervisor virbr0 share 192.168.122.0/24**: every KVM host gets
   this subnet by default. Mighty's routing table claims 192.168.122.0/24 for its own

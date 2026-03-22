@@ -343,7 +343,9 @@ echo "        -j DNAT --to-destination 192.168.122.10:51820"
 echo "    sudo iptables -I FORWARD 1 -i wlp2s0 -o virbr0 -p udp \\"
 echo "        -d 192.168.122.10 --dport 51820 -j ACCEPT"
 echo ""
-echo "  Note: these rules are not persistent across reboots (Stage 2.x work)."
+echo "  Then persist them by running platforms/kvm/persist_iptables_toshiba.sh on the hypervisor:"
+echo "    scp platforms/kvm/persist_iptables_toshiba.sh <hypervisor>:/tmp/"
+echo "    ssh -t <hypervisor> bash /tmp/persist_iptables_toshiba.sh"
 
 # ── Summary ────────────────────────────────────────────────────────────────────
 
