@@ -90,23 +90,44 @@ const STOCKROOM_TEMPLATES = [
   { id: 'tpl-erpnext',  label: 'ERPNext\n4C / 8G / 60G',   defaultZone: 'staging',     defaultRole: 'master'},
 ]
 
-// Base positions for first node per zone (subsequent nodes spread right)
+// Base positions for the first non-anchor node per zone (subsequent nodes spread right)
 const ZONE_BASE_POS = {
-  'zone-staging':    { baseX: 130, baseY: 650 },
-  'zone-production': { baseX: 490, baseY: 650 },
+  'zone-staging':    { baseX: 120, baseY: 600 },
+  'zone-production': { baseX: 540, baseY: 600 },
 }
 
-// Initial positions for known nodes (absolute graph coordinates)
+// Invisible anchor nodes placed at the corners of each quadrant.
+// They force each compound zone to occupy its intended screen area even when empty.
+// Style: width/height 1, fully transparent, no events.
+const ZONE_ANCHORS = [
+  // Console (top-left)
+  { id: 'anch-con-a', zone: 'zone-console',    x: 60,  y: 50  },
+  { id: 'anch-con-b', zone: 'zone-console',    x: 390, y: 380 },
+  // Development (top-right)
+  { id: 'anch-dev-a', zone: 'zone-dev',        x: 460, y: 50  },
+  { id: 'anch-dev-b', zone: 'zone-dev',        x: 870, y: 380 },
+  // Staging (bottom-left)
+  { id: 'anch-stg-a', zone: 'zone-staging',    x: 60,  y: 470 },
+  { id: 'anch-stg-b', zone: 'zone-staging',    x: 390, y: 730 },
+  // Production (bottom-right)
+  { id: 'anch-pro-a', zone: 'zone-production', x: 460, y: 470 },
+  { id: 'anch-pro-b', zone: 'zone-production', x: 870, y: 730 },
+]
+
+// Initial positions for known nodes (absolute graph coordinates).
+// All positions are chosen to fall within their zone's quadrant boundary.
 const INITIAL_POSITIONS = {
-  controller:     { x: 110, y: 200 },
-  saconsole:      { x: 110, y: 390 },
-  target1:        { x: 500, y: 150 },
-  target2:        { x: 660, y: 150 },
-  tgt3:           { x: 500, y: 310 },
-  target4:        { x: 660, y: 310 },
-  'tpl-basic-vm': { x: 290, y: 180 },
-  'tpl-mariadb':  { x: 290, y: 310 },
-  'tpl-erpnext':  { x: 290, y: 440 },
+  // Console quadrant (TL): x 60-390, y 50-380
+  controller:     { x: 120, y: 150 },
+  saconsole:      { x: 120, y: 280 },
+  'tpl-basic-vm': { x: 300, y: 115 },
+  'tpl-mariadb':  { x: 300, y: 215 },
+  'tpl-erpnext':  { x: 300, y: 315 },
+  // Development quadrant (TR): x 460-870, y 50-380
+  target1:        { x: 540, y: 150 },
+  target2:        { x: 710, y: 150 },
+  tgt3:           { x: 540, y: 300 },
+  target4:        { x: 710, y: 300 },
 }
 
 function zoneFor(host) {
@@ -118,7 +139,7 @@ function zoneFor(host) {
 }
 
 function nextDevPosition(cy) {
-  const devNodes = cy.nodes('[zone_id = "zone-dev"]')
+  const devNodes = cy.nodes('[zone_id = "zone-dev"]:not([phantom])')
   const xs = devNodes.map(n => n.position('x'))
   const maxX = xs.length ? Math.max(...xs) : 440
   return { x: maxX + 160, y: 150 }
@@ -126,8 +147,8 @@ function nextDevPosition(cy) {
 
 function nextPositionForZone(cy, zoneId) {
   if (zoneId === 'zone-dev') return nextDevPosition(cy)
-  const base    = ZONE_BASE_POS[zoneId] ?? { baseX: 500, baseY: 650 }
-  const existing = cy.nodes(`[zone_id = "${zoneId}"]`)
+  const base     = ZONE_BASE_POS[zoneId] ?? { baseX: 500, baseY: 650 }
+  const existing = cy.nodes(`[zone_id = "${zoneId}"]:not([phantom])`)
   const xs       = existing.map(n => n.position('x'))
   const maxX     = xs.length ? Math.max(...xs) : base.baseX - 160
   return { x: maxX + 160, y: base.baseY }
@@ -137,8 +158,8 @@ function nextPositionForZone(cy, zoneId) {
 function countZoneRoles(cy, zoneId) {
   if (!cy) return { masters: 0, slaves: 0 }
   return {
-    masters: cy.nodes(`[zone_id = "${zoneId}"][vm_role = "master"]`).length,
-    slaves:  cy.nodes(`[zone_id = "${zoneId}"][vm_role = "slave"]`).length,
+    masters: cy.nodes(`[zone_id = "${zoneId}"][vm_role = "master"]:not([phantom])`).length,
+    slaves:  cy.nodes(`[zone_id = "${zoneId}"][vm_role = "slave"]:not([phantom])`).length,
   }
 }
 
@@ -219,7 +240,13 @@ function buildNodesEdges(apiHosts) {
     })
   }
 
-  return { nodes: [...zoneNodes, stockroomNode, ...templateNodes, ...vmNodes], edges }
+  // Invisible anchor nodes that force each zone compound to span its quadrant
+  const anchorNodes = ZONE_ANCHORS.map(a => ({
+    data: { id: a.id, parent: a.zone, phantom: true, label: '' },
+    position: { x: a.x, y: a.y },
+  }))
+
+  return { nodes: [...zoneNodes, stockroomNode, ...templateNodes, ...vmNodes, ...anchorNodes], edges }
 }
 
 // ── Cytoscape styles ──────────────────────────────────────────────────────────
@@ -249,6 +276,19 @@ const CY_STYLE = [
   { selector: '#zone-dev',        style: { 'border-color': '#44aa66', 'color': '#44aa66' } },
   { selector: '#zone-staging',    style: { 'border-color': '#cc8833', 'color': '#cc8833' } },
   { selector: '#zone-production', style: { 'border-color': '#cc4444', 'color': '#cc4444' } },
+
+  // ── Phantom anchor nodes (invisible — force zone bounding boxes) ──
+  {
+    selector: 'node[phantom]',
+    style: {
+      'width':              1,
+      'height':             1,
+      'background-opacity': 0,
+      'border-width':       0,
+      'label':              '',
+      'events':             'no',
+    }
+  },
 
   // ── Stockroom compound ──
   {
@@ -302,7 +342,7 @@ const CY_STYLE = [
 
   // ── VM / controller nodes — base ──
   {
-    selector: 'node:not([zone]):not([template]):not([stockroom])',
+    selector: 'node:not([zone]):not([template]):not([stockroom]):not([phantom])',
     style: {
       'shape':              'rectangle',
       'background-opacity': 0,
@@ -356,10 +396,9 @@ const CY_STYLE = [
     selector: 'node[role = "hub"]',
     style: {
       'border-color': '#4fc3f7',
-      'border-width': 2,
-      'border-style': 'double',
-      'width':        90,
-      'height':       80,
+      'border-width': 3,
+      'width':        70,
+      'height':       60,
     }
   },
   {
@@ -372,7 +411,7 @@ const CY_STYLE = [
 
   // ── Unprovisioned state ──
   {
-    selector: 'node[!provisioned]:not([template]):not([stockroom])',
+    selector: 'node[!provisioned]:not([template]):not([stockroom]):not([zone]):not([phantom])',
     style: {
       'border-color': '#f0a020',
       'border-width': 2,
