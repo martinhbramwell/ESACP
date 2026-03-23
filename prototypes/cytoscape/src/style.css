@@ -67,9 +67,122 @@ header h1 {
 }
 
 #cy {
+  position: relative;
   flex: 1;
   min-height: 80px;
   background: #1a1a2e;
+}
+
+/* ── Zone overlay (HTML divs replace broken Cytoscape compound nodes) ─────── */
+
+#zone-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* clicks pass through to Cytoscape canvas */
+  overflow: hidden;
+}
+
+.zone-panel {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid;
+  background: rgba(10, 10, 26, 0.25);
+}
+
+.zone-label {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: bold;
+  user-select: none;
+  pointer-events: none;
+}
+
+#panel-console               { border-color: #888888; }
+#panel-console .zone-label   { color: #aaaaaa; }
+#panel-dev                   { border-color: #44aa66; }
+#panel-dev .zone-label       { color: #44aa66; }
+#panel-staging               { border-color: #cc8833; }
+#panel-staging .zone-label   { color: #cc8833; }
+#panel-production            { border-color: #cc4444; }
+#panel-production .zone-label { color: #cc4444; }
+
+#stockroom-panel {
+  position: absolute;
+  border: 1px dashed #445566;
+  background: rgba(13, 21, 32, 0.6);
+  box-sizing: border-box;
+}
+
+.stockroom-label {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #556677;
+  font-family: monospace;
+  user-select: none;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Quad-zone splitter handle ────────────────────────────────────────────── */
+
+#quad-splitter {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1a3a5a;
+  border: 2px solid #4fc3f7;
+  cursor: move;
+  z-index: 20;
+  transform: translate(-50%, -50%);
+  user-select: none;
+  pointer-events: all; /* re-enable pointer events for the handle */
+  transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#quad-splitter::before,
+#quad-splitter::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: #4fc3f7;
+  border-radius: 1px;
+  transition: background 0.15s;
+}
+
+#quad-splitter::before {
+  width: 12px;
+  height: 2px;
+  transform: translate(-50%, -50%);
+}
+
+#quad-splitter::after {
+  width: 2px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+}
+
+#quad-splitter:hover,
+#quad-splitter.dragging {
+  border-color: #a0c4ff;
+  background: #0f3460;
+}
+
+#quad-splitter:hover::before,
+#quad-splitter:hover::after,
+#quad-splitter.dragging::before,
+#quad-splitter.dragging::after {
+  background: #a0c4ff;
 }
 
 /* ── Resize handle ────────────────────────────────────────────────────────── */

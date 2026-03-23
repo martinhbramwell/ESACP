@@ -90,6 +90,10 @@ const STOCKROOM_TEMPLATES = [
   { id: 'tpl-erpnext',  label: 'ERPNext\n4C / 8G / 60G',   defaultZone: 'staging',     defaultRole: 'master'},
 ]
 
+// Outer boundary of the 4-zone area in graph coordinates.
+// All INITIAL_POSITIONS for real VMs must fall inside this box.
+const ZONE_GRAPH = { LEFT: 60, RIGHT: 870, TOP: 50, BOTTOM: 730 }
+
 // Base positions for the first non-anchor node per zone (subsequent nodes spread right)
 const ZONE_BASE_POS = {
   'zone-staging':    { baseX: 120, baseY: 600 },
@@ -139,7 +143,7 @@ function zoneFor(host) {
 }
 
 function nextDevPosition(cy) {
-  const devNodes = cy.nodes('[zone_id = "zone-dev"]:not([phantom])')
+  const devNodes = cy.nodes('[zone_id = "zone-dev"]:not(.phantom)')
   const xs = devNodes.map(n => n.position('x'))
   const maxX = xs.length ? Math.max(...xs) : 440
   return { x: maxX + 160, y: 150 }
@@ -148,7 +152,7 @@ function nextDevPosition(cy) {
 function nextPositionForZone(cy, zoneId) {
   if (zoneId === 'zone-dev') return nextDevPosition(cy)
   const base     = ZONE_BASE_POS[zoneId] ?? { baseX: 500, baseY: 650 }
-  const existing = cy.nodes(`[zone_id = "${zoneId}"]:not([phantom])`)
+  const existing = cy.nodes(`[zone_id = "${zoneId}"]:not(.phantom)`)
   const xs       = existing.map(n => n.position('x'))
   const maxX     = xs.length ? Math.max(...xs) : base.baseX - 160
   return { x: maxX + 160, y: base.baseY }
@@ -158,8 +162,8 @@ function nextPositionForZone(cy, zoneId) {
 function countZoneRoles(cy, zoneId) {
   if (!cy) return { masters: 0, slaves: 0 }
   return {
-    masters: cy.nodes(`[zone_id = "${zoneId}"][vm_role = "master"]:not([phantom])`).length,
-    slaves:  cy.nodes(`[zone_id = "${zoneId}"][vm_role = "slave"]:not([phantom])`).length,
+    masters: cy.nodes(`[zone_id = "${zoneId}"][vm_role = "master"]:not(.phantom)`).length,
+    slaves:  cy.nodes(`[zone_id = "${zoneId}"][vm_role = "slave"]:not(.phantom)`).length,
   }
 }
 
@@ -184,24 +188,16 @@ function buildNodesEdges(apiHosts) {
   const hub      = hosts.find(h => h.wg_role === 'hub')
   const allHosts = [CONTROLLER_HOST, ...hosts]
 
-  const zoneNodes = ZONE_DEFS.map(z => ({
-    data: { id: z.id, label: z.label, zone: true },
-  }))
-
-  // Stockroom compound node (child of zone-console)
-  const stockroomNode = {
-    data: { id: 'stockroom', label: 'Stockroom', parent: 'zone-console', stockroom: true },
-  }
-
-  // Template tiles — children of stockroom, click to pre-fill Add dialog
+  // Zone boundaries are HTML overlays — no Cytoscape compound nodes.
+  // Template tiles are top-level nodes (no parent/stockroom compound).
   const templateNodes = STOCKROOM_TEMPLATES.map(tpl => ({
     data: {
       id:          tpl.id,
       label:       tpl.label,
-      template:    true,
+      template:    'yes',
+      provisioned: true,   // prevents unprovisioned amber-dashed style
       defaultZone: tpl.defaultZone,
       defaultRole: tpl.defaultRole,
-      parent:      'stockroom',
     },
     position: INITIAL_POSITIONS[tpl.id],
   }))
@@ -222,7 +218,6 @@ function buildNodesEdges(apiHosts) {
         provisioned:    !!h.provisioned,
         ansible_groups: h.ansible_groups ?? [],
         zone_id:        zone,
-        parent:         zone,
       },
       position: INITIAL_POSITIONS[h.id ?? h.hostname],
     }
@@ -240,80 +235,22 @@ function buildNodesEdges(apiHosts) {
     })
   }
 
-  // Invisible anchor nodes that force each zone compound to span its quadrant
+  // Invisible anchor nodes — top-level, define graph extent for cy.fit().
+  // provisioned:true prevents the unprovisioned amber-dashed selector from matching.
   const anchorNodes = ZONE_ANCHORS.map(a => ({
-    data: { id: a.id, parent: a.zone, phantom: true, label: '' },
+    data: { id: a.id, phantom: 'yes', label: '', provisioned: true },
     position: { x: a.x, y: a.y },
   }))
 
-  return { nodes: [...zoneNodes, stockroomNode, ...templateNodes, ...vmNodes, ...anchorNodes], edges }
+  return { nodes: [...templateNodes, ...vmNodes, ...anchorNodes], edges }
 }
 
 // ── Cytoscape styles ──────────────────────────────────────────────────────────
 
 const CY_STYLE = [
-  // ── Zone compound nodes ──
+  // ── Template tiles (Stockroom) ──
   {
-    selector: 'node[zone]',
-    style: {
-      'shape':              'rectangle',
-      'background-color':   '#0a0a1a',
-      'background-opacity': 0.5,
-      'border-width':       2,
-      'label':              'data(label)',
-      'text-valign':        'top',
-      'text-halign':        'left',
-      'text-margin-x':      8,
-      'text-margin-y':      4,
-      'font-family':        'monospace',
-      'font-size':          '13px',
-      'font-weight':        'bold',
-      'padding':            '35px',
-      'events':             'no',
-    }
-  },
-  { selector: '#zone-console',    style: { 'border-color': '#888888', 'color': '#aaaaaa' } },
-  { selector: '#zone-dev',        style: { 'border-color': '#44aa66', 'color': '#44aa66' } },
-  { selector: '#zone-staging',    style: { 'border-color': '#cc8833', 'color': '#cc8833' } },
-  { selector: '#zone-production', style: { 'border-color': '#cc4444', 'color': '#cc4444' } },
-
-  // ── Phantom anchor nodes (invisible — force zone bounding boxes) ──
-  {
-    selector: 'node[phantom]',
-    style: {
-      'width':              1,
-      'height':             1,
-      'background-opacity': 0,
-      'border-width':       0,
-      'label':              '',
-      'events':             'no',
-    }
-  },
-
-  // ── Stockroom compound ──
-  {
-    selector: 'node[stockroom]',
-    style: {
-      'shape':              'rectangle',
-      'background-color':   '#0d1520',
-      'background-opacity': 0.7,
-      'border-color':       '#445566',
-      'border-width':       1,
-      'border-style':       'dashed',
-      'label':              'data(label)',
-      'text-valign':        'top',
-      'text-halign':        'center',
-      'font-family':        'monospace',
-      'font-size':          '10px',
-      'color':              '#556677',
-      'padding':            '18px',
-      'events':             'no',
-    }
-  },
-
-  // ── Template tiles (click → pre-fill Add dialog) ──
-  {
-    selector: 'node[template]',
+    selector: 'node.template-node',
     style: {
       'shape':              'rectangle',
       'background-image':   ICON_TEMPLATE,
@@ -336,13 +273,13 @@ const CY_STYLE = [
     }
   },
   {
-    selector: 'node[template]:hover',
+    selector: 'node.template-node:hover',
     style: { 'border-color': '#8899aa', 'color': '#99aabb' }
   },
 
-  // ── VM / controller nodes — base ──
+  // ── VM / controller nodes ──
   {
-    selector: 'node:not([zone]):not([template]):not([stockroom]):not([phantom])',
+    selector: 'node:not(.template-node):not(.phantom)',
     style: {
       'shape':              'rectangle',
       'background-opacity': 0,
@@ -363,11 +300,8 @@ const CY_STYLE = [
 
   // ── Icons by vm_role ──
   {
-    selector: 'node[vm_role = "dev"]:not([template])',
-    style: {
-      'background-image': ICON_DEV,
-      'background-fit':   'contain',
-    }
+    selector: 'node[vm_role = "dev"]:not(.template-node)',
+    style: { 'background-image': ICON_DEV, 'background-fit': 'contain' }
   },
   {
     selector: 'node[vm_role = "master"]',
@@ -391,37 +325,41 @@ const CY_STYLE = [
     }
   },
 
-  // ── Special roles override ──
+  // ── Special roles ──
   {
     selector: 'node[role = "hub"]',
-    style: {
-      'border-color': '#4fc3f7',
-      'border-width': 3,
-      'width':        70,
-      'height':       60,
-    }
+    style: { 'border-color': '#4fc3f7', 'border-width': 3, 'width': 70, 'height': 60 }
   },
   {
     selector: 'node[role = "controller"]',
-    style: {
-      'border-color': '#c8e6a0',
-      'border-style': 'dashed',
-    }
+    style: { 'border-color': '#c8e6a0', 'border-style': 'dashed' }
   },
 
-  // ── Unprovisioned state ──
+  // ── Unprovisioned ──
   {
-    selector: 'node[!provisioned]:not([template]):not([stockroom]):not([zone]):not([phantom])',
+    selector: 'node[!provisioned]:not(.template-node):not(.phantom)',
+    style: { 'border-color': '#f0a020', 'border-width': 2, 'border-style': 'dashed' }
+  },
+
+  // ── Phantom anchor nodes — MUST come after all VM styles to win on specificity tie ──
+  // node.phantom[phantom="yes"] = class(10) + attr(10) + element(1) = 21
+  // Same specificity as base VM style but LATER in array → wins.
+  // Also immune to unprovisioned selector because provisioned:true is set in data.
+  {
+    selector: 'node.phantom[phantom = "yes"]',
     style: {
-      'border-color': '#f0a020',
-      'border-width': 2,
-      'border-style': 'dashed',
+      'width':              1,
+      'height':             1,
+      'background-opacity': 0,
+      'border-width':       0,
+      'label':              '',
+      'events':             'no',
     }
   },
 
   // ── Selected ──
   {
-    selector: 'node:selected:not([zone]):not([stockroom])',
+    selector: 'node:selected:not(.phantom)',
     style: { 'border-color': '#ffcc00', 'border-width': 3 }
   },
 
@@ -481,10 +419,169 @@ async function init() {
     },
   })
 
+  // Apply CSS classes — class selectors are reliable; [attr] existence selectors
+  // have a bug in Cytoscape 3.33.x where boolean/truthy values don't match.
+  ZONE_ANCHORS.forEach(a      => cy.$('#' + a.id).addClass('phantom'))
+  STOCKROOM_TEMPLATES.forEach(t => cy.$('#' + t.id).addClass('template-node'))
+
   cy.fit(cy.elements(), 60)
   attachHandlers()
   _updatePromoteButton()
   _reconnectActiveJob()
+
+  // Position zone overlay panels and splitter; keep in sync with pan/zoom/resize
+  _updateZoneOverlay()
+  cy.on('pan zoom resize', _updateZoneOverlay)
+}
+
+// ── Quad-zone splitter ────────────────────────────────────────────────────────
+// A draggable "+" handle at the intersection of the 4 quadrants.
+// Dragging it resizes the quadrants by moving the phantom anchor nodes.
+
+let splitX = 425   // initial graph-coordinate split point (matches ZONE_GRAPH midpoint)
+let splitY = 425
+
+function _updateQuadAnchors(rawX, rawY) {
+  // Clamp so each zone keeps at least 80 graph units of usable width/height.
+  // Writes back to module-level splitX/splitY so _updateZoneOverlay reads
+  // the same clamped values.
+  const { LEFT, RIGHT, TOP, BOTTOM } = ZONE_GRAPH
+  splitX = Math.max(LEFT  + 80, Math.min(RIGHT  - 80, rawX))
+  splitY = Math.max(TOP   + 80, Math.min(BOTTOM - 80, rawY))
+
+  cy.$('#anch-con-a').position({ x: LEFT,   y: TOP    })
+  cy.$('#anch-con-b').position({ x: splitX, y: splitY })
+  cy.$('#anch-dev-a').position({ x: splitX, y: TOP    })
+  cy.$('#anch-dev-b').position({ x: RIGHT,  y: splitY })
+  cy.$('#anch-stg-a').position({ x: LEFT,   y: splitY })
+  cy.$('#anch-stg-b').position({ x: splitX, y: BOTTOM })
+  cy.$('#anch-pro-a').position({ x: splitX, y: splitY })
+  cy.$('#anch-pro-b').position({ x: RIGHT,  y: BOTTOM })
+
+  // Fences squeeze sheep: push every VM inside its zone's new bounds.
+  _constrainVMsToZones()
+}
+
+// Minimum clearance (graph units) between a VM centre and its zone fence.
+const ZONE_VM_MARGIN = 50
+
+function _constrainVMsToZones() {
+  if (!cy) return
+  const { LEFT, RIGHT, TOP, BOTTOM } = ZONE_GRAPH
+  const m = ZONE_VM_MARGIN
+  const bounds = {
+    'zone-console':    { x1: LEFT,   y1: TOP,    x2: splitX, y2: splitY },
+    'zone-dev':        { x1: splitX, y1: TOP,    x2: RIGHT,  y2: splitY },
+    'zone-staging':    { x1: LEFT,   y1: splitY, x2: splitX, y2: BOTTOM },
+    'zone-production': { x1: splitX, y1: splitY, x2: RIGHT,  y2: BOTTOM },
+  }
+  cy.nodes(':not(.phantom):not(.template-node)').forEach(node => {
+    const b = bounds[node.data('zone_id')]
+    if (!b) return
+    const pos = node.position()
+    const nx  = Math.max(b.x1 + m, Math.min(b.x2 - m, pos.x))
+    const ny  = Math.max(b.y1 + m, Math.min(b.y2 - m, pos.y))
+    if (nx !== pos.x || ny !== pos.y) node.position({ x: nx, y: ny })
+  })
+}
+
+function _graphToScreen(gx, gy) {
+  const pan = cy.pan(), zoom = cy.zoom()
+  return { x: gx * zoom + pan.x, y: gy * zoom + pan.y }
+}
+
+// Stockroom bounding box in graph coordinates (surrounds the 3 template tiles)
+const STOCKROOM_GRAPH = { x1: 258, y1: 78, x2: 362, y2: 362 }
+
+function _updateZoneOverlay() {
+  if (!cy) return
+  // All geometry derived from the same two values (splitX, splitY) via _graphToScreen().
+  // This guarantees zone frames, splitter handle, and _zoneAtPos() are all consistent
+  // with each other and with where Cytoscape actually renders VM nodes.
+  const { LEFT, RIGHT, TOP, BOTTOM } = ZONE_GRAPH
+  const tl = _graphToScreen(LEFT,   TOP)     // outer top-left
+  const br = _graphToScreen(RIGHT,  BOTTOM)  // outer bottom-right
+  const sp = _graphToScreen(splitX, splitY)  // cross-hair point
+
+  const panels = {
+    'panel-console':    { x1: tl.x, y1: tl.y, x2: sp.x, y2: sp.y },
+    'panel-dev':        { x1: sp.x, y1: tl.y, x2: br.x, y2: sp.y },
+    'panel-staging':    { x1: tl.x, y1: sp.y, x2: sp.x, y2: br.y },
+    'panel-production': { x1: sp.x, y1: sp.y, x2: br.x, y2: br.y },
+  }
+  for (const [id, { x1, y1, x2, y2 }] of Object.entries(panels)) {
+    const el = document.getElementById(id)
+    if (!el) continue
+    el.style.left   = x1 + 'px'
+    el.style.top    = y1 + 'px'
+    el.style.width  = (x2 - x1) + 'px'
+    el.style.height = (y2 - y1) + 'px'
+  }
+
+  const sr1 = _graphToScreen(STOCKROOM_GRAPH.x1, STOCKROOM_GRAPH.y1)
+  const sr2 = _graphToScreen(STOCKROOM_GRAPH.x2, STOCKROOM_GRAPH.y2)
+  const stockEl = document.getElementById('stockroom-panel')
+  if (stockEl) {
+    stockEl.style.left   = sr1.x + 'px'
+    stockEl.style.top    = sr1.y + 'px'
+    stockEl.style.width  = (sr2.x - sr1.x) + 'px'
+    stockEl.style.height = (sr2.y - sr1.y) + 'px'
+  }
+
+  const splitterEl = document.getElementById('quad-splitter')
+  if (splitterEl) {
+    splitterEl.style.left = sp.x + 'px'
+    splitterEl.style.top  = sp.y + 'px'
+  }
+}
+
+;(function _initSplitter() {
+  const el   = document.getElementById('quad-splitter')
+  const cyEl = document.getElementById('cy')
+  if (!el) return
+
+  let dragging = false
+
+  el.addEventListener('mousedown', e => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragging = true
+    el.classList.add('dragging')
+    if (cy) { cy.userPanningEnabled(false); cy.userZoomingEnabled(false) }
+  })
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return
+    const rect  = cyEl.getBoundingClientRect()
+    const pan   = cy.pan()
+    const zoom  = cy.zoom()
+    const rawX  = (e.clientX - rect.left - pan.x) / zoom
+    const rawY  = (e.clientY - rect.top  - pan.y) / zoom
+    _updateQuadAnchors(rawX, rawY)  // clamps and writes back to splitX, splitY
+    _updateZoneOverlay()            // reads clamped splitX, splitY
+  })
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return
+    dragging = false
+    el.classList.remove('dragging')
+    if (cy) { cy.userPanningEnabled(true); cy.userZoomingEnabled(true) }
+  })
+})()
+
+// ── Zone-change on drag ───────────────────────────────────────────────────────
+// Dragging a VM across a zone fence reassigns it to the new paddock.
+// Zone boundaries are the same splitX/splitY values used to draw the fence —
+// guaranteed consistent with zone frame positions and VM rendered positions.
+
+function _zoneAtPos(pos) {
+  const { LEFT, RIGHT, TOP, BOTTOM } = ZONE_GRAPH
+  if (pos.x < LEFT || pos.x > RIGHT || pos.y < TOP || pos.y > BOTTOM) return null
+  const onLeft = pos.x <= splitX, onTop = pos.y <= splitY
+  if (onLeft  &&  onTop) return 'zone-console'
+  if (!onLeft &&  onTop) return 'zone-dev'
+  if (onLeft  && !onTop) return 'zone-staging'
+  return 'zone-production'
 }
 
 // ── Info panel ────────────────────────────────────────────────────────────────
@@ -725,12 +822,12 @@ async function _reconnectActiveJob() {
 
 function attachHandlers() {
   // Template tile click → show Deploy button
-  cy.on('tap', 'node[template]', evt => {
+  cy.on('tap', 'node.template-node', evt => {
     renderTemplateInfo(evt.target.data())
   })
 
   // VM node click → info + action buttons
-  cy.on('tap', 'node:not([zone]):not([template]):not([stockroom])', evt => {
+  cy.on('tap', 'node:not(.template-node):not(.phantom)', evt => {
     renderInfoWithActions(evt.target.data())
   })
 
@@ -750,10 +847,78 @@ function attachHandlers() {
 
   // Canvas right-click → shortcut menu
   cy.on('cxttap', evt => {
-    if (evt.target === cy || evt.target.data('zone')) {
+    if (evt.target === cy) {
       const { x, y } = evt.originalEvent
       showCtxMenu(x, y)
     }
+  })
+
+  // ── Drag-to-rezone: sheep crossing a fence changes paddock ──
+  const _preDragPos = new Map()
+
+  // Record position before drag begins (needed for snap-back on rejected drops)
+  cy.on('grab', 'node:not(.phantom):not(.template-node)', evt => {
+    const n = evt.target
+    _preDragPos.set(n.id(), { ...n.position() })
+  })
+
+  // On drop: detect which zone the node landed in; reassign or reject
+  cy.on('dragfree', 'node:not(.phantom):not(.template-node)', evt => {
+    const node = evt.target
+    const role = node.data('role')
+
+    const pos       = node.position()
+    const newZoneId = _zoneAtPos(pos)
+    const oldZoneId = node.data('zone_id')
+
+    function snapBack() {
+      const prev = _preDragPos.get(node.id())
+      if (prev) node.position(prev)
+      _preDragPos.delete(node.id())
+    }
+
+    // Hub and controller are permanent Console residents — always snap back
+    if (role === 'hub' || role === 'controller') { snapBack(); return }
+
+    // Dropped outside all fences — return to paddock
+    if (!newZoneId) { snapBack(); return }
+
+    // Console is reserved for hub/controller — reject
+    if (newZoneId === 'zone-console') { snapBack(); return }
+
+    // Production is write-protected — only reachable via the Promote button
+    if (newZoneId === 'zone-production') {
+      hint('Production zone is write-protected. Use the Promote → button.')
+      snapBack()
+      return
+    }
+
+    // Still in same paddock — fine, keep position
+    if (newZoneId === oldZoneId) { _preDragPos.delete(node.id()); return }
+
+    // Crossed a fence — determine new role.
+    // node.data('zone_id') is still oldZoneId at this point, so counting newZoneId
+    // naturally excludes the dragged node.
+    let newRole = 'dev'
+    if (newZoneId === 'zone-staging' || newZoneId === 'zone-production') {
+      const inNewZone      = cy.nodes(`[zone_id = "${newZoneId}"]:not(.phantom)`)
+      const existingMasters = inNewZone.filter('[vm_role = "master"]').length
+      const existingSlaves  = inNewZone.filter('[vm_role = "slave"]').length
+
+      if      (existingMasters < 1) newRole = 'master'
+      else if (existingSlaves  < 1) newRole = 'slave'
+      else {
+        const zoneName = newZoneId === 'zone-staging' ? 'Staging' : 'Production'
+        hint(`${zoneName} zone is full (1 Master + 1 Slave). Remove a VM first.`)
+        snapBack()
+        return
+      }
+    }
+
+    node.data('zone_id', newZoneId)
+    node.data('vm_role', newRole)
+    _preDragPos.delete(node.id())
+    _updatePromoteButton()
   })
 }
 
@@ -939,7 +1104,6 @@ function _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone = 'developm
       provisioned:    false,
       ansible_groups: groups,
       zone_id:        zoneId,
-      parent:         zoneId,
     },
     position: pos,
   })

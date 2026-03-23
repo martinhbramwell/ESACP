@@ -14,7 +14,27 @@
         <button id="btn-add-target" title="Add a new target VM">+ Add Target</button>
         <button id="btn-promote" disabled title="Promote Staging → Production (requires 1 Master + 1 Slave in Staging)">Promote →</button>
       </header>
-      <div id="cy"></div>
+      <div id="cy">
+        <!-- Zone boundary overlays — pure HTML/CSS, no Cytoscape compound nodes -->
+        <div id="zone-overlay">
+          <div class="zone-panel" id="panel-console">
+            <span class="zone-label">Console</span>
+          </div>
+          <div class="zone-panel" id="panel-dev">
+            <span class="zone-label">Development</span>
+          </div>
+          <div class="zone-panel" id="panel-staging">
+            <span class="zone-label">Staging</span>
+          </div>
+          <div class="zone-panel" id="panel-production">
+            <span class="zone-label">Production</span>
+          </div>
+          <div id="stockroom-panel">
+            <span class="stockroom-label">Stockroom</span>
+          </div>
+          <div id="quad-splitter" title="Drag to resize quadrants"></div>
+        </div>
+      </div>
       <div id="resize-handle"><span class="grip"></span></div>
       <div id="info-panel">
         <p class="hint">Click a node or edge to inspect it. Use + Add Target in the toolbar.</p>
