@@ -356,6 +356,36 @@ pre.job-log {
 
 .action-btn--clone:hover { background: #283200; }
 
+/* ── Dev-zone role selector (radio buttons in info panel) ────────────────── */
+
+.role-selector {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+}
+
+.role-selector .role-label {
+  color: #a0c4ff;
+  white-space: nowrap;
+}
+
+.role-selector label {
+  color: #e0e0e0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.role-selector input[type="radio"] {
+  accent-color: #4fc3f7;
+  cursor: pointer;
+}
+
 /* ── Canvas right-click menu (power-user fallback) ────────────────────────── */
 
 #ctx-menu {

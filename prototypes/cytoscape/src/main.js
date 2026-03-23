@@ -142,6 +142,16 @@ function zoneFor(host) {
   return 'zone-dev'
 }
 
+// Normalise API single-word vm_role to the two-part "zone:type" format.
+// Old API values: 'dev', 'master', 'slave' → new: 'dev:unspecified', 'staging:master', etc.
+function normalizeVmRole(rawRole, zoneId) {
+  if (!rawRole || rawRole === 'dev') return 'dev:unspecified'
+  const zone = zoneId.replace('zone-', '')  // 'dev', 'staging', 'production', 'console'
+  if (rawRole === 'master') return `${zone}:master`
+  if (rawRole === 'slave')  return `${zone}:slave`
+  return rawRole  // already in two-part format
+}
+
 function nextDevPosition(cy) {
   const devNodes = cy.nodes('[zone_id = "zone-dev"]:not(.phantom)')
   const xs = devNodes.map(n => n.position('x'))
@@ -158,27 +168,28 @@ function nextPositionForZone(cy, zoneId) {
   return { x: maxX + 160, y: base.baseY }
 }
 
-// Count master/slave nodes in the given zone
+// Count master/slave nodes in the given zone using the two-part vm_role format.
 function countZoneRoles(cy, zoneId) {
   if (!cy) return { masters: 0, slaves: 0 }
+  const prefix = zoneId.replace('zone-', '')  // 'staging', 'production'
   return {
-    masters: cy.nodes(`[zone_id = "${zoneId}"][vm_role = "master"]:not(.phantom)`).length,
-    slaves:  cy.nodes(`[zone_id = "${zoneId}"][vm_role = "slave"]:not(.phantom)`).length,
+    masters: cy.nodes(`[zone_id = "${zoneId}"][vm_role = "${prefix}:master"]:not(.phantom)`).length,
+    slaves:  cy.nodes(`[zone_id = "${zoneId}"][vm_role = "${prefix}:slave"]:not(.phantom)`).length,
   }
 }
 
 // ── Fallback topology (when API unreachable) ──────────────────────────────────
 
 const FALLBACK_HOSTS = [
-  { id: 'saconsole', hostname: 'saconsole', wg_role: 'hub',   wg_ip: '10.10.0.1', virbr0_ip: '192.168.122.10', backend: 'kvm', provisioned: true,  ansible_groups: ['kvm', 'development', 'lab'],            vm_role: 'dev' },
-  { id: 'target1',   hostname: 'target1',   wg_role: 'spoke', wg_ip: '10.10.0.3', virbr0_ip: '192.168.122.11', backend: 'kvm', provisioned: true,  ansible_groups: ['kvm', 'targets', 'development', 'lab'], vm_role: 'dev' },
-  { id: 'target2',   hostname: 'target2',   wg_role: 'spoke', wg_ip: '10.10.0.4', virbr0_ip: '192.168.122.12', backend: 'kvm', provisioned: true,  ansible_groups: ['kvm', 'targets', 'development', 'lab'], vm_role: 'dev' },
+  { id: 'saconsole', hostname: 'saconsole', wg_role: 'hub',   wg_ip: '10.10.0.1', virbr0_ip: '192.168.122.10', backend: 'kvm', provisioned: true,  ansible_groups: ['kvm', 'development', 'lab'],            vm_role: 'dev:unspecified' },
+  { id: 'target1',   hostname: 'target1',   wg_role: 'spoke', wg_ip: '10.10.0.3', virbr0_ip: '192.168.122.11', backend: 'kvm', provisioned: true,  ansible_groups: ['kvm', 'targets', 'development', 'lab'], vm_role: 'dev:unspecified' },
+  { id: 'target2',   hostname: 'target2',   wg_role: 'spoke', wg_ip: '10.10.0.4', virbr0_ip: '192.168.122.12', backend: 'kvm', provisioned: true,  ansible_groups: ['kvm', 'targets', 'development', 'lab'], vm_role: 'dev:unspecified' },
 ]
 
 const CONTROLLER_HOST = {
   id: 'controller', hostname: 'controller', wg_role: 'controller',
   wg_ip: '10.10.0.2', virbr0_ip: '', backend: 'local',
-  provisioned: true, ansible_groups: [], vm_role: 'dev',
+  provisioned: true, ansible_groups: [], vm_role: 'dev:unspecified',
 }
 
 // ── Graph data builder ────────────────────────────────────────────────────────
@@ -211,7 +222,7 @@ function buildNodesEdges(apiHosts) {
                       : h.provisioned === null  ? `${h.hostname}\n[unknown]`
                       : h.hostname,
         role:           h.wg_role,
-        vm_role:        h.vm_role ?? 'dev',
+        vm_role:        normalizeVmRole(h.vm_role, zone),
         platform:       h.backend ?? 'kvm',
         wg_ip:          h.wg_ip     ?? '',
         virbr0_ip:      h.virbr0_ip ?? '',
@@ -298,30 +309,35 @@ const CY_STYLE = [
     }
   },
 
-  // ── Icons by vm_role ──
+  // ── Icons by vm_role type (zone:type format) ──
   {
-    selector: 'node[vm_role = "dev"]:not(.template-node)',
+    selector: 'node[vm_role = "dev:unspecified"]:not(.template-node)',
     style: { 'background-image': ICON_DEV, 'background-fit': 'contain' }
   },
   {
-    selector: 'node[vm_role = "master"]',
+    // master: any zone prefix (*:master)
+    selector: 'node[vm_role = "dev:master"], node[vm_role = "staging:master"], node[vm_role = "production:master"]',
     style: {
-      'background-image': ICON_MASTER,
-      'background-fit':   'contain',
-      'border-color':     '#4fc3f7',
-      'border-width':     2,
-      'width':            90,
-      'height':           80,
+      'background-image':  ICON_MASTER,
+      'background-width':  '75%',
+      'background-height': '75%',
+      'border-color':      '#4fc3f7',
+      'border-width':      2,
+      'width':             90,
+      'height':            80,
     }
   },
   {
-    selector: 'node[vm_role = "slave"]',
+    // slave: any zone prefix (*:slave)
+    selector: 'node[vm_role = "dev:slave"], node[vm_role = "staging:slave"], node[vm_role = "production:slave"]',
     style: {
-      'background-image': ICON_SLAVE,
-      'background-fit':   'contain',
-      'border-color':     '#66bb99',
-      'border-width':     2,
-      'height':           80,
+      'background-image':  ICON_SLAVE,
+      'background-width':  '75%',
+      'background-height': '75%',
+      'border-color':      '#66bb99',
+      'border-width':      2,
+      'width':             80,
+      'height':            80,
     }
   },
 
@@ -426,6 +442,8 @@ async function init() {
 
   cy.fit(cy.elements(), 60)
   attachHandlers()
+  // Hub (saconsole) and controller are water-troughs — permanently fixed in Console.
+  cy.nodes('[role = "hub"], [role = "controller"]').lock()
   _updatePromoteButton()
   _reconnectActiveJob()
 
@@ -438,16 +456,20 @@ async function init() {
 // A draggable "+" handle at the intersection of the 4 quadrants.
 // Dragging it resizes the quadrants by moving the phantom anchor nodes.
 
-let splitX = 425   // initial graph-coordinate split point (matches ZONE_GRAPH midpoint)
-let splitY = 425
+// Console quadrant minimum: the splitter can only move right/down (making Console
+// larger). Initial values are the floor — Console cannot shrink below this size.
+const CONSOLE_MIN_SPLIT_X = 425
+const CONSOLE_MIN_SPLIT_Y = 425
+let splitX = CONSOLE_MIN_SPLIT_X
+let splitY = CONSOLE_MIN_SPLIT_Y
 
 function _updateQuadAnchors(rawX, rawY) {
   // Clamp so each zone keeps at least 80 graph units of usable width/height.
   // Writes back to module-level splitX/splitY so _updateZoneOverlay reads
   // the same clamped values.
   const { LEFT, RIGHT, TOP, BOTTOM } = ZONE_GRAPH
-  splitX = Math.max(LEFT  + 80, Math.min(RIGHT  - 80, rawX))
-  splitY = Math.max(TOP   + 80, Math.min(BOTTOM - 80, rawY))
+  splitX = Math.max(CONSOLE_MIN_SPLIT_X, Math.min(RIGHT  - 80, rawX))
+  splitY = Math.max(CONSOLE_MIN_SPLIT_Y, Math.min(BOTTOM - 80, rawY))
 
   cy.$('#anch-con-a').position({ x: LEFT,   y: TOP    })
   cy.$('#anch-con-b').position({ x: splitX, y: splitY })
@@ -609,8 +631,31 @@ function renderInfoWithActions(data) {
 
   const role        = data.role
   const provisioned = data.provisioned
-  const vm_role     = data.vm_role ?? 'dev'
+  const vm_role     = data.vm_role ?? 'dev:unspecified'
   const isOperational = role !== 'controller' && role !== 'hub'
+
+  // ── Role selector — shown only for user VMs in the dev zone ──
+  if (isOperational && data.zone_id === 'zone-dev') {
+    const roleDiv = document.createElement('div')
+    roleDiv.className = 'role-selector'
+    const opts = [
+      { value: 'dev:unspecified', label: 'Unspecified' },
+      { value: 'dev:master',      label: 'Master'       },
+      { value: 'dev:slave',       label: 'Slave'        },
+    ]
+    roleDiv.innerHTML = '<span class="role-label">Intended role:</span>' +
+      opts.map(o =>
+        `<label><input type="radio" name="vm-role-${data.id}" value="${o.value}"` +
+        (vm_role === o.value ? ' checked' : '') + `> ${o.label}</label>`
+      ).join('')
+    roleDiv.querySelectorAll('input[type="radio"]').forEach(input => {
+      input.addEventListener('change', () => {
+        const node = cy.$('#' + data.id)
+        node.data('vm_role', input.value)
+      })
+    })
+    infoPanel.appendChild(roleDiv)
+  }
 
   const actions = document.createElement('div')
   actions.className = 'action-bar'
@@ -623,13 +668,13 @@ function renderInfoWithActions(data) {
     actions.appendChild(btn)
   }
 
-  // Clone to Staging — only for provisioned dev spokes
-  if (isOperational && provisioned && vm_role === 'dev' && data.zone_id === 'zone-dev') {
+  // Clone to Staging — any provisioned dev spoke (declared role pre-fills the dialog)
+  if (isOperational && provisioned && data.zone_id === 'zone-dev') {
     const btn = document.createElement('button')
     btn.className   = 'action-btn action-btn--clone'
     btn.textContent = 'Clone to Staging'
     btn.title       = 'Deploy a new VM in Staging (fresh provision — not a disk copy)'
-    btn.onclick     = () => openDialogForZone('staging', data.id)
+    btn.onclick     = () => openDialogForZone('staging', data.id, data.vm_role)
     actions.appendChild(btn)
   }
 
@@ -877,7 +922,7 @@ function attachHandlers() {
       _preDragPos.delete(node.id())
     }
 
-    // Hub and controller are permanent Console residents — always snap back
+    // Hub and controller are locked — cannot be dragged (kept as safety guard)
     if (role === 'hub' || role === 'controller') { snapBack(); return }
 
     // Dropped outside all fences — return to paddock
@@ -896,27 +941,45 @@ function attachHandlers() {
     // Still in same paddock — fine, keep position
     if (newZoneId === oldZoneId) { _preDragPos.delete(node.id()); return }
 
-    // Crossed a fence — determine new role.
-    // node.data('zone_id') is still oldZoneId at this point, so counting newZoneId
-    // naturally excludes the dragged node.
-    let newRole = 'dev'
-    if (newZoneId === 'zone-staging' || newZoneId === 'zone-production') {
-      const inNewZone      = cy.nodes(`[zone_id = "${newZoneId}"]:not(.phantom)`)
-      const existingMasters = inNewZone.filter('[vm_role = "master"]').length
-      const existingSlaves  = inNewZone.filter('[vm_role = "slave"]').length
+    // ── Crossed into staging ──────────────────────────────────────────────────
+    // vm_role must be declared (dev:master or dev:slave) before crossing the fence.
+    // The declared type determines which slot is taken in staging.
+    if (newZoneId === 'zone-staging') {
+      const currentRole = node.data('vm_role')  // two-part: 'dev:master' etc.
+      const roleType    = currentRole?.split(':')[1]  // 'unspecified', 'master', 'slave'
 
-      if      (existingMasters < 1) newRole = 'master'
-      else if (existingSlaves  < 1) newRole = 'slave'
-      else {
-        const zoneName = newZoneId === 'zone-staging' ? 'Staging' : 'Production'
-        hint(`${zoneName} zone is full (1 Master + 1 Slave). Remove a VM first.`)
+      if (!roleType || roleType === 'unspecified') {
+        hint('Declare a role (Master or Slave) before moving to Staging.')
         snapBack()
         return
       }
+
+      const { masters: existingMasters, slaves: existingSlaves } = countZoneRoles(cy, 'zone-staging')
+      if (roleType === 'master' && existingMasters >= 1) {
+        hint('Staging already has a Master. Remove it first or declare Slave.')
+        snapBack()
+        return
+      }
+      if (roleType === 'slave' && existingSlaves >= 1) {
+        hint('Staging already has a Slave. Remove it first or declare Master.')
+        snapBack()
+        return
+      }
+
+      node.data('zone_id', 'zone-staging')
+      node.data('vm_role', `staging:${roleType}`)
+      _preDragPos.delete(node.id())
+      _updatePromoteButton()
+      return
     }
 
-    node.data('zone_id', newZoneId)
-    node.data('vm_role', newRole)
+    // ── Crossed back into dev ─────────────────────────────────────────────────
+    // Keep the declared role type (master/slave) so user can drag back easily.
+    // 'staging:master' → 'dev:master', slot freed in staging.
+    const currentRole = node.data('vm_role')
+    const roleType    = currentRole?.split(':')[1] ?? 'unspecified'
+    node.data('zone_id', 'zone-dev')
+    node.data('vm_role', `dev:${roleType}`)
     _preDragPos.delete(node.id())
     _updatePromoteButton()
   })
@@ -1038,9 +1101,13 @@ function openDialogFromTemplate(tplData) {
   openDialog({ zone: tplData.defaultZone, vm_role: tplData.defaultRole })
 }
 
-// Open dialog pre-filled for a target zone (e.g. Clone to Staging)
-function openDialogForZone(zone, sourceHostname) {
-  openDialog({ zone })
+// Open dialog pre-filled for a target zone (e.g. Clone to Staging).
+// sourceVmRole: the source dev node's two-part role ('dev:master' etc.) — used to
+// pre-select the role in the dialog so the user doesn't have to repeat the choice.
+function openDialogForZone(zone, sourceHostname, sourceVmRole) {
+  const roleType = sourceVmRole?.split(':')[1]  // 'master', 'slave', or 'unspecified'
+  const vm_role  = roleType && roleType !== 'unspecified' ? roleType : undefined
+  openDialog({ zone, vm_role })
   if (sourceHostname) fHostname.placeholder = `${sourceHostname}-staging`
 }
 
@@ -1063,7 +1130,7 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
   const backend    = fBackend.value
   const hypervisor = fHypervisor.value.trim()
   const zone       = fZone.value
-  const vm_role    = zone === 'development' ? 'dev' : fVmRole.value
+  const vm_role    = zone === 'development' ? 'dev:unspecified' : `${zone}:${fVmRole.value}`
 
   try {
     await addHost({ hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor, zone, vm_role })
@@ -1086,7 +1153,7 @@ function _zoneIdFor(zone) {
   return 'zone-dev'
 }
 
-function _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone = 'development', vm_role = 'dev' }) {
+function _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone = 'development', vm_role = 'dev:unspecified' }) {
   const zoneId = _zoneIdFor(zone)
   const pos    = nextPositionForZone(cy, zoneId)
   const groups = ZONE_GROUPS[zone] ?? ZONE_GROUPS.development
