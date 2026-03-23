@@ -304,6 +304,16 @@ prototypes/
                                     # Access: http://localhost:5173
                                     # 4-Quadrant layout: Console (white) / Development (green) /
                                     #   Staging (amber) / Production (red)
+                                    # Zone frames: HTML overlay divs (#zone-overlay) — NOT Cytoscape compound
+                                    #   nodes. Compound nodes caused colour bleeding, empty-zone collapse, and
+                                    #   selector specificity bugs (see GH issue #15). HTML panels track
+                                    #   pan/zoom via _graphToScreen(splitX, splitY) + ZONE_GRAPH constants.
+                                    # Draggable "+" handle (quad-splitter) resizes all four zones; on resize,
+                                    #   _constrainVMsToZones() clamps every VM inside its zone bounds (50gu margin)
+                                    #   — fences squeeze sheep.
+                                    # Drag-to-rezone: drop VM onto new zone → zone_id + vm_role reassigned.
+                                    #   Production is write-protected (direct drag rejected; Promote only).
+                                    #   Hub/controller nodes always snap back to Console zone.
                                     # Stockroom in Console zone: 3 template tiles (Basic VM / MariaDB / ERPNext)
                                     #   Click a template → Deploy from Template pre-fills Add dialog with zone+role
                                     # Node icons by vm_role: dev=computer, master=rack server, slave=disk cylinders
@@ -548,6 +558,21 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 - **Secrets**: `ansible/group_vars/all.sops.yml` holds encrypted credentials
   (Telegram bot token, Grafana admin password). Requires SOPS + age key to decrypt.
   See `SETUP_GUIDE.md` for key setup.
+
+- **Cytoscape zone frames must be HTML overlays, not compound nodes** (GH #15): Cytoscape
+  compound nodes cause three fatal bugs: (1) empty zones collapse to zero size at (0,0);
+  (2) attribute selectors like `node[!provisioned]` bleed onto zone nodes (no VM data → falsy
+  → matched); (3) phantom anchor selectors lose specificity battles against VM style rules.
+  Use `<div id="zone-overlay">` with absolutely-positioned child panels instead. Position them
+  via `_graphToScreen()` on every `pan zoom resize` event. Phantom anchors must have
+  `provisioned: true` in data and use a class+attribute selector (`node.phantom[phantom="yes"]`,
+  specificity 21) placed *after* the base VM style in the CY_STYLE array.
+
+- **Cytoscape zone geometry single source of truth**: zone panels, the splitter handle, and
+  `_zoneAtPos()` must all derive coordinates from the same `splitX/splitY` values via
+  `_graphToScreen()`. Any divergence causes VMs to visually land in one zone while being
+  assigned to another. `_updateQuadAnchors()` clamps and writes `splitX/splitY` then calls
+  `_constrainVMsToZones()` — both the frames and the sheep move together.
 
 - **`esacp.py snapShotVM` is KVM-only**: hardwired to `platforms/kvm/snapshot.py` → `virsh`.
   On VBox/WSL use `bash platforms/vbox/take_snapshots.sh "name"` instead.
