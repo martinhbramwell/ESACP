@@ -200,7 +200,7 @@ else
 fi
 
 # Check recency of handshake (wg show dump gives Unix timestamps)
-WG_DUMP=$(sudo wg show wg0 dump 2>/dev/null || true)
+WG_DUMP=$(sudo -n wg show wg0 dump 2>/dev/null || true)
 if [[ -n "${WG_DUMP}" ]]; then
     HS_TS=$(echo "${WG_DUMP}" | awk 'NR>1{print $5}' | head -1)
     NOW=$(date +%s)
