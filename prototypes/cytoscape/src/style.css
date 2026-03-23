@@ -330,7 +330,12 @@ pre.job-log {
   cursor: pointer;
 }
 
-.action-btn:hover { background: #1a5080; }
+.action-btn:hover:not(:disabled) { background: #1a5080; }
+
+.action-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
 
 .action-btn--danger {
   background: #3a0f0f;

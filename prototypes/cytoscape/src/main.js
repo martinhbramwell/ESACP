@@ -12,8 +12,10 @@ function svgB64(svg) {
 }
 
 // Standard dev/spoke VM — small computer monitor
+// width/height MUST match the viewBox so Cytoscape's background-fit:contain uses
+// the correct aspect ratio. Without them the browser defaults to 300×150 intrinsic.
 const ICON_DEV = svgB64(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 56">' +
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 56" width="64" height="56">' +
   '<rect x="4" y="6" width="56" height="38" rx="3" fill="#1a3a5a" stroke="#a0c4ff" stroke-width="2"/>' +
   '<rect x="7" y="9" width="50" height="32" rx="2" fill="#0a1520"/>' +
   '<rect x="22" y="44" width="20" height="5" fill="#2a4a6a"/>' +
@@ -23,7 +25,7 @@ const ICON_DEV = svgB64(
 
 // Master VM — rack server (3 rack units, more imposing)
 const ICON_MASTER = svgB64(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 60">' +
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 60" width="64" height="60">' +
   '<rect x="4" y="6"  width="56" height="13" rx="2" fill="#1a3a5a" stroke="#4fc3f7" stroke-width="2"/>' +
   '<rect x="4" y="21" width="56" height="13" rx="2" fill="#1a3a5a" stroke="#4fc3f7" stroke-width="2"/>' +
   '<rect x="4" y="36" width="56" height="13" rx="2" fill="#1a3a5a" stroke="#4fc3f7" stroke-width="2"/>' +
@@ -39,7 +41,7 @@ const ICON_MASTER = svgB64(
 
 // Slave VM — stacked disk cylinders (replication storage)
 const ICON_SLAVE = svgB64(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 60">' +
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 60" width="64" height="60">' +
   '<ellipse cx="32" cy="13" rx="24" ry="7" fill="#163a2a" stroke="#66bb99" stroke-width="2"/>' +
   '<rect x="8" y="13" width="48" height="11" fill="#163a2a"/>' +
   '<line x1="8" y1="13" x2="8" y2="24" stroke="#66bb99" stroke-width="2"/>' +
@@ -58,7 +60,7 @@ const ICON_SLAVE = svgB64(
 
 // Stockroom template tile — spec sheet icon
 const ICON_TEMPLATE = svgB64(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 50">' +
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 50" width="60" height="50">' +
   '<rect x="3" y="3" width="54" height="44" rx="3" fill="#0d1b2e" stroke="#556677" stroke-width="1.5"/>' +
   '<rect x="3" y="3" width="54" height="15" rx="3" fill="#1a2535" stroke="#556677" stroke-width="1.5"/>' +
   '<rect x="3" y="10" width="54" height="8" fill="#1a2535"/>' +
@@ -318,26 +320,24 @@ const CY_STYLE = [
     // master: any zone prefix (*:master)
     selector: 'node[vm_role = "dev:master"], node[vm_role = "staging:master"], node[vm_role = "production:master"]',
     style: {
-      'background-image':  ICON_MASTER,
-      'background-width':  '75%',
-      'background-height': '75%',
-      'border-color':      '#4fc3f7',
-      'border-width':      2,
-      'width':             90,
-      'height':            80,
+      'background-image': ICON_MASTER,
+      'background-fit':   'contain',
+      'border-color':     '#4fc3f7',
+      'border-width':     2,
+      'width':            90,
+      'height':           80,
     }
   },
   {
     // slave: any zone prefix (*:slave)
     selector: 'node[vm_role = "dev:slave"], node[vm_role = "staging:slave"], node[vm_role = "production:slave"]',
     style: {
-      'background-image':  ICON_SLAVE,
-      'background-width':  '75%',
-      'background-height': '75%',
-      'border-color':      '#66bb99',
-      'border-width':      2,
-      'width':             80,
-      'height':            80,
+      'background-image': ICON_SLAVE,
+      'background-fit':   'contain',
+      'border-color':     '#66bb99',
+      'border-width':     2,
+      'width':            80,
+      'height':           80,
     }
   },
 
@@ -440,6 +440,7 @@ async function init() {
   ZONE_ANCHORS.forEach(a      => cy.$('#' + a.id).addClass('phantom'))
   STOCKROOM_TEMPLATES.forEach(t => cy.$('#' + t.id).addClass('template-node'))
 
+  _repositionUnknownNodes()  // place API-loaded nodes not in INITIAL_POSITIONS
   cy.fit(cy.elements(), 60)
   attachHandlers()
   // Hub (saconsole) and controller are water-troughs — permanently fixed in Console.
@@ -486,6 +487,25 @@ function _updateQuadAnchors(rawX, rawY) {
 
 // Minimum clearance (graph units) between a VM centre and its zone fence.
 const ZONE_VM_MARGIN = 50
+
+// Position any VM nodes that have no entry in INITIAL_POSITIONS (e.g. hosts added
+// via the API after the static map was written). Without this they land at graph (0,0),
+// which is outside all zone panels.
+function _repositionUnknownNodes() {
+  if (!cy) return
+  const fallbackCount = {}
+  cy.nodes(':not(.phantom):not(.template-node)').forEach(node => {
+    if (INITIAL_POSITIONS[node.id()]) return
+    const zoneId = node.data('zone_id') ?? 'zone-dev'
+    if (!fallbackCount[zoneId]) fallbackCount[zoneId] = 0
+    const idx = fallbackCount[zoneId]++
+    let pos
+    if      (zoneId === 'zone-staging')    pos = { x: ZONE_BASE_POS['zone-staging'].baseX    + idx * 160, y: ZONE_BASE_POS['zone-staging'].baseY    }
+    else if (zoneId === 'zone-production') pos = { x: ZONE_BASE_POS['zone-production'].baseX + idx * 160, y: ZONE_BASE_POS['zone-production'].baseY }
+    else                                   pos = { x: 540 + idx * 160, y: 150 }  // dev fallback
+    node.position(pos)
+  })
+}
 
 function _constrainVMsToZones() {
   if (!cy) return
@@ -668,12 +688,24 @@ function renderInfoWithActions(data) {
     actions.appendChild(btn)
   }
 
-  // Clone to Staging — any provisioned dev spoke (declared role pre-fills the dialog)
+  // Clone to Staging — provisioned dev spoke; disabled if role unsuitable
   if (isOperational && provisioned && data.zone_id === 'zone-dev') {
+    const roleType = vm_role.split(':')[1]  // 'unspecified', 'master', 'slave'
+    const { masters: stgMasters, slaves: stgSlaves } = countZoneRoles(cy, 'zone-staging')
+    const canClone  = roleType !== 'unspecified'
+                   && !(roleType === 'master' && stgMasters >= 1)
+                   && !(roleType === 'slave'  && stgSlaves  >= 1)
+    const cloneHint = !canClone
+      ? (roleType === 'unspecified'
+          ? 'Declare a role (Master or Slave) before cloning to Staging'
+          : `Staging already has a ${roleType}. Remove it first.`)
+      : 'Deploy a new VM in Staging (fresh provision — not a disk copy)'
+
     const btn = document.createElement('button')
     btn.className   = 'action-btn action-btn--clone'
     btn.textContent = 'Clone to Staging'
-    btn.title       = 'Deploy a new VM in Staging (fresh provision — not a disk copy)'
+    btn.disabled    = !canClone
+    btn.title       = cloneHint
     btn.onclick     = () => openDialogForZone('staging', data.id, data.vm_role)
     actions.appendChild(btn)
   }
@@ -945,6 +977,12 @@ function attachHandlers() {
     // vm_role must be declared (dev:master or dev:slave) before crossing the fence.
     // The declared type determines which slot is taken in staging.
     if (newZoneId === 'zone-staging') {
+      if (!node.data('provisioned')) {
+        hint('Only provisioned VMs can be assigned to Staging. Provision this VM first.')
+        snapBack()
+        return
+      }
+
       const currentRole = node.data('vm_role')  // two-part: 'dev:master' etc.
       const roleType    = currentRole?.split(':')[1]  // 'unspecified', 'master', 'slave'
 
