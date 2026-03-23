@@ -441,16 +441,19 @@ async function init() {
   STOCKROOM_TEMPLATES.forEach(t => cy.$('#' + t.id).addClass('template-node'))
 
   _repositionUnknownNodes()  // place API-loaded nodes not in INITIAL_POSITIONS
-  cy.fit(cy.elements(), 60)
   attachHandlers()
   // Hub (saconsole) and controller are water-troughs — permanently fixed in Console.
   cy.nodes('[role = "hub"], [role = "controller"]').lock()
   _updatePromoteButton()
   _reconnectActiveJob()
 
-  // Position zone overlay panels and splitter; keep in sync with pan/zoom/resize
-  _updateZoneOverlay()
+  // Register overlay updater, then fit in the next animation frame so the
+  // flex container has its final pixel dimensions before zoom is computed.
   cy.on('pan zoom resize', _updateZoneOverlay)
+  requestAnimationFrame(() => {
+    _fitZoneGraph()
+    _updateZoneOverlay()
+  })
 }
 
 // ── Quad-zone splitter ────────────────────────────────────────────────────────
@@ -530,6 +533,29 @@ function _constrainVMsToZones() {
 function _graphToScreen(gx, gy) {
   const pan = cy.pan(), zoom = cy.zoom()
   return { x: gx * zoom + pan.x, y: gy * zoom + pan.y }
+}
+
+// Fit the viewport to the full zone graph area using ZONE_GRAPH constants.
+// Unlike cy.fit(collection), this does not depend on phantom node positions
+// being correct, and must be called after the cy container has been sized
+// (use requestAnimationFrame to ensure flex layout has settled).
+function _fitZoneGraph() {
+  if (!cy) return
+  const { LEFT, RIGHT, TOP, BOTTOM } = ZONE_GRAPH
+  const W = cy.width(), H = cy.height()
+  if (!W || !H) return
+  const pad = 40
+  const zoom = Math.min(
+    (W - 2 * pad) / (RIGHT - LEFT),
+    (H - 2 * pad) / (BOTTOM - TOP)
+  )
+  cy.viewport({
+    zoom,
+    pan: {
+      x: W / 2 - (LEFT + RIGHT) / 2 * zoom,
+      y: H / 2 - (TOP  + BOTTOM) / 2 * zoom,
+    }
+  })
 }
 
 // Stockroom bounding box in graph coordinates (surrounds the 3 template tiles)
@@ -672,6 +698,8 @@ function renderInfoWithActions(data) {
       input.addEventListener('change', () => {
         const node = cy.$('#' + data.id)
         node.data('vm_role', input.value)
+        // Re-render info panel so Clone button state reflects the new role
+        renderInfoWithActions(node.data())
       })
     })
     infoPanel.appendChild(roleDiv)
