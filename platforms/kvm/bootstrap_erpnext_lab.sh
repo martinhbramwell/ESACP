@@ -260,6 +260,45 @@ wait_for_vm
 step "Phase 7: Snapshot '${SNAPSHOT_FRESH}'"
 take_snapshot "${SNAPSHOT_FRESH}"
 
+# ── Phase 8: WireGuard provisioning on target1 ────────────────────────────────
+
+step "Phase 8: Configure WireGuard on ${VM}"
+
+ESACP_DIR="${SCRIPT_DIR}/../.."
+ANSIBLE_DIR="${ESACP_DIR}/ansible"
+AGE_KEY="${HOME}/.config/sops/age/keys.txt"
+
+if [[ ! -d "${ANSIBLE_DIR}" ]]; then
+    log "WARNING: Ansible directory not found at ${ANSIBLE_DIR} — skipping WireGuard"
+    log "  Run manually later: cd ${ANSIBLE_DIR} && ansible-playbook site-kvm.yml --limit target1 --tags wireguard"
+elif [[ ! -f "${AGE_KEY}" ]]; then
+    log "WARNING: SOPS age key not found at ${AGE_KEY} — skipping WireGuard"
+    log "  Copy the age key to saconsole, then run:"
+    log "    cd ${ANSIBLE_DIR} && ansible-playbook site-kvm.yml --limit target1 --tags wireguard"
+else
+    # Write extra-vars file — overrides ProxyJump and SSH params set in kvm inventory
+    # for remote-hosted hosts. From saconsole, target1 is reachable directly via virbr0.
+    WG_VARS=$(mktemp /tmp/wg-extravars-XXXXXX.yml)
+    cat > "${WG_VARS}" <<EOF
+ansible_host: "${VM_IP}"
+ansible_user: "${VM_USER}"
+ansible_ssh_private_key_file: "${SSH_KEY}"
+ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+EOF
+
+    log "Running wireguard role on ${VM} (direct virbr0, no ProxyJump) ..."
+    (
+        cd "${ANSIBLE_DIR}"
+        ansible-playbook site-kvm.yml \
+            -i inventory/kvm.yml \
+            --limit target1 \
+            --tags wireguard \
+            --extra-vars "@${WG_VARS}"
+    )
+    rm -f "${WG_VARS}"
+    log "✓  WireGuard configured — ${VM} is now a mesh node at 10.10.0.3"
+fi
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 step "Done"
@@ -267,47 +306,17 @@ cat <<SUMMARY
 
   ${VM} is up and running on ${HYPERVISOR_ALIAS} (Ubuntu 22.04, ${VM_RAM}MB RAM, ${VM_DISK}GB disk).
   Snapshot: '${SNAPSHOT_FRESH}'
+  WireGuard: ${VM} is now a mesh node at 10.10.0.3 (if Phase 8 succeeded above).
 
   ── Next steps (run once, from saconsole) ────────────────────────────────────
 
-  1. Copy ce_sri repo from controller to saconsole (run this on the controller):
-       scp -r ~/projects/Logichem/ce_sri you@10.10.0.1:~/projects/
+  1. Run the saconsole prerequisite checklist (idempotent):
+       bash /opt/esacp/platforms/kvm/setup_erpnext_lab_saconsole.sh
 
-  2. Run the saconsole prerequisite checklist (see ce_sri/envars_lab_target1.sh header):
-       mkdir -p ~/.ssh/secrets ~/projects
-       touch ~/.ssh/secrets/lab_dummy.p12 ~/.ssh/secrets/ce_sri_parms.json
-       echo "dns_cloudflare_api_token = lab_dummy_not_used" > ~/.ssh/secrets/certbot-cloudflare.ini
-       echo "" > ~/.ssh/secrets/dhparams_4096.pem
-       mkdir -p /tmp/le_mock/etc/letsencrypt
-       tar czf ~/.ssh/secrets/letsencrypt.lab.target1.local.tgz -C /tmp/le_mock . && rm -rf /tmp/le_mock
-       touch ~/.ssh/secrets/envars_adm_lab_target1_local.sh
-       sudo mkdir -p /opt/ce_sri && sudo chown you:you /opt/ce_sri
-       ln -sf ~/.ssh/secrets/envars_adm_lab_target1_local.sh /opt/ce_sri/envars.sh
-       ln -sf ~/.ssh/id_ed25519     ~/.ssh/you_lab_target1_local
-       ln -sf ~/.ssh/id_ed25519.pub ~/.ssh/you_lab_target1_local.pub
+  2. Copy the ce_sri repo from the controller to saconsole (run on the controller):
+       rsync -a --delete ~/projects/Logichem/ce_sri you@10.10.0.1:~/projects/ce_sri/
 
-  3. Add to ~/.ssh/config on saconsole:
-       Host t1lab.r
-           User you
-           HostName 192.168.122.11
-           IdentityFile ~/.ssh/id_ed25519
-           StrictHostKeyChecking no
-       Host t1lab
-           User adm
-           HostName 192.168.122.11
-           IdentityFile ~/.ssh/id_ed25519
-           StrictHostKeyChecking no
-
-  4. Add to /etc/hosts on saconsole:
-       192.168.122.11  lab.target1.local
-
-  5. Populate /opt/ce_sri/envars.sh with real passwords:
-       cat >> /opt/ce_sri/envars.sh <<'EOF'
-       export ERP_USER_PWD="<adm Linux + ERPNext Administrator password>"
-       export MYPWD="<MariaDB root password>"
-       EOF
-
-  6. Run the ERPNext v13 lab install:
+  3. Run the ERPNext v13 lab install (from saconsole):
        cd ~/projects/ce_sri
        bash development/initialization/prepareServer_0_lab.sh
 
