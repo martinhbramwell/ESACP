@@ -49,7 +49,7 @@ SSH_KEY="${HOME}/.ssh/id_ed25519"
 
 SNAPSHOT_FRESH="ERPNext Lab Fresh Install"
 
-AUTOINSTALL_TIMEOUT=1800   # 30 minutes
+AUTOINSTALL_TIMEOUT=3600   # 60 minutes — 22.04 on slow hardware can take >30 min
 SSH_POLL_TIMEOUT=120       # 2 minutes
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -168,6 +168,12 @@ remote "virsh --connect qemu:///system pool-info esacp" &>/dev/null \
 remote "test -f '${UBUNTU_ISO_PATH}'" \
     || die "Ubuntu 22.04 ISO not found on ${HYPERVISOR_ALIAS}: ${UBUNTU_ISO_PATH}"
 
+# Pre-clear stale known_hosts entries for the target — the host key always
+# changes on rebuild and the clear must happen before any connection attempt.
+ssh-keygen -R "${VM}"     2>/dev/null || true
+ssh-keygen -R "${VM_IP}"  2>/dev/null || true
+log "Cleared stale known_hosts entries for ${VM} / ${VM_IP}"
+
 log "Preflight OK"
 
 # ── Phase 2: Read saconsole SSH pubkey ─────────────────────────────────────────
@@ -211,10 +217,6 @@ if vm_exists; then
     log "Undefining ${VM} (removing storage + snapshot metadata) ..."
     remote virsh --connect qemu:///system undefine "${VM}" --remove-all-storage --snapshots-metadata
     log "✓  ${VM} removed."
-
-    # Clear stale host keys
-    ssh-keygen -R "${VM}" 2>/dev/null || true
-    ssh-keygen -R "${VM_IP}" 2>/dev/null || true
 else
     log "${VM} does not exist — nothing to destroy."
 fi
