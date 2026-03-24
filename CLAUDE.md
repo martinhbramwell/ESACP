@@ -46,7 +46,9 @@ and compounds in value over time rather than walking out the door.
 2. Fix the code, committing with `fixes #N` in the message
 3. Close the issue with the commit hash
 
-Do this at the moment of discovery — not at session end. The issue must exist before the fix commit so the commit can reference it. Context degrades across
+Do this at the moment of discovery — not at session end. The issue must exist before the fix commit so the commit can reference it.
+
+**Issues review** — at the start of any session where the objective involves bug fixing or infrastructure work, run `gh issue list --repo martinhbramwell/ESACP --state open` and close any issues that are already resolved but were not closed at the time. Context degrades across
 long sessions and leads to poor triage decisions. If a blocking sub-problem
 emerges, assess whether it truly blocks the objective before diving in.
 
