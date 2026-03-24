@@ -39,7 +39,14 @@ and compounds in value over time rather than walking out the door.
 4. **State one objective** for the session. Do not pursue other issues that
    arise — note them and handle in a dedicated session.
 
-**One objective per session.** This is a hard rule. Context degrades across
+**One objective per session.** This is a hard rule.
+
+**Bug workflow** — whenever a bug is found, regardless of what else is happening:
+1. Open a GitHub issue immediately (`gh issue create --repo martinhbramwell/ESACP`)
+2. Fix the code, committing with `fixes #N` in the message
+3. Close the issue with the commit hash
+
+Do this at the moment of discovery — not at session end. The issue must exist before the fix commit so the commit can reference it. Context degrades across
 long sessions and leads to poor triage decisions. If a blocking sub-problem
 emerges, assess whether it truly blocks the objective before diving in.
 
