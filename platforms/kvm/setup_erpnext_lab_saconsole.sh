@@ -22,7 +22,7 @@ echo
 log "1. Creating ~/.ssh/secrets and placeholder files"
 mkdir -p ~/.ssh/secrets
 
-for f in lab_dummy.p12 ce_sri_parms.json dhparams_4096.pem; do
+for f in lab_dummy.p12 ce_sri_parms.json; do
     if [[ ! -f ~/.ssh/secrets/${f} ]]; then
         touch ~/.ssh/secrets/${f}
         ok "Created ~/.ssh/secrets/${f}"
@@ -30,6 +30,21 @@ for f in lab_dummy.p12 ce_sri_parms.json dhparams_4096.pem; do
         skip "~/.ssh/secrets/${f}"
     fi
 done
+
+# DH params — use the real file from example_srvr_files, not an empty placeholder
+SCRIPT_DIR_SETUP="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CE_SRI_EXAMPLE="${SCRIPT_DIR_SETUP}/../../ce_sri/example_srvr_files/dhparams_4096.pem"
+if [[ ! -f ~/.ssh/secrets/dhparams_4096.pem ]]; then
+    if [[ -f "${CE_SRI_EXAMPLE}" ]]; then
+        cp "${CE_SRI_EXAMPLE}" ~/.ssh/secrets/dhparams_4096.pem
+        ok "Copied real dhparams_4096.pem from example_srvr_files"
+    else
+        touch ~/.ssh/secrets/dhparams_4096.pem
+        echo "  WARNING: example_srvr_files/dhparams_4096.pem not found — empty placeholder created; nginx will fail"
+    fi
+else
+    skip "~/.ssh/secrets/dhparams_4096.pem"
+fi
 
 if [[ ! -f ~/.ssh/secrets/certbot-cloudflare.ini ]]; then
     echo "dns_cloudflare_api_token = lab_dummy_not_used" > ~/.ssh/secrets/certbot-cloudflare.ini
