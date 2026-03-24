@@ -208,8 +208,8 @@ if vm_exists; then
         remote virsh --connect qemu:///system destroy "${VM}" || true
         sleep 3
     fi
-    log "Undefining ${VM} (removing storage) ..."
-    remote virsh --connect qemu:///system undefine "${VM}" --remove-all-storage
+    log "Undefining ${VM} (removing storage + snapshot metadata) ..."
+    remote virsh --connect qemu:///system undefine "${VM}" --remove-all-storage --snapshots-metadata
     log "✓  ${VM} removed."
 
     # Clear stale host keys
