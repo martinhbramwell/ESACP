@@ -37,7 +37,7 @@ HYPERVISOR_ALIAS="toshiba"
 HYPERVISOR_USER="hasan"
 
 REMOTE_IMAGES_DIR="/mnt/esacp-disk/var/lib/libvirt/images"
-UBUNTU_ISO_NAME="ubuntu-24.04.4-live-server-amd64.iso"
+UBUNTU_ISO_NAME="ubuntu-22.04.2-live-server-amd64.iso"
 
 # Both targets on toshiba's virbr0 — saconsole is on the same network
 VM_USER="you"
