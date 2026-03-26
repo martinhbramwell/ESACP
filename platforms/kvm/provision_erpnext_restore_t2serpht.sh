@@ -80,11 +80,17 @@ echo "  ... ownership set to ${ERP_USER} on apps/"
 echo ""
 echo "=== Phase 2: rsyncing BaRe to target2 ==="
 rsync -a --rsync-path="sudo rsync" "${BARE_SRC}/" "${TARGET_SSH}:${TARGET_BENCH_REMOTE}/BaRe/"
+ssh ${TARGET_SSH} "SUDO_ASKPASS=~/.ssh/.supwd.sh sudo -A \
+    chown -R ${ERP_USER}:${ERP_USER} ${TARGET_BENCH_REMOTE}/BaRe/"
+echo "  ... ownership set to ${ERP_USER} on BaRe/"
 
 # ── Phase 3: rsync backup ─────────────────────────────────────────────────────
 echo ""
 echo "=== Phase 3: rsyncing backup to target2 ==="
 rsync -a --rsync-path="sudo rsync" "${BKP_SRC}/" "${TARGET_SSH}:${TARGET_BENCH_REMOTE}/BKP/"
+ssh ${TARGET_SSH} "SUDO_ASKPASS=~/.ssh/.supwd.sh sudo -A \
+    chown -R ${ERP_USER}:${ERP_USER} ${TARGET_BENCH_REMOTE}/BKP/"
+echo "  ... ownership set to ${ERP_USER} on BKP/"
 echo "  Backup: $(cat ${BKP_SRC}/BACKUP.txt)"
 
 # ── Phase 3.5: place apikey.sh and socials_google.json ────────────────────────
@@ -112,6 +118,15 @@ ssh ${TARGET_SSH} "SUDO_ASKPASS=~/.ssh/.supwd.sh sudo -A -u ${ERP_USER} \
     cp /tmp/socials_google.json ${SITE_DIR}/socials_google.json && \
     rm /tmp/socials_google.json"
 echo "  ... socials_google.json placed at ${SITE_DIR}/socials_google.json"
+
+# Place ddlViews.sql — installApps.sh copies from apps/ce_sri/example_srvr_files/views.ddl
+# but ce_sri_prod has no example_srvr_files; place it directly from the dev repo (#29)
+VIEWS_DDL="${LOGICHEM_DIR}/ce_sri/example_srvr_files/views.ddl"
+scp "${VIEWS_DDL}" "${TARGET_SSH}:/tmp/ddlViews.sql"
+ssh ${TARGET_SSH} "SUDO_ASKPASS=~/.ssh/.supwd.sh sudo -A -u ${ERP_USER} \
+    cp /tmp/ddlViews.sql ${PRIVATE_FILES}/ddlViews.sql && \
+    rm /tmp/ddlViews.sql"
+echo "  ... ddlViews.sql placed at ${PRIVATE_FILES}/ddlViews.sql"
 
 # ── Phase 4: push envars.sh to /opt/ce_sri/ on target2 ───────────────────────
 echo ""
