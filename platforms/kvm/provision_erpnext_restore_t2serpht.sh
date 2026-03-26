@@ -38,9 +38,9 @@ ERP_USER="adm"
 TARGET_BENCH_REMOTE="/home/${ERP_USER}/${TARGET_BENCH_NAME}"
 RSYNC_OPTS=(-a --delete --rsync-path="sudo rsync")
 
-CE_SRI_SRC="${LOGICHEM_DIR}/ce_sri_prod/ce_sri"
-RETURNABLE_SRC="${LOGICHEM_DIR}/returnable_prod/returnable"
-ROUTE_PLANNER_SRC="${LOGICHEM_DIR}/route_planner_prod/route_planner"
+CE_SRI_SRC="${LOGICHEM_DIR}/ce_sri_prod"
+RETURNABLE_SRC="${LOGICHEM_DIR}/returnable_prod"
+ROUTE_PLANNER_SRC="${LOGICHEM_DIR}/route_planner_prod"
 BARE_SRC="${LOGICHEM_DIR}/BaRe"
 BKP_SRC="${LOGICHEM_DIR}/ce_sri/BKP"
 EXAMPLE_FILES="${LOGICHEM_DIR}/ce_sri/example_srvr_files"
