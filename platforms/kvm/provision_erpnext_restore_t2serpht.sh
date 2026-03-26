@@ -36,7 +36,7 @@ source "${LOGICHEM_DIR}/envars_serpht_restore.sh"
 TARGET_SSH="you@10.10.0.4"
 ERP_USER="adm"
 TARGET_BENCH_REMOTE="/home/${ERP_USER}/${TARGET_BENCH_NAME}"
-RSYNC_OPTS=(-a --delete --rsync-path="sudo rsync")
+RSYNC_OPTS=(-a --delete --exclude='*.egg-info' --rsync-path="sudo rsync")
 
 CE_SRI_SRC="${LOGICHEM_DIR}/ce_sri_prod"
 RETURNABLE_SRC="${LOGICHEM_DIR}/returnable_prod"
@@ -70,6 +70,11 @@ for pair in \
     echo "  rsync $(basename ${src}) → ${TARGET_SSH}:${dst}"
     rsync "${RSYNC_OPTS[@]}" "${src}/" "${TARGET_SSH}:${dst}/"
 done
+
+# Fix ownership — rsync via sudo rsync writes files as root; adm needs to own them
+ssh ${TARGET_SSH} "SUDO_ASKPASS=~/.ssh/.supwd.sh sudo -A \
+    chown -R ${ERP_USER}:${ERP_USER} ${TARGET_BENCH_REMOTE}/apps/"
+echo "  ... ownership set to ${ERP_USER} on apps/"
 
 # ── Phase 2: rsync BaRe scripts ───────────────────────────────────────────────
 echo ""
