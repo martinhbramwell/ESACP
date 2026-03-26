@@ -28,7 +28,7 @@ LOGICHEM_DIR="${HOME}/projects/Logichem"
 CE_SRI_DIR="${LOGICHEM_DIR}/ce_sri"
 EXAMPLE_FILES="${CE_SRI_DIR}/example_srvr_files"
 LETSENCRYPT_SRC="${LOGICHEM_DIR}/letsencrypt_serpht"
-SACONSOLE="saconsole"   # SSH alias for saconsole
+SACONSOLE="you@10.10.0.1"   # saconsole via WireGuard (192.168.122.10 unreachable from Mighty — virbr0 conflict)
 
 echo "================================================================"
 echo " setup_erpnext_serpht_saconsole.sh"
