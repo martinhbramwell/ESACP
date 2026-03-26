@@ -36,7 +36,7 @@ source "${LOGICHEM_DIR}/envars_serpht_restore.sh"
 TARGET_SSH="you@10.10.0.4"
 ERP_USER="adm"
 TARGET_BENCH_REMOTE="/home/${ERP_USER}/${TARGET_BENCH_NAME}"
-RSYNC_OPTS="-a --delete --rsync-path=sudo rsync"
+RSYNC_OPTS=(-a --delete --rsync-path="sudo rsync")
 
 CE_SRI_SRC="${LOGICHEM_DIR}/ce_sri_prod/ce_sri"
 RETURNABLE_SRC="${LOGICHEM_DIR}/returnable_prod/returnable"
@@ -68,7 +68,7 @@ for pair in \
     "${ROUTE_PLANNER_SRC}:${TARGET_BENCH_REMOTE}/apps/route_planner"; do
     src="${pair%%:*}"; dst="${pair##*:}"
     echo "  rsync $(basename ${src}) → ${TARGET_SSH}:${dst}"
-    rsync ${RSYNC_OPTS} "${src}/" "${TARGET_SSH}:${dst}/"
+    rsync "${RSYNC_OPTS[@]}" "${src}/" "${TARGET_SSH}:${dst}/"
 done
 
 # ── Phase 2: rsync BaRe scripts ───────────────────────────────────────────────
