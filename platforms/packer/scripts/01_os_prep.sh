@@ -96,7 +96,9 @@ systemctl enable nginx
 
 log "Creating bench user 'adm' ..."
 if ! id adm &>/dev/null; then
-    useradd -m -s /bin/bash adm
+    # -N: don't create user private group — Ubuntu ships with a system group
+    # named 'adm' (log readers); useradd exits 9 if it tries to create it again.
+    useradd -m -s /bin/bash -N adm
     usermod -aG sudo adm
     # Passwordless sudo for adm — required for bench setup commands
     echo "adm ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/adm
