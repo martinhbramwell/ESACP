@@ -35,8 +35,11 @@ GROUP_VARS_ALL      = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
 KEYS_SOPS           = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
 
 # Toshiba paths (accessed over SSH)
-TOSHIBA_ALIAS       = "toshiba"
-TOSHIBA_PACKER_OUT  = "/mnt/esacp-disk/packer-output"
+TOSHIBA_ALIAS        = "toshiba"
+TOSHIBA_HYPERVISOR_USER = "hasan"
+# Template qcow2 lives in the esacp libvirt pool (vol-clone, no sudo needed).
+# Metadata JSON lives in hasan's home dir (writable without sudo).
+TOSHIBA_METADATA_DIR = f"/home/{TOSHIBA_HYPERVISOR_USER}/esacp-packer-output"
 
 # saconsole access from controller (ProxyJump through hypervisor)
 SACONSOLE_IP        = "192.168.122.10"
@@ -271,7 +274,7 @@ def get_template_status():
     try:
         r = subprocess.run(
             ["ssh", TOSHIBA_ALIAS,
-             f"cat {TOSHIBA_PACKER_OUT}/erpnext-v13-latest.json 2>/dev/null"],
+             f"cat {TOSHIBA_METADATA_DIR}/erpnext-v13-latest.json 2>/dev/null"],
             capture_output=True, text=True, timeout=10,
         )
         if r.returncode == 0 and r.stdout.strip():
@@ -291,15 +294,29 @@ def delete_template():
     /mnt/esacp-disk/packer-output/ on toshiba. Resets state to 'not_built'.
     """
     try:
+        # Read metadata to find the volume name, then delete from esacp pool
+        meta_r = subprocess.run(
+            ["ssh", TOSHIBA_ALIAS,
+             f"cat {TOSHIBA_METADATA_DIR}/erpnext-v13-latest.json 2>/dev/null"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if meta_r.returncode == 0 and meta_r.stdout.strip():
+            meta = json.loads(meta_r.stdout)
+            image = meta.get("image")
+            if image:
+                subprocess.run(
+                    ["ssh", TOSHIBA_ALIAS,
+                     f"virsh --connect qemu:///system vol-delete --pool esacp '{image}' 2>/dev/null || true"],
+                    capture_output=True, text=True, timeout=30,
+                )
+        # Remove metadata regardless
         r = subprocess.run(
             ["ssh", TOSHIBA_ALIAS,
-             f"rm -f {TOSHIBA_PACKER_OUT}/erpnext-v13-*.qcow2 "
-             f"       {TOSHIBA_PACKER_OUT}/erpnext-v13-latest.qcow2 "
-             f"       {TOSHIBA_PACKER_OUT}/erpnext-v13-latest.json"],
-            capture_output=True, text=True, timeout=15,
+             f"rm -f {TOSHIBA_METADATA_DIR}/erpnext-v13-latest.json"],
+            capture_output=True, text=True, timeout=10,
         )
         if r.returncode != 0:
-            raise HTTPException(500, f"Failed to delete template artifacts: {r.stderr.strip()}")
+            raise HTTPException(500, f"Failed to delete template metadata: {r.stderr.strip()}")
         return {"ok": True, "message": "Template artifact deleted — state reset to not_built"}
     except HTTPException:
         raise

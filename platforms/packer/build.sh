@@ -28,7 +28,10 @@ HYPERVISOR_ALIAS="toshiba"
 HYPERVISOR_USER="hasan"
 
 REMOTE_IMAGES_DIR="/mnt/esacp-disk/var/lib/libvirt/images"
-PACKER_OUTPUT_DIR="/mnt/esacp-disk/packer-output"
+# Metadata only — qcow2 artifact stays in the esacp libvirt pool.
+# hasan can't create /mnt/esacp-disk/packer-output (owned by root);
+# use home dir for the small JSON file.
+METADATA_DIR="/home/${HYPERVISOR_USER}/esacp-packer-output"
 UBUNTU_ISO_PATH="/var/lib/libvirt/images/ubuntu-22.04.2-live-server-amd64.iso"
 
 BUILD_DATE="$(date +%Y-%m-%d)"
@@ -48,7 +51,6 @@ AUTOINSTALL_TIMEOUT=3600   # 60 min — Ubuntu autoinstall on slow hardware
 SSH_POLL_TIMEOUT=120
 
 OUTPUT_IMAGE="erpnext-v13-${BUILD_DATE}.qcow2"
-OUTPUT_LATEST="erpnext-v13-latest.qcow2"
 
 # ── Parse args ─────────────────────────────────────────────────────────────────
 
@@ -244,11 +246,11 @@ packer build \
 
 log "✓  Packer build complete."
 
-# ── Phase 7: Export qcow2 ──────────────────────────────────────────────────────
+# ── Phase 7: Clone artifact to esacp pool ─────────────────────────────────────
 
-step "Phase 7: Export qcow2 artifact"
+step "Phase 7: Clone artifact to esacp pool"
 
-# Shut down cleanly before export — ensures filesystem is consistent
+# Shut down cleanly before cloning — ensures filesystem is consistent
 remote "virsh --connect qemu:///system shutdown ${BUILD_VM}"
 log "Waiting for ${BUILD_VM} to shut down ..."
 for i in $(seq 1 30); do
@@ -257,26 +259,24 @@ for i in $(seq 1 30); do
 done
 [[ "$(vm_state)" == "shut off" ]] || die "${BUILD_VM} did not shut down cleanly."
 
-# Find the qcow2 volume path on toshiba
-REMOTE_VOL=$(remote "virsh --connect qemu:///system vol-list esacp" \
-    | grep "${BUILD_VM}" | awk '{print $2}')
-[[ -n "${REMOTE_VOL}" ]] || die "Cannot find qcow2 volume for ${BUILD_VM} in esacp pool."
+# Remove any stale template volume with the same date
+remote "virsh --connect qemu:///system vol-delete --pool esacp '${OUTPUT_IMAGE}' 2>/dev/null || true"
 
-# Ensure output directory exists on toshiba
-remote "mkdir -p '${PACKER_OUTPUT_DIR}'"
+# Clone build VM disk to a persistent named volume in the esacp pool.
+# hasan cannot write to /mnt/esacp-disk root (owned by root); virsh vol-clone
+# runs through libvirtd (root) so no sudo needed.
+remote "virsh --connect qemu:///system vol-clone --pool esacp '${BUILD_VM}.qcow2' '${OUTPUT_IMAGE}'"
 
-# Copy volume to output dir on toshiba
-remote "cp '${REMOTE_VOL}' '${PACKER_OUTPUT_DIR}/${OUTPUT_IMAGE}'"
-remote "ln -sf '${PACKER_OUTPUT_DIR}/${OUTPUT_IMAGE}' '${PACKER_OUTPUT_DIR}/${OUTPUT_LATEST}'"
-
-log "✓  Artifact: toshiba:${PACKER_OUTPUT_DIR}/${OUTPUT_IMAGE}"
-log "✓  Symlink:  toshiba:${PACKER_OUTPUT_DIR}/${OUTPUT_LATEST}"
+log "✓  Template volume in esacp pool: ${OUTPUT_IMAGE}"
 
 # ── Phase 8: Record build metadata ────────────────────────────────────────────
 
 step "Phase 8: Record build metadata"
 
-remote "cat > '${PACKER_OUTPUT_DIR}/erpnext-v13-latest.json'" <<METADATA
+# Metadata goes to hasan's home dir (writable without sudo).
+# api.py reads it from there via SSH to report template status.
+remote "mkdir -p '${METADATA_DIR}'"
+remote "cat > '${METADATA_DIR}/erpnext-v13-latest.json'" <<METADATA
 {
   "image":          "${OUTPUT_IMAGE}",
   "frappe_branch":  "${FRAPPE_BRANCH}",
@@ -287,14 +287,14 @@ remote "cat > '${PACKER_OUTPUT_DIR}/erpnext-v13-latest.json'" <<METADATA
 }
 METADATA
 
-log "✓  Metadata written to toshiba:${PACKER_OUTPUT_DIR}/erpnext-v13-latest.json"
+log "✓  Metadata: toshiba:${METADATA_DIR}/erpnext-v13-latest.json"
 
 # EXIT trap destroys the build VM
 
 step "Done — ERPNext v13 undifferentiated image ready"
 echo
-echo "  Image:    toshiba:${PACKER_OUTPUT_DIR}/${OUTPUT_IMAGE}"
-echo "  Latest:   toshiba:${PACKER_OUTPUT_DIR}/${OUTPUT_LATEST}"
+echo "  Volume:   esacp pool/${OUTPUT_IMAGE}  (on toshiba)"
+echo "  Metadata: toshiba:${METADATA_DIR}/erpnext-v13-latest.json"
 echo
 echo "  Next: register as a KVM pool volume or CloudStack template,"
 echo "  then 'Deploy from Template' in the Cytoscape stockroom."
