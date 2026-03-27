@@ -125,11 +125,13 @@ const ZONE_ANCHORS = [
 const INITIAL_POSITIONS = {
   // Console quadrant (TL): x 60-390, y 50-380
   // Stockroom (templates) on the left; controller + saconsole on the right
-  'tpl-basic-vm': { x: 105, y: 115 },
-  'tpl-mariadb':  { x: 105, y: 215 },
-  'tpl-erpnext':  { x: 105, y: 315 },
-  controller:     { x: 315, y: 150 },
-  saconsole:      { x: 315, y: 280 },
+  // Template tiles at x=160: node half-width=31, left edge at x=129
+  // Stockroom panel x1=100 → 40 graph units from Console left → ~25px at zoom 0.62
+  'tpl-basic-vm': { x: 160, y: 115 },
+  'tpl-mariadb':  { x: 160, y: 215 },
+  'tpl-erpnext':  { x: 160, y: 315 },
+  controller:     { x: 330, y: 150 },
+  saconsole:      { x: 330, y: 280 },
   // Development quadrant (TR): x 460-870, y 50-380
   target1:        { x: 540, y: 150 },
   target2:        { x: 710, y: 150 },
@@ -560,7 +562,7 @@ function _fitZoneGraph() {
 }
 
 // Stockroom bounding box in graph coordinates (surrounds the 3 template tiles — left of Console)
-const STOCKROOM_GRAPH = { x1: 85, y1: 80, x2: 165, y2: 358 }
+const STOCKROOM_GRAPH = { x1: 100, y1: 75, x2: 225, y2: 365 }
 
 function _updateZoneOverlay() {
   if (!cy) return
