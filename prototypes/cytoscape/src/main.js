@@ -560,7 +560,7 @@ function _fitZoneGraph() {
 }
 
 // Stockroom bounding box in graph coordinates (surrounds the 3 template tiles — left of Console)
-const STOCKROOM_GRAPH = { x1: 72, y1: 80, x2: 152, y2: 358 }
+const STOCKROOM_GRAPH = { x1: 85, y1: 80, x2: 165, y2: 358 }
 
 function _updateZoneOverlay() {
   if (!cy) return
@@ -1057,13 +1057,8 @@ async function _reconnectActiveJob() {
 // ── Event handlers ────────────────────────────────────────────────────────────
 
 function attachHandlers() {
-  // Template tile click → show Deploy button
-  cy.on('tap', 'node.template-node', evt => {
-    renderTemplateInfo(evt.target.data())
-  })
-
-  // VM node click → info + action buttons
-  cy.on('tap', 'node:not(.template-node):not(.phantom)', evt => {
+  // All node clicks — renderInfoWithActions guards for templates internally
+  cy.on('tap', 'node:not(.phantom)', evt => {
     renderInfoWithActions(evt.target.data())
   })
 
@@ -1077,7 +1072,7 @@ function attachHandlers() {
   cy.on('tap', evt => {
     if (evt.target === cy) {
       if (activeJob) return
-      hint('Click a node to inspect it. Use + Add Target in the toolbar.')
+      hint('Click a node or edge to inspect it. Click an ERPNext template tile to add a VM.')
     }
   })
 

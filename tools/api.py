@@ -337,6 +337,11 @@ def start_build_template():
 
 def _run_build_template(job_id: str):
     job = jobs[job_id]
+    ssh_opts = [
+        "-o", f"ProxyJump={TOSHIBA_ALIAS}",
+        "-o", "StrictHostKeyChecking=no",
+        "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
+    ]
 
     def emit(line: str):
         job["log"].append(line)
@@ -344,6 +349,19 @@ def _run_build_template(job_id: str):
 
     try:
         emit("── ERPNext v13 template build ──")
+
+        # Sync packer directory to saconsole (repo lives on controller, not saconsole)
+        emit("Syncing platforms/packer/ to saconsole ...")
+        rsync = subprocess.run(
+            ["rsync", "-az", "--delete",
+             "-e", "ssh " + " ".join(ssh_opts),
+             str(PLATFORMS_PACKER) + "/",
+             f"you@{SACONSOLE_IP}:/opt/esacp/platforms/packer/"],
+            capture_output=True, text=True,
+        )
+        if rsync.returncode != 0:
+            raise RuntimeError(f"rsync to saconsole failed: {rsync.stderr.strip()}")
+
         emit(f"Connecting to saconsole ({SACONSOLE_IP} via {TOSHIBA_ALIAS}) ...")
 
         proc = subprocess.Popen(
