@@ -85,11 +85,9 @@ const ZONE_GROUPS = {
   production:  ['kvm', 'targets', 'production'],
 }
 
-// Stockroom: each entry is a VM class template with defaults for the Add dialog
+// Stockroom: ERPNext tile only. Visibility controlled by tpl-none/tpl-building/tpl-ready class.
 const STOCKROOM_TEMPLATES = [
-  { id: 'tpl-basic-vm', label: 'Basic VM\n2C / 2G / 20G',  defaultZone: 'development', defaultRole: 'dev'   },
-  { id: 'tpl-mariadb',  label: 'MariaDB\n2C / 4G / 40G',   defaultZone: 'staging',     defaultRole: 'slave' },
-  { id: 'tpl-erpnext',  label: 'ERPNext\n4C / 8G / 60G',   defaultZone: 'staging',     defaultRole: 'master'},
+  { id: 'tpl-erpnext', label: 'ERPNext\n4C / 8G / 60G', defaultZone: 'staging', defaultRole: 'master' },
 ]
 
 // Outer boundary of the 4-zone area in graph coordinates.
@@ -124,12 +122,8 @@ const ZONE_ANCHORS = [
 // All positions are chosen to fall within their zone's quadrant boundary.
 const INITIAL_POSITIONS = {
   // Console quadrant (TL): x 60-390, y 50-380
-  // Stockroom (templates) on the left; controller + saconsole on the right
-  // Template tiles at x=160: node half-width=31, left edge at x=129
-  // Stockroom panel x1=100 → 40 graph units from Console left → ~25px at zoom 0.62
-  'tpl-basic-vm': { x: 160, y: 115 },
-  'tpl-mariadb':  { x: 160, y: 215 },
-  'tpl-erpnext':  { x: 160, y: 315 },
+  // Stockroom (single ERPNext tile) on the left; controller + saconsole on the right
+  'tpl-erpnext': { x: 160, y: 220 },
   controller:     { x: 330, y: 150 },
   saconsole:      { x: 330, y: 280 },
   // Development quadrant (TR): x 460-870, y 50-380
@@ -292,6 +286,19 @@ const CY_STYLE = [
     selector: 'node.template-node:hover',
     style: { 'border-color': '#8899aa', 'color': '#99aabb' }
   },
+  // Template lifecycle states — override border and visibility
+  {
+    selector: 'node.template-node.tpl-none',
+    style: { 'opacity': 0, 'events': 'no' }
+  },
+  {
+    selector: 'node.template-node.tpl-building',
+    style: { 'border-style': 'dashed', 'border-color': '#cc8833', 'border-width': 2, 'opacity': 0.8 }
+  },
+  {
+    selector: 'node.template-node.tpl-ready',
+    style: { 'border-style': 'solid', 'border-color': '#44aa66', 'border-width': 2, 'opacity': 1 }
+  },
 
   // ── VM / controller nodes ──
   {
@@ -443,6 +450,10 @@ async function init() {
   ZONE_ANCHORS.forEach(a      => cy.$('#' + a.id).addClass('phantom'))
   STOCKROOM_TEMPLATES.forEach(t => cy.$('#' + t.id).addClass('template-node'))
 
+  // ERPNext tile starts invisible; _syncTemplateState fetches actual state
+  cy.$('#tpl-erpnext').addClass('tpl-none')
+  _syncTemplateState()
+
   _repositionUnknownNodes()  // place API-loaded nodes not in INITIAL_POSITIONS
   attachHandlers()
   // Hub (saconsole) and controller are water-troughs — permanently fixed in Console.
@@ -562,7 +573,7 @@ function _fitZoneGraph() {
 }
 
 // Stockroom bounding box in graph coordinates (surrounds the 3 template tiles — left of Console)
-const STOCKROOM_GRAPH = { x1: 100, y1: 75, x2: 225, y2: 365 }
+const STOCKROOM_GRAPH = { x1: 100, y1: 155, x2: 225, y2: 295 }
 
 function _updateZoneOverlay() {
   if (!cy) return
@@ -835,6 +846,24 @@ async function renderTemplateInfo(data) {
   infoPanel.appendChild(actions)
 }
 
+// ── Template tile lifecycle state ─────────────────────────────────────────────
+
+function _setTemplateState(state) {
+  const node = cy.$('#tpl-erpnext')
+  if (!node.length) return
+  node.removeClass('tpl-none tpl-building tpl-ready')
+  node.addClass(`tpl-${state}`)
+}
+
+async function _syncTemplateState() {
+  try {
+    const s = await fetchTemplateStatus()
+    _setTemplateState(s.image ? 'ready' : 'none')
+  } catch {
+    _setTemplateState('none')
+  }
+}
+
 // Inline confirm → build template job
 // mode: 'create' (from saconsole) | 'update' (from template tile)
 function _startBuildTemplate(mode = 'update') {
@@ -862,6 +891,7 @@ function _startBuildTemplate(mode = 'update') {
     infoPanel.innerHTML = '<pre class="job-log">Starting ERPNext template build on saconsole…\n</pre>'
     startBuildTemplate()
       .then(({ job_id }) => {
+        _setTemplateState('building')
         localStorage.setItem(JOB_KEY, JSON.stringify({ job_id, hostname: 'template', type: 'build_template' }))
         _attachJobPoller(job_id, 'template', 'build_template')
       })
@@ -1024,7 +1054,9 @@ function _attachJobPoller(job_id, hostname, type) {
       renderJobLog([], true, status)
       activeJob = null
       localStorage.removeItem(JOB_KEY)
-      if (status === 'done') {
+      if (type === 'build_template') {
+        _setTemplateState(status === 'done' ? 'ready' : 'none')
+      } else if (status === 'done') {
         if (type === 'provision') {
           const node = cy.$(`#${hostname}`)
           node.data('provisioned', true)
@@ -1033,7 +1065,7 @@ function _attachJobPoller(job_id, hostname, type) {
           const node = cy.$(`#${hostname}`)
           cy.remove(node.connectedEdges())
           cy.remove(node)
-          hint('Node destroyed. Use + Add Target to register a new VM.')
+          hint('Click an ERPNext template tile to add a VM.')
         }
       }
       _updatePromoteButton()
@@ -1050,6 +1082,7 @@ async function _reconnectActiveJob() {
     const job = allJobs[job_id]
     if (!job || job.status !== 'running') { localStorage.removeItem(JOB_KEY); return }
     infoPanel.innerHTML = `<pre class="job-log">Reconnected to in-progress ${type ?? 'job'} for ${hostname}...\n</pre>`
+    if (type === 'build_template') _setTemplateState('building')
     _attachJobPoller(job_id, hostname, type ?? 'provision')
   } catch {
     localStorage.removeItem(JOB_KEY)
