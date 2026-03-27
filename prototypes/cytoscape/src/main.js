@@ -286,19 +286,6 @@ const CY_STYLE = [
     selector: 'node.template-node:hover',
     style: { 'border-color': '#8899aa', 'color': '#99aabb' }
   },
-  // Template lifecycle states — override border and visibility
-  {
-    selector: 'node.template-node.tpl-none',
-    style: { 'opacity': 0, 'events': 'no' }
-  },
-  {
-    selector: 'node.template-node.tpl-building',
-    style: { 'border-style': 'dashed', 'border-color': '#cc8833', 'border-width': 2, 'opacity': 0.8 }
-  },
-  {
-    selector: 'node.template-node.tpl-ready',
-    style: { 'border-style': 'solid', 'border-color': '#33dd77', 'border-width': 3, 'opacity': 1, 'color': '#55ee99' }
-  },
 
   // ── VM / controller nodes ──
   {
@@ -365,6 +352,22 @@ const CY_STYLE = [
   {
     selector: 'node[!provisioned]:not(.template-node):not(.phantom)',
     style: { 'border-color': '#f0a020', 'border-width': 2, 'border-style': 'dashed' }
+  },
+
+  // ── Template lifecycle states — MUST come after VM styles ──
+  // Cytoscape :not(.template-node) is buggy and matches template nodes too.
+  // Placing tpl-* styles after VM styles ensures they win by array position.
+  {
+    selector: 'node.template-node.tpl-none',
+    style: { 'opacity': 0, 'events': 'no' }
+  },
+  {
+    selector: 'node.template-node.tpl-building',
+    style: { 'border-style': 'dashed', 'border-color': '#cc8833', 'border-width': 2, 'opacity': 0.8 }
+  },
+  {
+    selector: 'node.template-node.tpl-ready',
+    style: { 'border-style': 'solid', 'border-color': '#33dd77', 'border-width': 3, 'opacity': 1, 'color': '#55ee99' }
   },
 
   // ── Phantom anchor nodes — MUST come after all VM styles to win on specificity tie ──
