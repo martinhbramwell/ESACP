@@ -12,6 +12,7 @@ Endpoints:
     GET  /api/jobs/{job_id}          → poll job status + log lines
 """
 
+import json
 import re
 import shutil
 import subprocess
@@ -25,12 +26,26 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-PROJECT_ROOT   = Path(__file__).parent.parent
-PLATFORMS_KVM  = PROJECT_ROOT / "platforms" / "kvm"
-CLOUD_INIT_DIR = PLATFORMS_KVM / "cloud-init"
-HOSTS_MAP      = PROJECT_ROOT / "hosts_map.yml"
-GROUP_VARS_ALL = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
-KEYS_SOPS      = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
+PROJECT_ROOT        = Path(__file__).parent.parent
+PLATFORMS_KVM       = PROJECT_ROOT / "platforms" / "kvm"
+PLATFORMS_PACKER    = PROJECT_ROOT / "platforms" / "packer"
+CLOUD_INIT_DIR      = PLATFORMS_KVM / "cloud-init"
+HOSTS_MAP           = PROJECT_ROOT / "hosts_map.yml"
+GROUP_VARS_ALL      = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
+KEYS_SOPS           = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
+
+# Toshiba paths (accessed over SSH)
+TOSHIBA_ALIAS       = "toshiba"
+TOSHIBA_PACKER_OUT  = "/mnt/esacp-disk/packer-output"
+
+# saconsole access from controller (ProxyJump through hypervisor)
+SACONSOLE_IP        = "192.168.122.10"
+SACONSOLE_SSH       = [
+    "ssh", "-o", f"ProxyJump={TOSHIBA_ALIAS}",
+    "-o", "StrictHostKeyChecking=no",
+    "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
+    f"you@{SACONSOLE_IP}",
+]
 
 app = FastAPI(title="ESACP Control Plane API")
 
@@ -241,6 +256,116 @@ def add_host(host: NewHost):
         raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
 
     return {"ok": True, "hostname": host.hostname}
+
+
+# ── GET /api/template/status ─────────────────────────────────────────────────
+
+@app.get("/api/template/status")
+def get_template_status():
+    """Return metadata for the latest undifferentiated ERPNext image on toshiba.
+
+    Reads /mnt/esacp-disk/packer-output/erpnext-v13-latest.json over SSH.
+    Returns { image, built_at, frappe_branch, erpnext_branch, state } if built,
+    or { image: null, state: "not_built" } if no build has been run yet.
+    """
+    try:
+        r = subprocess.run(
+            ["ssh", TOSHIBA_ALIAS,
+             f"cat {TOSHIBA_PACKER_OUT}/erpnext-v13-latest.json 2>/dev/null"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return json.loads(r.stdout)
+    except Exception:
+        pass
+    return {"image": None, "built_at": None, "state": "not_built"}
+
+
+# ── DELETE /api/template ─────────────────────────────────────────────────────
+
+@app.delete("/api/template")
+def delete_template():
+    """Delete the undifferentiated ERPNext image artifact from toshiba.
+
+    Removes the qcow2, the latest symlink, and the metadata JSON from
+    /mnt/esacp-disk/packer-output/ on toshiba. Resets state to 'not_built'.
+    """
+    try:
+        r = subprocess.run(
+            ["ssh", TOSHIBA_ALIAS,
+             f"rm -f {TOSHIBA_PACKER_OUT}/erpnext-v13-*.qcow2 "
+             f"       {TOSHIBA_PACKER_OUT}/erpnext-v13-latest.qcow2 "
+             f"       {TOSHIBA_PACKER_OUT}/erpnext-v13-latest.json"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if r.returncode != 0:
+            raise HTTPException(500, f"Failed to delete template artifacts: {r.stderr.strip()}")
+        return {"ok": True, "message": "Template artifact deleted — state reset to not_built"}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
+
+
+# ── POST /api/build/template ──────────────────────────────────────────────────
+
+@app.post("/api/build/template")
+def start_build_template():
+    """Start a background job to build the undifferentiated ERPNext v13 image.
+
+    Runs platforms/packer/build.sh on saconsole via SSH.
+    saconsole creates the build VM on toshiba, runs Packer provisioners,
+    exports the qcow2, then destroys the build VM.
+    Only one build may run at a time.
+    """
+    running = [j for j in jobs.values()
+               if j.get("type") == "build_template" and j["status"] == "running"]
+    if running:
+        raise HTTPException(409, "A template build is already in progress")
+
+    job_id       = str(uuid.uuid4())[:8]
+    jobs[job_id] = {"status": "running", "log": [], "hostname": "template", "type": "build_template"}
+
+    threading.Thread(
+        target=_run_build_template,
+        args=(job_id,),
+        daemon=True,
+    ).start()
+
+    return {"job_id": job_id}
+
+
+def _run_build_template(job_id: str):
+    job = jobs[job_id]
+
+    def emit(line: str):
+        job["log"].append(line)
+        print(f"[job {job_id}] {line}", flush=True)
+
+    try:
+        emit("── ERPNext v13 template build ──")
+        emit(f"Connecting to saconsole ({SACONSOLE_IP} via {TOSHIBA_ALIAS}) ...")
+
+        proc = subprocess.Popen(
+            SACONSOLE_SSH + ["bash /opt/esacp/platforms/packer/build.sh"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        for line in proc.stdout:
+            emit(line.rstrip())
+        proc.wait()
+        if proc.returncode != 0:
+            emit(f"[ERROR] build.sh exited with code {proc.returncode}")
+            job["status"] = "error"
+            return
+
+        job["status"] = "done"
+        emit("── Build complete — new image ready on toshiba ──")
+
+    except Exception as exc:
+        emit(f"[ERROR] {exc}")
+        job["status"] = "error"
 
 
 # ── POST /api/promote ────────────────────────────────────────────────────────

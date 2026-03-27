@@ -274,26 +274,11 @@ pre.job-log {
 
 /* ── Header toolbar button ────────────────────────────────────────────────── */
 
-#btn-add-target {
-  padding: 4px 12px;
-  background: #0f3460;
-  border: 1px solid #4fc3f7;
-  color: #4fc3f7;
-  font-family: monospace;
-  font-size: 0.82rem;
-  border-radius: 3px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-#btn-add-target:hover { background: #1a5080; }
-
 #btn-promote {
   padding: 4px 12px;
-  background: #1a1a00;
-  border: 1px solid #cc8833;
-  color: #cc8833;
+  background: #2a1a00;
+  border: 1px solid #e09840;
+  color: #e09840;
   font-family: monospace;
   font-size: 0.82rem;
   border-radius: 3px;
@@ -303,10 +288,10 @@ pre.job-log {
   transition: background 0.15s, opacity 0.15s;
 }
 
-#btn-promote:hover:not(:disabled) { background: #2a2a00; }
+#btn-promote:hover:not(:disabled) { background: #3a2a00; }
 
 #btn-promote:disabled {
-  opacity: 0.35;
+  opacity: 0.55;
   cursor: default;
 }
 
@@ -336,6 +321,14 @@ pre.job-log {
   opacity: 0.35;
   cursor: default;
 }
+
+.action-btn--secondary {
+  background: #1a1a2e;
+  border-color: #6688aa;
+  color: #99bbcc;
+}
+
+.action-btn--secondary:hover:not(:disabled) { background: #252540; }
 
 .action-btn--danger {
   background: #3a0f0f;

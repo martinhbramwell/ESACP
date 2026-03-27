@@ -2,7 +2,7 @@ import './style.css'
 import cytoscape from 'cytoscape'
 import { openPopup } from './popup.js'
 import { registry } from './registry.js'
-import { fetchHosts, fetchJobs, addHost, startProvision, startDestroy, pollJob } from './api.js'
+import { fetchHosts, fetchJobs, addHost, startProvision, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate } from './api.js'
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 // base64-encoded SVGs used as Cytoscape background-image per node type.
@@ -124,11 +124,12 @@ const ZONE_ANCHORS = [
 // All positions are chosen to fall within their zone's quadrant boundary.
 const INITIAL_POSITIONS = {
   // Console quadrant (TL): x 60-390, y 50-380
-  controller:     { x: 120, y: 150 },
-  saconsole:      { x: 120, y: 280 },
-  'tpl-basic-vm': { x: 300, y: 115 },
-  'tpl-mariadb':  { x: 300, y: 215 },
-  'tpl-erpnext':  { x: 300, y: 315 },
+  // Stockroom (templates) on the left; controller + saconsole on the right
+  'tpl-basic-vm': { x: 105, y: 115 },
+  'tpl-mariadb':  { x: 105, y: 215 },
+  'tpl-erpnext':  { x: 105, y: 315 },
+  controller:     { x: 315, y: 150 },
+  saconsole:      { x: 315, y: 280 },
   // Development quadrant (TR): x 460-870, y 50-380
   target1:        { x: 540, y: 150 },
   target2:        { x: 710, y: 150 },
@@ -558,8 +559,8 @@ function _fitZoneGraph() {
   })
 }
 
-// Stockroom bounding box in graph coordinates (surrounds the 3 template tiles)
-const STOCKROOM_GRAPH = { x1: 258, y1: 78, x2: 362, y2: 362 }
+// Stockroom bounding box in graph coordinates (surrounds the 3 template tiles — left of Console)
+const STOCKROOM_GRAPH = { x1: 72, y1: 80, x2: 152, y2: 358 }
 
 function _updateZoneOverlay() {
   if (!cy) return
@@ -671,8 +672,10 @@ function renderInfo(data) {
 
 // Render info + contextual action buttons for this VM node.
 // No-ops while a job is running (don't overwrite the job log).
+// Template tiles have their own renderTemplateInfo — bail out if called for one.
 function renderInfoWithActions(data) {
   if (activeJob) return
+  if (data.template === 'yes') { renderTemplateInfo(data); return }
   renderInfo(data)
 
   const role        = data.role
@@ -707,6 +710,15 @@ function renderInfoWithActions(data) {
 
   const actions = document.createElement('div')
   actions.className = 'action-bar'
+
+  // saconsole (hub) is the machine that runs build.sh — it creates templates
+  if (role === 'hub') {
+    const btn = document.createElement('button')
+    btn.className   = 'action-btn action-btn--secondary'
+    btn.textContent = 'Create Template'
+    btn.onclick     = () => _startBuildTemplate('create')
+    actions.appendChild(btn)
+  }
 
   if (isOperational && !provisioned) {
     const btn = document.createElement('button')
@@ -758,19 +770,110 @@ function renderInfoWithActions(data) {
 }
 
 // Render info + Deploy button for a Stockroom template tile
-function renderTemplateInfo(data) {
+async function renderTemplateInfo(data) {
   const title = data.label.replace('\n', ' — ')
   infoPanel.innerHTML =
     `<p class="hint"><strong>${title}</strong></p>` +
     `<p class="hint" style="margin-top:6px">Click <em>Deploy from Template</em> to add a VM pre-configured for this role.</p>`
 
+  // ERPNext tile: show current template version + date
+  if (data.id === 'tpl-erpnext') {
+    const statusEl = document.createElement('p')
+    statusEl.className = 'hint'
+    statusEl.style.marginTop = '6px'
+    statusEl.textContent = 'Checking template status…'
+    infoPanel.appendChild(statusEl)
+    try {
+      const s = await fetchTemplateStatus()
+      if (s.image) {
+        const d = s.built_at ? new Date(s.built_at).toLocaleDateString() : 'unknown date'
+        statusEl.innerHTML =
+          `<span style="color:#8f8">✓ ${s.image}</span><br>` +
+          `<small style="color:#aaa">Built: ${d} · ${s.frappe_branch ?? ''}</small>`
+      } else {
+        statusEl.innerHTML = '<span style="color:#fa8">⚠ No template built yet</span>'
+      }
+    } catch {
+      statusEl.textContent = 'Template status unavailable'
+    }
+  }
+
   const actions = document.createElement('div')
   actions.className = 'action-bar'
-  const btn = document.createElement('button')
-  btn.className   = 'action-btn'
-  btn.textContent = 'Deploy from Template'
-  btn.onclick     = () => openDialogFromTemplate(data)
-  actions.appendChild(btn)
+
+  const deployBtn = document.createElement('button')
+  deployBtn.className   = 'action-btn'
+  deployBtn.textContent = 'Create VM'
+  deployBtn.onclick     = () => openDialogFromTemplate(data)
+  actions.appendChild(deployBtn)
+
+  // ERPNext tile only: update + destroy buttons
+  if (data.id === 'tpl-erpnext') {
+    const buildBtn = document.createElement('button')
+    buildBtn.className   = 'action-btn action-btn--secondary'
+    buildBtn.textContent = 'Update Template'
+    buildBtn.onclick     = () => _startBuildTemplate()
+    actions.appendChild(buildBtn)
+
+    // Destroy Template — only shown when an artifact exists on toshiba
+    const _addDestroyBtn = (hasArtifact) => {
+      if (!hasArtifact) return
+      const destroyBtn = document.createElement('button')
+      destroyBtn.className   = 'action-btn action-btn--danger'
+      destroyBtn.textContent = 'Destroy Template'
+      destroyBtn.onclick     = () => _destroyTemplate()
+      actions.appendChild(destroyBtn)
+    }
+    // status already fetched above — reuse via closure if available, else re-fetch
+    fetchTemplateStatus()
+      .then(s => _addDestroyBtn(!!s.image))
+      .catch(() => {})
+  }
+
+  infoPanel.appendChild(actions)
+}
+
+// Inline confirm → build template job
+// mode: 'create' (from saconsole) | 'update' (from template tile)
+function _startBuildTemplate(mode = 'update') {
+  if (activeJob) return
+
+  const isCreate   = mode === 'create'
+  const title      = isCreate ? 'Create ERPNext v13 Template' : 'Update ERPNext v13 Template'
+  const bodyCopy   = isCreate
+    ? 'Runs a ~45 min Packer build on saconsole.<br>Produces the undifferentiated base image: OS + MariaDB + bench + frappe + erpnext. No site. No apps. No data.'
+    : 'Runs a ~45 min Packer build on saconsole.<br>Replaces the current base image for all future ERPNext deployments.'
+  const confirmTxt = isCreate ? 'Confirm Create' : 'Confirm Update'
+  const cancelMsg  = isCreate ? 'Create cancelled.' : 'Update cancelled.'
+
+  infoPanel.innerHTML =
+    `<p class="hint"><strong>${title}</strong></p>` +
+    `<p class="hint" style="color:#fa8;margin-top:6px">${bodyCopy}</p>`
+
+  const actions = document.createElement('div')
+  actions.className = 'action-bar'
+
+  const confirmBtn = document.createElement('button')
+  confirmBtn.className   = 'action-btn'
+  confirmBtn.textContent = confirmTxt
+  confirmBtn.onclick = () => {
+    infoPanel.innerHTML = '<pre class="job-log">Starting ERPNext template build on saconsole…\n</pre>'
+    startBuildTemplate()
+      .then(({ job_id }) => {
+        localStorage.setItem(JOB_KEY, JSON.stringify({ job_id, hostname: 'template', type: 'build_template' }))
+        _attachJobPoller(job_id, 'template', 'build_template')
+      })
+      .catch(err => {
+        infoPanel.innerHTML = `<p class="hint error">Build failed to start: ${err.message}</p>`
+      })
+  }
+
+  const cancelBtn = document.createElement('button')
+  cancelBtn.className   = 'action-btn action-btn--secondary'
+  cancelBtn.textContent = 'Cancel'
+  cancelBtn.onclick     = () => hint(cancelMsg)
+  actions.appendChild(confirmBtn)
+  actions.appendChild(cancelBtn)
   infoPanel.appendChild(actions)
 }
 
@@ -843,6 +946,34 @@ document.getElementById('promote-submit').addEventListener('click', async () => 
     hint('Could not reach API to initiate promotion.')
   }
 })
+
+// Destroy the built artifact on toshiba (reset to "not_built" state)
+function _destroyTemplate() {
+  if (activeJob) return
+  infoPanel.innerHTML =
+    '<p class="hint"><strong>Destroy ERPNext v13 Template</strong></p>' +
+    '<p class="hint" style="color:#f88;margin-top:6px">' +
+    'Deletes the qcow2 image and metadata from toshiba.<br>' +
+    'Any new deployment will require a fresh build.' +
+    '</p>'
+  const actions = document.createElement('div')
+  actions.className = 'action-bar'
+  const confirmBtn = document.createElement('button')
+  confirmBtn.className   = 'action-btn action-btn--danger'
+  confirmBtn.textContent = 'Confirm Destroy'
+  confirmBtn.onclick = () => {
+    deleteTemplate()
+      .then(() => hint('Template artifact deleted. Run "Create Template" from saconsole to rebuild.'))
+      .catch(err => { infoPanel.innerHTML = `<p class="hint error">Destroy failed: ${err.message}</p>` })
+  }
+  const cancelBtn = document.createElement('button')
+  cancelBtn.className   = 'action-btn action-btn--secondary'
+  cancelBtn.textContent = 'Cancel'
+  cancelBtn.onclick     = () => hint('Destroy cancelled.')
+  actions.appendChild(confirmBtn)
+  actions.appendChild(cancelBtn)
+  infoPanel.appendChild(actions)
+}
 
 // ── Provision flow ────────────────────────────────────────────────────────────
 
@@ -1065,7 +1196,8 @@ function hideCtxMenu() {
   ctxMenu.classList.add('hidden')
 }
 
-document.getElementById('btn-add-target').addEventListener('click', openDialog)
+// #btn-add-target removed from header — Add Target triggered from template tile only
+
 
 document.getElementById('ctx-add-target').addEventListener('click', () => {
   hideCtxMenu()

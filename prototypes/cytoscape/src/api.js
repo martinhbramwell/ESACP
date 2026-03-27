@@ -50,6 +50,26 @@ export async function startDestroy(hostname) {
   return post(`/api/destroy/${hostname}`, {})
 }
 
+// Returns { image, built_at, frappe_branch, erpnext_branch, state }
+export async function fetchTemplateStatus() {
+  const res = await fetch('/api/template/status', { signal: signal() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+// Returns { job_id }
+export async function startBuildTemplate() {
+  return post('/api/build/template', {})
+}
+
+// Returns { ok: true }
+export async function deleteTemplate() {
+  const res = await fetch('/api/template', { method: 'DELETE', signal: signal() })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail ?? `HTTP ${res.status}`)
+  return data
+}
+
 // Poll a job every intervalMs until it reaches a terminal state.
 // onLines(newLines[])  — called whenever new log lines arrive
 // onDone(status)       — called once with 'done' or 'error' when the job ends
