@@ -10,6 +10,10 @@
 
 set -euo pipefail
 
+# Ensure we are in adm's home — bench CLI startup checks ./apps in cwd.
+# sudo -Hu sets HOME=/home/adm but cwd may still be the SSH user's dir.
+cd /home/adm
+
 FRAPPE_BRANCH="${FRAPPE_BRANCH:-version-13}"
 ERPNEXT_BRANCH="${ERPNEXT_BRANCH:-version-13}"
 BENCH_DIR="${HOME}/frappe-bench"

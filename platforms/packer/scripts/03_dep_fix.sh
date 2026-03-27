@@ -14,6 +14,7 @@
 
 set -euo pipefail
 
+cd /home/adm
 BENCH_DIR="${HOME}/frappe-bench"
 BENCH_PIP="${BENCH_DIR}/env/bin/pip"
 

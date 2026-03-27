@@ -78,7 +78,7 @@ build {
   # Stops BEFORE bench new-site — no site, no data.
   provisioner "shell" {
     script          = "${path.root}/scripts/02_bench_install.sh"
-    execute_command = "sudo -u adm bash {{ .Path }}"
+    execute_command = "sudo -Hu adm bash {{ .Path }}"
     environment_vars = [
       "FRAPPE_BRANCH=${var.frappe_branch}",
       "ERPNEXT_BRANCH=${var.erpnext_branch}",
@@ -91,7 +91,7 @@ build {
   # See feedback_frappe_v13_deps.md for full explanation.
   provisioner "shell" {
     script          = "${path.root}/scripts/03_dep_fix.sh"
-    execute_command = "sudo -u adm bash {{ .Path }}"
+    execute_command = "sudo -Hu adm bash {{ .Path }}"
   }
 
   # Phase 4: Cleanup — remove SSH host keys, machine-id, apt caches
