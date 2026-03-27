@@ -121,9 +121,10 @@ header h1 {
   bottom: 3px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 10px;
-  color: #556677;
+  font-size: 13px;
+  color: #99bbcc;
   font-family: monospace;
+  letter-spacing: 0.08em;
   user-select: none;
   white-space: nowrap;
   pointer-events: none;
@@ -229,7 +230,7 @@ header h1 {
 }
 
 #info-panel .hint {
-  color: #555;
+  color: #889aaa;
   font-size: 0.85rem;
 }
 
@@ -253,12 +254,31 @@ header h1 {
 pre.job-log {
   font-size: 0.75rem;
   line-height: 1.4;
-  color: #aac;
+  color: #c8cce0;
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 100%;
   overflow-y: auto;
   margin: 0;
+}
+
+.log-section {
+  color: #4fc3f7;
+  font-weight: bold;
+}
+
+.log-progress {
+  color: #7ecfed;
+  display: block;
+}
+
+.log-done {
+  color: #66bb6a;
+  font-weight: bold;
+}
+
+.log-error-line {
+  color: #ef9a9a;
 }
 
 .job-badge {

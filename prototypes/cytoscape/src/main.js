@@ -297,7 +297,7 @@ const CY_STYLE = [
   },
   {
     selector: 'node.template-node.tpl-ready',
-    style: { 'border-style': 'solid', 'border-color': '#44aa66', 'border-width': 2, 'opacity': 1 }
+    style: { 'border-style': 'solid', 'border-color': '#33dd77', 'border-width': 3, 'opacity': 1, 'color': '#55ee99' }
   },
 
   // ── VM / controller nodes ──
@@ -853,6 +853,7 @@ function _setTemplateState(state) {
   if (!node.length) return
   node.removeClass('tpl-none tpl-building tpl-ready')
   node.addClass(`tpl-${state}`)
+  cy.style().update()
 }
 
 async function _syncTemplateState() {
@@ -909,6 +910,66 @@ function _startBuildTemplate(mode = 'update') {
   infoPanel.appendChild(actions)
 }
 
+// ── ANSI → HTML converter ──────────────────────────────────────────────────
+
+const _ANSI_COLORS = {
+  '30': '#666', '1;30': '#888',
+  '31': '#e57373', '1;31': '#f44336', '0;31': '#e57373',
+  '32': '#81c784', '1;32': '#4caf50', '0;32': '#81c784',
+  '33': '#ffb74d', '1;33': '#ff9800', '0;33': '#ffb74d',
+  '34': '#64b5f6', '1;34': '#42a5f5',
+  '35': '#ba68c8', '1;35': '#9c27b0',
+  '36': '#4dd0e1', '1;36': '#00bcd4',
+  '37': '#e0e0e0', '1;37': '#ffffff',
+}
+
+function _ansiToHtml(raw) {
+  // Escape HTML entities first
+  let s = raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  // Strip cursor-movement / erase sequences (e.g. \x1b[1A \x1b[2K \x1b[K)
+  s = s.replace(/\x1b\[[0-9;]*[A-HJKST]/g, '')
+
+  // Convert SGR color sequences to <span>
+  let openSpans = 0
+  s = s.replace(/\x1b\[([0-9;]*)m/g, (_, code) => {
+    if (code === '' || code === '0') {
+      const closes = '</span>'.repeat(openSpans)
+      openSpans = 0
+      return closes
+    }
+    const color = _ANSI_COLORS[code]
+    if (color) { openSpans++; return `<span style="color:${color}">` }
+    return ''
+  })
+  s += '</span>'.repeat(openSpans)
+  return s
+}
+
+function _colorLine(raw) {
+  const html = _ansiToHtml(raw)
+  // Progress bar lines (Packer download/extract)
+  if (raw.includes('━') || raw.includes('⠿') || raw.match(/^\s*[\d.]+ [KMG]iB/)) {
+    return `<span class="log-progress">${html}</span>`
+  }
+  // Section headers ("── Phase N: ...")
+  if (raw.match(/^──\s/) || raw.match(/^==/)) {
+    return `<span class="log-section">${html}</span>`
+  }
+  // Build complete / done lines
+  if (raw.match(/Build complete|image ready|✓.*complete|Done —/i)) {
+    return `<span class="log-done">${html}</span>`
+  }
+  // Error-bearing lines (not inside ANSI span — catch plain ones too)
+  if (raw.match(/\bERROR\b|\bFAILED\b/i) && !raw.match(/\x1b\[/)) {
+    return `<span class="log-error-line">${html}</span>`
+  }
+  return html
+}
+
 function renderJobLog(lines, done, status) {
   let pre = infoPanel.querySelector('pre.job-log')
   if (!pre) {
@@ -917,7 +978,13 @@ function renderJobLog(lines, done, status) {
     pre.className = 'job-log'
     infoPanel.appendChild(pre)
   }
-  pre.textContent += lines.join('\n') + (lines.length ? '\n' : '')
+  if (lines.length) {
+    const frag = document.createDocumentFragment()
+    const span = document.createElement('span')
+    span.innerHTML = lines.map(_colorLine).join('\n') + '\n'
+    frag.appendChild(span)
+    pre.appendChild(frag)
+  }
   pre.scrollTop = pre.scrollHeight
 
   if (done) {
