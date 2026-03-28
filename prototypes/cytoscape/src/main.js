@@ -209,7 +209,7 @@ function buildNodesEdges(apiHosts) {
       defaultZone: tpl.defaultZone,
       defaultRole: tpl.defaultRole,
     },
-    position: INITIAL_POSITIONS[tpl.id],
+    position: INITIAL_POSITIONS[tpl.id] ? { ...INITIAL_POSITIONS[tpl.id] } : undefined,
   }))
 
   const vmNodes = allHosts.map(h => {
@@ -229,7 +229,7 @@ function buildNodesEdges(apiHosts) {
         ansible_groups: h.ansible_groups ?? [],
         zone_id:        zone,
       },
-      position: INITIAL_POSITIONS[h.id ?? h.hostname],
+      position: INITIAL_POSITIONS[h.id ?? h.hostname] ? { ...INITIAL_POSITIONS[h.id ?? h.hostname] } : undefined,
     }
   })
 
@@ -444,7 +444,10 @@ async function init() {
     layout: {
       name:      'preset',
       animate:   false,
-      positions: node => INITIAL_POSITIONS[node.id()] || undefined,
+      positions: node => {
+        const p = INITIAL_POSITIONS[node.id()]
+        return p ? { x: p.x, y: p.y } : undefined
+      },
     },
   })
 
@@ -1192,15 +1195,45 @@ function attachHandlers() {
   // ── Drag-to-rezone: sheep crossing a fence changes paddock ──
   const _preDragPos = new Map()
 
+  // ── Template tile drag-to-deploy ──
+  // The tile is a factory — it always snaps back. Dropping it in a zone opens the Add dialog.
+  cy.on('grab', 'node.template-node.tpl-ready', evt => {
+    _preDragPos.set(evt.target.id(), { ...evt.target.position() })
+  })
+
+  cy.on('dragfree', 'node.template-node.tpl-ready', evt => {
+    const node   = evt.target
+    const dropZoneId = _zoneAtPos(node.position())
+
+    const home = INITIAL_POSITIONS[node.id()] ?? { x: 160, y: 220 }
+
+    // Open Add dialog only if dropped in Dev (Staging/Production require Promote workflow).
+    // Tile stays at drop position while dialog is open; snaps back on dialog close.
+    if (dropZoneId === 'zone-dev') {
+      openDialogFromTemplate({ ...node.data(), targetZone: 'development' })
+    } else if (dropZoneId && dropZoneId !== 'zone-console') {
+      // Dropped in wrong zone — snap back immediately and show hint
+      setTimeout(() => node.position(home), 50)
+      setStatus('Drag the ERPNext tile into the Development zone to deploy a new VM.')
+    } else {
+      // Dropped in Console or outside — snap back
+      setTimeout(() => node.position(home), 50)
+    }
+  })
+
   // Record position before drag begins (needed for snap-back on rejected drops)
+  // Guard: Cytoscape :not(.template-node) is buggy — check class explicitly.
   cy.on('grab', 'node:not(.phantom):not(.template-node)', evt => {
     const n = evt.target
+    if (n.hasClass('template-node') || n.hasClass('phantom')) return
     _preDragPos.set(n.id(), { ...n.position() })
   })
 
   // On drop: detect which zone the node landed in; reassign or reject
+  // Guard: Cytoscape :not(.template-node) is buggy — check class explicitly.
   cy.on('dragfree', 'node:not(.phantom):not(.template-node)', evt => {
     const node = evt.target
+    if (node.hasClass('template-node') || node.hasClass('phantom')) return
     const role = node.data('role')
 
     const pos       = node.position()
@@ -1331,6 +1364,11 @@ const fZone         = document.getElementById('f-zone')
 const fVmRole       = document.getElementById('f-vm-role')
 const submitBtn     = document.getElementById('dialog-submit')
 const fieldVmRole   = document.getElementById('field-vm-role')
+const dialogTitle   = document.getElementById('dialog-title')
+
+// Set when dialog is opened from a template tile drag; cleared on close.
+// Passed to addHost so the backend knows to use vol-clone + --import instead of ISO.
+let _dialogTemplateId = null
 
 // Enforce 1M+1S slot limits; show/hide Role field based on Zone selection.
 function _refreshRoleOptions() {
@@ -1373,6 +1411,10 @@ function _refreshRoleOptions() {
 fZone.addEventListener('change', _refreshRoleOptions)
 
 function openDialog(opts = {}) {
+  _dialogTemplateId = opts.templateId ?? null
+  if (dialogTitle) {
+    dialogTitle.textContent = _dialogTemplateId ? 'Deploy from Template' : 'Add Target'
+  }
   fHostname.value   = opts.hostname   ?? ''
   fNickname.value   = ''
   fWgIp.value       = apiSuggestions.wg_ip
@@ -1391,12 +1433,23 @@ function openDialog(opts = {}) {
 }
 
 function closeDialog() {
+  // Snap template tile back to Stockroom home if dialog was opened from a drag.
+  // Always use INITIAL_POSITIONS — template tiles have a fixed home.
+  if (_dialogTemplateId) {
+    const tpl = cy && cy.$('#' + _dialogTemplateId)
+    const home = INITIAL_POSITIONS[_dialogTemplateId]
+    if (tpl && tpl.length && home) setTimeout(() => { tpl.position(home); cy.forceRender() }, 200)
+  }
+  _dialogTemplateId = null
   dialogOverlay.classList.add('hidden')
 }
 
-// Open dialog pre-filled from a Stockroom template tile
+// Open dialog pre-filled from a Stockroom template tile.
+// tplData.targetZone: zone from drag-drop (overrides defaultZone when present).
 function openDialogFromTemplate(tplData) {
-  openDialog({ zone: tplData.defaultZone, vm_role: tplData.defaultRole })
+  const zone   = tplData.targetZone ?? tplData.defaultZone
+  const vmRole = zone === 'development' ? 'dev' : (tplData.defaultRole ?? 'master')
+  openDialog({ zone, vm_role: vmRole, templateId: tplData.id })
 }
 
 // Open dialog pre-filled for a target zone (e.g. Clone to Staging).
@@ -1431,7 +1484,8 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
   const vm_role    = zone === 'development' ? 'dev:unspecified' : `${zone}:${fVmRole.value}`
 
   try {
-    await addHost({ hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor, zone, vm_role })
+    await addHost({ hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor, zone, vm_role,
+                   ...(_dialogTemplateId ? { template_id: _dialogTemplateId } : {}) })
     closeDialog()
     _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone, vm_role })
     fetchHosts()
