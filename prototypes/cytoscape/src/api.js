@@ -51,8 +51,10 @@ export async function startDestroy(hostname) {
 }
 
 // Returns { job_id, hostname } — registers host AND starts template-based provision job atomically
-export async function startProvisionErpnext({ hostname, nickname, virbr0_ip, wg_ip, hypervisor = 'toshiba', zone = 'development', vm_role = 'dev:unspecified', site_nickname = '' }) {
-  return post('/api/provision/erpnext', { hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role, site_nickname })
+// nickname: Frappe bench suffix, e.g. "D1IRBL" → bench dir "frappe-bench-D1IRBL"
+// zone determines domain: development/staging → iridium.blue, production → logichem.solutions
+export async function startProvisionErpnext({ hostname, nickname, virbr0_ip, wg_ip, hypervisor = 'toshiba', zone = 'development', vm_role = 'dev:unspecified' }) {
+  return post('/api/provision/erpnext', { hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role })
 }
 
 // Returns { image, built_at, frappe_branch, erpnext_branch, state }

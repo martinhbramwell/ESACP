@@ -1371,6 +1371,20 @@ const dialogTitle   = document.getElementById('dialog-title')
 // Passed to addHost so the backend knows to use vol-clone + --import instead of ISO.
 let _dialogTemplateId = null
 
+const ZONE_DOMAINS = { development: 'iridium.blue', staging: 'iridium.blue', production: 'logichem.solutions' }
+const siteUrlPreview  = document.getElementById('site-url-preview')
+const fieldSiteUrl    = document.getElementById('field-site-url-preview')
+const fNicknameHint   = document.getElementById('f-nickname-hint')
+
+function _updateSiteUrlPreview() {
+  if (!_dialogTemplateId) return
+  const h = fHostname.value.trim()
+  const domain = ZONE_DOMAINS[fZone.value] ?? 'iridium.blue'
+  siteUrlPreview.textContent = h ? `https://${h}.${domain}` : ''
+}
+fHostname.addEventListener('input', _updateSiteUrlPreview)
+fZone.addEventListener('change', _updateSiteUrlPreview)
+
 // Enforce 1M+1S slot limits; show/hide Role field based on Zone selection.
 function _refreshRoleOptions() {
   const zone = fZone.value
@@ -1413,11 +1427,15 @@ fZone.addEventListener('change', _refreshRoleOptions)
 
 function openDialog(opts = {}) {
   _dialogTemplateId = opts.templateId ?? null
+  const isTemplate = !!_dialogTemplateId
   if (dialogTitle) {
-    dialogTitle.textContent = _dialogTemplateId ? 'Deploy from Template' : 'Add Target'
+    dialogTitle.textContent = isTemplate ? 'Deploy from Template' : 'Add Target'
   }
   fHostname.value   = opts.hostname   ?? ''
   fNickname.value   = ''
+  fNickname.required = isTemplate
+  if (fNicknameHint) fNicknameHint.style.display = isTemplate ? '' : 'none'
+  if (fieldSiteUrl) fieldSiteUrl.style.display = isTemplate ? '' : 'none'
   fWgIp.value       = apiSuggestions.wg_ip
   fVirbr0Ip.value   = apiSuggestions.virbr0_ip
   fBackend.value    = 'kvm'
@@ -1427,8 +1445,9 @@ function openDialog(opts = {}) {
   dialogError.classList.add('hidden')
   dialogError.textContent = ''
   submitBtn.disabled    = false
-  submitBtn.textContent = 'Add'
+  submitBtn.textContent = isTemplate ? 'Deploy' : 'Add'
   _refreshRoleOptions()
+  _updateSiteUrlPreview()
   dialogOverlay.classList.remove('hidden')
   fHostname.focus()
 }
@@ -1486,6 +1505,8 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
 
   try {
     if (_dialogTemplateId) {
+      if (!nickname) throw new Error('Nickname is required for template deployments')
+      if (!/^[A-Za-z0-9]+$/.test(nickname)) throw new Error('Nickname must be alphanumeric (no spaces or hyphens)')
       // Template-based: single atomic endpoint — registers host AND starts vol-clone job
       const { job_id } = await startProvisionErpnext({
         hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role,

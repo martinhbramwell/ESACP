@@ -36,7 +36,8 @@
     - desktop
     - control_plane
     - mcp_grafana
-    - acme_sh
+    - role: acme_sh
+      tags: [acme_sh]
 
 # ── Play 3: Authorise saconsole SSH pubkey on targets ─────────────────────
 # control_plane (Play 2) generates saconsole's keypair and registers

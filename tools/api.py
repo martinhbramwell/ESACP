@@ -33,7 +33,22 @@ PLATFORMS_PACKER    = PROJECT_ROOT / "platforms" / "packer"
 CLOUD_INIT_DIR      = PLATFORMS_KVM / "cloud-init"
 HOSTS_MAP           = PROJECT_ROOT / "hosts_map.yml"
 GROUP_VARS_ALL      = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
+GROUP_VARS_ALL_SOPS = PROJECT_ROOT / "ansible" / "group_vars" / "all.sops.yml"
 KEYS_SOPS           = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
+
+# Cloudflare
+CF_ZONE_ID_IRIDIUM  = "631cd57fa246c8bc575bdc55bc0db70b"   # iridium.blue zone
+CF_DNS_TTL          = 120
+
+# Zone → canonical domain mapping
+ZONE_DOMAINS: dict[str, str] = {
+    "development": "iridium.blue",
+    "staging":     "iridium.blue",
+    "production":  "logichem.solutions",
+}
+
+# acme.sh cert home on saconsole
+ACME_CERT_HOME_SACONSOLE = "/opt/acme-certs"
 
 # Toshiba paths (accessed over SSH)
 TOSHIBA_ALIAS        = "toshiba"
@@ -466,14 +481,13 @@ TOSHIBA_POOL       = "esacp"
 
 
 class NewErpnextVM(BaseModel):
-    hostname:      str
-    nickname:      str  = ""
-    virbr0_ip:     str
-    wg_ip:         str
-    hypervisor:    str  = "toshiba"
-    zone:          str  = "development"
-    vm_role:       str  = "dev:unspecified"
-    site_nickname: str  = ""
+    hostname:   str
+    nickname:   str  = ""   # Frappe bench suffix: frappe-bench-{nickname}
+    virbr0_ip:  str
+    wg_ip:      str
+    hypervisor: str  = "toshiba"
+    zone:       str  = "development"
+    vm_role:    str  = "dev:unspecified"
 
 
 @app.post("/api/provision/erpnext")
@@ -786,10 +800,58 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
         else:
             emit("  [OK] saconsole WireGuard updated")
 
+        # ── Step 8b: Cloudflare DNS A record ──────────────────────────────────
+        emit("── Step 8b: Cloudflare DNS A record ──")
+        _cf_dns_upsert(vm.hostname, vm.wg_ip, emit)
+
+        # ── Step 8c: Distribute TLS cert from saconsole to VM ─────────────────
+        emit("── Step 8c: Distribute TLS wildcard cert to VM ──")
+        domain_dir = f"{ACME_CERT_HOME_SACONSOLE}/iridium.blue"
+        sac_ssh_base = [
+            "ssh", "-o", f"ProxyJump={TOSHIBA_ALIAS}",
+            "-o", "StrictHostKeyChecking=no",
+            "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
+        ]
+        # Verify cert exists on saconsole
+        cert_check = subprocess.run(
+            sac_ssh_base + [f"you@{SACONSOLE_IP}",
+                            f"test -f {domain_dir}/fullchain.pem && echo found || echo missing"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if "found" not in cert_check.stdout:
+            emit(f"  [WARN] Wildcard cert not found on saconsole at {domain_dir} — nginx will be HTTP-only")
+            have_cert = False
+        else:
+            # Read each cert file from saconsole, push to VM /tmp/
+            for pem_name, tmp_name in [
+                ("fullchain.pem", "fullchain.pem"),
+                ("key.pem",       "privkey.pem"),
+                ("cert.pem",      "cert.pem"),
+            ]:
+                read_r = subprocess.run(
+                    sac_ssh_base + [f"you@{SACONSOLE_IP}", f"cat {domain_dir}/{pem_name}"],
+                    capture_output=True, timeout=15,
+                )
+                if read_r.returncode != 0:
+                    raise RuntimeError(f"Failed to read {pem_name} from saconsole")
+                write_r = subprocess.run(
+                    target_ssh + [f"sudo tee /tmp/{tmp_name} > /dev/null"],
+                    input=read_r.stdout,
+                    capture_output=True, timeout=15,
+                )
+                if write_r.returncode != 0:
+                    raise RuntimeError(f"Failed to write {tmp_name} to VM")
+            emit("  [OK] Cert files in /tmp/ on VM")
+            have_cert = True
+
         # ── Differentiation constants ─────────────────────────────────────────
-        bench_name   = "frappe-bench"               # Packer template bench dir (fixed)
-        site_url     = f"lab.{vm.hostname}.local"   # derived — add site_url field to dialog later
-        bench_dir    = f"/home/adm/{bench_name}"
+        nickname_str = vm.nickname or vm.hostname[:4]
+        domain       = ZONE_DOMAINS.get(vm.zone, "iridium.blue")
+        site_url     = f"{vm.hostname}.{domain}"
+        bench_name   = "frappe-bench"                        # Packer template bench dir
+        bench_name_new = f"frappe-bench-{nickname_str}"      # renamed at differentiation
+        bench_dir_orig = f"/home/adm/{bench_name}"           # before rename
+        bench_dir      = f"/home/adm/{bench_name_new}"       # after rename
         ERP_USER     = "adm"
         MYPWD        = "erpnext_build"              # MariaDB root pwd set by Packer OS prep
         ERP_USER_PWD = "sasa"
@@ -828,15 +890,15 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
             emit("  [OK] WireGuard spoke configured")
 
         # ── Step 10: rsync apps + BaRe + BKP (controller → VM) ───────────────
-        # Source files live on the controller; rsync is the right tool here.
+        # rsync into the ORIGINAL bench dir (rename happens inside differentiate.sh)
         # --rsync-path="sudo rsync" because bench/apps is owned by adm.
         emit("── Step 10: rsync apps + BaRe + BKP ──")
         rsync_targets = [
-            (CE_SRI_SRC,         f"{bench_dir}/apps/ce_sri"),
-            (RETURNABLE_SRC,     f"{bench_dir}/apps/returnable"),
-            (ROUTE_PLANNER_SRC,  f"{bench_dir}/apps/route_planner"),
-            (BARE_SRC,           f"{bench_dir}/BaRe"),
-            (BKP_SRC,            f"{bench_dir}/BKP"),
+            (CE_SRI_SRC,         f"{bench_dir_orig}/apps/ce_sri"),
+            (RETURNABLE_SRC,     f"{bench_dir_orig}/apps/returnable"),
+            (ROUTE_PLANNER_SRC,  f"{bench_dir_orig}/apps/route_planner"),
+            (BARE_SRC,           f"{bench_dir_orig}/BaRe"),
+            (BKP_SRC,            f"{bench_dir_orig}/BKP"),
         ]
         for src_path, dst in rsync_targets:
             if not src_path.exists():
@@ -877,9 +939,10 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
         # ── Step 12: Generate + SCP differentiate.sh ─────────────────────────
         # All on-VM logic lives in this script — no SSH quoting games.
         emit("── Step 12: Deploy differentiate.sh ──")
+        # chown paths reference the original bench dir (rename happens in section A2)
         chown_paths = " ".join(
-            f"{bench_dir}/apps/{n}" for n in ("ce_sri", "returnable", "route_planner")
-        ) + f" {bench_dir}/BaRe {bench_dir}/BKP"
+            f"{bench_dir_orig}/apps/{n}" for n in ("ce_sri", "returnable", "route_planner")
+        ) + f" {bench_dir_orig}/BaRe {bench_dir_orig}/BKP"
         private_files = f"{bench_dir}/sites/{site_url}/private/files"
         ddl_placement = (
             f"  sudo -u {ERP_USER} cp {ddl_on_vm} {private_files}/ddlViews.sql\n"
@@ -887,10 +950,127 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
             f"  echo '  [OK] ddlViews.sql placed'\n"
         ) if ddl_on_vm else "  echo '  [SKIP] ddlViews.sql not available'\n"
 
+        # nginx TLS hostname: e.g. dev01 for dev01.iridium.blue
+        tls_domain    = "iridium.blue"
+        cert_dir      = f"/etc/nginx/certs/{tls_domain}"
+        nginx_cert    = f"{cert_dir}/fullchain.pem"
+        nginx_key     = f"{cert_dir}/privkey.pem"
+        nginx_dhparam = f"/etc/nginx/dhparam.pem"
+        # Frappe supervisor/nginx ports (standard single-bench layout)
+        gunicorn_port = 8000
+        ws_port       = 9000
+
+        if have_cert:
+            tls_section = f"""\
+echo "=== I: install TLS cert ==="
+sudo mkdir -p {cert_dir}
+sudo cp /tmp/fullchain.pem {nginx_cert}
+sudo cp /tmp/privkey.pem   {nginx_key}
+sudo chmod 600 {nginx_key}
+rm -f /tmp/fullchain.pem /tmp/privkey.pem /tmp/cert.pem
+echo "  [OK] certs installed to {cert_dir}"
+
+echo "=== J: generate nginx config ==="
+sudo tee /etc/nginx/sites-available/{site_url} > /dev/null << 'NGINXEOF'
+upstream frappe-{bench_name_new}-{site_url} {{
+    server 127.0.0.1:{gunicorn_port};
+}}
+upstream frappe-socketio-{bench_name_new} {{
+    server 127.0.0.1:{ws_port};
+}}
+
+server {{
+    listen 80;
+    server_name {site_url};
+    return 301 https://$host$request_uri;
+}}
+
+server {{
+    listen 443 ssl http2;
+    server_name {site_url};
+
+    ssl_certificate      {nginx_cert};
+    ssl_certificate_key  {nginx_key};
+    ssl_dhparam          {nginx_dhparam};
+    ssl_protocols        TLSv1.2 TLSv1.3;
+    ssl_ciphers          ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache    shared:SSL:10m;
+    ssl_session_timeout  1d;
+    ssl_session_tickets  off;
+
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss application/atom+xml image/svg+xml;
+
+    root /home/{ERP_USER}/{bench_name_new}/sites;
+
+    location /assets {{
+        try_files $uri =404;
+    }}
+
+    location ~ ^/files/.*$ {{
+        try_files $uri @webserver;
+    }}
+
+    location /socket.io {{
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://frappe-socketio-{bench_name_new};
+    }}
+
+    location @webserver {{
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120;
+        proxy_pass http://frappe-{bench_name_new}-{site_url};
+    }}
+
+    location / {{
+        rewrite ^(.+)/$ $1 permanent;
+        try_files $uri @webserver;
+    }}
+}}
+NGINXEOF
+echo "  [OK] /etc/nginx/sites-available/{site_url}"
+
+echo "=== K: DH params + enable site ==="
+if [ ! -f {nginx_dhparam} ]; then
+    echo "  Generating DH params (2048-bit) ..."
+    sudo openssl dhparam -out {nginx_dhparam} 2048
+fi
+sudo ln -sf /etc/nginx/sites-available/{site_url} /etc/nginx/sites-enabled/{site_url}
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+echo "  [OK] nginx reloaded with SSL site"
+"""
+        else:
+            tls_section = f"""\
+echo "=== I-K: TLS cert not available — HTTP only ==="
+echo "  [WARN] Deploy wildcard cert to saconsole and re-run to enable HTTPS"
+"""
+
         differentiate_sh = f"""\
 #!/usr/bin/env bash
 set -euo pipefail
 
+BENCH_DIR_ORIG="{bench_dir_orig}"
 BENCH_DIR="{bench_dir}"
 SITE_URL="{site_url}"
 ERP_USER="{ERP_USER}"
@@ -904,23 +1084,34 @@ sudo tee /opt/ce_sri/envars.sh > /dev/null << 'ENVEOF'
 #!/usr/bin/env bash
 export ERP_USER_PWD="{ERP_USER_PWD}"
 export MYPWD="{MYPWD}"
-export ERPNEXT_SITE="lab"
+export ERPNEXT_SITE="{vm.hostname}"
 export ERPNEXT_DNS="{vm.hostname}"
-export ERPNEXT_TLD="local"
-export ERPNEXT_DOMAIN="{vm.hostname}.local"
+export ERPNEXT_TLD="{domain.split('.', 1)[1] if '.' in domain else domain}"
+export ERPNEXT_DOMAIN="{site_url}"
 export ERPNEXT_SITE_URL="{site_url}"
 export ERP_USER_NAME="{ERP_USER}"
-export ERPNEXT_SITE_NICKNAME="TPL"
-export TARGET_BENCH_NAME="{bench_name}"
-export TARGET_BENCH="$HOME/{bench_name}"
+export ERPNEXT_SITE_NICKNAME="{nickname_str}"
+export TARGET_BENCH_NAME="{bench_name_new}"
+export TARGET_BENCH="$HOME/{bench_name_new}"
 export RESTORE_SITE_CONFIG="no"
 export KEEP_SITE_PASSWORD="yes"
 ENVEOF
 sudo chmod 644 /opt/ce_sri/envars.sh
 echo "  [OK] /opt/ce_sri/envars.sh"
 
+echo "=== A2: rename bench dir ==="
+if [ -d "$BENCH_DIR_ORIG" ] && [ ! -d "$BENCH_DIR" ]; then
+    sudo -u "$ERP_USER" mv "$BENCH_DIR_ORIG" "$BENCH_DIR"
+    echo "  [OK] renamed frappe-bench -> {bench_name_new}"
+elif [ -d "$BENCH_DIR" ]; then
+    echo "  [OK] {bench_name_new} already exists — skipping rename"
+else
+    echo "  [ERROR] Neither $BENCH_DIR_ORIG nor $BENCH_DIR found"
+    exit 1
+fi
+
 echo "=== B: fix ownership of rsynced dirs ==="
-sudo chown -R "$ERP_USER:$ERP_USER" {chown_paths}
+sudo chown -R "$ERP_USER:$ERP_USER" {chown_paths.replace(bench_dir_orig, "$BENCH_DIR")}
 echo "  [OK] ownership -> $ERP_USER"
 
 echo "=== C: BaRe/envars.sh symlink ==="
@@ -949,9 +1140,18 @@ echo "=== G: handleRestore.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"
 
-echo "=== H: bench restart ==="
+echo "=== H: bench setup supervisor ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
+sudo supervisorctl reread
+sudo supervisorctl update
+echo "  [OK] supervisor updated"
+
+echo "=== H2: bench restart ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
 echo "  [OK] bench restarted"
+
+{tls_section}
+echo "=== Done ==="
 """
 
         script_local = PLATFORMS_KVM / f"{vm.hostname}-differentiate.sh"
@@ -993,7 +1193,8 @@ echo "  [OK] bench restarted"
             emit("  [OK] Snapshot 'ERPNext v13 Logichem DB Restored' taken")
 
         job["status"] = "done"
-        emit(f"── Differentiation complete — ERPNext at https://{site_url} ──")
+        proto = "https" if have_cert else "http"
+        emit(f"── Differentiation complete — ERPNext at {proto}://{site_url} ──")
 
     except Exception as exc:
         emit(f"[ERROR] {exc}")
@@ -1124,6 +1325,74 @@ def _generate_cloud_init(hostname: str, host_cfg: dict, emit):
     (ci_dir / "meta-data").write_text(meta_data)
 
     emit(f"  [OK] cloud-init written to {ci_dir}")
+
+
+def _get_cf_token() -> str:
+    """Decrypt all.sops.yml and return the cloudflare_acme_token."""
+    dec = subprocess.run(
+        ["sops", "-d", str(GROUP_VARS_ALL_SOPS)],
+        cwd=PROJECT_ROOT, capture_output=True, text=True,
+    )
+    if dec.returncode != 0:
+        raise RuntimeError(f"sops decrypt failed: {dec.stderr.strip()}")
+    data = yaml.safe_load(dec.stdout)
+    token = data.get("cloudflare_acme_token", "")
+    if not token:
+        raise RuntimeError("cloudflare_acme_token not found in all.sops.yml")
+    return token
+
+
+def _cf_dns_upsert(record_name: str, ip: str, emit) -> None:
+    """Create or update a Cloudflare DNS A record for record_name → ip.
+
+    record_name: e.g. 'dev01' → creates 'dev01.iridium.blue'
+    ip: WireGuard IP (10.10.0.x) — accessible to WireGuard peers only
+    """
+    import urllib.request
+    import urllib.error
+
+    token = _get_cf_token()
+    fqdn  = f"{record_name}.iridium.blue"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type":  "application/json",
+    }
+    base_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID_IRIDIUM}/dns_records"
+
+    # List existing records matching name
+    list_url = f"{base_url}?type=A&name={fqdn}"
+    req = urllib.request.Request(list_url, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            existing = json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"Cloudflare list DNS failed: {exc.code} {exc.read().decode()}")
+
+    records = existing.get("result", [])
+    body = json.dumps({"type": "A", "name": fqdn, "content": ip, "ttl": CF_DNS_TTL, "proxied": False}).encode()
+
+    if records:
+        record_id = records[0]["id"]
+        existing_ip = records[0].get("content", "")
+        if existing_ip == ip:
+            emit(f"  [OK] DNS {fqdn} → {ip} already up to date")
+            return
+        put_url = f"{base_url}/{record_id}"
+        req = urllib.request.Request(put_url, data=body, headers=headers, method="PUT")
+        action = "Updated"
+    else:
+        req = urllib.request.Request(base_url, data=body, headers=headers, method="POST")
+        action = "Created"
+
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"Cloudflare DNS upsert failed: {exc.code} {exc.read().decode()}")
+
+    if not result.get("success"):
+        raise RuntimeError(f"Cloudflare DNS upsert failed: {result.get('errors')}")
+    emit(f"  [OK] {action} DNS A record: {fqdn} → {ip} (TTL {CF_DNS_TTL}s)")
 
 
 def _add_wg_peer(hostname: str, emit):

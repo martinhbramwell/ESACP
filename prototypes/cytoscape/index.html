@@ -89,8 +89,14 @@
                    pattern="[a-z][a-z0-9-]*" title="lowercase letters, digits, hyphens" />
           </div>
           <div class="field">
-            <label for="f-nickname">Nickname <span class="opt">(optional)</span></label>
-            <input id="f-nickname" type="text" placeholder="tgt3" />
+            <label for="f-nickname">Nickname</label>
+            <input id="f-nickname" type="text" placeholder="D1IRBL"
+                   pattern="[A-Za-z0-9]+" title="alphanumeric, no spaces" />
+            <span class="opt" id="f-nickname-hint">Frappe bench suffix — e.g. D1IRBL → frappe-bench-D1IRBL</span>
+          </div>
+          <div class="field" id="field-site-url-preview" style="display:none">
+            <label>Site URL</label>
+            <span id="site-url-preview" style="font-family:monospace;font-size:13px;color:#aef"></span>
           </div>
           <div class="field">
             <label for="f-wg-ip">WireGuard IP</label>
