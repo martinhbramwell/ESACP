@@ -68,6 +68,39 @@ groups:
           summary: "Container {{ $labels.name }} is restarting frequently"
           description: "Container has restarted {{ $value | humanize }} times in the last 5 minutes"
 
+  - name: tls_certificate_alerts
+    interval: 30s
+    rules:
+      - alert: TLSCertExpiryWarning
+        expr: acme_cert_expiry_days < 14
+        for: 30s
+        labels:
+          severity: warning
+          component: tls
+        annotations:
+          summary: "TLS cert expiring soon: {{ $labels.domain }}"
+          description: "Certificate for {{ $labels.domain }} expires in {{ $value | printf \"%.0f\" }} days."
+
+      - alert: TLSCertExpiryCritical
+        expr: acme_cert_expiry_days < 3
+        for: 20s
+        labels:
+          severity: critical
+          component: tls
+        annotations:
+          summary: "CRITICAL: TLS cert expires in {{ $value | printf \"%.0f\" }}d: {{ $labels.domain }}"
+          description: "Certificate for {{ $labels.domain }} expires in {{ $value | printf \"%.0f\" }} days."
+
+      - alert: TLSCertMetricMissing
+        expr: absent(acme_cert_expiry_days)
+        for: 20s
+        labels:
+          severity: warning
+          component: tls
+        annotations:
+          summary: "TLS cert expiry metric missing"
+          description: "acme_cert_expiry_days not found. Textfile collector or deploy hook may be broken."
+
   - name: security_alerts
     interval: 30s
     rules:

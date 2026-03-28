@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# {{ acme_sh_cert_home }}/deploy_cert.sh
+# Deployed by Ansible acme_sh role.
+# Called by acme.sh --reloadcmd after every cert renewal, and once at provision time.
+#
+# Does two things:
+#   1. Writes Prometheus textfile metric for cert expiry monitoring
+#   2. Reloads nginx if it is running as a systemd service on this host
+
+set -euo pipefail
+
+CERT_HOME="{{ acme_sh_cert_home }}"
+METRIC_FILE="{{ acme_sh_textfile_dir }}/acme_cert_expiry.prom"
+
+# ── 1. Write cert expiry metrics (atomic write via tmp file) ─────────────────
+{
+  echo "# HELP acme_cert_expiry_days Days until TLS certificate expires (0 = expired)"
+  echo "# TYPE acme_cert_expiry_days gauge"
+  for domain_dir in "${CERT_HOME}"/*/; do
+    [[ -d "${domain_dir}" ]] || continue
+    domain=$(basename "${domain_dir}")
+    cert="${domain_dir}/fullchain.pem"
+    [[ -f "${cert}" ]] || continue
+    expiry_str=$(openssl x509 -enddate -noout -in "${cert}" 2>/dev/null | cut -d= -f2) || continue
+    [[ -n "${expiry_str}" ]] || continue
+    expiry_epoch=$(date -d "${expiry_str}" +%s 2>/dev/null) || continue
+    now_epoch=$(date +%s)
+    days=$(( (expiry_epoch - now_epoch) / 86400 ))
+    echo "acme_cert_expiry_days{domain=\"${domain}\"} ${days}"
+  done
+} > "${METRIC_FILE}.tmp" && mv "${METRIC_FILE}.tmp" "${METRIC_FILE}"
+
+logger -t acme-deploy "cert expiry metrics written to ${METRIC_FILE}"
+
+# ── 2. Reload nginx if running on this host ──────────────────────────────────
+if systemctl is-active --quiet nginx 2>/dev/null; then
+  systemctl reload nginx
+  logger -t acme-deploy "nginx reloaded after cert renewal"
+fi

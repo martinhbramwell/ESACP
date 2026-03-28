@@ -68,6 +68,42 @@ groups:
           summary: "Container {{ $labels.name }} is restarting frequently"
           description: "Container has restarted {{ $value | humanize }} times in the last 5 minutes"
 
+  - name: tls_certificate_alerts
+    interval: 1h
+    rules:
+      # Warn 14 days before expiry — renewal should have fired by now if working
+      - alert: TLSCertExpiryWarning
+        expr: acme_cert_expiry_days < 14
+        for: 1h
+        labels:
+          severity: warning
+          component: tls
+        annotations:
+          summary: "TLS cert expiring soon: {{ $labels.domain }}"
+          description: "Certificate for {{ $labels.domain }} expires in {{ $value | printf \"%.0f\" }} days. Automated renewal may have failed — check /tmp/acme-renew.log on saconsole."
+
+      # Critical: less than 3 days left — service will break imminently
+      - alert: TLSCertExpiryCritical
+        expr: acme_cert_expiry_days < 3
+        for: 30m
+        labels:
+          severity: critical
+          component: tls
+        annotations:
+          summary: "CRITICAL: TLS cert expires in {{ $value | printf \"%.0f\" }}d: {{ $labels.domain }}"
+          description: "Certificate for {{ $labels.domain }} expires in {{ $value | printf \"%.0f\" }} days. Immediate manual renewal required."
+
+      # Belt-and-braces: alert if the metric itself disappears
+      - alert: TLSCertMetricMissing
+        expr: absent(acme_cert_expiry_days)
+        for: 2h
+        labels:
+          severity: warning
+          component: tls
+        annotations:
+          summary: "TLS cert expiry metric missing"
+          description: "acme_cert_expiry_days not found. node_exporter textfile collector or acme.sh deploy hook may be broken."
+
   - name: security_alerts
     interval: 30s
     rules:
