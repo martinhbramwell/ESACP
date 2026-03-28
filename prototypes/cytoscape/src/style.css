@@ -260,6 +260,7 @@ pre.job-log {
   max-height: 100%;
   overflow-y: auto;
   margin: 0;
+  padding-bottom: 8px;
 }
 
 .log-section {

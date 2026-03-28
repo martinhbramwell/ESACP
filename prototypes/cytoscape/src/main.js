@@ -129,8 +129,8 @@ const INITIAL_POSITIONS = {
   // Development quadrant (TR): x 460-870, y 50-380
   target1:        { x: 540, y: 150 },
   target2:        { x: 710, y: 150 },
-  tgt3:           { x: 540, y: 300 },
-  target4:        { x: 710, y: 300 },
+  target3:        { x: 540, y: 310 },
+  target4:        { x: 710, y: 310 },
 }
 
 function zoneFor(host) {
@@ -153,9 +153,10 @@ function normalizeVmRole(rawRole, zoneId) {
 
 function nextDevPosition(cy) {
   const devNodes = cy.nodes('[zone_id = "zone-dev"]:not(.phantom)')
-  const xs = devNodes.map(n => n.position('x'))
-  const maxX = xs.length ? Math.max(...xs) : 440
-  return { x: maxX + 160, y: 150 }
+  const count = devNodes.length
+  const col = count % 2
+  const row = Math.floor(count / 2)
+  return { x: 540 + col * 160, y: 150 + row * 160 }
 }
 
 function nextPositionForZone(cy, zoneId) {
@@ -517,7 +518,7 @@ const ZONE_VM_MARGIN = 50
 function _repositionUnknownNodes() {
   if (!cy) return
   const fallbackCount = {}
-  cy.nodes(':not(.phantom):not(.template-node)').forEach(node => {
+  cy.nodes().not('.phantom').not('.template-node').forEach(node => {
     if (INITIAL_POSITIONS[node.id()]) return
     const zoneId = node.data('zone_id') ?? 'zone-dev'
     if (!fallbackCount[zoneId]) fallbackCount[zoneId] = 0
@@ -525,7 +526,7 @@ function _repositionUnknownNodes() {
     let pos
     if      (zoneId === 'zone-staging')    pos = { x: ZONE_BASE_POS['zone-staging'].baseX    + idx * 160, y: ZONE_BASE_POS['zone-staging'].baseY    }
     else if (zoneId === 'zone-production') pos = { x: ZONE_BASE_POS['zone-production'].baseX + idx * 160, y: ZONE_BASE_POS['zone-production'].baseY }
-    else                                   pos = { x: 540 + idx * 160, y: 150 }  // dev fallback
+    else { const col = idx % 2; const row = Math.floor(idx / 2); pos = { x: 540 + col * 160, y: 150 + row * 160 } }  // dev: 2-col grid
     node.position(pos)
   })
 }

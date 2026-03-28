@@ -21,20 +21,28 @@ all:
           wg_ip: 10.10.0.4
           wg_role: spoke
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
+        target3: &id004
+          ansible_host: 192.168.122.14
+          wg_ip: 10.10.0.6
+          wg_role: spoke
+          ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
     development:
       hosts:
         saconsole: *id001
         target1: *id002
         target2: *id003
+        target3: *id004
     lab:
       hosts:
         saconsole: *id001
         target1: *id002
         target2: *id003
+        target3: *id004
     targets:
       hosts:
         target1: *id002
         target2: *id003
+        target3: *id004
     controller:
       hosts:
         localhost:
