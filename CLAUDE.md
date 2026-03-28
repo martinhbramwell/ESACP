@@ -299,6 +299,11 @@ tools/
                                     #                                   (accepts zone, vm_role; writes zone-based ansible_groups)
                                     #   POST /api/provision/{host}   → job: cloud-init + WG + buildVM + provisionVM
                                     #                                   + saconsole WireGuard hub update (Step 5)
+                                    #   POST /api/provision/erpnext  → template-based deploy: vol-clone + --import + differentiation
+                                    #                                   Steps 1-8: WG peer, seed ISO, vol-clone, boot, SSH wait, Baseline snapshot, saconsole WG
+                                    #                                   Steps 9-18: WG spoke, envars.sh, bench new-site, rsync apps+BaRe+BKP,
+                                    #                                     BaRe symlink, ddlViews.sql, installApps.sh, handleRestore.sh, bench restart,
+                                    #                                     snapshot "ERPNext v13 Logichem DB Restored"
                                     #   POST /api/promote            → stub: Staging→Production initiation (Telegram approval deferred)
                                     #   GET  /api/jobs               → list all jobs (for page-refresh reconnect)
                                     #   GET  /api/jobs/{id}          → poll job status + log
