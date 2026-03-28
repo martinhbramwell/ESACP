@@ -134,58 +134,14 @@ provisioned and managed from saconsole in a single Ansible run.
   Cloud-init templates: `platforms/kvm/cloud-init/toshiba-target{1,2}/`
 - **site-kvm.yml plays** (5 total): base-all → saconsole (docker+obs+desktop+control_plane+mcp_grafana)
   → authorise saconsole pubkey on targets → targets (node_exporter+docker+mariadb+nginx_ui) → controller WG
-- **MCP servers** (Stage 2.2):
-  - `mcp-grafana` on saconsole — `grafana/mcp-grafana:0.11.3`, SSE on port 8000,
-    joins `observability_network`, endpoint: `http://10.10.0.1:8000/sse`
-  - `MariaDB MCP` on each target — built from source (no published image), SSE on port 9001,
-    endpoint: `http://10.10.0.3:9001/sse` / `http://10.10.0.4:9001/sse`
-  - `Nginx UI MCP` on each target — `uozi/nginx-ui:v2.3.5`, admin/MCP on port 9000,
-    endpoint: `http://10.10.0.3:9000/mcp?node_secret=<secret>`
-- saconsole then manages sibling VMs via `qemu+ssh://hasan@toshiba/system`
+- **MCP endpoints**: mcp-grafana `http://10.10.0.1:8000/sse`; dbhub targets `http://10.10.0.{3,4}:9001/sse`; nginx-ui `http://10.10.0.{3,4}:9000/mcp?node_secret=<secret>`
+- saconsole manages sibling VMs via `qemu+ssh://<hypervisor-alias>/system`
 
-### Stage 1–1.5: Platform 1 Detail (VirtualBox/WSL — on hold)
-- **Host**: Windows 11 (Ultra) + WSL2 + VirtualBox — **Ultra is dead (hardware failure)**
-- Windows/WSL2 as a controller platform is not abandoned — may resume on future hardware
-- VirtualBox will not be used again; Hyper-V is the intended hypervisor for any Windows path
-- Scripts in `platforms/vbox/` preserved as reference; will need Hyper-V adaptation if resumed
-
-### Stage 2.1: Platform 2 Detail (KVM/Xubuntu)
-- **Host**: Xubuntu workstation (`${HOSTNAME}`) with KVM/QEMU/libvirt
-- **Guest VMs** (both Ubuntu Server 24.04.4, created via cloud-init + virt-install):
-
-| VM | virbr0 IP | WireGuard IP | Role |
-|---|---|---|---|
-| `saconsole` | 192.168.122.10 | 10.10.1.1 | WireGuard hub · full observability stack |
-| `target1` | 192.168.122.11 | 10.10.1.3 | WireGuard spoke · monitored host |
-| controller (host) | — | 10.10.1.2 | WireGuard spoke |
-
-- **Provisioning**: `orchestration/provision_kvm.py` → runs `ansible/site-kvm.yml`
-- **Inventory source of truth**: `hosts_map.yml` → `tools/generate_inventory.py` → `ansible/inventory/kvm.yml`
-- **Snapshot management**: `platforms/kvm/snapshot.py` (virsh wrapper)
+### Stage 2.1: Platform 2 (KVM/Xubuntu — superseded by toshiba path)
+Mighty-local VMs at virbr0 192.168.122.10/11. Provisioned via `orchestration/provision_kvm.py` → `ansible/site-kvm.yml`. Superseded by Stage 2.2 remote-toshiba path; scripts preserved.
 
 ### Observability Stack (Docker Compose on saconsole)
-All services run in Docker at `/opt/observability/`.
-
-| Service | Port | Role |
-|---|---|---|
-| Prometheus | 9090 | Metrics scraping + alert evaluation |
-| Grafana | 3000 | Dashboards and log exploration |
-| Loki | 3100 | Log storage (Loki 2.9.3) |
-| Promtail | — | Log shipping via Docker socket (Promtail 3.3.2) |
-| Alertmanager | 9093 | Alert routing (→ Telegram) |
-| node_exporter | 9100 | Host metrics (network_mode: host) |
-| cAdvisor | 8080 | Container metrics (v0.55.1) |
-
-**Promtail version mismatch** (intentional): Promtail 2.9.3 embeds Docker SDK API v1.42;
-Docker CE 25+ requires v1.44 minimum. Promtail 3.3.2 resolves this. The Loki push API
-is stable across major versions.
-
-**node_exporter host networking**: runs with `network_mode: host` + `pid: host` so
-the container inherits the host's UTS namespace (nodename = "saconsole", not a container ID)
-and sees all host interfaces including wg0. Prometheus reaches it via
-`host.docker.internal:9100` (docker compose `extra_hosts: host-gateway`).
-
-**Alert profiles**: `alerts/` = production (`for:` 2–10m); `alerts-drill/` = drill (20–30s). KVM hosts land in `lab` group → drill. Ansible role refuses to run drill profile against `production` group.
+All services in Docker at `/opt/observability/`. Ports: Prometheus 9090, Grafana 3000, Loki 3100, Alertmanager 9093, node_exporter 9100, cAdvisor 8080. Promtail 3.3.2 (3.x required — Docker CE 25+ needs SDK v1.44+). node_exporter runs `network_mode: host` + `pid: host`; Prometheus reaches it via `host.docker.internal:9100`. Alert profiles: `alerts/`=production (2–10m); `alerts-drill/`=drill (20–30s). KVM hosts → `lab` group → drill.
 
 ---
 
@@ -312,32 +268,9 @@ tools/
                                     #   Will move to saconsole when promoted from prototype
 
 prototypes/
-  cytoscape/                        # Cytoscape.js standalone prototype (Vite + vanilla JS)
-                                    # Run: Terminal 1: uvicorn tools.api:app --port 8088 --reload
-                                    #       Terminal 2: cd prototypes/cytoscape && bash doCytoscape.sh
-                                    # Access: http://localhost:5173
-                                    # 4-Quadrant layout: Console (white) / Development (green) /
-                                    #   Staging (amber) / Production (red)
-                                    # Zone frames: HTML overlay divs (#zone-overlay) — NOT Cytoscape compound
-                                    #   nodes. Compound nodes caused colour bleeding, empty-zone collapse, and
-                                    #   selector specificity bugs (see GH issue #15). HTML panels track
-                                    #   pan/zoom via _graphToScreen(splitX, splitY) + ZONE_GRAPH constants.
-                                    # Draggable "+" handle (quad-splitter) resizes all four zones; on resize,
-                                    #   _constrainVMsToZones() clamps every VM inside its zone bounds (50gu margin)
-                                    #   — fences squeeze sheep.
-                                    # Drag-to-rezone: drop VM onto new zone → zone_id + vm_role reassigned.
-                                    #   Production is write-protected (direct drag rejected; Promote only).
-                                    #   Hub/controller nodes always snap back to Console zone.
-                                    # Stockroom in Console zone: 3 template tiles (Basic VM / MariaDB / ERPNext)
-                                    #   Click a template → Deploy from Template pre-fills Add dialog with zone+role
-                                    # Node icons by vm_role: dev=computer, master=rack server, slave=disk cylinders
-                                    # Add Target dialog: Zone selector + Role selector (1M+1S slot enforcement per zone)
-                                    # Promote → button: active only when Staging has exactly 1 Master + 1 Slave
-                                    #   Click → confirm modal → POST /api/promote (stub; Telegram/DNS deferred)
-                                    # Clone to Staging button: appears on provisioned dev nodes;
-                                    #   opens Add dialog pre-filled with staging zone
-                                    # Unprovisioned nodes: dashed amber border; click → Provision button
-                                    # node_modules/ and dist/ are gitignored
+  cytoscape/                        # Cytoscape.js prototype (Vite + vanilla JS). Run: uvicorn tools.api:app --port 8088 + bash doCytoscape.sh → http://localhost:5173
+                                    # 4-quadrant layout (Console/Dev/Staging/Prod), HTML zone overlays (not compound nodes — GH #15),
+                                    # drag-to-rezone, stockroom templates, draw-to-provision end-to-end. See project_cytoscape_pending.md.
   cytoscape/src/api.js              # Fetch helpers for the FastAPI backend (/api proxy via Vite)
 ```
 
@@ -390,12 +323,7 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 
 ## Known Decisions & Gotchas
 
-- **`bootstrap_targets.sh` runs FROM saconsole, not the controller**: The script uses
-  saconsole's `~/.ssh/id_ed25519` — the only key authorised in targets' cloud-init. The
-  controller (`hasan_mighty`) has no access to fresh targets. It also requires
-  `cloud-image-utils` (cloud-localds) on saconsole — not installed by any Ansible role,
-  so it must be in saconsole's cloud-init packages (added to saconsole/user-data).
-  The one-command rebuild entry point is `platforms/kvm/rebuild_lab.sh`.
+- **`bootstrap_targets.sh` runs FROM saconsole**: saconsole's `~/.ssh/id_ed25519` is the only key authorised in targets' cloud-init. Controller key has no access. Requires `cloud-image-utils` on saconsole (in saconsole/user-data packages). Entry point: `platforms/kvm/rebuild_lab.sh`.
 
 - **MariaDB MCP uses bytebase/dbhub (not MariaDB/mcp)**: `MariaDB/mcp` main branch now
   pulls `sentence-transformers` → PyTorch/CUDA (~3.5GB), causing `docker build` to fail
@@ -561,11 +489,4 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 
 ## Stage 2.x Scope (next)
 
-See `docs/ControlPlaneDesign.md` for full rationale (design session 2026-03-03).
-
-- saconsole becomes control plane: manages VMs via `qemu+ssh://host/system`, CloudStack API, or VBoxWebSrv; `esacp.py` becomes its REST API pipeline engine
-- Cloud-init → generated from `hosts_map.yml` via `tools/generate_cloud_init.py`; do not edit directly (same as inventory)
-- Live-safe params (thresholds, dashboards): push in-place. Rebuild-required params (IPs, hostnames, WG subnet): trigger `destroyVM → buildVM → provisionVM`
-- Grafana control plane: Canvas+HTML panel (immediate) → draw.io embedded → custom React+Cytoscape app plugin
-- Platform 3 (Ubuntu+X2Go on CloudStack VPS), Platform 4 (macOS on hosted Mac)
-- Chaos on KVM: port `run_scenario.py`+`scenarios.yml`; version watchdog: monitor pinned components, auto-rebuild staging on release
+See `docs/ControlPlaneDesign.md`. Heterogeneous fleet: CloudStack backend, chaos on KVM, version watchdog, Platforms 3+4.
