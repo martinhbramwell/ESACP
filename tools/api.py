@@ -755,7 +755,7 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
 
         # ── Differentiation constants ─────────────────────────────────────────
         bench_name   = "frappe-bench"               # Packer template bench dir (fixed)
-        site_url     = f"lab.{vm.hostname}.local"   # derived — override when adding site_url field
+        site_url     = f"lab.{vm.hostname}.local"   # derived — add site_url field to dialog later
         bench_dir    = f"/home/adm/{bench_name}"
         ERP_USER     = "adm"
         MYPWD        = "erpnext_build"              # MariaDB root pwd set by Packer OS prep
@@ -765,6 +765,11 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
             f"-o StrictHostKeyChecking=no "
             f"-i {Path.home() / '.ssh' / 'hasan_mighty'}"
         )
+        scp_opts     = [
+            "-o", f"ProxyJump={TOSHIBA_ALIAS}",
+            "-o", "StrictHostKeyChecking=no",
+            "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
+        ]
 
         # ── Step 9: Ansible wireguard spoke on new VM ─────────────────────────
         emit("── Step 9: Configure WireGuard spoke (Ansible) ──")
@@ -789,64 +794,10 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
         else:
             emit("  [OK] WireGuard spoke configured")
 
-        # ── Step 10: Create /opt/ce_sri/ and push envars.sh ──────────────────
-        emit("── Step 10: Push envars.sh ──")
-        envars_content = (
-            f"#!/usr/bin/env bash\n"
-            f"export ERP_USER_PWD=\"{ERP_USER_PWD}\"\n"
-            f"export MYPWD=\"{MYPWD}\"\n"
-            f"export ERPNEXT_SITE=\"lab\"\n"
-            f"export ERPNEXT_DNS=\"{vm.hostname}\"\n"
-            f"export ERPNEXT_TLD=\"local\"\n"
-            f"export ERPNEXT_DOMAIN=\"{vm.hostname}.local\"\n"
-            f"export ERPNEXT_SITE_URL=\"{site_url}\"\n"
-            f"export ERP_USER_NAME=\"{ERP_USER}\"\n"
-            f"export ERPNEXT_SITE_NICKNAME=\"TPL\"\n"
-            f"export TARGET_BENCH_NAME=\"{bench_name}\"\n"
-            f"export TARGET_BENCH=\"${{HOME}}/{bench_name}\"\n"
-            f"export RESTORE_SITE_CONFIG=\"no\"\n"
-            f"export KEEP_SITE_PASSWORD=\"yes\"\n"
-        )
-        r = subprocess.run(
-            target_ssh + ["bash", "-c", "sudo mkdir -p /opt/ce_sri && sudo chmod 755 /opt/ce_sri"],
-            capture_output=True, text=True, timeout=15,
-        )
-        if r.returncode != 0:
-            raise RuntimeError(f"Failed to create /opt/ce_sri: {r.stderr.strip()}")
-        r = subprocess.run(
-            target_ssh + ["sudo", "tee", "/opt/ce_sri/envars.sh"],
-            input=envars_content, capture_output=True, text=True, timeout=15,
-        )
-        if r.returncode != 0:
-            raise RuntimeError(f"Failed to push envars.sh: {r.stderr.strip()}")
-        subprocess.run(
-            target_ssh + ["bash", "-c", "sudo chmod 644 /opt/ce_sri/envars.sh"],
-            capture_output=True, text=True, timeout=10,
-        )
-        emit("  [OK] /opt/ce_sri/envars.sh pushed")
-
-        # ── Step 11: bench new-site + install-app erpnext ────────────────────
-        emit("── Step 11: bench new-site + install-app erpnext ──")
-        emit(f"  site: {site_url}  bench: {bench_dir}")
-        r = subprocess.run(
-            target_ssh + [
-                "bash", "-c",
-                f"sudo -u {ERP_USER} bash -c 'cd {bench_dir} && "
-                f"bench new-site {site_url} "
-                f"--mariadb-root-password {MYPWD} "
-                f"--admin-password {ERP_USER_PWD} 2>&1 && "
-                f"bench --site {site_url} install-app erpnext 2>&1'"
-            ],
-            capture_output=True, text=True, timeout=600,
-        )
-        if r.stdout:
-            emit(r.stdout[-2000:])   # tail last 2000 chars to avoid flooding log
-        if r.returncode != 0:
-            raise RuntimeError(f"bench new-site/install-app failed (exit {r.returncode})")
-        emit("  [OK] Site created, erpnext installed")
-
-        # ── Step 12: rsync bespoke apps + BaRe + BKP ─────────────────────────
-        emit("── Step 12: rsync apps + BaRe + BKP ──")
+        # ── Step 10: rsync apps + BaRe + BKP (controller → VM) ───────────────
+        # Source files live on the controller; rsync is the right tool here.
+        # --rsync-path="sudo rsync" because bench/apps is owned by adm.
+        emit("── Step 10: rsync apps + BaRe + BKP ──")
         rsync_targets = [
             (CE_SRI_SRC,         f"{bench_dir}/apps/ce_sri"),
             (RETURNABLE_SRC,     f"{bench_dir}/apps/returnable"),
@@ -873,111 +824,130 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
                 raise RuntimeError(f"rsync {src_path.name} failed: {r.stderr.strip()}")
             emit(f"  [OK] {src_path.name} → {dst}")
 
-        # Fix ownership (sudo rsync writes as root; adm needs to own)
+        # ── Step 11: SCP ddlViews.sql → /tmp/ on VM ──────────────────────────
+        emit("── Step 11: SCP ddlViews.sql ──")
+        ddl_on_vm = "/tmp/ddlViews.sql"
+        if VIEWS_DDL_SRC.exists():
+            r = subprocess.run(
+                ["scp"] + scp_opts + [str(VIEWS_DDL_SRC), f"you@{vm.virbr0_ip}:{ddl_on_vm}"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if r.returncode != 0:
+                emit(f"  [WARN] scp ddlViews.sql failed: {r.stderr.strip()} — will skip placement")
+                ddl_on_vm = ""
+            else:
+                emit(f"  [OK] ddlViews.sql → {ddl_on_vm}")
+        else:
+            emit(f"  [SKIP] ddlViews.sql not found at {VIEWS_DDL_SRC}")
+            ddl_on_vm = ""
+
+        # ── Step 12: Generate + SCP differentiate.sh ─────────────────────────
+        # All on-VM logic lives in this script — no SSH quoting games.
+        emit("── Step 12: Deploy differentiate.sh ──")
         chown_paths = " ".join(
             f"{bench_dir}/apps/{n}" for n in ("ce_sri", "returnable", "route_planner")
         ) + f" {bench_dir}/BaRe {bench_dir}/BKP"
-        r = subprocess.run(
-            target_ssh + ["bash", "-c", f"sudo chown -R {ERP_USER}:{ERP_USER} {chown_paths}"],
-            capture_output=True, text=True, timeout=60,
-        )
-        if r.returncode != 0:
-            emit(f"  [WARN] chown failed: {r.stderr.strip()}")
-        else:
-            emit(f"  [OK] ownership → {ERP_USER}")
-
-        # ── Step 13: BaRe/envars.sh symlink ──────────────────────────────────
-        emit("── Step 13: BaRe/envars.sh symlink ──")
-        r = subprocess.run(
-            target_ssh + [
-                "bash", "-c",
-                f"sudo -u {ERP_USER} ln -sf /opt/ce_sri/envars.sh {bench_dir}/BaRe/envars.sh"
-            ],
-            capture_output=True, text=True, timeout=10,
-        )
-        if r.returncode != 0:
-            emit(f"  [WARN] symlink failed: {r.stderr.strip()}")
-        else:
-            emit("  [OK] BaRe/envars.sh → /opt/ce_sri/envars.sh")
-
-        # ── Step 14: Place ddlViews.sql ───────────────────────────────────────
-        emit("── Step 14: Place ddlViews.sql ──")
         private_files = f"{bench_dir}/sites/{site_url}/private/files"
-        if VIEWS_DDL_SRC.exists():
-            subprocess.run(
-                target_ssh + ["bash", "-c",
-                              f"sudo -u {ERP_USER} mkdir -p {private_files}"],
-                capture_output=True, text=True, timeout=10,
-            )
-            r = subprocess.run(
-                [
-                    "scp",
-                    "-o", f"ProxyJump={TOSHIBA_ALIAS}",
-                    "-o", "StrictHostKeyChecking=no",
-                    "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
-                    str(VIEWS_DDL_SRC),
-                    f"you@{vm.virbr0_ip}:/tmp/ddlViews.sql",
-                ],
-                capture_output=True, text=True, timeout=30,
-            )
-            if r.returncode == 0:
-                subprocess.run(
-                    target_ssh + [
-                        "bash", "-c",
-                        f"sudo -u {ERP_USER} cp /tmp/ddlViews.sql {private_files}/ddlViews.sql"
-                        f" && rm /tmp/ddlViews.sql"
-                    ],
-                    capture_output=True, text=True, timeout=10,
-                )
-                emit(f"  [OK] ddlViews.sql → {private_files}/")
-            else:
-                emit(f"  [WARN] scp ddlViews.sql failed: {r.stderr.strip()}")
-        else:
-            emit(f"  [SKIP] ddlViews.sql not found at {VIEWS_DDL_SRC}")
+        ddl_placement = (
+            f"  sudo -u {ERP_USER} cp {ddl_on_vm} {private_files}/ddlViews.sql\n"
+            f"  rm -f {ddl_on_vm}\n"
+            f"  echo '  [OK] ddlViews.sql placed'\n"
+        ) if ddl_on_vm else "  echo '  [SKIP] ddlViews.sql not available'\n"
 
-        # ── Step 15: installApps.sh ───────────────────────────────────────────
-        emit("── Step 15: installApps.sh (pip install + migrate) ──")
+        differentiate_sh = f"""\
+#!/usr/bin/env bash
+set -euo pipefail
+
+BENCH_DIR="{bench_dir}"
+SITE_URL="{site_url}"
+ERP_USER="{ERP_USER}"
+MYPWD="{MYPWD}"
+ERP_USER_PWD="{ERP_USER_PWD}"
+
+echo "=== A: /opt/ce_sri/ + envars.sh ==="
+sudo mkdir -p /opt/ce_sri
+sudo chmod 755 /opt/ce_sri
+sudo tee /opt/ce_sri/envars.sh > /dev/null << 'ENVEOF'
+#!/usr/bin/env bash
+export ERP_USER_PWD="{ERP_USER_PWD}"
+export MYPWD="{MYPWD}"
+export ERPNEXT_SITE="lab"
+export ERPNEXT_DNS="{vm.hostname}"
+export ERPNEXT_TLD="local"
+export ERPNEXT_DOMAIN="{vm.hostname}.local"
+export ERPNEXT_SITE_URL="{site_url}"
+export ERP_USER_NAME="{ERP_USER}"
+export ERPNEXT_SITE_NICKNAME="TPL"
+export TARGET_BENCH_NAME="{bench_name}"
+export TARGET_BENCH="$HOME/{bench_name}"
+export RESTORE_SITE_CONFIG="no"
+export KEEP_SITE_PASSWORD="yes"
+ENVEOF
+sudo chmod 644 /opt/ce_sri/envars.sh
+echo "  [OK] /opt/ce_sri/envars.sh"
+
+echo "=== B: fix ownership of rsynced dirs ==="
+sudo chown -R "$ERP_USER:$ERP_USER" {chown_paths}
+echo "  [OK] ownership -> $ERP_USER"
+
+echo "=== C: BaRe/envars.sh symlink ==="
+sudo -u "$ERP_USER" ln -sf /opt/ce_sri/envars.sh "$BENCH_DIR/BaRe/envars.sh"
+echo "  [OK] BaRe/envars.sh -> /opt/ce_sri/envars.sh"
+
+echo "=== D: bench new-site + install-app erpnext ==="
+echo "  site: $SITE_URL  bench: $BENCH_DIR"
+sudo -u "$ERP_USER" bash -c "
+  cd $BENCH_DIR
+  bench new-site $SITE_URL \\
+    --mariadb-root-password $MYPWD \\
+    --admin-password $ERP_USER_PWD
+  bench --site $SITE_URL install-app erpnext
+"
+echo "  [OK] site created, erpnext installed"
+
+echo "=== E: place ddlViews.sql ==="
+sudo -u "$ERP_USER" mkdir -p "$BENCH_DIR/sites/$SITE_URL/private/files"
+{ddl_placement}
+echo "=== F: installApps.sh ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/installApps.sh"
+echo "  [OK] installApps.sh complete"
+
+echo "=== G: handleRestore.sh ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
+echo "  [OK] database restored"
+
+echo "=== H: bench restart ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
+echo "  [OK] bench restarted"
+"""
+
+        script_local = PLATFORMS_KVM / f"{vm.hostname}-differentiate.sh"
+        script_local.write_text(differentiate_sh)
         r = subprocess.run(
-            target_ssh + [
-                "bash", "-c",
-                f"sudo -u {ERP_USER} bash -c 'cd {bench_dir} && bash BaRe/installApps.sh 2>&1'"
-            ],
-            capture_output=True, text=True, timeout=600,
+            ["scp"] + scp_opts + [str(script_local), f"you@{vm.virbr0_ip}:/tmp/differentiate.sh"],
+            capture_output=True, text=True, timeout=30,
         )
-        for line in (r.stdout + r.stderr).splitlines():
-            emit(f"  {line}")
         if r.returncode != 0:
-            raise RuntimeError("installApps.sh failed")
-        emit("  [OK] installApps.sh complete")
+            raise RuntimeError(f"scp differentiate.sh failed: {r.stderr.strip()}")
+        emit(f"  [OK] differentiate.sh deployed")
 
-        # ── Step 16: handleRestore.sh ─────────────────────────────────────────
-        emit("── Step 16: handleRestore.sh (DB restore + views) ──")
-        r = subprocess.run(
-            target_ssh + [
-                "bash", "-c",
-                f"sudo -u {ERP_USER} bash -c 'cd {bench_dir} && bash BaRe/handleRestore.sh 2>&1'"
-            ],
-            capture_output=True, text=True, timeout=1200,
+        # ── Step 13: Execute differentiate.sh on VM (streaming) ───────────────
+        emit("── Step 13: Execute differentiate.sh (~25 min) ──")
+        proc = subprocess.Popen(
+            target_ssh + ["bash /tmp/differentiate.sh"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
         )
-        for line in (r.stdout + r.stderr).splitlines():
-            emit(f"  {line}")
-        if r.returncode != 0:
-            raise RuntimeError("handleRestore.sh failed")
-        emit("  [OK] Database restored")
+        for line in proc.stdout:
+            emit(line.rstrip())
+        proc.wait()
+        if proc.returncode != 0:
+            raise RuntimeError(f"differentiate.sh failed (exit {proc.returncode})")
+        emit("  [OK] Differentiation complete")
 
-        # ── Step 17: bench restart ────────────────────────────────────────────
-        emit("── Step 17: bench restart ──")
-        subprocess.run(
-            target_ssh + [
-                "bash", "-c",
-                f"sudo -u {ERP_USER} bash -c 'cd {bench_dir} && bench restart 2>&1 || true'"
-            ],
-            capture_output=True, text=True, timeout=60,
-        )
-        emit("  [OK] bench restarted")
-
-        # ── Step 18: Final snapshot — Logichem DB Restored ───────────────────
-        emit("── Step 18: Snapshot — ERPNext v13 Logichem DB Restored ──")
+        # ── Step 14: Final snapshot — Logichem DB Restored ───────────────────
+        emit("── Step 14: Snapshot — ERPNext v13 Logichem DB Restored ──")
         r = subprocess.run(
             ["ssh", TOSHIBA_ALIAS,
              f"virsh --connect qemu:///system snapshot-create-as {vm.hostname} "
