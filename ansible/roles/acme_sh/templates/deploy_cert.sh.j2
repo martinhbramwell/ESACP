@@ -34,6 +34,6 @@ logger -t acme-deploy "cert expiry metrics written to ${METRIC_FILE}"
 
 # ── 2. Reload nginx if running on this host ──────────────────────────────────
 if systemctl is-active --quiet nginx 2>/dev/null; then
-  systemctl reload nginx
+  sudo systemctl reload nginx
   logger -t acme-deploy "nginx reloaded after cert renewal"
 fi

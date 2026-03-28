@@ -13,10 +13,11 @@
 - name: Clone acme.sh source
   git:
     repo: https://github.com/acmesh-official/acme.sh.git
-    dest: "{{ ansible_user_dir }}/.acme.sh-src"
+    dest: "{{ '/home/' + ansible_user }}/.acme.sh-src"
     version: master
     depth: 1
     update: false
+  become: false
 
 - name: Install acme.sh
   command: >
@@ -25,8 +26,9 @@
     {% if acme_sh_email | length > 0 %}--accountemail {{ acme_sh_email }}{% endif %}
     --no-cron
   args:
-    chdir: "{{ ansible_user_dir }}/.acme.sh-src"
+    chdir: "{{ '/home/' + ansible_user }}/.acme.sh-src"
     creates: "{{ acme_sh_install_dir }}/acme.sh"
+  become: false
 
 - name: Create cert output directories
   file:
@@ -65,7 +67,7 @@
     {% for san in item.sans %}--domain {{ san }} {% endfor %}
   environment:
     CF_Token: "{{ cloudflare_acme_token }}"
-    HOME: "{{ ansible_user_dir }}"
+    HOME: "{{ '/home/' + ansible_user }}"
   register: acme_issue
   # exit 0 = new/renewed cert  exit 2 = still valid, skip  exit 1 = error
   changed_when: acme_issue.rc == 0
@@ -87,7 +89,7 @@
     --ca-file        {{ acme_sh_cert_home }}/{{ item.name }}/ca.pem
     --reloadcmd      "{{ acme_sh_cert_home }}/deploy_cert.sh"
   environment:
-    HOME: "{{ ansible_user_dir }}"
+    HOME: "{{ '/home/' + ansible_user }}"
   register: acme_install
   changed_when: "'Installing cert to' in acme_install.stdout"
   become: false
