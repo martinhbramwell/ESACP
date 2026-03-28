@@ -75,6 +75,39 @@ jobs: dict[str, dict] = {}
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+def _stream_lines(pipe):
+    """Yield lines from a binary pipe, handling \\r (carriage return) correctly.
+
+    Terminal progress bars overwrite lines using \\r. In a plain text iterator
+    these appear as embedded \\r bytes inside a \\n-terminated line, producing
+    hundreds of intermediate states in the log panel. This reader treats \\r as
+    'overwrite current line' — only the final value before each \\n is yielded.
+    """
+    buf = b""
+    current = b""
+    while True:
+        chunk = pipe.read(256)
+        if not chunk:
+            break
+        buf += chunk
+        while buf:
+            nl = buf.find(b"\n")
+            cr = buf.find(b"\r")
+            if nl == -1 and cr == -1:
+                current += buf
+                buf = b""
+            elif nl != -1 and (cr == -1 or nl < cr):
+                current += buf[:nl]
+                yield current.decode("utf-8", errors="replace")
+                current = b""
+                buf = buf[nl + 1:]
+            else:  # cr comes first — overwrite current line
+                current = buf[cr + 1:]
+                buf = b""
+    if current:
+        yield current.decode("utf-8", errors="replace")
+
+
 def load_hosts_map() -> dict:
     with open(HOSTS_MAP) as f:
         return yaml.safe_load(f)
@@ -395,10 +428,10 @@ def _run_build_template(job_id: str):
             SACONSOLE_SSH + ["bash /opt/esacp/platforms/packer/build.sh"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
+
         )
-        for line in proc.stdout:
-            emit(line.rstrip())
+        for line in _stream_lines(proc.stdout):
+            emit(line)
         proc.wait()
         if proc.returncode != 0:
             emit(f"[ERROR] build.sh exited with code {proc.returncode}")
@@ -743,10 +776,10 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
             cwd=str(PROJECT_ROOT / "ansible"),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
+
         )
-        for line in proc.stdout:
-            emit(line.rstrip())
+        for line in _stream_lines(proc.stdout):
+            emit(line)
         proc.wait()
         if proc.returncode != 0:
             emit(f"  [WARN] Ansible wireguard update failed (exit {proc.returncode})")
@@ -784,10 +817,10 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
             cwd=str(PROJECT_ROOT / "ansible"),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
+
         )
-        for line in proc.stdout:
-            emit(line.rstrip())
+        for line in _stream_lines(proc.stdout):
+            emit(line)
         proc.wait()
         if proc.returncode != 0:
             emit(f"  [WARN] Ansible wireguard spoke failed (exit {proc.returncode}) — continuing")
@@ -937,10 +970,10 @@ echo "  [OK] bench restarted"
             target_ssh + ["bash /tmp/differentiate.sh"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
+
         )
-        for line in proc.stdout:
-            emit(line.rstrip())
+        for line in _stream_lines(proc.stdout):
+            emit(line)
         proc.wait()
         if proc.returncode != 0:
             raise RuntimeError(f"differentiate.sh failed (exit {proc.returncode})")
@@ -1027,10 +1060,10 @@ def _run_provision(job_id: str, hostname: str, host_cfg: dict):
                 cwd=PROJECT_ROOT,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
+    
             )
-            for line in proc.stdout:
-                emit(line.rstrip())
+            for line in _stream_lines(proc.stdout):
+                emit(line)
             proc.wait()
             if proc.returncode != 0:
                 emit(f"[ERROR] {sub} exited with code {proc.returncode}")
@@ -1052,10 +1085,10 @@ def _run_provision(job_id: str, hostname: str, host_cfg: dict):
             cwd=str(PROJECT_ROOT / "ansible"),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
+
         )
-        for line in proc.stdout:
-            emit(line.rstrip())
+        for line in _stream_lines(proc.stdout):
+            emit(line)
         proc.wait()
         if proc.returncode != 0:
             emit(f"[WARN] saconsole WireGuard update failed (exit {proc.returncode}) — new peer may not connect")
@@ -1204,10 +1237,10 @@ def _run_destroy(job_id: str, hostname: str, host_cfg: dict):
             cwd=str(PROJECT_ROOT / "ansible"),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
+
         )
-        for line in proc.stdout:
-            emit(line.rstrip())
+        for line in _stream_lines(proc.stdout):
+            emit(line)
         proc.wait()
         if proc.returncode != 0:
             emit(f"  [WARN] Ansible wireguard update failed (exit {proc.returncode}) — wg0.conf may still list old peer")
