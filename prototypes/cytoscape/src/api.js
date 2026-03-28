@@ -50,6 +50,11 @@ export async function startDestroy(hostname) {
   return post(`/api/destroy/${hostname}`, {})
 }
 
+// Returns { job_id, hostname } — registers host AND starts template-based provision job atomically
+export async function startProvisionErpnext({ hostname, nickname, virbr0_ip, wg_ip, hypervisor = 'toshiba', zone = 'development', vm_role = 'dev:unspecified', site_nickname = '' }) {
+  return post('/api/provision/erpnext', { hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role, site_nickname })
+}
+
 // Returns { image, built_at, frappe_branch, erpnext_branch, state }
 export async function fetchTemplateStatus() {
   const res = await fetch('/api/template/status', { signal: signal() })

@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import time
 import uuid
 from pathlib import Path
 
@@ -414,6 +415,329 @@ def promote_staging():
     Cloudflare API and swap quadrant labels. Deferred pending v13 staging.
     """
     return {"ok": True, "message": "Promotion initiated — awaiting Telegram approval (stub; DNS flip not yet implemented)"}
+
+
+# ── POST /api/provision/erpnext ──────────────────────────────────────────────
+
+TOSHIBA_IMAGES_DIR = "/mnt/esacp-disk/var/lib/libvirt/images"
+TOSHIBA_POOL       = "esacp"
+
+
+class NewErpnextVM(BaseModel):
+    hostname:      str
+    nickname:      str  = ""
+    virbr0_ip:     str
+    wg_ip:         str
+    hypervisor:    str  = "toshiba"
+    zone:          str  = "development"
+    vm_role:       str  = "dev:unspecified"
+    site_nickname: str  = ""
+
+
+@app.post("/api/provision/erpnext")
+def start_provision_erpnext(vm: NewErpnextVM):
+    """Register a new VM and start a template-based provisioning job.
+
+    Unlike /api/provision/{hostname}, this endpoint both registers the host
+    AND starts the job atomically — the caller gets back a job_id immediately
+    and polls /api/jobs/{job_id} for progress.
+
+    The provisioning job does:
+      1. Add WireGuard peer
+      2. Build cloud-config seed ISO (hostname + IP + controller SSH key)
+      3. SCP seed ISO to hypervisor
+      4. virsh vol-clone the undifferentiated template qcow2
+      5. virt-install --import (boots in seconds, cloud-init sets identity)
+      6. Wait for SSH
+      7. Take "Baseline" snapshot → node shows provisioned=True in UI
+      8. Ansible wireguard role on saconsole (add new spoke)
+    """
+    if not re.match(r'^[a-z][a-z0-9-]*$', vm.hostname):
+        raise HTTPException(400, "hostname: lowercase letters/digits/hyphens, must start with a letter")
+
+    data = load_hosts_map()
+    kvm  = data["groups"].get("kvm", {})
+
+    if vm.hostname in kvm:
+        raise HTTPException(409, f"'{vm.hostname}' already exists in the kvm group")
+    for name, h in kvm.items():
+        if h.get("wg_ip") == vm.wg_ip:
+            raise HTTPException(409, f"WireGuard IP {vm.wg_ip} already used by '{name}'")
+        if h.get("virbr0_ip") == vm.virbr0_ip:
+            raise HTTPException(409, f"virbr0 IP {vm.virbr0_ip} already used by '{name}'")
+
+    # Register immediately so the UI can add the node
+    nickname  = vm.nickname or vm.hostname[:4]
+    groups    = _ZONE_GROUPS.get(vm.zone, _ZONE_GROUPS["development"])
+    role_line = f"      vm_role: {vm.vm_role}\n" if vm.vm_role and vm.vm_role != "dev" else ""
+    block = (
+        f"\n    {vm.hostname}:\n"
+        f"      hostname: {vm.hostname}\n"
+        f"      nickname: {nickname}\n"
+        f'      virbr0_ip: "{vm.virbr0_ip}"\n'
+        f'      wg_ip: "{vm.wg_ip}"\n'
+        f"      wg_role: spoke\n"
+        f"      ansible_managed: true\n"
+        f"      backend: {vm.hypervisor and 'kvm' or 'kvm'}\n"
+        f"      hypervisor: {vm.hypervisor}\n"
+        f"{role_line}"
+        f"      ansible_groups:\n"
+        + "\n".join(f"        - {g}" for g in groups) + "\n"
+    )
+    text   = HOSTS_MAP.read_text()
+    marker = "  # ── VirtualBox guests"
+    if marker not in text:
+        raise HTTPException(500, "Cannot find insertion point in hosts_map.yml")
+    HOSTS_MAP.write_text(text.replace(marker, block + marker))
+
+    result = subprocess.run(
+        ["python3", "tools/generate_inventory.py"],
+        cwd=PROJECT_ROOT, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
+
+    job_id = str(uuid.uuid4())[:8]
+    jobs[job_id] = {
+        "status":   "running",
+        "log":      [],
+        "hostname": vm.hostname,
+        "type":     "provision_erpnext",
+    }
+
+    threading.Thread(
+        target=_run_provision_erpnext,
+        args=(job_id, vm),
+        daemon=True,
+    ).start()
+
+    return {"job_id": job_id, "hostname": vm.hostname}
+
+
+def _build_template_seed_iso(vm: NewErpnextVM, emit) -> Path:
+    """Build a cloud-config (NoCloud) seed ISO for virt-install --import deployment.
+
+    The Packer-built template image already has the 'you' user from its original
+    cloud-init run. We inject the controller's SSH public key so api.py can SSH in
+    after boot, and set the per-VM hostname and static IP.
+    """
+    controller_pubkey_path = Path.home() / ".ssh" / "hasan_mighty.pub"
+    if not controller_pubkey_path.exists():
+        raise FileNotFoundError(f"Controller pubkey not found: {controller_pubkey_path}")
+    controller_pubkey = controller_pubkey_path.read_text().strip()
+
+    user_data = f"""\
+#cloud-config
+hostname: {vm.hostname}
+fqdn: {vm.hostname}.local
+manage_etc_hosts: true
+
+users:
+  - name: you
+    ssh_authorized_keys:
+      - {controller_pubkey}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo, adm
+    lock_passwd: true
+    shell: /bin/bash
+"""
+
+    network_config = f"""\
+version: 2
+ethernets:
+  enp1s0:
+    addresses:
+      - {vm.virbr0_ip}/24
+    routes:
+      - to: default
+        via: 192.168.122.1
+    nameservers:
+      addresses: [8.8.8.8, 1.1.1.1]
+"""
+
+    meta_data = f"instance-id: {vm.hostname}\nlocal-hostname: {vm.hostname}\n"
+
+    work_dir = Path(tempfile.mkdtemp())
+    try:
+        (work_dir / "user-data").write_text(user_data)
+        (work_dir / "meta-data").write_text(meta_data)
+        (work_dir / "network-config").write_text(network_config)
+
+        seed_iso = PLATFORMS_KVM / f"{vm.hostname}-seed.iso"
+        r = subprocess.run(
+            [
+                "cloud-localds",
+                "--network-config", str(work_dir / "network-config"),
+                str(seed_iso),
+                str(work_dir / "user-data"),
+                str(work_dir / "meta-data"),
+            ],
+            capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            raise RuntimeError(f"cloud-localds failed: {r.stderr.strip()}")
+        emit(f"  [OK] Seed ISO: {seed_iso.name}")
+        return seed_iso
+    finally:
+        shutil.rmtree(work_dir)
+
+
+def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
+    job = jobs[job_id]
+
+    def emit(line: str):
+        job["log"].append(line)
+        print(f"[job {job_id}] {line}", flush=True)
+
+    target_ssh = [
+        "ssh",
+        "-o", f"ProxyJump={TOSHIBA_ALIAS}",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "ConnectTimeout=5",
+        "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
+        f"you@{vm.virbr0_ip}",
+    ]
+
+    try:
+        # ── Step 1: WireGuard peer ────────────────────────────────────────────
+        emit("── Step 1: Add WireGuard peer ──")
+        if KEYS_SOPS.exists():
+            dec = subprocess.run(
+                ["sops", "-d", str(KEYS_SOPS)],
+                cwd=PROJECT_ROOT, capture_output=True, text=True,
+            )
+            if vm.hostname in dec.stdout:
+                emit(f"  WireGuard keys for '{vm.hostname}' already present — skipping")
+            else:
+                _add_wg_peer(vm.hostname, emit)
+        else:
+            emit("  keys.sops.yml not found — skipping WireGuard peer generation")
+
+        # ── Step 2: Build seed ISO ────────────────────────────────────────────
+        emit("── Step 2: Build cloud-config seed ISO ──")
+        seed_local = _build_template_seed_iso(vm, emit)
+
+        # ── Step 3: Upload seed ISO to hypervisor ────────────────────────────
+        emit("── Step 3: Upload seed ISO to hypervisor ──")
+        remote_seed = f"{TOSHIBA_IMAGES_DIR}/{vm.hostname}-seed.iso"
+        r = subprocess.run(
+            ["scp", str(seed_local), f"{TOSHIBA_HYPERVISOR_USER}@{TOSHIBA_ALIAS}:{remote_seed}"],
+            capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            raise RuntimeError(f"scp seed ISO failed: {r.stderr.strip()}")
+        emit(f"  [OK] Seed ISO at {TOSHIBA_ALIAS}:{remote_seed}")
+
+        # ── Step 4: Clone template qcow2 ─────────────────────────────────────
+        emit("── Step 4: Clone template qcow2 ──")
+        meta_r = subprocess.run(
+            ["ssh", TOSHIBA_ALIAS,
+             f"cat {TOSHIBA_METADATA_DIR}/erpnext-v13-latest.json 2>/dev/null"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if meta_r.returncode != 0 or not meta_r.stdout.strip():
+            raise RuntimeError("Template metadata not found on toshiba — run a Packer build first")
+        meta = json.loads(meta_r.stdout)
+        template_image = meta.get("image")
+        if not template_image:
+            raise RuntimeError("Template metadata missing 'image' field")
+        emit(f"  Template image: {template_image}")
+
+        clone_r = subprocess.run(
+            ["ssh", TOSHIBA_ALIAS,
+             f"virsh --connect qemu:///system vol-clone --pool {TOSHIBA_POOL} "
+             f"'{template_image}' '{vm.hostname}.qcow2'"],
+            capture_output=True, text=True, timeout=300,
+        )
+        if clone_r.returncode != 0:
+            raise RuntimeError(f"vol-clone failed: {clone_r.stderr.strip()}")
+        emit(f"  [OK] Cloned {template_image} → {vm.hostname}.qcow2")
+
+        # ── Step 5: virt-install --import ─────────────────────────────────────
+        emit("── Step 5: virt-install --import ──")
+        virt_cmd = (
+            f"virt-install --connect qemu:///system"
+            f" --name {vm.hostname}"
+            f" --ram 4096"
+            f" --vcpus 2"
+            f" --disk vol={TOSHIBA_POOL}/{vm.hostname}.qcow2"
+            f" --disk path={remote_seed},device=cdrom,readonly=on"
+            f" --network network=default"
+            f" --os-variant ubuntu20.04"
+            f" --import"
+            f" --graphics vnc"
+            f" --noautoconsole"
+        )
+        r = subprocess.run(
+            ["ssh", TOSHIBA_ALIAS, virt_cmd],
+            capture_output=True, text=True, timeout=120,
+        )
+        if r.returncode != 0:
+            raise RuntimeError(f"virt-install --import failed: {r.stderr.strip()}")
+        emit(f"  [OK] VM {vm.hostname} started (booting from template)")
+
+        # ── Step 6: Wait for SSH ──────────────────────────────────────────────
+        emit("── Step 6: Wait for SSH ──")
+        subprocess.run(["ssh-keygen", "-R", vm.virbr0_ip], capture_output=True)
+        subprocess.run(["ssh-keygen", "-R", vm.hostname],  capture_output=True)
+
+        ssh_ready = False
+        for attempt in range(60):
+            time.sleep(10)
+            r = subprocess.run(
+                target_ssh + ["echo ready"],
+                capture_output=True, text=True,
+            )
+            if r.returncode == 0 and "ready" in r.stdout:
+                emit(f"  [OK] SSH up after ~{(attempt + 1) * 10}s")
+                ssh_ready = True
+                break
+            if attempt % 3 == 0:
+                emit(f"  Waiting for SSH ... ({(attempt + 1) * 10}s)")
+        if not ssh_ready:
+            raise RuntimeError("VM did not become SSH-ready within 10 minutes")
+
+        # ── Step 7: Baseline snapshot ─────────────────────────────────────────
+        emit("── Step 7: Take Baseline snapshot ──")
+        r = subprocess.run(
+            ["ssh", TOSHIBA_ALIAS,
+             f"virsh --connect qemu:///system snapshot-create-as {vm.hostname} 'Baseline' --atomic"],
+            capture_output=True, text=True, timeout=60,
+        )
+        if r.returncode != 0:
+            emit(f"  [WARN] Baseline snapshot failed: {r.stderr.strip()}")
+        else:
+            emit("  [OK] Baseline snapshot taken")
+
+        # ── Step 8: Update saconsole WireGuard ───────────────────────────────
+        emit("── Step 8: Update saconsole WireGuard (Ansible) ──")
+        proc = subprocess.Popen(
+            [
+                "ansible-playbook",
+                "-i", "inventory/kvm.yml",
+                "site-kvm.yml",
+                "--limit", "saconsole",
+                "--tags", "wireguard",
+            ],
+            cwd=str(PROJECT_ROOT / "ansible"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        for line in proc.stdout:
+            emit(line.rstrip())
+        proc.wait()
+        if proc.returncode != 0:
+            emit(f"  [WARN] Ansible wireguard update failed (exit {proc.returncode})")
+        else:
+            emit("  [OK] saconsole WireGuard updated")
+
+        job["status"] = "done"
+        emit("── VM deployed from template ──")
+
+    except Exception as exc:
+        emit(f"[ERROR] {exc}")
+        job["status"] = "error"
 
 
 # ── POST /api/provision/{hostname} ───────────────────────────────────────────

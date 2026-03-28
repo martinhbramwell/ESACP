@@ -2,7 +2,7 @@ import './style.css'
 import cytoscape from 'cytoscape'
 import { openPopup } from './popup.js'
 import { registry } from './registry.js'
-import { fetchHosts, fetchJobs, addHost, startProvision, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate } from './api.js'
+import { fetchHosts, fetchJobs, addHost, startProvision, startProvisionErpnext, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate } from './api.js'
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 // base64-encoded SVGs used as Cytoscape background-image per node type.
@@ -1130,7 +1130,7 @@ function _attachJobPoller(job_id, hostname, type) {
       if (type === 'build_template') {
         _setTemplateState(status === 'done' ? 'ready' : 'none')
       } else if (status === 'done') {
-        if (type === 'provision') {
+        if (type === 'provision' || type === 'provision_erpnext') {
           const node = cy.$(`#${hostname}`)
           node.data('provisioned', true)
           node.data('label', hostname)
@@ -1472,7 +1472,7 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
   e.preventDefault()
   dialogError.classList.add('hidden')
   submitBtn.disabled    = true
-  submitBtn.textContent = 'Adding…'
+  submitBtn.textContent = _dialogTemplateId ? 'Deploying…' : 'Adding…'
 
   const hostname   = fHostname.value.trim()
   const nickname   = fNickname.value.trim()
@@ -1484,10 +1484,23 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
   const vm_role    = zone === 'development' ? 'dev:unspecified' : `${zone}:${fVmRole.value}`
 
   try {
-    await addHost({ hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor, zone, vm_role,
-                   ...(_dialogTemplateId ? { template_id: _dialogTemplateId } : {}) })
-    closeDialog()
-    _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone, vm_role })
+    if (_dialogTemplateId) {
+      // Template-based: single atomic endpoint — registers host AND starts vol-clone job
+      const { job_id } = await startProvisionErpnext({
+        hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role,
+      })
+      // Node appears immediately (unprovisioned); tile snaps back; job runs in background
+      closeDialog()
+      _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone, vm_role })
+      infoPanel.innerHTML = `<pre class="job-log">Deploying ${hostname} from template...\n</pre>`
+      localStorage.setItem(JOB_KEY, JSON.stringify({ job_id, hostname, type: 'provision_erpnext' }))
+      _attachJobPoller(job_id, hostname, 'provision_erpnext')
+    } else {
+      // Regular add: just register the host — user clicks Provision separately
+      await addHost({ hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor, zone, vm_role })
+      closeDialog()
+      _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone, vm_role })
+    }
     fetchHosts()
       .then(d => { apiSuggestions = d.suggestions })
       .catch(() => {})
@@ -1495,7 +1508,7 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
     dialogError.textContent = err.message
     dialogError.classList.remove('hidden')
     submitBtn.disabled    = false
-    submitBtn.textContent = 'Add'
+    submitBtn.textContent = _dialogTemplateId ? 'Deploy' : 'Add'
   }
 })
 
