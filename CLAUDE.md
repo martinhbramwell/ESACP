@@ -487,39 +487,17 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   scrape job, and the `node-target1` job block is gated on `{% if 'kvm' in group_names %}`.
   Edit the `.j2` file, not the source copy.
 
-- **ContainerRestartLoop alert** uses `{name!=""}` filter. cAdvisor exposes a root
-  cgroup entry with an empty `name` label (representing the host machine) whose
-  `container_start_time_seconds` rate trips the threshold — the filter excludes it.
+- **ContainerRestartLoop alert**: `{name!=""}` filter excludes cAdvisor's root cgroup entry. (GH #39)
 
-- **Promtail docker_sd_configs** requires the Docker socket mounted:
-  `/var/run/docker.sock:/var/run/docker.sock:ro`
-  This provides `container_name` labels on all log streams.
-  Note: docker_sd_configs does NOT auto-set a `job` label — logs appear in Loki
-  under `container_name`, not `job=docker`. Query by `{container_name="..."}`.
+- **Promtail docker_sd_configs**: Docker socket mount required; logs appear under `container_name` not `job`. (GH #40)
 
-- **Promtail systemd-journal** requires three additional mounts to reach journald
-  from inside the container: `/run/log/journal`, `/var/log/journal`, `/etc/machine-id`
-  (all `:ro`). Without these, the `journal` scrape config silently produces no logs.
+- **Promtail systemd-journal**: 3 extra mounts required — `/run/log/journal`, `/var/log/journal`, `/etc/machine-id` (all `:ro`). (GH #41)
 
-- **cAdvisor dashboard template variables**: Grafana 10 blocks `label_values()` queries
-  that use `{__name__=~"..."}` regex selectors for performance reasons — the host and
-  container dropdowns return empty and all panels show no data. Use a concrete metric name
-  instead: `label_values(container_cpu_usage_seconds_total, instance)` and
-  `label_values(container_cpu_usage_seconds_total{instance=~"$host"}, name)`.
+- **cAdvisor dashboard template variables**: use concrete metric names in `label_values()` — Grafana 10 blocks `{__name__=~"..."}` selectors. (GH #42)
 
-- **Grafana provisioned dashboards — `${DS_PROMETHEUS}` unresolved**: dashboards
-  downloaded from Grafana.com use an `__inputs` block and `${DS_PROMETHEUS}` as a
-  datasource placeholder (the import-dialog maps this to a real datasource). When a
-  dashboard is provisioned from a file (not UI import), Grafana 10 does NOT resolve
-  `${DS_PROMETHEUS}` — every panel and template variable has no datasource and renders
-  nothing. Fix: replace all `${DS_PROMETHEUS}` occurrences with the pinned datasource
-  UID (`prometheus`) and remove the `__inputs` block. Use the object form:
-  `{"type": "prometheus", "uid": "prometheus"}` to match Grafana 10 native format.
+- **Grafana provisioned dashboards**: `${DS_PROMETHEUS}` not resolved from files — replace with pinned UID `prometheus`, remove `__inputs` block. (GH #43)
 
-- **cAdvisor Docker SDK**: `gcr.io/cadvisor/cadvisor:v0.47.2` and `v0.49.1` embed
-  Docker SDK API v1.41; Docker CE 25+ requires v1.44 minimum. Use `v0.55.1`.
-  `ghcr.io/google/cadvisor` tags do NOT exist despite the README claiming migration there —
-  stay on `gcr.io/cadvisor/cadvisor`.
+- **cAdvisor Docker SDK**: pin `gcr.io/cadvisor/cadvisor:v0.55.1` — v0.47/v0.49 embed API v1.41, incompatible with Docker CE 25+. (GH #44)
 
 - **generate_inventory.py backend filter**: Only hosts with `backend: kvm` (or no backend
   field) are written to `kvm.yml`. VBox and future CloudStack hosts are excluded via
@@ -541,28 +519,14 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
   cloud-init template which hardcodes the controller's pubkey, so the controller can
   provision them directly via ProxyJump. This split is intentional for the prototype stage.
 
-- **`esacp.py buildVM` — local seed ISO copy no longer uses sudo**: replaced with
-  `virsh vol-create-as default` + `virsh vol-upload` (controller user is in `libvirt` group).
-  The `sudo cp` approach hung indefinitely when called from uvicorn background threads
-  (sudo prompts via `/dev/tty`; no TTY available in that context).
+- **`esacp.py buildVM`**: uses `virsh vol-create-as` + `virsh vol-upload` for seed ISO — not `sudo cp` (hangs in uvicorn threads). (GH #46)
 
 - **MariaDB Docker Compose on targets**: Deployed to `/opt/mariadb/`. MariaDB port 3306 is
   Docker-internal only (not exposed to host). mysqld_exporter port 9104 is UFW-restricted to
   10.10.0.1 (saconsole). Credentials are in `/opt/mariadb/.env` (mode 0600).
   The compose file is templated — edit `ansible/roles/mariadb/templates/docker-compose.mariadb.yml.j2`.
 
-- **mysqld_exporter v0.15.x — `DATA_SOURCE_NAME` removed**: In v0.15.x, the `DATA_SOURCE_NAME`
-  environment variable is no longer supported. Credentials must come from a `.my.cnf`-style
-  config file. Three pitfalls discovered:
-  1. The container's `HOME` may be unset, so the default `~/.my.cnf` resolves to `.my.cnf`
-     in the working directory — not `/root/.my.cnf`. Always pass `--config.my-cnf=<absolute-path>`
-     explicitly via `command:` in the compose service.
-  2. Volume mounts with relative paths (`./my.cnf`) don't resolve correctly when compose is
-     invoked with `-f /absolute/path/docker-compose.yml` from a different directory. Use
-     `{{ mariadb_deploy_dir }}/my.cnf` (absolute) in the compose template.
-  3. The container runs as non-root (`nobody`). The my.cnf file must be mode `0644` (not `0600`)
-     or the process cannot read it.
-  Template: `ansible/roles/mariadb/templates/my.cnf.j2`. Mounted at `/etc/mysqld_exporter/my.cnf`.
+- **mysqld_exporter v0.15.x**: `DATA_SOURCE_NAME` removed — use `--config.my-cnf=<absolute-path>`; file mode must be `0644` (runs as `nobody`). (GH #45)
 
 - **known_hosts must be cleared on VM rebuild**: after destroying and recreating VMs,
   the new host keys differ from the cached entries and SSH rejects connections.
@@ -591,10 +555,7 @@ chore(ansible): regenerate kvm inventory from hosts_map.yml
 - **`esacp.py snapShotVM` is KVM-only**: hardwired to `platforms/kvm/snapshot.py` → `virsh`.
   On VBox/WSL use `bash platforms/vbox/take_snapshots.sh "name"` instead.
 
-- **Loki /ready returns 503 for ~30s after fresh provision**: Loki's ingester emits
-  "waiting for 15s after being ready" on first startup. `validate_observability.py` will report
-  a FAIL on the Loki health check if run immediately after `provision_targets.sh` completes.
-  Wait ~30s and re-run — it resolves on its own.
+- **Loki `/ready` returns 503 for ~30s** on first start — wait before running `validate_observability.py`. (GH #47)
 
 ---
 
