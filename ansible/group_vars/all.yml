@@ -53,6 +53,11 @@ docker_users:
 
 docker_compose_version: "2.24.5"
 
+# acme.sh / Let's Encrypt
+# Email for expiry notifications from Let's Encrypt (optional but recommended).
+# Set to a real address: acme_sh_email: "admin@example.com"
+acme_sh_email: ""
+
 # Nginx configuration
 nginx_server_name: "_"  # Accept any hostname (dev environment)
 nginx_ssl_certificate: "/etc/nginx/ssl/selfsigned.crt"

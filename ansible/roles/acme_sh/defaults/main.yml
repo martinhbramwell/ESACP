@@ -1,0 +1,13 @@
+---
+acme_sh_install_dir: "/home/{{ ansible_user }}/.acme.sh"
+acme_sh_cert_home: "/opt/acme-certs"
+acme_sh_server: "letsencrypt"
+acme_sh_email: ""   # Set in group_vars/all.yml — used for LE expiry notifications
+
+# Each entry: name = primary domain (used for dir naming); sans = all SANs to include.
+# Put the apex domain first so acme.sh names the cert dir after it (avoids * in path).
+acme_sh_domains:
+  - name: "iridium.blue"
+    sans:
+      - "iridium.blue"
+      - "*.iridium.blue"
