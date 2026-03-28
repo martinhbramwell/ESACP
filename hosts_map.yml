@@ -67,6 +67,7 @@ groups:
         - development
         - lab
 
+
   # ── VirtualBox guests (Windows/WSL workstation, Platform 1) ───────────────
   # wg_hub_endpoint for vbox saconsole is the console VM's bridged LAN IP.
   # Set it in ansible/group_vars/vbox.yml — it varies by LAN environment.
