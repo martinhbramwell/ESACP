@@ -457,9 +457,11 @@ async function init() {
   ZONE_ANCHORS.forEach(a      => cy.$('#' + a.id).addClass('phantom'))
   STOCKROOM_TEMPLATES.forEach(t => cy.$('#' + t.id).addClass('template-node'))
 
-  // ERPNext tile starts invisible; _syncTemplateState fetches actual state
+  // ERPNext tile starts invisible; _syncTemplateState fetches actual state.
+  // _reconnectActiveJob must run AFTER _syncTemplateState to win the race —
+  // if sync returns last it would reset tpl-building back to tpl-none.
   cy.$('#tpl-erpnext').addClass('tpl-none')
-  _syncTemplateState()
+  await _syncTemplateState()
 
   _repositionUnknownNodes()  // place API-loaded nodes not in INITIAL_POSITIONS
   attachHandlers()

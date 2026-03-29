@@ -418,7 +418,15 @@ def _run_build_template(job_id: str):
         "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
     ]
 
+    # Patterns where consecutive identical-suffix lines should replace rather than append
+    _COMPACT_SUFFIXES = ("— waiting 30s ...",)
+
     def emit(line: str):
+        if job["log"] and any(line.endswith(s) for s in _COMPACT_SUFFIXES):
+            if any(job["log"][-1].endswith(s) for s in _COMPACT_SUFFIXES):
+                job["log"][-1] = line   # update in-place — no new entry
+                print(f"[job {job_id}] {line}", flush=True)
+                return
         job["log"].append(line)
         print(f"[job {job_id}] {line}", flush=True)
 
@@ -439,19 +447,61 @@ def _run_build_template(job_id: str):
 
         emit(f"Connecting to saconsole ({SACONSOLE_IP} via {TOSHIBA_ALIAS}) ...")
 
-        proc = subprocess.Popen(
-            SACONSOLE_SSH + ["bash /opt/esacp/platforms/packer/build.sh"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+        # Run build.sh detached from the SSH session so it survives any uvicorn
+        # reload or connection loss.  Exit code is written to REMOTE_EXIT when done.
+        # Log output is streamed by polling REMOTE_LOG.  (fixes GH #61)
+        REMOTE_LOG  = "/tmp/packer-build-output.log"
+        REMOTE_EXIT = "/tmp/packer-build-output.log.exit"
 
+        subprocess.run(SACONSOLE_SSH + [f"rm -f {REMOTE_LOG} {REMOTE_EXIT}"],
+                       capture_output=True)
+
+        start_cmd = (
+            f"nohup bash -c 'bash /opt/esacp/platforms/packer/build.sh"
+            f" > {REMOTE_LOG} 2>&1; echo $? > {REMOTE_EXIT}'"
+            f" > /dev/null 2>&1 & echo $!"
         )
-        for line in _stream_lines(proc.stdout):
-            emit(line)
-        proc.wait()
-        if proc.returncode != 0:
-            emit(f"[ERROR] build.sh exited with code {proc.returncode}")
-            job["status"] = "error"
-            return
+        r = subprocess.run(SACONSOLE_SSH + [start_cmd], capture_output=True, text=True)
+        if r.returncode != 0:
+            raise RuntimeError(f"Failed to start build on saconsole: {r.stderr.strip()}")
+        emit(f"Build detached on saconsole (PID {r.stdout.strip()}) — polling log ...")
+
+        import time
+        offset = 0
+        while True:
+            time.sleep(5)
+            # Read any new output appended since last poll
+            r = subprocess.run(
+                SACONSOLE_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
+                capture_output=True, text=True,
+            )
+            if r.stdout:
+                for raw_line in r.stdout.splitlines():
+                    if raw_line.strip():
+                        emit(raw_line)
+                offset += len(r.stdout.encode("utf-8"))
+
+            # Check for exit code file — signals build finished
+            r = subprocess.run(
+                SACONSOLE_SSH + [f"cat {REMOTE_EXIT} 2>/dev/null || echo -1"],
+                capture_output=True, text=True,
+            )
+            exit_str = r.stdout.strip()
+            if exit_str != "-1":
+                # Drain any final output
+                r = subprocess.run(
+                    SACONSOLE_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
+                    capture_output=True, text=True,
+                )
+                for raw_line in r.stdout.splitlines():
+                    if raw_line.strip():
+                        emit(raw_line)
+                exit_code = int(exit_str) if exit_str.isdigit() else 1
+                if exit_code != 0:
+                    emit(f"[ERROR] build.sh exited with code {exit_code}")
+                    job["status"] = "error"
+                    return
+                break
 
         job["status"] = "done"
         emit("── Build complete — new image ready on toshiba ──")
