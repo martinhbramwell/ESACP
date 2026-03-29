@@ -10,6 +10,7 @@ wg_subnet: "10.10.0.0/24"
 wg_pubkey_controller: "j94APdOpRArs3J78vcnRVJC5ALIFy/W9qLFacKbwGzk="
 wg_pubkey_saconsole:  "nn916J0YAufbwZNOKvWs2VX6sV4BKuTqE//985lIiRw="
 wg_pubkey_dev01: "JFXa/+VqiZme1oIgURj7CwrvhWhA+I94p5oCMO40YRY="
+wg_pubkey_dev02: "Vk9Bt7qV+yTjaa426XcMnFpDLhso+ERcNypWw6GKVSA="
 
 # ── System configuration ───────────────────────────────────────────────────
 system_timezone: "America/New_York"

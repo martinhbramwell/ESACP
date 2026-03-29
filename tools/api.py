@@ -1105,8 +1105,9 @@ echo "  [OK] /etc/nginx/sites-available/{site_url}"
 
 echo "=== K: DH params + enable site ==="
 if [ ! -f {nginx_dhparam} ]; then
-    echo "  Generating DH params (2048-bit) ..."
-    sudo openssl dhparam -out {nginx_dhparam} 2048
+    echo "  Generating DH params (2048-bit) — once per VM, reused on redeploy ..."
+    sudo openssl dhparam -out {nginx_dhparam} 2048 2>/dev/null
+    echo "  [OK] DH params written to {nginx_dhparam}"
 fi
 sudo ln -sf /etc/nginx/sites-available/{site_url} /etc/nginx/sites-enabled/{site_url}
 sudo rm -f /etc/nginx/sites-enabled/default
