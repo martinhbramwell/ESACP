@@ -1145,6 +1145,8 @@ echo "=== I-K: TLS cert not available — HTTP only ==="
 echo "  [WARN] Deploy wildcard cert to saconsole and re-run to enable HTTPS"
 """
 
+        bash_aliases_tmpl = (PLATFORMS_KVM / "bash_aliases.tmpl").read_text()
+
         differentiate_sh = f"""\
 #!/usr/bin/env bash
 set -euo pipefail
@@ -1247,6 +1249,13 @@ sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-p
 echo "  [OK] admin password reset to ERP_USER_PWD"
 
 {tls_section}
+echo "=== L: install bash aliases ==="
+DB_NAME=$(python3 -c "import json; print(json.load(open('$BENCH_DIR/sites/$SITE_URL/site_config.json'))['db_name'])" 2>/dev/null || echo "unknown_db")
+cat > /home/$ERP_USER/.bash_aliases << ALIASEOF
+{bash_aliases_tmpl}
+ALIASEOF
+echo "  [OK] .bash_aliases installed for $ERP_USER"
+
 echo "=== Done ==="
 """
 

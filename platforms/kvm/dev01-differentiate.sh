@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BENCH_DIR_ORIG="/home/adm/frappe-bench"
-BENCH_DIR="/home/adm/frappe-bench-D1IRBL"
+BENCH_DIR_ORIG="/home/erpadm/frappe-bench"
+BENCH_DIR="/home/erpadm/frappe-bench-D1IRBL"
 SITE_URL="dev01.iridium.blue"
-ERP_USER="adm"
+ERP_USER="erpadm"
 MYPWD="erpnext_build"
 ERP_USER_PWD="sasa"
 
@@ -20,7 +20,7 @@ export ERPNEXT_DNS="dev01"
 export ERPNEXT_TLD="blue"
 export ERPNEXT_DOMAIN="dev01.iridium.blue"
 export ERPNEXT_SITE_URL="dev01.iridium.blue"
-export ERP_USER_NAME="adm"
+export ERP_USER_NAME="erpadm"
 export ERPNEXT_SITE_NICKNAME="D1IRBL"
 export TARGET_BENCH_NAME="frappe-bench-D1IRBL"
 export TARGET_BENCH="$HOME/frappe-bench-D1IRBL"
@@ -51,6 +51,9 @@ sudo supervisorctl start all || true
 echo "  Waiting 20s for Redis to be ready..."
 sleep 20
 echo "  [OK] bench services started"
+# nginx (www-data) must be able to traverse /home/$ERP_USER to serve static assets
+sudo chmod o+x /home/"$ERP_USER"
+echo "  [OK] /home/$ERP_USER world-traversable for nginx"
 
 echo "=== B: fix ownership of rsynced dirs ==="
 sudo chown -R "$ERP_USER:$ERP_USER" $BENCH_DIR/apps/ce_sri $BENCH_DIR/apps/returnable $BENCH_DIR/apps/route_planner $BENCH_DIR/BaRe $BENCH_DIR/BKP
@@ -73,7 +76,7 @@ echo "  [OK] site created, erpnext installed"
 
 echo "=== E: place ddlViews.sql ==="
 sudo -u "$ERP_USER" mkdir -p "$BENCH_DIR/sites/$SITE_URL/private/files"
-  sudo -u adm cp /tmp/ddlViews.sql /home/adm/frappe-bench-D1IRBL/sites/dev01.iridium.blue/private/files/ddlViews.sql
+  sudo -u erpadm cp /tmp/ddlViews.sql /home/erpadm/frappe-bench-D1IRBL/sites/dev01.iridium.blue/private/files/ddlViews.sql
   rm -f /tmp/ddlViews.sql
   echo '  [OK] ddlViews.sql placed'
 
@@ -93,6 +96,10 @@ echo "  [OK] supervisor updated"
 echo "=== H2: bench restart ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
 echo "  [OK] bench restarted"
+
+echo "=== H3: reset admin password (bench restore overwrites it) ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-password $ERP_USER_PWD"
+echo "  [OK] admin password reset to ERP_USER_PWD"
 
 echo "=== I: install TLS cert ==="
 sudo mkdir -p /etc/nginx/certs/iridium.blue
@@ -143,14 +150,14 @@ server {
     gzip_comp_level 6;
     gzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss application/atom+xml image/svg+xml;
 
-    root /home/adm/frappe-bench-D1IRBL/sites;
+    root /home/erpadm/frappe-bench-D1IRBL/sites;
 
     location /assets {
         try_files $uri =404;
     }
 
     location ~ ^/files/.*$ {
-        try_files $uri @webserver;
+        try_files /dev01.iridium.blue/public$uri @webserver;
     }
 
     location /socket.io {
@@ -170,13 +177,15 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Frappe-Site-Name dev01.iridium.blue;
+        proxy_set_header X-Use-X-Accel-Redirect True;
         proxy_read_timeout 120;
         proxy_pass http://frappe-frappe-bench-D1IRBL-dev01.iridium.blue;
     }
 
     location / {
         rewrite ^(.+)/$ $1 permanent;
-        try_files $uri @webserver;
+        try_files /dev01.iridium.blue/public$uri @webserver;
     }
 }
 NGINXEOF
@@ -184,8 +193,9 @@ echo "  [OK] /etc/nginx/sites-available/dev01.iridium.blue"
 
 echo "=== K: DH params + enable site ==="
 if [ ! -f /etc/nginx/dhparam.pem ]; then
-    echo "  Generating DH params (2048-bit) ..."
-    sudo openssl dhparam -out /etc/nginx/dhparam.pem 2048
+    echo "  Generating DH params (2048-bit) — once per VM, reused on redeploy ..."
+    sudo openssl dhparam -out /etc/nginx/dhparam.pem 2048 2>/dev/null
+    echo "  [OK] DH params written to /etc/nginx/dhparam.pem"
 fi
 sudo ln -sf /etc/nginx/sites-available/dev01.iridium.blue /etc/nginx/sites-enabled/dev01.iridium.blue
 sudo rm -f /etc/nginx/sites-enabled/default
