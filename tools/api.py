@@ -1018,7 +1018,7 @@ server {{
     }}
 
     location ~ ^/files/.*$ {{
-        try_files $uri @webserver;
+        try_files /{site_url}/public$uri @webserver;
     }}
 
     location /socket.io {{
@@ -1038,13 +1038,15 @@ server {{
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Frappe-Site-Name {site_url};
+        proxy_set_header X-Use-X-Accel-Redirect True;
         proxy_read_timeout 120;
         proxy_pass http://frappe-{bench_name_new}-{site_url};
     }}
 
     location / {{
         rewrite ^(.+)/$ $1 permanent;
-        try_files $uri @webserver;
+        try_files /{site_url}/public$uri @webserver;
     }}
 }}
 NGINXEOF
