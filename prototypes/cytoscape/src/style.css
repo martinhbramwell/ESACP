@@ -227,6 +227,7 @@ header h1 {
   background: #16213e;
   padding: 10px 20px;
   overflow-y: auto;
+  container-type: inline-size;
 }
 
 #info-panel .hint {
@@ -249,6 +250,139 @@ header h1 {
   color: #a0c4ff;
   white-space: nowrap;
 }
+
+/* ── Specs table (multi-column grid, faint frame) ─────────────────────────── */
+
+.spec-table {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 3px 10px;
+  font-size: 0.82rem;
+  border: 1px solid #1e3050;
+  border-radius: 3px;
+  padding: 6px 8px;
+  margin-bottom: 5px;
+}
+
+/* Collapse to 2 columns on narrow panels */
+@container (max-width: 340px) {
+  .spec-table { grid-template-columns: auto 1fr; }
+}
+
+.spec-label {
+  color: #7a9abb;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  padding-top: 1px;
+}
+
+.spec-value {
+  color: #d0e4f8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spec-url-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.82rem;
+  border: 1px solid #1e3050;
+  border-radius: 3px;
+  padding: 4px 8px;
+  margin-bottom: 5px;
+}
+
+.spec-url {
+  color: #4fc3f7;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spec-url:hover {
+  text-decoration: underline;
+  color: #a0d8f0;
+}
+
+/* ── Traffic light dots ───────────────────────────────────────────────────── */
+
+.tl {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.tl--green  { background: #4caf50; box-shadow: 0 0 4px #4caf5088; }
+.tl--amber  { background: #ff9800; box-shadow: 0 0 4px #ff980088; }
+.tl--red    { background: #f44336; box-shadow: 0 0 4px #f4433688; }
+.tl--unknown { background: #445; border: 1px solid #668; }
+
+/* ── Inspect popup — ERPNext service boxes ────────────────────────────────── */
+
+.svc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 14px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.svc-box {
+  border-radius: 5px;
+  border: 1.5px solid;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.1s;
+}
+
+.svc-box:hover { filter: brightness(1.1); }
+
+.svc-box--web {
+  background: #091828;
+  border-color: #1a6a9a;
+}
+
+.svc-box--app {
+  background: #1a1000;
+  border-color: #8a6020;
+}
+
+.svc-box--db {
+  background: #061820;
+  border-color: #1a7060;
+}
+
+.svc-box-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: bold;
+}
+
+.svc-box--web  .svc-box-header { color: #4fc3f7; }
+.svc-box--app  .svc-box-header { color: #ffb74d; }
+.svc-box--db   .svc-box-header { color: #4db6ac; }
+
+.svc-box-body {
+  font-size: 0.76rem;
+  color: #8090a0;
+  line-height: 1.6;
+}
+
+.svc-box-body .detail-key   { color: #607080; }
+.svc-box-body .detail-value { color: #b0c4d4; }
 
 
 pre.job-log {

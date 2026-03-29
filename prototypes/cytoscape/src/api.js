@@ -77,6 +77,18 @@ export async function deleteTemplate() {
   return data
 }
 
+// Returns { job_id }
+export async function startRefresh(hostname) {
+  return post(`/api/refresh/${hostname}`, {})
+}
+
+// Returns { web, app, db } each 'green' | 'amber' | 'red'
+export async function fetchHealth(hostname) {
+  const res = await fetch(`/api/health/${hostname}`, { signal: signal() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 // Poll a job every intervalMs until it reaches a terminal state.
 // onLines(newLines[])  — called whenever new log lines arrive
 // onDone(status)       — called once with 'done' or 'error' when the job ends

@@ -6,9 +6,11 @@ Start (from project root):
     uvicorn tools.api:app --port 8088 --reload
 
 Endpoints:
-    GET  /api/hosts                  → current KVM hosts + IP suggestions
+    GET  /api/hosts                  → current KVM hosts + IP suggestions + erp_user/erp_url
     POST /api/hosts/add              → add host to hosts_map.yml, regen inventory
     POST /api/provision/{hostname}   → start background job: cloud-init + WG + buildVM + provisionVM
+    POST /api/refresh/{hostname}     → re-SCP + re-run {hostname}-differentiate.sh (idempotent)
+    GET  /api/health/{hostname}      → quick SSH check: { web, app, db } each green/amber/red
     GET  /api/jobs/{job_id}          → poll job status + log lines
 """
 
@@ -186,6 +188,13 @@ def get_hosts():
     data = load_hosts_map()
     kvm  = data["groups"].get("kvm", {})
 
+    # Read global erp_user once
+    try:
+        with open(GROUP_VARS_ALL) as _f:
+            _erp_user = yaml.safe_load(_f).get("erp_user", "erpadm")
+    except Exception:
+        _erp_user = "erpadm"
+
     # Batch: one SSH call per unique hypervisor
     vm_cache: dict[str | None, dict[str, bool] | None] = {}
     for h in kvm.values():
@@ -205,17 +214,33 @@ def get_hosts():
         else:
             provisioned = vm_map.get(name, False)  # False = not yet created
 
+        # Derive zone key from ansible_groups for erp_url
+        groups   = h.get("ansible_groups", [])
+        if "production" in groups:
+            zone_key = "production"
+        elif "staging" in groups:
+            zone_key = "staging"
+        else:
+            zone_key = "development"
+        hostname = h.get("hostname", name)
+        wg_role  = h.get("wg_role", "spoke")
+        domain   = ZONE_DOMAINS.get(zone_key, "iridium.blue")
+        erp_url  = f"https://{hostname}.{domain}" if wg_role == "spoke" else ""
+
         hosts.append({
             "id":            name,
-            "hostname":      h.get("hostname", name),
+            "hostname":      hostname,
             "nickname":      h.get("nickname", ""),
             "virbr0_ip":     h.get("virbr0_ip", ""),
             "wg_ip":         h.get("wg_ip", ""),
-            "wg_role":       h.get("wg_role", "spoke"),
+            "wg_role":       wg_role,
             "backend":       h.get("backend", "kvm"),
+            "hypervisor":    hv or "",
             "provisioned":   provisioned,
-            "ansible_groups": h.get("ansible_groups", []),
+            "ansible_groups": groups,
             "vm_role":       h.get("vm_role", "dev"),
+            "erp_user":      _erp_user,
+            "erp_url":       erp_url,
         })
         wg = h.get("wg_ip", "")
         if wg:
@@ -1373,6 +1398,123 @@ def _run_provision(job_id: str, hostname: str, host_cfg: dict):
     except Exception as exc:
         emit(f"[ERROR] {exc}")
         job["status"] = "error"
+
+
+# ── POST /api/refresh/{hostname} ─────────────────────────────────────────────
+
+@app.post("/api/refresh/{hostname}")
+def start_refresh(hostname: str):
+    """Re-SCP and re-run the saved {hostname}-differentiate.sh on the VM (idempotent)."""
+    script = PLATFORMS_KVM / f"{hostname}-differentiate.sh"
+    if not script.exists():
+        raise HTTPException(
+            404,
+            f"No differentiate script for '{hostname}' — provision via ERPNext template first",
+        )
+    data = load_hosts_map()
+    kvm  = data["groups"].get("kvm", {})
+    if hostname not in kvm:
+        raise HTTPException(404, f"'{hostname}' not found in hosts_map.yml")
+    wg_ip = kvm[hostname].get("wg_ip", "")
+    if not wg_ip:
+        raise HTTPException(400, f"No WireGuard IP configured for '{hostname}'")
+
+    job_id       = str(uuid.uuid4())[:8]
+    jobs[job_id] = {"status": "running", "log": [], "hostname": hostname}
+    threading.Thread(
+        target=_run_refresh,
+        args=(job_id, hostname, wg_ip, script),
+        daemon=True,
+    ).start()
+    return {"job_id": job_id}
+
+
+def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
+    job = jobs[job_id]
+
+    def emit(line: str):
+        job["log"].append(line)
+        print(f"[job {job_id}] {line}", flush=True)
+
+    try:
+        ssh_opts      = ["-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10"]
+        remote_script = f"/tmp/{hostname}-differentiate.sh"
+
+        emit(f"── Refresh: uploading differentiate.sh to {hostname} ({wg_ip}) ──")
+        r = subprocess.run(
+            ["scp"] + ssh_opts + [str(script), f"you@{wg_ip}:{remote_script}"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if r.returncode != 0:
+            raise RuntimeError(f"SCP failed: {r.stderr.strip()}")
+        emit("  [OK] script uploaded")
+
+        emit("── Running differentiate.sh (idempotent) ──")
+        proc = subprocess.Popen(
+            ["ssh"] + ssh_opts + [f"you@{wg_ip}", f"sudo bash {remote_script}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        for line in _stream_lines(proc.stdout):
+            emit(line)
+        proc.wait()
+        if proc.returncode != 0:
+            raise RuntimeError(f"differentiate.sh exited {proc.returncode}")
+
+        emit("── Refresh complete ──")
+        job["status"] = "done"
+
+    except Exception as exc:
+        emit(f"[ERROR] {exc}")
+        job["status"] = "error"
+
+
+# ── GET /api/health/{hostname} ────────────────────────────────────────────────
+
+@app.get("/api/health/{hostname}")
+def get_health(hostname: str):
+    """Quick SSH health check for an ERPNext VM.
+
+    Returns { web, app, db } each as 'green' | 'amber' | 'red'.
+    amber = check could not run (SSH timeout, unreachable).
+    """
+    data = load_hosts_map()
+    kvm  = data["groups"].get("kvm", {})
+    if hostname not in kvm:
+        raise HTTPException(404, f"'{hostname}' not found in hosts_map.yml")
+    wg_ip = kvm[hostname].get("wg_ip", "")
+    if not wg_ip:
+        raise HTTPException(400, f"No WireGuard IP for '{hostname}'")
+
+    ssh_base = ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5",
+                "-o", "BatchMode=yes", f"you@{wg_ip}"]
+
+    def run(cmd: str, timeout: int = 8) -> str:
+        try:
+            r = subprocess.run(ssh_base + [cmd], capture_output=True, text=True, timeout=timeout)
+            return r.stdout.strip()
+        except Exception:
+            return ""
+
+    # Web: nginx active?
+    nginx_state = run("systemctl is-active nginx 2>/dev/null")
+    web = "green" if nginx_state == "active" else ("amber" if not nginx_state else "red")
+
+    # App: supervisor processes — all RUNNING = green, some = amber, none/error = red
+    sup_out = run("sudo supervisorctl status 2>/dev/null")
+    if sup_out:
+        lines   = [l for l in sup_out.splitlines() if l.strip()]
+        total   = len(lines)
+        running = sum(1 for l in lines if "RUNNING" in l)
+        app     = "green" if total > 0 and running == total else ("amber" if running > 0 else "red")
+    else:
+        app = "amber"
+
+    # DB: MariaDB responding?
+    db_out = run("sudo mysql -u root -perpnext_build -e 'SELECT 1' 2>/dev/null && echo ok")
+    db = "green" if "ok" in db_out else ("amber" if not db_out else "red")
+
+    return {"web": web, "app": app, "db": db}
 
 
 def _generate_cloud_init(hostname: str, host_cfg: dict, emit):

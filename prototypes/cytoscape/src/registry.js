@@ -167,6 +167,72 @@ async function fetchPrometheusTargets() {
   }
 }
 
+// ── ERPNext host inspection ────────────────────────────────────────────────
+// Each ERPNext VM shows a 3-box service diagram (Web / App / DB).
+// Status dots are fetched live from /api/health/{hostname} with amber fallback.
+
+async function fetchErpnextServiceMap(hostname) {
+  // Fetch live health; fall back to amber (unknown) on any failure
+  let health = { web: 'unknown', app: 'unknown', db: 'unknown' }
+  try {
+    const res = await fetch(`/api/health/${hostname}`, {
+      signal: AbortSignal.timeout(10000),
+    })
+    if (res.ok) health = await res.json()
+  } catch {
+    /* remain amber */
+  }
+
+  // Return a synthetic graph: 3 service nodes + connecting edges.
+  // The popup renders them via a custom layout rather than Cytoscape's cose.
+  return {
+    nodes: [
+      {
+        data: {
+          id:      'svc-web',
+          label:   'Web',
+          svcType: 'web',
+          status:  health.web,
+          detail1Key: 'Server',   detail1Val: 'Nginx',
+          detail2Key: 'Protocol', detail2Val: 'HTTPS / TLS 1.2+',
+          detail3Key: 'Redirect', detail3Val: 'HTTP → HTTPS',
+        },
+      },
+      {
+        data: {
+          id:      'svc-app',
+          label:   'Application',
+          svcType: 'app',
+          status:  health.app,
+          detail1Key: 'Runtime',    detail1Val: 'ERPNext / Frappe',
+          detail2Key: 'Supervisor', detail2Val: 'gunicorn + redis + socketio',
+          detail3Key: 'User',       detail3Val: hostname, // will be overridden in popup
+        },
+      },
+      {
+        data: {
+          id:      'svc-db',
+          label:   'Database',
+          svcType: 'db',
+          status:  health.db,
+          detail1Key: 'Engine',  detail1Val: 'MariaDB 10.11',
+          detail2Key: 'Port',    detail2Val: '3306 (internal only)',
+          detail3Key: 'Backups', detail3Val: 'BKP/ + BaRe/ scripts',
+        },
+      },
+    ],
+    edges: [
+      { data: { source: 'svc-web', target: 'svc-app', label: 'proxy' } },
+      { data: { source: 'svc-app', target: 'svc-db',  label: 'SQL' } },
+    ],
+  }
+}
+
+// Factory: creates a fetch function bound to a specific hostname
+function erpnextFetcher(hostname) {
+  return () => fetchErpnextServiceMap(hostname)
+}
+
 // ── Registry ───────────────────────────────────────────────────────────────
 // Keyed by node ID in the parent graph.
 // children keys must match IDs that fetch() will produce for that level.
@@ -183,6 +249,11 @@ export const registry = {
       },
     },
   },
+
+  // ERPNext dev VMs — 3-box service view; rendered by popup.js svcGrid mode
+  dev01:   { label: 'dev01',   fetch: erpnextFetcher('dev01'),   mode: 'svc', children: {} },
+  dev02:   { label: 'dev02',   fetch: erpnextFetcher('dev02'),   mode: 'svc', children: {} },
+  target3: { label: 'target3', fetch: erpnextFetcher('target3'), mode: 'svc', children: {} },
 }
 
 // Resolve a path array to a registry entry.

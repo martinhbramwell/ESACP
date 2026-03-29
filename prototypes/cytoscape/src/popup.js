@@ -196,6 +196,55 @@ function renderGraph({ nodes, edges }) {
   })
 }
 
+// ── Service grid (ERPNext 3-box view) ──────────────────────────────────────
+
+function tlClass(status) {
+  if (status === 'green')  return 'tl--green'
+  if (status === 'red')    return 'tl--red'
+  if (status === 'amber')  return 'tl--amber'
+  return 'tl--unknown'
+}
+
+function renderSvcGrid(nodes) {
+  if (popupCy) { popupCy.destroy(); popupCy = null }
+
+  const typeMap = { web: 'svc-box--web', app: 'svc-box--app', db: 'svc-box--db' }
+
+  const boxes = nodes.map(n => {
+    const d    = n.data
+    const cls  = typeMap[d.svcType] ?? ''
+    const tl   = `<span class="tl ${tlClass(d.status)}"></span>`
+    return `
+      <div class="svc-box ${cls}">
+        <div class="svc-box-header">${tl}${d.label}</div>
+        <div class="svc-box-body">
+          <span class="detail-key">${d.detail1Key}:</span>
+          <span class="detail-value"> ${d.detail1Val}</span><br>
+          <span class="detail-key">${d.detail2Key}:</span>
+          <span class="detail-value"> ${d.detail2Val}</span><br>
+          <span class="detail-key">${d.detail3Key}:</span>
+          <span class="detail-value"> ${d.detail3Val}</span>
+        </div>
+      </div>`
+  }).join('')
+
+  popupCyEl.innerHTML = `<div class="svc-grid">${boxes}</div>`
+  popupInfoEl.innerHTML = '<p class="hint">Traffic lights show live service status. Click a box to see details in this panel.</p>'
+
+  // Box click → show details below
+  popupCyEl.querySelectorAll('.svc-box').forEach((el, i) => {
+    el.addEventListener('click', () => {
+      const d = nodes[i].data
+      popupInfoEl.innerHTML = `
+        <table>
+          <tr><td class="spec-label">${d.detail1Key}</td><td>${d.detail1Val}</td></tr>
+          <tr><td class="spec-label">${d.detail2Key}</td><td>${d.detail2Val}</td></tr>
+          <tr><td class="spec-label">${d.detail3Key}</td><td>${d.detail3Val}</td></tr>
+        </table>`
+    })
+  })
+}
+
 // ── Navigation ─────────────────────────────────────────────────────────────
 
 async function drillTo(path) {
@@ -207,8 +256,13 @@ async function drillTo(path) {
   hint('Loading…')
 
   const graph = await entry.fetch()
-  renderGraph(graph)
-  hint('Click a node to inspect it. Double-bordered nodes drill deeper.')
+
+  if (entry.mode === 'svc') {
+    renderSvcGrid(graph.nodes)
+  } else {
+    renderGraph(graph)
+    hint('Click a node to inspect it. Double-bordered nodes drill deeper.')
+  }
 }
 
 // ── Popup lifecycle ────────────────────────────────────────────────────────

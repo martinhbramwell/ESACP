@@ -2,7 +2,7 @@ import './style.css'
 import cytoscape from 'cytoscape'
 import { openPopup } from './popup.js'
 import { registry } from './registry.js'
-import { fetchHosts, fetchJobs, addHost, startProvision, startProvisionErpnext, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate } from './api.js'
+import { fetchHosts, fetchJobs, addHost, startProvision, startProvisionErpnext, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate, startRefresh } from './api.js'
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 // base64-encoded SVGs used as Cytoscape background-image per node type.
@@ -224,11 +224,15 @@ function buildNodesEdges(apiHosts) {
         role:           h.wg_role,
         vm_role:        normalizeVmRole(h.vm_role, zone),
         platform:       h.backend ?? 'kvm',
-        wg_ip:          h.wg_ip     ?? '',
-        virbr0_ip:      h.virbr0_ip ?? '',
+        wg_ip:          h.wg_ip      ?? '',
+        virbr0_ip:      h.virbr0_ip  ?? '',
         provisioned:    !!h.provisioned,
         ansible_groups: h.ansible_groups ?? [],
         zone_id:        zone,
+        nickname:       h.nickname   ?? '',
+        erp_user:       h.erp_user   ?? '',
+        erp_url:        h.erp_url    ?? '',
+        hypervisor:     h.hypervisor ?? '',
       },
       position: INITIAL_POSITIONS[h.id ?? h.hostname] ? { ...INITIAL_POSITIONS[h.id ?? h.hostname] } : undefined,
     }
@@ -683,13 +687,45 @@ function hint(msg) {
   infoPanel.innerHTML = `<p class="hint">${msg}</p>`
 }
 
+// Convert a camelCase or snake_case key to Title Case words.
+function toTitleCase(key) {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
+
+// Render a faintly-framed multi-column specs table.
+// Fields are arranged to fill columns left→right so rows are minimised.
 function renderInfo(data) {
-  const skip = new Set(['id', 'zone', 'ansible_groups', 'zone_id', 'template', 'stockroom', 'defaultZone', 'defaultRole'])
-  const rows = Object.entries(data)
-    .filter(([k]) => !skip.has(k))
-    .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`)
-    .join('')
-  infoPanel.innerHTML = `<table>${rows}</table>`
+  const zone  = (data.zone_id ?? '').replace('zone-', '')
+  const zoneLabel = zone ? zone.charAt(0).toUpperCase() + zone.slice(1) : ''
+
+  // Ordered field definitions: [label, value | null to skip]
+  const fields = [
+    ['Hostname',   data.label?.split('\n')[0] ?? data.id],
+    data.nickname ? ['Nickname',  data.nickname] : null,
+    data.erp_user ? ['ERP User',  data.erp_user] : null,
+    zoneLabel     ? ['Zone',      zoneLabel]      : null,
+    data.wg_ip    ? ['WG IP',     data.wg_ip]     : null,
+    data.virbr0_ip ? ['virbr0 IP', data.virbr0_ip] : null,
+    data.hypervisor ? ['Hypervisor', data.hypervisor] : null,
+  ].filter(Boolean)
+
+  // Build grid cells: pairs of (label, value) filling 2 columns per visual row
+  const cells = fields.map(([label, value]) =>
+    `<span class="spec-label">${label}</span><span class="spec-value">${value}</span>`
+  ).join('')
+
+  const urlRow = data.erp_url
+    ? `<div class="spec-url-row">
+         <span class="spec-label">Site URL</span>
+         <a class="spec-url" href="${data.erp_url}" target="_blank" rel="noopener">${data.erp_url}</a>
+       </div>`
+    : ''
+
+  infoPanel.innerHTML =
+    `<div class="spec-table">${cells}</div>${urlRow}`
 }
 
 // Render info + contextual action buttons for this VM node.
@@ -750,6 +786,16 @@ function renderInfoWithActions(data) {
     actions.appendChild(btn)
   }
 
+  // Refresh — idempotent re-run of differentiate.sh; only if a saved script exists
+  if (isOperational && provisioned && data.erp_url) {
+    const btn = document.createElement('button')
+    btn.className   = 'action-btn action-btn--secondary'
+    btn.textContent = 'Refresh ↺'
+    btn.title       = 'Re-run differentiation script (idempotent)'
+    btn.onclick     = () => runRefresh(data.id)
+    actions.appendChild(btn)
+  }
+
   // Clone to Staging — provisioned dev spoke; disabled if role unsuitable
   if (isOperational && provisioned && data.zone_id === 'zone-dev') {
     const roleType = vm_role.split(':')[1]  // 'unspecified', 'master', 'slave'
@@ -780,7 +826,7 @@ function renderInfoWithActions(data) {
     actions.appendChild(btn)
   }
 
-  if (registry[data.id] && provisioned) {
+  if (provisioned && (role === 'hub' || (isOperational && data.erp_url))) {
     const btn = document.createElement('button')
     btn.className   = 'action-btn action-btn--inspect'
     btn.textContent = 'Inspect ›'
@@ -1087,6 +1133,18 @@ function _destroyTemplate() {
 
 const JOB_KEY  = 'esacp_active_job'
 let   activeJob = null  // { job_id, hostname, type } — set while a job is in progress
+
+function runRefresh(hostname) {
+  infoPanel.innerHTML = `<pre class="job-log">Starting refresh for ${hostname}...\n</pre>`
+  startRefresh(hostname)
+    .then(({ job_id }) => {
+      localStorage.setItem(JOB_KEY, JSON.stringify({ job_id, hostname, type: 'refresh' }))
+      _attachJobPoller(job_id, hostname, 'refresh')
+    })
+    .catch(err => {
+      infoPanel.innerHTML = `<p class="hint error">Refresh failed to start: ${err.message}</p>`
+    })
+}
 
 function runProvision(hostname) {
   infoPanel.innerHTML = `<pre class="job-log">Starting provisioning for ${hostname}...\n</pre>`
