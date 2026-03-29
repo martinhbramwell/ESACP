@@ -10,12 +10,18 @@
 #
 # Private keys / PSKs are read from config/wireguard/keys.sops.yml at play time.
 
+# Force apt-get update unconditionally — Packer-built images wipe /var/lib/apt/lists/*
+# but leave /var/cache/apt/pkgcache.bin intact, so cache_valid_time would skip the update.
+# Separate task ensures the index is always fresh before any package install. (fixes GH #62)
+- name: Update apt cache (required after Packer image boot — lists wiped by generalise step)
+  apt:
+    update_cache: yes
+  when: ansible_connection != 'local'
+
 - name: Install wireguard-tools
   apt:
     name: wireguard-tools
     state: present
-    update_cache: yes
-    cache_valid_time: 3600
   when: ansible_connection != 'local'
 
 - name: Create /etc/wireguard
