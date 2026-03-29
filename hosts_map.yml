@@ -37,42 +37,12 @@ groups:
         - development
         - lab
 
-    target1:
-      hostname: target1
-      nickname: tgt1
-      virbr0_ip: "192.168.122.11"
-      wg_ip: "10.10.0.3"
-      wg_role: spoke
-      ansible_managed: true
-      backend: kvm
-      hypervisor: toshiba
-      ansible_groups:
-        - kvm
-        - targets
-        - development
-        - lab
 
-    target2:
-      hostname: target2
-      nickname: tgt2
-      virbr0_ip: "192.168.122.12"
-      wg_ip: "10.10.0.4"
-      wg_role: spoke
-      ansible_managed: true
-      backend: kvm
-      hypervisor: toshiba
-      ansible_groups:
-        - kvm
-        - targets
-        - development
-        - lab
-
-
-    target3:
-      hostname: target3
-      nickname: targ
-      virbr0_ip: "192.168.122.14"
-      wg_ip: "10.10.0.6"
+    dev01:
+      hostname: dev01
+      nickname: D1IRBL
+      virbr0_ip: "192.168.122.19"
+      wg_ip: "10.10.0.11"
       wg_role: spoke
       ansible_managed: true
       backend: kvm
@@ -97,32 +67,6 @@ groups:
       backend: vbox
       ansible_groups:
         - vbox
-        - development
-        - lab
-
-    target1:
-      hostname: target1
-      nickname: tgt1
-      wg_ip: "10.10.0.3"
-      wg_role: spoke
-      ansible_managed: true
-      backend: vbox
-      ansible_groups:
-        - vbox
-        - targets
-        - development
-        - lab
-
-    target2:
-      hostname: target2
-      nickname: tgt2
-      wg_ip: "10.10.0.4"
-      wg_role: spoke
-      ansible_managed: true
-      backend: vbox
-      ansible_groups:
-        - vbox
-        - targets
         - development
         - lab
 

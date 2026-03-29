@@ -15,13 +15,16 @@
 #   4.  SOPS decryption
 #   5.  toshiba reachability
 #   6.  toshiba — LUKS disk + libvirt pool
-#   7.  VMs on toshiba (saconsole, target1, target2)
+#   7.  VMs on toshiba (derived from hosts_map.yml)
 #   8.  WireGuard — local interface + handshake
-#   9.  WireGuard mesh — ping all peers
+#   9.  WireGuard mesh — ping all peers (derived from hosts_map.yml)
 #  10.  Observability stack (saconsole)
-#  11.  Target stacks (target1, target2)
-#  12.  MCP endpoints
-#  13.  GitHub MCP server (binary + settings.json)
+#  11.  ERPNext sites — HTTPS reachability (derived from hosts_map.yml)
+#  12.  MCP endpoints — all SSE servers in ~/.claude/settings.json
+#  13.  GitHub MCP server (binary + settings.json + token)
+#  14.  Cloudflare MCP (binary path, cf-mcp-refresh functional test)
+#  15.  Telegram notification channel (bot token + API reachability)
+#  16.  Cytoscape prototype API (localhost:8088)
 
 PASS=0; FAIL=0; WARN=0
 
@@ -38,18 +41,6 @@ HYPERVISOR_ALIAS="toshiba"
 HYPERVISOR_USER="hasan"
 
 SACONSOLE_IP="192.168.122.10"
-TARGET1_IP="192.168.122.11"
-TARGET2_IP="192.168.122.12"
-
-WG_HUB="10.10.0.1"
-WG_TARGET1="10.10.0.3"
-WG_TARGET2="10.10.0.4"
-
-MCP_GRAFANA="http://10.10.0.1:8000/sse"
-MCP_MARIADB_T1="http://10.10.0.3:9001/sse"
-MCP_MARIADB_T2="http://10.10.0.4:9001/sse"
-MCP_NGINX_T1="http://10.10.0.3:9000/mcp?node_secret=esacp_node_secret_changeme"
-MCP_NGINX_T2="http://10.10.0.4:9000/mcp?node_secret=esacp_node_secret_changeme"
 
 remote_toshiba() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
     "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" "$@"; }
@@ -174,7 +165,15 @@ fi
 hdr "7. VMs on toshiba"
 
 if [[ "${TOSHIBA_UP}" == true ]]; then
-    for vm in saconsole target1 target2; do
+    TOSHIBA_VMS=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
+import yaml, sys
+d = yaml.safe_load(open(sys.argv[1]))
+for name, h in d.get('groups', {}).get('kvm', {}).items():
+    if h.get('hypervisor') == 'toshiba':
+        print(name)
+PYEOF
+)
+    for vm in ${TOSHIBA_VMS}; do
         STATE=$(remote_toshiba "virsh --connect qemu:///system domstate ${vm} 2>/dev/null" \
             | tr -d '\n' || echo "unknown")
         if [[ "${STATE}" == "running" ]]; then
@@ -224,7 +223,16 @@ fi
 # ── 9. WireGuard mesh — ping all peers ────────────────────────────────────────
 hdr "9. WireGuard mesh"
 
-for label_ip in "saconsole:${WG_HUB}" "target1:${WG_TARGET1}" "target2:${WG_TARGET2}"; do
+WG_PEERS=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
+import yaml, sys
+d = yaml.safe_load(open(sys.argv[1]))
+for name, h in d.get('groups', {}).get('kvm', {}).items():
+    wg = h.get('wg_ip', '')
+    if wg:
+        print(f'{name}:{wg}')
+PYEOF
+)
+for label_ip in ${WG_PEERS}; do
     label="${label_ip%%:*}"
     ip="${label_ip##*:}"
     if ping -c1 -W2 "${ip}" &>/dev/null; then
@@ -238,8 +246,18 @@ done
 # ── 10. Observability stack — saconsole ───────────────────────────────────────
 hdr "10. Observability stack (saconsole)"
 
+WG_HUB=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
+import yaml, sys
+d = yaml.safe_load(open(sys.argv[1]))
+for h in d.get('groups', {}).get('kvm', {}).values():
+    if h.get('wg_role') == 'hub':
+        print(h.get('wg_ip', ''))
+        break
+PYEOF
+)
+
 SACONSOLE_REACHABLE=false
-if ping -c1 -W2 "${WG_HUB}" &>/dev/null; then
+if [[ -n "${WG_HUB}" ]] && ping -c1 -W2 "${WG_HUB}" &>/dev/null; then
     SACONSOLE_REACHABLE=true
 fi
 
@@ -262,48 +280,55 @@ else
     warn "saconsole unreachable over WireGuard — skipping observability checks"
 fi
 
-# ── 11. Target stacks ─────────────────────────────────────────────────────────
-hdr "11. Target stacks"
+# ── 11. ERPNext sites ─────────────────────────────────────────────────────────
+hdr "11. ERPNext sites"
 
-for target_label_ip in "target1:${WG_TARGET1}:${TARGET1_IP}" \
-                       "target2:${WG_TARGET2}:${TARGET2_IP}"; do
-    target="${target_label_ip%%:*}"
-    rest="${target_label_ip#*:}"
-    wg_ip="${rest%%:*}"
-    virbr_ip="${rest##*:}"
-
-    if ! ping -c1 -W2 "${wg_ip}" &>/dev/null; then
-        warn "${target} (${wg_ip}) unreachable over WireGuard — skipping stack check"
+ERP_SITES=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
+import yaml, sys
+d = yaml.safe_load(open(sys.argv[1]))
+for name, h in d.get('groups', {}).get('kvm', {}).items():
+    role = h.get('vm_role', '')
+    if not role:
         continue
-    fi
+    zone = role.split(':')[0] if ':' in role else 'development'
+    domain = 'logichem.solutions' if zone == 'production' else 'iridium.blue'
+    print(f'{name}:https://{name}.{domain}')
+PYEOF
+)
 
-    TARGET_CONTAINERS=$(remote_saconsole \
-        "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 you@${virbr_ip} \
-         'docker ps --format \"{{.Names}}:{{.Status}}\"'" 2>/dev/null || true)
-
-    for svc in mariadb mysqld_exporter mariadb_mcp nginx-ui; do
-        ROW=$(echo "${TARGET_CONTAINERS}" | grep "^${svc}:" || true)
-        if [[ -z "${ROW}" ]]; then
-            fail "${target}: '${svc}' container not running"
-            fix "SSH to ${target} and run: docker-compose -f /opt/mariadb/docker-compose.yml up -d  (or /opt/nginx-ui/)"
-        elif echo "${ROW}" | grep -qi "unhealthy\|restarting\|exited"; then
-            warn "${target}: '${svc}' — $(echo "${ROW}" | cut -d: -f2-)"
+if [[ -z "${ERP_SITES}" ]]; then
+    warn "No ERPNext hosts found in hosts_map.yml (no hosts with vm_role set)"
+else
+    for label_url in ${ERP_SITES}; do
+        label="${label_url%%:*}"
+        url="${label_url#*:}"
+        HTTP_CODE=$(curl -s --max-time 8 "${url}" -o /dev/null -w "%{http_code}" 2>/dev/null; true)
+        [[ -z "${HTTP_CODE}" ]] && HTTP_CODE="000"
+        if [[ "${HTTP_CODE}" =~ ^(200|301|302)$ ]]; then
+            ok "ERPNext ${label} (${url}) — HTTP ${HTTP_CODE}"
+        elif [[ "${HTTP_CODE}" == "000" ]]; then
+            warn "ERPNext ${label} (${url}) — unreachable"
+            fix "Check VM is running and nginx/bench are up on ${label}"
         else
-            ok "${target}: '${svc}' — up"
+            warn "ERPNext ${label} (${url}) — HTTP ${HTTP_CODE}"
         fi
     done
-done
+fi
 
 # ── 12. MCP endpoints ─────────────────────────────────────────────────────────
 hdr "12. MCP endpoints"
 
-for label_url in \
-    "grafana-mcp:${MCP_GRAFANA}" \
-    "mariadb-target1:${MCP_MARIADB_T1}" \
-    "mariadb-target2:${MCP_MARIADB_T2}" \
-    "nginx-target1:${MCP_NGINX_T1}" \
-    "nginx-target2:${MCP_NGINX_T2}"; do
+# Derived from settings.json — all SSE-type MCP servers are live infrastructure
+SSE_ENDPOINTS=$(python3 - "${HOME}/.claude/settings.json" <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1]))
+for name, cfg in d.get('mcpServers', {}).items():
+    if cfg.get('type') == 'sse':
+        print(f'{name}:{cfg["url"]}')
+PYEOF
+)
 
+for label_url in ${SSE_ENDPOINTS}; do
     label="${label_url%%:http*}"
     url="${label_url#*:http}"
     url="http${url}"
@@ -317,7 +342,7 @@ for label_url in \
         ok "MCP ${label} — HTTP ${HTTP_CODE}"
     elif [[ "${HTTP_CODE}" == "000" ]]; then
         fail "MCP ${label} — unreachable (timeout/refused)"
-        fix "Check that the container is running and UFW allows saconsole WG IP"
+        fix "Check that the container is running and network path is open"
     else
         warn "MCP ${label} — HTTP ${HTTP_CODE} (unexpected)"
     fi
@@ -340,6 +365,150 @@ if grep -q 'github-mcp-server' "${HOME}/.claude/settings.json" 2>/dev/null; then
 else
     fail "github MCP not configured in ~/.claude/settings.json"
     fix "Add github-mcp-server entry (type: stdio) with GITHUB_PERSONAL_ACCESS_TOKEN"
+fi
+
+if gh auth status &>/dev/null; then
+    ok "github token — authenticated (gh auth status OK)"
+else
+    fail "github token — not authenticated"
+    fix "Run: gh auth login"
+fi
+
+# ── 14. Cloudflare MCP ────────────────────────────────────────────────────────
+hdr "14. Cloudflare MCP"
+
+if command -v npx &>/dev/null; then
+    ok "npx available ($(npx --version 2>/dev/null))"
+else
+    fail "npx not found — Cloudflare MCP requires Node.js/npm"
+    fix "Install Node.js: https://nodejs.org"
+fi
+
+CF_REFRESH="${HOME}/.local/bin/cf-mcp-refresh"
+if [[ -x "${CF_REFRESH}" ]]; then
+    ok "cf-mcp-refresh present at ${CF_REFRESH}"
+else
+    fail "cf-mcp-refresh not found at ${CF_REFRESH}"
+    fix "GH #50: copy tools/cf-mcp-refresh to ~/.local/bin/ and chmod +x"
+fi
+
+if grep -q 'cloudflare' "${HOME}/.claude/settings.json" 2>/dev/null; then
+    ok "cloudflare MCP entry present in ~/.claude/settings.json"
+else
+    fail "cloudflare MCP not configured in ~/.claude/settings.json"
+    fix "Add cloudflare entry (type: stdio) pointing to mcp-remote binary"
+fi
+
+# Verify settings.json uses absolute path to mcp-remote, not npx
+CF_CMD=$(python3 -c "
+import json, sys
+try:
+    d = json.load(open('${HOME}/.claude/settings.json'))
+    print(d.get('mcpServers', {}).get('cloudflare', {}).get('command', ''))
+except Exception:
+    pass
+" 2>/dev/null)
+if [[ "${CF_CMD}" == "npx" ]]; then
+    warn "cloudflare MCP uses 'npx' — may pause for interactive install confirmation"
+    fix "Set command to absolute mcp-remote path in ~/.claude/settings.json (see reference_mcp_remote_tokens.md)"
+elif [[ -n "${CF_CMD}" && "${CF_CMD}" != "npx" ]]; then
+    if [[ -x "${CF_CMD}" ]]; then
+        ok "cloudflare MCP command is absolute path and executable: ${CF_CMD}"
+    else
+        fail "cloudflare MCP command not executable: ${CF_CMD}"
+        fix "Check mcp-remote is installed: npm install -g mcp-remote"
+    fi
+fi
+
+# Functional test: run cf-mcp-refresh and confirm it obtains a fresh token
+if [[ -x "${CF_REFRESH}" ]]; then
+    CF_REFRESH_OUT=$("${CF_REFRESH}" 2>&1)
+    CF_REFRESH_RC=$?
+    if [[ $CF_REFRESH_RC -eq 0 ]] && echo "${CF_REFRESH_OUT}" | grep -q "✅"; then
+        ok "cf-mcp-refresh — token refreshed successfully"
+    elif echo "${CF_REFRESH_OUT}" | grep -qi "manual re-auth"; then
+        fail "cloudflare MCP — no token cache or refresh_token missing; manual re-auth required"
+        fix "Run in terminal: npx mcp-remote https://mcp.cloudflare.com/mcp  (complete browser auth, then Ctrl+C)"
+    else
+        warn "cf-mcp-refresh — unexpected output: ${CF_REFRESH_OUT}"
+        fix "Check network access to https://mcp.cloudflare.com/token"
+    fi
+fi
+
+# ── 15. Telegram notification channel ────────────────────────────────────────
+hdr "15. Telegram notification channel"
+
+TG_TOKEN=$(sops -d "${ANSIBLE_DIR}/group_vars/all.sops.yml" 2>/dev/null \
+    | grep '^telegram_bot_token:' | awk '{print $2}')
+
+if [[ -z "${TG_TOKEN}" ]]; then
+    fail "Telegram bot token not found — SOPS decryption failed or key missing"
+    fix "Verify: sops -d ansible/group_vars/all.sops.yml | grep telegram"
+else
+    TG_RESPONSE=$(curl -sf --max-time 5 \
+        "https://api.telegram.org/bot${TG_TOKEN}/getMe" 2>/dev/null || true)
+    if echo "${TG_RESPONSE}" | python3 -c \
+        "import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get('ok') else 1)" 2>/dev/null; then
+        BOT_NAME=$(echo "${TG_RESPONSE}" | python3 -c \
+            "import json,sys; d=json.load(sys.stdin); print(d['result']['username'])" 2>/dev/null)
+        ok "Telegram bot @${BOT_NAME} — token valid, API reachable"
+    else
+        fail "Telegram bot API call failed — token invalid or api.telegram.org unreachable"
+        fix "Check token in ansible/group_vars/all.sops.yml and network access"
+    fi
+fi
+
+# ── 16. Cytoscape prototype API ───────────────────────────────────────────────
+hdr "16. Cytoscape prototype API"
+
+HTTP_CODE=$(curl -s --max-time 3 http://localhost:8088/api/hosts \
+    -o /dev/null -w "%{http_code}" 2>/dev/null; true)
+[[ -z "${HTTP_CODE}" ]] && HTTP_CODE="000"
+if [[ "${HTTP_CODE}" == "200" ]]; then
+    ok "Cytoscape API (http://localhost:8088) — responding"
+elif [[ "${HTTP_CODE}" == "000" ]]; then
+    warn "Cytoscape API not running — start when doing control plane work"
+    fix "uvicorn tools.api:app --port 8088 --reload  (from project root)"
+else
+    warn "Cytoscape API — HTTP ${HTTP_CODE} (unexpected)"
+fi
+
+# ── 17. Claude in Chrome — ERPNext site view ──────────────────────────────────
+hdr "17. Claude in Chrome"
+
+# Build expected ERPNext hostnames from hosts_map.yml
+ERP_HOSTS=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
+import yaml, sys
+d = yaml.safe_load(open(sys.argv[1]))
+for name, h in d.get('groups', {}).get('kvm', {}).items():
+    role = h.get('vm_role', '')
+    if not role:
+        continue
+    zone = role.split(':')[0] if ':' in role else 'development'
+    domain = 'logichem.solutions' if zone == 'production' else 'iridium.blue'
+    print(f'{name}.{domain}')
+PYEOF
+)
+
+# Check Chrome is running (extension connects to Claude Code — no debug port needed)
+if pgrep -x "google-chrome" &>/dev/null || pgrep -x "chromium-browser" &>/dev/null \
+    || pgrep -x "chromium" &>/dev/null; then
+    CHROME_RUNNING=true
+    ok "Chrome process is running"
+else
+    CHROME_RUNNING=false
+    warn "Chrome is not running — Claude in Chrome unavailable"
+    fix "Open Chrome, install the Claude extension, then launch via ./Cld.sh"
+fi
+
+if [[ "${CHROME_RUNNING}" == true ]]; then
+    if [[ -n "${ERP_HOSTS}" ]]; then
+        ERP_LIST=$(echo "${ERP_HOSTS}" | tr '\n' ' ')
+        warn "Verify manually: Chrome should have a tab open on one of: ${ERP_LIST}"
+        fix "After session starts, confirm via /mcp that claude-in-chrome tools are available"
+    else
+        warn "No ERPNext hosts in hosts_map.yml — nothing to view in Chrome"
+    fi
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────
