@@ -491,8 +491,9 @@ PYEOF
 )
 
 # Check Chrome is running (extension connects to Claude Code — no debug port needed)
-if pgrep -x "google-chrome" &>/dev/null || pgrep -x "chromium-browser" &>/dev/null \
-    || pgrep -x "chromium" &>/dev/null; then
+# Use pgrep -f to match against full command line — -x fails for names >15 chars (e.g. google-chrome)
+if pgrep -f "google-chrome" &>/dev/null || pgrep -f "chromium-browser" &>/dev/null \
+    || pgrep -f "/chrome$" &>/dev/null || pgrep -f "chromium" &>/dev/null; then
     CHROME_RUNNING=true
     ok "Chrome process is running"
 else
