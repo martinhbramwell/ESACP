@@ -967,7 +967,7 @@ sudo mkdir -p {cert_dir}
 sudo cp /tmp/fullchain.pem {nginx_cert}
 sudo cp /tmp/privkey.pem   {nginx_key}
 sudo chmod 600 {nginx_key}
-rm -f /tmp/fullchain.pem /tmp/privkey.pem /tmp/cert.pem
+sudo rm -f /tmp/fullchain.pem /tmp/privkey.pem /tmp/cert.pem
 echo "  [OK] certs installed to {cert_dir}"
 
 echo "=== J: generate nginx config ==="
@@ -1100,15 +1100,29 @@ sudo chmod 644 /opt/ce_sri/envars.sh
 echo "  [OK] /opt/ce_sri/envars.sh"
 
 echo "=== A2: rename bench dir ==="
-if [ -d "$BENCH_DIR_ORIG" ] && [ ! -d "$BENCH_DIR" ]; then
-    sudo -u "$ERP_USER" mv "$BENCH_DIR_ORIG" "$BENCH_DIR"
-    echo "  [OK] renamed frappe-bench -> {bench_name_new}"
-elif [ -d "$BENCH_DIR" ]; then
-    echo "  [OK] {bench_name_new} already exists — skipping rename"
+if sudo test -d "$BENCH_DIR_ORIG" && ! sudo test -L "$BENCH_DIR"; then
+    sudo -u "$ERP_USER" ln -sf "$BENCH_DIR_ORIG" "$BENCH_DIR"
+    echo "  [OK] symlinked frappe-bench -> {bench_name_new} (venv paths preserved)"
+elif sudo test -L "$BENCH_DIR"; then
+    echo "  [OK] {bench_name_new} symlink already exists — skipping"
 else
     echo "  [ERROR] Neither $BENCH_DIR_ORIG nor $BENCH_DIR found"
     exit 1
 fi
+
+echo "=== A3: start bench services (supervisor) ==="
+# Packer template never ran 'bench setup supervisor' — do it now before any bench commands
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
+sudo cp "$BENCH_DIR/config/supervisor.conf" /etc/supervisor/conf.d/frappe-bench.conf
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start all || true
+echo "  Waiting 20s for Redis to be ready..."
+sleep 20
+echo "  [OK] bench services started"
+# nginx (www-data) must be able to traverse /home/$ERP_USER to serve static assets
+sudo chmod o+x /home/"$ERP_USER"
+echo "  [OK] /home/$ERP_USER world-traversable for nginx"
 
 echo "=== B: fix ownership of rsynced dirs ==="
 sudo chown -R "$ERP_USER:$ERP_USER" {chown_paths.replace(bench_dir_orig, "$BENCH_DIR")}
@@ -1140,8 +1154,7 @@ echo "=== G: handleRestore.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"
 
-echo "=== H: bench setup supervisor ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
+echo "=== H: supervisor reload (post-restore) ==="
 sudo supervisorctl reread
 sudo supervisorctl update
 echo "  [OK] supervisor updated"
@@ -1149,6 +1162,10 @@ echo "  [OK] supervisor updated"
 echo "=== H2: bench restart ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
 echo "  [OK] bench restarted"
+
+echo "=== H3: reset admin password (bench restore overwrites it) ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-password $ERP_USER_PWD"
+echo "  [OK] admin password reset to ERP_USER_PWD"
 
 {tls_section}
 echo "=== Done ==="
