@@ -850,9 +850,10 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
         site_url     = f"{vm.hostname}.{domain}"
         bench_name   = "frappe-bench"                        # Packer template bench dir
         bench_name_new = f"frappe-bench-{nickname_str}"      # renamed at differentiation
-        bench_dir_orig = f"/home/adm/{bench_name}"           # before rename
-        bench_dir      = f"/home/adm/{bench_name_new}"       # after rename
-        ERP_USER     = "adm"
+        with open(GROUP_VARS_ALL) as _f:
+            ERP_USER = yaml.safe_load(_f).get("erp_user", "erpadm")
+        bench_dir_orig = f"/home/{ERP_USER}/{bench_name}"    # before rename
+        bench_dir      = f"/home/{ERP_USER}/{bench_name_new}" # after rename
         MYPWD        = "erpnext_build"              # MariaDB root pwd set by Packer OS prep
         ERP_USER_PWD = "sasa"
         rsync_e      = (
@@ -891,7 +892,7 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
 
         # ── Step 10: rsync apps + BaRe + BKP (controller → VM) ───────────────
         # rsync into the ORIGINAL bench dir (rename happens inside differentiate.sh)
-        # --rsync-path="sudo rsync" because bench/apps is owned by adm.
+        # --rsync-path="sudo rsync" because bench/apps is owned by ERP_USER.
         emit("── Step 10: rsync apps + BaRe + BKP ──")
         rsync_targets = [
             (CE_SRI_SRC,         f"{bench_dir_orig}/apps/ce_sri"),

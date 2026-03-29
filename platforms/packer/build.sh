@@ -47,6 +47,14 @@ SSH_KEY="${HOME}/.ssh/id_ed25519"
 FRAPPE_BRANCH="version-13"
 ERPNEXT_BRANCH="version-13"
 
+# Read erp_user from ansible/group_vars/all.yml — single source of truth.
+# Falls back to 'erpadm' if the key is absent (should not happen in normal use).
+ERP_USER="$(python3 -c "
+import yaml, sys
+d = yaml.safe_load(open('${PROJ_ROOT}/ansible/group_vars/all.yml'))
+print(d.get('erp_user', 'erpadm'))
+" 2>/dev/null || echo 'erpadm')"
+
 AUTOINSTALL_TIMEOUT=3600   # 60 min — Ubuntu autoinstall on slow hardware
 SSH_POLL_TIMEOUT=120
 
@@ -58,6 +66,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --frappe-branch)  FRAPPE_BRANCH="$2";  shift 2 ;;
         --erpnext-branch) ERPNEXT_BRANCH="$2"; shift 2 ;;
+        --erp-user)       ERP_USER="$2";       shift 2 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -242,6 +251,7 @@ packer build \
     -var "ssh_private_key_file=${SSH_KEY}" \
     -var "frappe_branch=${FRAPPE_BRANCH}" \
     -var "erpnext_branch=${ERPNEXT_BRANCH}" \
+    -var "erp_user=${ERP_USER}" \
     erpnext-v13.pkr.hcl
 
 log "✓  Packer build complete."
@@ -281,6 +291,7 @@ remote "cat > '${METADATA_DIR}/erpnext-v13-latest.json'" <<METADATA
   "image":          "${OUTPUT_IMAGE}",
   "frappe_branch":  "${FRAPPE_BRANCH}",
   "erpnext_branch": "${ERPNEXT_BRANCH}",
+  "erp_user":       "${ERP_USER}",
   "built_at":       "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "built_by":       "saconsole:${SCRIPT_DIR}/build.sh",
   "state":          "undifferentiated"

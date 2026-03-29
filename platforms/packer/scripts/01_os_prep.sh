@@ -5,7 +5,7 @@
 # Mirrors the work of prepareServer_1.sh from the ce_sri repo.
 #
 # Installs: system packages, MariaDB 10.6, NodeJS 18, wkhtmltopdf, Redis,
-#           creates bench user 'adm', then reboots.
+#           creates bench user (ERP_USER from ansible/group_vars/all.yml), then reboots.
 # Packer waits for SSH to return (expect_disconnect: true) before proceeding.
 
 set -euo pipefail
@@ -92,25 +92,27 @@ log "Installing nginx ..."
 apt-get install -y -qq nginx
 systemctl enable nginx
 
-# ── 8. Create bench user 'adm' ────────────────────────────────────────────────
+# ── 8. Create bench user ──────────────────────────────────────────────────────
+# ERP_USER is passed by Packer via: sudo env ERP_USER=<value> bash {{ .Path }}
+# It is read from ansible/group_vars/all.yml by build.sh — not hardcoded here.
 
-log "Creating bench user 'adm' ..."
-if ! id adm &>/dev/null; then
-    # -N: don't create user private group — Ubuntu ships with a system group
-    # named 'adm' (log readers); useradd exits 9 if it tries to create it again.
-    useradd -m -s /bin/bash -N adm
-    usermod -aG sudo adm
-    # Passwordless sudo for adm — required for bench setup commands
-    echo "adm ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/adm
-    chmod 440 /etc/sudoers.d/adm
+ERP_USER="${ERP_USER:?ERP_USER env var not set — pass via Packer execute_command}"
+
+log "Creating bench user '${ERP_USER}' ..."
+if ! id "${ERP_USER}" &>/dev/null; then
+    useradd -m -s /bin/bash "${ERP_USER}"
+    usermod -aG sudo "${ERP_USER}"
+    # Passwordless sudo — required for bench setup commands
+    echo "${ERP_USER} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${ERP_USER}"
+    chmod 440 "/etc/sudoers.d/${ERP_USER}"
 fi
 
-# Ensure adm has an SSH directory (bench install may need it)
-mkdir -p /home/adm/.ssh
-chown adm:adm /home/adm/.ssh
-chmod 700 /home/adm/.ssh
+# Ensure the bench user has an SSH directory (bench install may need it)
+mkdir -p "/home/${ERP_USER}/.ssh"
+chown "${ERP_USER}:" "/home/${ERP_USER}/.ssh"
+chmod 700 "/home/${ERP_USER}/.ssh"
 
-log "✓  User 'adm' ready"
+log "✓  User '${ERP_USER}' ready"
 
 # ── 9. pip upgrade ────────────────────────────────────────────────────────────
 

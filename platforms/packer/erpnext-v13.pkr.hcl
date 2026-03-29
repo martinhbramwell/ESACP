@@ -43,6 +43,12 @@ variable "erpnext_branch" {
   default = "version-13"
 }
 
+variable "erp_user" {
+  type        = string
+  description = "Unix user that owns the frappe-bench installation. Must match erp_user in ansible/group_vars/all.yml. build.sh reads all.yml and passes this value automatically."
+  default     = "erpadm"
+}
+
 # ── Source: null builder ───────────────────────────────────────────────────────
 #
 # The null builder does not create or manage a VM — build.sh handles that.
@@ -64,11 +70,11 @@ build {
   sources = ["source.null.erpnext-v13"]
 
   # Phase 1: OS preparation
-  # Installs system packages, MariaDB, NodeJS, wkhtmltopdf, creates bench user 'adm'.
+  # Installs system packages, MariaDB, NodeJS, wkhtmltopdf, creates bench user.
   # Reboots the VM at the end — Packer waits for SSH to return before proceeding.
   provisioner "shell" {
     script          = "${path.root}/scripts/01_os_prep.sh"
-    execute_command = "sudo bash {{ .Path }}"
+    execute_command = "sudo env ERP_USER=${var.erp_user} bash {{ .Path }}"
     expect_disconnect = true   # VM reboots at end of this script
     pause_after     = "30s"
   }
@@ -78,7 +84,7 @@ build {
   # Stops BEFORE bench new-site — no site, no data.
   provisioner "shell" {
     script          = "${path.root}/scripts/02_bench_install.sh"
-    execute_command = "sudo -Hu adm bash {{ .Path }}"
+    execute_command = "sudo -Hu ${var.erp_user} env ERP_USER=${var.erp_user} bash {{ .Path }}"
     environment_vars = [
       "FRAPPE_BRANCH=${var.frappe_branch}",
       "ERPNEXT_BRANCH=${var.erpnext_branch}",
@@ -91,13 +97,13 @@ build {
   # See feedback_frappe_v13_deps.md for full explanation.
   provisioner "shell" {
     script          = "${path.root}/scripts/03_dep_fix.sh"
-    execute_command = "sudo -Hu adm bash {{ .Path }}"
+    execute_command = "sudo -Hu ${var.erp_user} env ERP_USER=${var.erp_user} bash {{ .Path }}"
   }
 
   # Phase 4: Cleanup — remove SSH host keys, machine-id, apt caches
   # Ensures each VM deployed from this image gets a fresh identity.
   provisioner "shell" {
     script          = "${path.root}/scripts/04_generalise.sh"
-    execute_command = "sudo bash {{ .Path }}"
+    execute_command = "sudo env ERP_USER=${var.erp_user} bash {{ .Path }}"
   }
 }

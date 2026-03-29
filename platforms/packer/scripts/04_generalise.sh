@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 04_generalise.sh — Generalise the image before export
 #
-# Runs INSIDE the build VM as root (via: sudo bash {{ .Path }})
+# Runs INSIDE the build VM as root (via: sudo env ERP_USER=... bash {{ .Path }})
 # Strips machine-specific identity so every VM deployed from this image
 # gets a fresh identity on first boot.
 #
@@ -12,6 +12,9 @@
 #   - Remove bash history
 
 set -euo pipefail
+
+# ERP_USER is passed by Packer execute_command — not hardcoded here.
+ERP_USER="${ERP_USER:?ERP_USER env var not set — pass via Packer execute_command}"
 
 log() { echo "[04_generalise $(date '+%H:%M:%S')] $*"; }
 
@@ -34,7 +37,7 @@ rm -rf /var/lib/apt/lists/*
 log "Clearing bash histories ..."
 rm -f /root/.bash_history
 rm -f /home/you/.bash_history
-rm -f /home/adm/.bash_history
+rm -f "/home/${ERP_USER}/.bash_history"
 
 # ── cloud-init ────────────────────────────────────────────────────────────────
 # Reset cloud-init state so it runs again on first boot of the deployed VM.

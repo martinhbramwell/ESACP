@@ -111,3 +111,9 @@ alerting_enabled: true
 # Alert profile: 'production' or 'drill'
 # Overridden to 'drill' in group_vars/lab.yml, enforced to 'production' in group_vars/production.yml
 alert_profile: production
+
+# ── ERPNext ───────────────────────────────────────────────────────────────────
+# Unix user that owns the frappe-bench installation inside ERPNext VMs.
+# Referenced by Packer build scripts and the differentiation pipeline in api.py.
+# Change here propagates everywhere — this is the single source of truth.
+erp_user: erpadm
