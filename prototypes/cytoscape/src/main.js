@@ -153,10 +153,17 @@ function normalizeVmRole(rawRole, zoneId) {
 
 function nextDevPosition(cy) {
   const devNodes = cy.nodes('[zone_id = "zone-dev"]:not(.phantom)')
-  const count = devNodes.length
-  const col = count % 2
-  const row = Math.floor(count / 2)
-  return { x: 540 + col * 160, y: 150 + row * 160 }
+  const occupied = new Set(devNodes.map(n => `${Math.round(n.position('x'))},${Math.round(n.position('y'))}`))
+  let slot = 0
+  while (slot < 100) {
+    const col = slot % 2
+    const row = Math.floor(slot / 2)
+    const x = Math.round(540 + col * 160)
+    const y = Math.round(150 + row * 160)
+    if (!occupied.has(`${x},${y}`)) return { x, y }
+    slot++
+  }
+  return { x: 540, y: 150 + Math.floor(devNodes.length / 2) * 160 }
 }
 
 function nextPositionForZone(cy, zoneId) {
@@ -1539,7 +1546,7 @@ function openDialogForZone(zone, sourceHostname, sourceVmRole) {
   const roleType = sourceVmRole?.split(':')[1]  // 'master', 'slave', or 'unspecified'
   const vm_role  = roleType && roleType !== 'unspecified' ? roleType : undefined
   openDialog({ zone, vm_role })
-  if (sourceHostname) fHostname.placeholder = `${sourceHostname}-staging`
+  if (sourceHostname) fHostname.value = `${sourceHostname}-staging`
 }
 
 document.getElementById('dialog-cancel').addEventListener('click', closeDialog)

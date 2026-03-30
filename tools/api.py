@@ -1458,6 +1458,19 @@ def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
             raise RuntimeError(f"SCP failed: {r.stderr.strip()}")
         emit("  [OK] script uploaded")
 
+        emit("── Uploading ddlViews.sql ──")
+        if VIEWS_DDL_SRC.exists():
+            r = subprocess.run(
+                ["scp"] + ssh_opts + [str(VIEWS_DDL_SRC), f"you@{wg_ip}:/tmp/ddlViews.sql"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if r.returncode != 0:
+                emit(f"  [WARN] scp ddlViews.sql failed: {r.stderr.strip()} — continuing")
+            else:
+                emit("  [OK] ddlViews.sql uploaded")
+        else:
+            emit(f"  [SKIP] ddlViews.sql not found at {VIEWS_DDL_SRC}")
+
         emit("── Running differentiate.sh (idempotent) ──")
         proc = subprocess.Popen(
             ["ssh"] + ssh_opts + [f"you@{wg_ip}", f"sudo bash {remote_script}"],
