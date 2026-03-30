@@ -119,11 +119,18 @@ echo "  [OK] admin password reset to ERP_USER_PWD"
 
 echo "=== I: install TLS cert ==="
 sudo mkdir -p /etc/nginx/certs/iridium.blue
-sudo cp /tmp/fullchain.pem /etc/nginx/certs/iridium.blue/fullchain.pem
-sudo cp /tmp/privkey.pem   /etc/nginx/certs/iridium.blue/privkey.pem
-sudo chmod 600 /etc/nginx/certs/iridium.blue/privkey.pem
-sudo rm -f /tmp/fullchain.pem /tmp/privkey.pem /tmp/cert.pem
-echo "  [OK] certs installed to /etc/nginx/certs/iridium.blue"
+if [ -f /tmp/fullchain.pem ]; then
+  sudo cp /tmp/fullchain.pem /etc/nginx/certs/iridium.blue/fullchain.pem
+  sudo cp /tmp/privkey.pem   /etc/nginx/certs/iridium.blue/privkey.pem
+  sudo chmod 600 /etc/nginx/certs/iridium.blue/privkey.pem
+  sudo rm -f /tmp/fullchain.pem /tmp/privkey.pem /tmp/cert.pem
+  echo "  [OK] certs installed to /etc/nginx/certs/iridium.blue"
+elif [ -f /etc/nginx/certs/iridium.blue/fullchain.pem ]; then
+  echo "  [OK] certs already in place at /etc/nginx/certs/iridium.blue — skipping"
+else
+  echo "  [ERROR] no cert at /tmp/fullchain.pem and none at /etc/nginx/certs/iridium.blue"
+  exit 1
+fi
 
 echo "=== J: generate nginx config ==="
 sudo tee /etc/nginx/sites-available/dev01.iridium.blue > /dev/null << 'NGINXEOF'
