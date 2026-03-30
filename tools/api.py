@@ -1040,11 +1040,18 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
             tls_section = f"""\
 echo "=== I: install TLS cert ==="
 sudo mkdir -p {cert_dir}
-sudo cp /tmp/fullchain.pem {nginx_cert}
-sudo cp /tmp/privkey.pem   {nginx_key}
-sudo chmod 600 {nginx_key}
-sudo rm -f /tmp/fullchain.pem /tmp/privkey.pem /tmp/cert.pem
-echo "  [OK] certs installed to {cert_dir}"
+if [ -f /tmp/fullchain.pem ]; then
+  sudo cp /tmp/fullchain.pem {nginx_cert}
+  sudo cp /tmp/privkey.pem   {nginx_key}
+  sudo chmod 600 {nginx_key}
+  sudo rm -f /tmp/fullchain.pem /tmp/privkey.pem /tmp/cert.pem
+  echo "  [OK] certs installed to {cert_dir}"
+elif [ -f {nginx_cert} ]; then
+  echo "  [OK] certs already in place at {cert_dir} — skipping"
+else
+  echo "  [ERROR] no cert at /tmp/fullchain.pem and none at {cert_dir}"
+  exit 1
+fi
 
 echo "=== J: generate nginx config ==="
 sudo tee /etc/nginx/sites-available/{site_url} > /dev/null << 'NGINXEOF'
