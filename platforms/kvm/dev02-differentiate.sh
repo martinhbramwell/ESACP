@@ -78,23 +78,6 @@ else
   echo "  [OK] site created, erpnext installed"
 fi
 
-echo "=== D2: mark known-incompatible v12 patches as already run ==="
-# frappe.patches.v12_0.delete_duplicate_indexes # 2022-12-15 queries
-# session_account_connect_attrs which does not exist in performance_schema
-# on this MariaDB version — the production DB already has clean indexes.
-_D2_CFG="$BENCH_DIR/sites/$SITE_URL/site_config.json"
-_D2_DB=$(python3 -c "import json; print(json.load(open('$_D2_CFG'))['db_name'])")
-_D2_PW=$(python3 -c "import json; print(json.load(open('$_D2_CFG'))['db_password'])")
-_D2_PATCH="frappe.patches.v12_0.delete_duplicate_indexes  # 2022-12-15"
-_D2_NOW=$(date '+%Y-%m-%d %H:%M:%S.000000')
-_D2_NEXT=$(mysql -u "$_D2_DB" -p"$_D2_PW" "$_D2_DB" -sNe   "SELECT COALESCE(MAX(CAST(SUBSTRING(name,9) AS UNSIGNED)),0)+1 FROM \`tabPatch Log\`;" 2>/dev/null)
-_D2_NAME=$(printf "PATCHLOG%05d" "${_D2_NEXT:-1}")
-mysql -u "$_D2_DB" -p"$_D2_PW" "$_D2_DB" -e   "INSERT IGNORE INTO \`tabPatch Log\`
-     (name, creation, modified, modified_by, owner, docstatus, idx, patch)
-   VALUES
-     ('$_D2_NAME','$_D2_NOW','$_D2_NOW','Administrator','Administrator',0,0,'$_D2_PATCH');" 2>/dev/null
-echo "  [OK] patch log seeded"
-
 echo "=== E: place ddlViews.sql ==="
 sudo -u "$ERP_USER" mkdir -p "$BENCH_DIR/sites/$SITE_URL/private/files"
   sudo -u erpadm cp /tmp/ddlViews.sql /home/erpadm/frappe-bench-D2IRBL/sites/dev02.iridium.blue/private/files/ddlViews.sql

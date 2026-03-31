@@ -27,10 +27,9 @@
 `POST /api/provision/erpnext` generates `platforms/kvm/{hostname}-differentiate.sh` at Step 12 (committed as repo artifact). Steps in the script:
 - **A**: Write `/opt/ce_sri/envars.sh`; **A2**: symlink bench dir; **A3**: start bench services (supervisor)
 - **B**: fix ownership; **C**: BaRe/envars.sh symlink; **D**: bench new-site + install-app erpnext (idempotent via `bench doctor` check)
-- **D2**: seed tabPatch Log for incompatible v12 patch (`frappe.patches.v12_0.delete_duplicate_indexes`)
 - **E**: place ddlViews.sql; **F**: installApps.sh
 - **G-pre**: strip `DEFINER=<user>` from backup SQL (decompress → sed → recompress → repack tgz)
-- **G**: handleRestore.sh; **H/H2/H3**: supervisor reload + bench restart + reset admin password
+- **G**: handleRestore.sh (includes: restore → patch log fix for `delete_duplicate_indexes` → migrate → views); **H/H2/H3**: supervisor reload + bench restart + reset admin password
 - **I**: install TLS cert (idempotent — skips if cert already at `/etc/nginx/certs/iridium.blue/`)
 - **J**: nginx config; **K**: DH params + enable site; **L**: install bash_aliases
 

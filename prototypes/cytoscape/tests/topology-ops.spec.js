@@ -125,7 +125,7 @@ async function deployFromTemplate(page, config) {
   await page.click('#dialog-submit')
 
   // Wait for dialog to close and provisioning to start
-  await page.waitForSelector('#dialog-overlay.hidden', { timeout: 10_000 })
+  await page.waitForSelector('#dialog-overlay', { state: 'hidden', timeout: 10_000 })
 }
 
 // ── Test: Deploy ────────────────────────────────────────────────────────────
@@ -202,7 +202,7 @@ test.describe('Destroy VM', () => {
 
     // Click confirm
     await page.click('#confirm-submit')
-    await page.waitForSelector('#confirm-overlay.hidden', { timeout: 10_000 })
+    await page.waitForSelector('#confirm-overlay', { state: 'hidden', timeout: 10_000 })
 
     // Verify job started
     const resp = await page.request.get(`${API_URL}/api/jobs`)
@@ -235,7 +235,7 @@ test.describe('Inspect', () => {
 
     // Close popup
     await page.click('#popup-close')
-    await page.waitForSelector('#popup-overlay.hidden', { timeout: 5_000 })
+    await page.waitForSelector('#popup-overlay', { state: 'hidden', timeout: 5_000 })
   })
 })
 

@@ -12,7 +12,7 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 | POST | `/api/hosts/add` | Append to `hosts_map.yml`, regen inventory; accepts `zone`, `vm_role` |
 | POST | `/api/provision/{host}` | Job: cloud-init + WG + buildVM + provisionVM + saconsole WireGuard hub update (Step 5) |
 | POST | `/api/provision/erpnext` | Template-based deploy: vol-clone + `--import` + differentiation (Steps 1–18) |
-| POST | `/api/refresh/{host}` | Re-SCP + `sudo bash` the saved `{hostname}-differentiate.sh` artifact |
+| POST | `/api/refresh/{host}` | Rsync app code (ce_sri, returnable, route_planner, BaRe) + re-SCP + `sudo bash` differentiate.sh |
 | GET | `/api/health/{host}` | SSH checks: nginx (`systemctl is-active`), app (supervisorctl RUNNING count), db (mysql SELECT 1) |
 | POST | `/api/destroy/{host}` | Full destroy pipeline: WG peer → snapshots → virsh → hosts_map cleanup → regen → Ansible |
 | POST | `/api/promote` | Stub: Staging→Production initiation (Telegram approval deferred) |

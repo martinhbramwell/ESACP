@@ -62,6 +62,22 @@ Any operation the Cytoscape UI can perform MUST be performed via the browser ext
 - Staging and Production: max 1 master + 1 slave (enforced in UI)
 - Production zone is write-protected — promote only via "Promote →" button
 
+## Playwright Tests
+
+Tests live in `prototypes/cytoscape/tests/`. Run from the `prototypes/cytoscape` directory.
+
+```bash
+npx playwright test --grep "inspect"    # read-only, safest
+npx playwright test --grep "lifecycle"  # destroy + deploy cycle
+npx playwright test --grep "fixture"    # verify ce_sri fixtures post-deploy
+```
+
+**Prefer Playwright over Chrome extension** for topology operations (Deploy, Refresh, Destroy, Inspect). Cheaper in API credits, more reliable, and produces repeatable regression scripts. Chrome extension remains valid for visual inspection, ad-hoc exploration, and read-only production browsing.
+
+**Architecture**: Claude Code CLI and the Chrome MCP extension must run on the same machine (local MCP/stdio connection). Playwright tests only need Node.js and network access to the target URL — no Chrome extension required for test execution.
+
+**Long-term direction**: Playwright regression suites covering ERPNext business use cases (invoicing, inventory, HR workflows). Tests run against dev/staging instances only — never production. All dev/staging VMs must use `AMBIENTE=1` (Pruebas/test SRI endpoint).
+
 ## Inspect / Refresh / Destroy Pipeline
 
 - **Inspect**: 3-box service grid (nginx/frappe+supervisor/mariadb), status from `GET /api/health/{hostname}` via SSH checks

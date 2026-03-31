@@ -1235,25 +1235,6 @@ else
   echo "  [OK] site created, erpnext installed"
 fi
 
-echo "=== D2: mark known-incompatible v12 patches as already run ==="
-# frappe.patches.v12_0.delete_duplicate_indexes # 2022-12-15 queries
-# session_account_connect_attrs which does not exist in performance_schema
-# on this MariaDB version — the production DB already has clean indexes.
-_D2_CFG="$BENCH_DIR/sites/$SITE_URL/site_config.json"
-_D2_DB=$(python3 -c "import json; print(json.load(open('$_D2_CFG'))['db_name'])")
-_D2_PW=$(python3 -c "import json; print(json.load(open('$_D2_CFG'))['db_password'])")
-_D2_PATCH="frappe.patches.v12_0.delete_duplicate_indexes  # 2022-12-15"
-_D2_NOW=$(date '+%Y-%m-%d %H:%M:%S.000000')
-_D2_NEXT=$(mysql -u "$_D2_DB" -p"$_D2_PW" "$_D2_DB" -sNe \
-  "SELECT COALESCE(MAX(CAST(SUBSTRING(name,9) AS UNSIGNED)),0)+1 FROM \`tabPatch Log\`;" 2>/dev/null)
-_D2_NAME=$(printf "PATCHLOG%05d" "${{_D2_NEXT:-1}}")
-mysql -u "$_D2_DB" -p"$_D2_PW" "$_D2_DB" -e \
-  "INSERT IGNORE INTO \`tabPatch Log\`
-     (name, creation, modified, modified_by, owner, docstatus, idx, patch)
-   VALUES
-     ('$_D2_NAME','$_D2_NOW','$_D2_NOW','Administrator','Administrator',0,0,'$_D2_PATCH');" 2>/dev/null
-echo "  [OK] patch log seeded"
-
 echo "=== E: place ddlViews.sql ==="
 sudo -u "$ERP_USER" mkdir -p "$BENCH_DIR/sites/$SITE_URL/private/files"
 {ddl_placement}
@@ -1473,17 +1454,24 @@ def start_refresh(hostname: str):
     if not wg_ip:
         raise HTTPException(400, f"No WireGuard IP configured for '{hostname}'")
 
+    try:
+        with open(GROUP_VARS_ALL) as _f:
+            erp_user = yaml.safe_load(_f).get("erp_user", "erpadm")
+    except Exception:
+        erp_user = "erpadm"
+
     job_id       = str(uuid.uuid4())[:8]
     jobs[job_id] = {"status": "running", "log": [], "hostname": hostname}
     threading.Thread(
         target=_run_refresh,
-        args=(job_id, hostname, wg_ip, script),
+        args=(job_id, hostname, wg_ip, script, erp_user),
         daemon=True,
     ).start()
     return {"job_id": job_id}
 
 
-def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
+def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path,
+                 erp_user: str = "erpadm"):
     job = jobs[job_id]
 
     def emit(line: str):
@@ -1515,6 +1503,34 @@ def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
                 emit("  [OK] ddlViews.sql uploaded")
         else:
             emit(f"  [SKIP] ddlViews.sql not found at {VIEWS_DDL_SRC}")
+
+        emit("── Syncing app code + BaRe ──")
+        bench_dir = f"/home/{erp_user}/frappe-bench"
+        rsync_targets = [
+            (CE_SRI_SRC,         f"{bench_dir}/apps/ce_sri"),
+            (RETURNABLE_SRC,     f"{bench_dir}/apps/returnable"),
+            (ROUTE_PLANNER_SRC,  f"{bench_dir}/apps/route_planner"),
+            (BARE_SRC,           f"{bench_dir}/BaRe"),
+        ]
+        for src_path, dst in rsync_targets:
+            if not src_path.exists():
+                emit(f"  [SKIP] {src_path.name} not found")
+                continue
+            r = subprocess.run(
+                [
+                    "rsync", "-a", "--delete",
+                    "--exclude=*.egg-info",
+                    "--rsync-path=sudo rsync",
+                    "-e", f"ssh {' '.join(ssh_opts)}",
+                    f"{src_path}/",
+                    f"you@{wg_ip}:{dst}/",
+                ],
+                capture_output=True, text=True, timeout=300,
+            )
+            if r.returncode != 0:
+                emit(f"  [WARN] rsync {src_path.name} failed: {r.stderr.strip()} — continuing")
+            else:
+                emit(f"  [OK] {src_path.name} → {dst}")
 
         emit("── Running differentiate.sh (idempotent) ──")
         proc = subprocess.Popen(
