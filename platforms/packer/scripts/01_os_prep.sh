@@ -24,7 +24,7 @@ apt-get upgrade -y -qq
 
 log "Installing base packages ..."
 apt-get install -y -qq \
-    git curl wget unzip \
+    git curl wget unzip jq \
     python3 python3-dev python3-pip python3-setuptools python3-venv \
     build-essential libssl-dev libffi-dev \
     libjpeg-dev zlib1g-dev libpng-dev \

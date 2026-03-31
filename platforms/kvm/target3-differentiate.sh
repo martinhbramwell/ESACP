@@ -58,6 +58,21 @@ echo "=== F: installApps.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/installApps.sh"
 echo "  [OK] installApps.sh complete"
 
+echo "=== G-pre: strip DEFINER clauses from backup SQL ==="
+_BKP_ARCHIVE=$(tr -d '\r\n' < "$BENCH_DIR/BKP/BACKUP.txt")
+_BKP_PATH="$BENCH_DIR/BKP/$_BKP_ARCHIVE"
+_SQL_ENTRY="${_BKP_ARCHIVE%.tgz}-database.sql.gz"
+_WORK="/tmp/_definer_strip"
+rm -rf "$_WORK" && mkdir -p "$_WORK"
+tar -xzf "$_BKP_PATH" -C "$_WORK"
+gunzip -c "$_WORK/$_SQL_ENTRY" \
+  | sed 's/DEFINER=[^ ]*/DEFINER=CURRENT_USER/g' \
+  | gzip > "$_WORK/${_SQL_ENTRY}.clean"
+mv "$_WORK/${_SQL_ENTRY}.clean" "$_WORK/$_SQL_ENTRY"
+(cd "$_WORK" && tar -czf "$_BKP_PATH" -- *)
+rm -rf "$_WORK"
+echo "  [OK] DEFINER stripped from $_SQL_ENTRY"
+
 echo "=== G: handleRestore.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"

@@ -1025,6 +1025,10 @@ function _colorLine(raw) {
   if (raw.match(/Build complete|image ready|✓.*complete|Done —/i)) {
     return `<span class="log-done">${html}</span>`
   }
+  // pkg_resources deprecation — upstream noise from frappe/supervisor, not a real error
+  if (raw.includes('pkg_resources')) {
+    return `<span class="log-warn">${html}</span>\n<span class="log-ignore"><strong>↑ ignore — upstream Python deprecation warning</strong></span>`
+  }
   // Error-bearing lines (not inside ANSI span — catch plain ones too)
   if (raw.match(/\bERROR\b|\bFAILED\b/i) && !raw.match(/\x1b\[/)) {
     return `<span class="log-error-line">${html}</span>`

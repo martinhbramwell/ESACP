@@ -416,6 +416,15 @@ pre.job-log {
   color: #ef9a9a;
 }
 
+.log-warn {
+  color: #ffb74d;
+}
+
+.log-ignore {
+  color: #546e7a;
+  font-style: italic;
+}
+
 .job-badge {
   font-size: 0.78rem;
   font-weight: bold;
