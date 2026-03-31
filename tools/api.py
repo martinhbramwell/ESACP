@@ -1222,14 +1222,18 @@ echo "  [OK] BaRe/envars.sh -> /opt/ce_sri/envars.sh"
 
 echo "=== D: bench new-site + install-app erpnext ==="
 echo "  site: $SITE_URL  bench: $BENCH_DIR"
-sudo -u "$ERP_USER" bash -c "
-  cd $BENCH_DIR
-  bench new-site $SITE_URL \\
-    --mariadb-root-password $MYPWD \\
-    --admin-password $ERP_USER_PWD
-  bench --site $SITE_URL install-app erpnext
-"
-echo "  [OK] site created, erpnext installed"
+if sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL doctor" 2>/dev/null; then
+  echo "  [SKIP] site $SITE_URL already exists"
+else
+  sudo -u "$ERP_USER" bash -c "
+    cd $BENCH_DIR
+    bench new-site $SITE_URL \\
+      --mariadb-root-password $MYPWD \\
+      --admin-password $ERP_USER_PWD
+    bench --site $SITE_URL install-app erpnext
+  "
+  echo "  [OK] site created, erpnext installed"
+fi
 
 echo "=== D2: mark known-incompatible v12 patches as already run ==="
 # frappe.patches.v12_0.delete_duplicate_indexes # 2022-12-15 queries
@@ -1313,7 +1317,7 @@ echo "=== Done ==="
         # ── Step 13: Execute differentiate.sh on VM (streaming) ───────────────
         emit("── Step 13: Execute differentiate.sh (~25 min) ──")
         proc = subprocess.Popen(
-            target_ssh + ["bash /tmp/differentiate.sh"],
+            target_ssh + ["sudo bash /tmp/differentiate.sh"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
 
