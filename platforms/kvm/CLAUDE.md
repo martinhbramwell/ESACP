@@ -20,6 +20,7 @@
   - Requires `cloud-image-utils` on saconsole (in saconsole/user-data packages)
 - `destroy_vms.sh` — tear down VMs on toshiba; also removes seed ISOs + clears known_hosts
 - `prepare_hypervisor.sh` — pre-bootstrap: check + apply controller prereqs; check hypervisor state
+- **Disk pool collision**: pre-existing `.qcow2` files with same name will be REUSED by virt-install, not created fresh. Always destroy VMs with `--remove-all-storage` before rebuilding. Confirm with `virsh --connect qemu:///system vol-list esacp | grep target`.
 
 ## ERPNext Differentiation Pipeline
 
@@ -44,7 +45,6 @@
   ```
   Restore/update via `platforms/kvm/persist_iptables_toshiba.sh` (requires sudo TTY — scp + ssh -t).
 - **Both controller and hypervisor virbr0 share 192.168.122.0/24**: ProxyJump through toshy is structurally required — Mighty can never reach toshiba VMs directly.
-- **Play 5 (controller WireGuard)**: runs on `hosts: localhost`, does not inherit `group_vars/kvm.yml`. Hub endpoint hardcoded in Play 5 vars: `wg_hub_endpoint: "192.168.40.16"` (toshiba LAN IP, not saconsole's virbr0).
 - **iptables FORWARD ordering**: always insert ACCEPT with `-I FORWARD 1` — appended rules land after libvirt's `LIBVIRT_FWI` chain (which REJECTs unmatched virbr0 traffic).
 
 ## SSH & Secrets
@@ -55,9 +55,3 @@
 - **`hypervisor` field in hosts_map.yml**: optional per-host field routing `esacp.py buildVM` to the remote KVM host via SSH. `generate_inventory.py` injects `ansible_ssh_common_args: "-o ProxyJump=..."` for all remote-hosted hosts.
 - **Secrets**: `ansible/group_vars/all.sops.yml` holds Telegram bot token, Grafana admin password. Requires SOPS + age key (`~/.config/sops/age/keys.txt`). See `SETUP_GUIDE.md`.
 
-## KVM Host Inventory
-
-- **generate_inventory.py backend filter**: only `backend: kvm` (or no backend) hosts → `kvm.yml`. Others excluded.
-- **`esacp.py buildVM`**: uses `virsh vol-create-as` + `virsh vol-upload` for seed ISO — not `sudo cp` (hangs in uvicorn threads). (GH #46)
-- **`esacp.py snapShotVM`**: KVM-only; hardwired to `platforms/kvm/snapshot.py` → `virsh`. On VBox/WSL use `bash platforms/vbox/take_snapshots.sh "name"` instead.
-- **Disk pool collision**: pre-existing `.qcow2` files with same name will be REUSED by virt-install, not created fresh. Always destroy VMs with `--remove-all-storage` before rebuilding. Confirm with `virsh --connect qemu:///system vol-list esacp | grep target`.
