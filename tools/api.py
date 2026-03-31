@@ -1242,7 +1242,7 @@ _D2_PATCH="frappe.patches.v12_0.delete_duplicate_indexes  # 2022-12-15"
 _D2_NOW=$(date '+%Y-%m-%d %H:%M:%S.000000')
 _D2_NEXT=$(mysql -u "$_D2_DB" -p"$_D2_PW" "$_D2_DB" -sNe \
   "SELECT COALESCE(MAX(CAST(SUBSTRING(name,9) AS UNSIGNED)),0)+1 FROM \`tabPatch Log\`;" 2>/dev/null)
-_D2_NAME=$(printf "PATCHLOG%05d" "${_D2_NEXT:-1}")
+_D2_NAME=$(printf "PATCHLOG%05d" "${{_D2_NEXT:-1}}")
 mysql -u "$_D2_DB" -p"$_D2_PW" "$_D2_DB" -e \
   "INSERT IGNORE INTO \`tabPatch Log\`
      (name, creation, modified, modified_by, owner, docstatus, idx, patch)
