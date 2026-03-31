@@ -59,6 +59,16 @@ echo "=== B: fix ownership of rsynced dirs ==="
 sudo chown -R "$ERP_USER:$ERP_USER" $BENCH_DIR/apps/ce_sri $BENCH_DIR/apps/returnable $BENCH_DIR/apps/route_planner $BENCH_DIR/BaRe $BENCH_DIR/BKP
 echo "  [OK] ownership -> $ERP_USER"
 
+echo "=== B2: enforce AMBIENTE=1 (Pruebas) for ce_sri ==="
+_CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
+if [ -f "$_CESRI_SVC/setTESTMODE.sh" ]; then
+  sudo -u "$ERP_USER" bash -c "cd $_CESRI_SVC && bash setTESTMODE.sh"
+  sudo -u "$ERP_USER" sed -i "s|^export ERP_HOST=.*|export ERP_HOST=$SITE_URL|" "$_CESRI_SVC/.env"
+  echo "  [OK] setTESTMODE.sh applied, ERP_HOST=$SITE_URL"
+else
+  echo "  [SKIP] setTESTMODE.sh not found"
+fi
+
 echo "=== C: BaRe/envars.sh symlink ==="
 sudo -u "$ERP_USER" ln -sf /opt/ce_sri/envars.sh "$BENCH_DIR/BaRe/envars.sh"
 echo "  [OK] BaRe/envars.sh -> /opt/ce_sri/envars.sh"
