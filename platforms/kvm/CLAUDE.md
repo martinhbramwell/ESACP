@@ -1,0 +1,63 @@
+# KVM Platform — Claude Code Context
+
+## toshiba — Remote KVM Hypervisor (Stage 2.2)
+
+- **Host**: Ubuntu 20.04.6, KVM/libvirt 6.0.0, virt-install 2.2.1, SSH alias: `toshy`, user: `hasan`
+- **LAN IP**: 192.168.40.16; hasan requires sudo password interactively — no non-interactive sudo
+- **Storage**: system disk 98% full — ALL VM images on 1TB at `/mnt/esacp-disk` (fstab ✅)
+  - libvirt pool `esacp` → `/mnt/esacp-disk/var/lib/libvirt/images/` (active ✅)
+- **`--os-variant`**: toshiba osinfo-db tops out at `ubuntu20.04` — use it for all `virt-install` calls here
+- **virsh**: plain `virsh` = user session. Always use `virsh --connect qemu:///system` or `sudo virsh`
+- **saconsole manages siblings** via `qemu+ssh://<hypervisor-alias>/system`
+
+## Bootstrap Scripts
+
+- `rebuild_lab.sh` — one-command full rebuild: destroy → bootstrap_saconsole → bootstrap_targets (Phase 3 SSHes to saconsole via ProxyJump toshy)
+- `bootstrap_saconsole.sh` — idempotent 9-phase: seed ISO → upload → VM create → autoinstall wait → "Fresh Install" snapshot → Ansible → "Stage 2.2 Baseline" snapshot → handoff
+  - Play 5 (controller WireGuard spoke) requires toshiba UDP 51820 port-forward first
+- `bootstrap_targets.sh` — runs FROM saconsole after `control_plane` role applied; injects saconsole pubkey via envsubst; direct virbr0 SSH (no ProxyJump)
+  - saconsole's `~/.ssh/id_ed25519` is the only key authorised in targets' cloud-init — controller key has no access
+  - Requires `cloud-image-utils` on saconsole (in saconsole/user-data packages)
+- `destroy_vms.sh` — tear down VMs on toshiba; also removes seed ISOs + clears known_hosts
+- `prepare_hypervisor.sh` — pre-bootstrap: check + apply controller prereqs; check hypervisor state
+
+## ERPNext Differentiation Pipeline
+
+`POST /api/provision/erpnext` generates `platforms/kvm/{hostname}-differentiate.sh` at Step 12 (committed as repo artifact). Steps in the script:
+- **A**: Write `/opt/ce_sri/envars.sh`; **A2**: symlink bench dir; **A3**: start bench services (supervisor)
+- **B**: fix ownership; **C**: BaRe/envars.sh symlink; **D**: bench new-site + install-app erpnext (idempotent via `bench doctor` check)
+- **D2**: seed tabPatch Log for incompatible v12 patch (`frappe.patches.v12_0.delete_duplicate_indexes`)
+- **E**: place ddlViews.sql; **F**: installApps.sh
+- **G-pre**: strip `DEFINER=<user>` from backup SQL (decompress → sed → recompress → repack tgz)
+- **G**: handleRestore.sh; **H/H2/H3**: supervisor reload + bench restart + reset admin password
+- **I**: install TLS cert (idempotent — skips if cert already at `/etc/nginx/certs/iridium.blue/`)
+- **J**: nginx config; **K**: DH params + enable site; **L**: install bash_aliases
+
+`POST /api/refresh/{hostname}` SCPs the saved script to the VM and runs `sudo bash` — full re-run is safe because Section D is idempotent.
+
+## WireGuard & Networking
+
+- **toshiba WireGuard port-forward** (persistent via iptables-persistent):
+  ```
+  sudo iptables -t nat -A PREROUTING -i wlp2s0 -p udp --dport 51820 -j DNAT --to-destination 192.168.122.10:51820
+  sudo iptables -I FORWARD 1 -i wlp2s0 -o virbr0 -p udp -d 192.168.122.10 --dport 51820 -j ACCEPT
+  ```
+  Restore/update via `platforms/kvm/persist_iptables_toshiba.sh` (requires sudo TTY — scp + ssh -t).
+- **Both controller and hypervisor virbr0 share 192.168.122.0/24**: ProxyJump through toshy is structurally required — Mighty can never reach toshiba VMs directly.
+- **Play 5 (controller WireGuard)**: runs on `hosts: localhost`, does not inherit `group_vars/kvm.yml`. Hub endpoint hardcoded in Play 5 vars: `wg_hub_endpoint: "192.168.40.16"` (toshiba LAN IP, not saconsole's virbr0).
+- **iptables FORWARD ordering**: always insert ACCEPT with `-I FORWARD 1` — appended rules land after libvirt's `LIBVIRT_FWI` chain (which REJECTs unmatched virbr0 traffic).
+
+## SSH & Secrets
+
+- **known_hosts must be cleared at script START** (before any SSH attempt) on VM rebuild — not reactively after the error. Clear by hostname AND IP.
+- **virsh snapshot names with spaces via SSH**: pass as single double-quoted string directly — do NOT use `bash -c` wrapper. `ssh host "virsh ... 'Name With Spaces' --atomic"` (not `ssh host bash -c "..."`).
+- **Remote-hosted VMs SSH key split**: target1/target2 use saconsole's pubkey; ERPNext VMs (dev01, dev02, target3+) use hasan_mighty pubkey via cloud-init template.
+- **`hypervisor` field in hosts_map.yml**: optional per-host field routing `esacp.py buildVM` to the remote KVM host via SSH. `generate_inventory.py` injects `ansible_ssh_common_args: "-o ProxyJump=..."` for all remote-hosted hosts.
+- **Secrets**: `ansible/group_vars/all.sops.yml` holds Telegram bot token, Grafana admin password. Requires SOPS + age key (`~/.config/sops/age/keys.txt`). See `SETUP_GUIDE.md`.
+
+## KVM Host Inventory
+
+- **generate_inventory.py backend filter**: only `backend: kvm` (or no backend) hosts → `kvm.yml`. Others excluded.
+- **`esacp.py buildVM`**: uses `virsh vol-create-as` + `virsh vol-upload` for seed ISO — not `sudo cp` (hangs in uvicorn threads). (GH #46)
+- **`esacp.py snapShotVM`**: KVM-only; hardwired to `platforms/kvm/snapshot.py` → `virsh`. On VBox/WSL use `bash platforms/vbox/take_snapshots.sh "name"` instead.
+- **Disk pool collision**: pre-existing `.qcow2` files with same name will be REUSED by virt-install, not created fresh. Always destroy VMs with `--remove-all-storage` before rebuilding. Confirm with `virsh --connect qemu:///system vol-list esacp | grep target`.
