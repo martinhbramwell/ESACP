@@ -1532,12 +1532,27 @@ echo "  [OK] config/nginx.conf generated"
 
 echo "=== H4d: run ce_sri before_install ==="
 # install.py handles: site_config.json, nginx vhost patch, Procfile patch,
-# supervisor patch, .env generation, API test, service test, client scripts,
+# supervisor patch, API test, service test, client scripts,
 # company logo, naming series, test data
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.before_install"
 echo "  [OK] ce_sri before_install complete"
 
-echo "=== H4e: restart after install.py changes ==="
+echo "=== H4e: generate .env via UPDATE_SRI_SERVICE_PARAMETERS.py ==="
+# Overwrites the .env that install.py's configureNodeJSService() produced.
+# Uses ce_sri_parms.json (placed in H4b) + the template from ce_sri app.
+_CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
+sudo -u "$ERP_USER" bash -c "cd $_CESRI_SVC && python3 UPDATE_SRI_SERVICE_PARAMETERS.py --parms /home/$ERP_USER/.ssh/secrets/ce_sri_parms.json"
+# Patch site-specific values that differ from the parms base
+sudo -u "$ERP_USER" sed -i "s|^export ERP_HOST=.*|export ERP_HOST=$SITE_URL|" "$_CESRI_SVC/.env"
+sudo -u "$ERP_USER" sed -i "s|^export ERP_PTCL=.*|export ERP_PTCL=https|" "$_CESRI_SVC/.env"
+sudo -u "$ERP_USER" sed -i "s|^export ERP_PORT=.*|export ERP_PORT=443|" "$_CESRI_SVC/.env"
+# Patch API token with the regenerated key from H4a
+sudo -u "$ERP_USER" sed -i "s|^export ERP_API_TKN=.*|export ERP_API_TKN=${{API_KEY}}:${{API_SECRET}}|" "$_CESRI_SVC/.env"
+# Patch cert path for this VM's user
+sudo -u "$ERP_USER" sed -i "s|^export SIGNING_CERTIFICATE_PATH=.*|export SIGNING_CERTIFICATE_PATH=/home/$ERP_USER/.ssh/secrets|" "$_CESRI_SVC/.env"
+echo "  [OK] .env generated and patched for $SITE_URL"
+
+echo "=== H4f: restart after install.py + .env changes ==="
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
