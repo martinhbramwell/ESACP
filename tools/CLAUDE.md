@@ -24,6 +24,8 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 - `provisioned` = VM has a snapshot containing "Baseline" (not just VM exists)
 - Template build uses `nohup` on saconsole — survives uvicorn reload; log polled via SSH tail every 5s; exit code written to `/tmp/packer-build-output.log.exit`
 - `POST /api/provision/erpnext` writes `platforms/kvm/{hostname}-differentiate.sh` at Step 12 — committed as repo artifact; re-runnable via Refresh
+- Step 10 generates a site-specific `ce_sri_parms.json` from the production base (`~/projects/Logichem/ce_sri/example_srvr_files/ce_sri_parms.json`) with per-VM overrides: `local_site`, `certificate_location`, `local_site_nickname`, `company_logo_location`, `test_or_production_mode=1`
+- Section H4c runs `ce_sri.install.before_install` — the same install.py that configures production. Replaces all piecemeal .env/site_config patching.
 - `erp_user` sourced from `ansible/group_vars/all.yml` (single source of truth)
 - Python f-string templates in the differentiate.sh generator: `${BASH_VAR}` must be `${{BASH_VAR}}` — single braces are parsed as Python format expressions → NameError
 
