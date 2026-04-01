@@ -1389,8 +1389,7 @@ if [ -f "$_CESRI_SVC/.env.sample" ]; then
   sudo -u "$ERP_USER" sed -i "s|^export AMBIENTE=.*|export AMBIENTE=1|" "$_CESRI_SVC/.env"
   sudo -u "$ERP_USER" sed -i "s|^export ERP_HOST=.*|export ERP_HOST=$SITE_URL|" "$_CESRI_SVC/.env"
   sudo -u "$ERP_USER" sed -i "s|^export ERP_PTCL=.*|export ERP_PTCL=https|" "$_CESRI_SVC/.env"
-  sudo -u "$ERP_USER" sed -i "s|^export BIND_PORT=.*|export BIND_PORT=5000|" "$_CESRI_SVC/.env"
-  echo "  [OK] .env generated from .env.sample — AMBIENTE=1, ERP_HOST=$SITE_URL, BIND_PORT=5000"
+  echo "  [OK] .env generated from .env.sample — AMBIENTE=1, ERP_HOST=$SITE_URL"
 elif [ -f "$_CESRI_SVC/.env" ]; then
   # .env already exists (Refresh case) — enforce AMBIENTE=1 + ERP_HOST
   sudo -u "$ERP_USER" sed -i "s|^export AMBIENTE=.*|export AMBIENTE=1|" "$_CESRI_SVC/.env"
