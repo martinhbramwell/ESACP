@@ -41,10 +41,53 @@ else
     exit 1
 fi
 
+echo "=== A2b: patch Procfile for ce_sri_svc + production worker queues ==="
+PROCFILE="$BENCH_DIR/Procfile"
+if ! grep -q 'ce_sri_svc' "$PROCFILE" 2>/dev/null; then
+  cat > "$PROCFILE" << 'PROCEOF'
+redis_cache: redis-server config/redis_cache.conf
+redis_queue: redis-server config/redis_queue.conf
+
+web: bench serve --port 8000
+
+socketio: /usr/bin/node apps/frappe/socketio.js
+ce_sri_svc: apps/ce_sri/services/ce_sri_svc/go.sh
+
+watch: bench watch
+
+schedule: bench schedule
+worker_short: bench worker --queue short 1>> logs/worker.log 2>> logs/worker.error.log
+worker_long: bench worker --queue long 1>> logs/worker.log 2>> logs/worker.error.log
+worker_default: bench worker --queue default 1>> logs/worker.log 2>> logs/worker.error.log
+PROCEOF
+  chown $ERP_USER:$ERP_USER "$PROCFILE"
+  echo "  [OK] Procfile patched with ce_sri_svc + split worker queues"
+else
+  echo "  [OK] Procfile already contains ce_sri_svc — skipping"
+fi
+
 echo "=== A3: start bench services (supervisor) ==="
 # Packer template never ran 'bench setup supervisor' — do it now before any bench commands
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
 sudo cp "$BENCH_DIR/config/supervisor.conf" /etc/supervisor/conf.d/frappe-bench.conf
+echo "=== A3b: supervisor conf for ce_sri_svc (separate — survives bench setup supervisor) ==="
+cat > /etc/supervisor/conf.d/ce-sri-svc.conf << CESRIEOF
+[program:frappe-bench-ce-sri-svc]
+command=$BENCH_DIR/apps/ce_sri/services/ce_sri_svc/go.sh
+environment=PATH="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+priority=4
+autostart=true
+autorestart=true
+user=$ERP_USER
+directory=$BENCH_DIR/apps/ce_sri/services/ce_sri_svc
+startretries=10
+startsecs=5
+stopwaitsecs=10
+stdout_logfile=$BENCH_DIR/logs/ce_sri_svc.log
+stderr_logfile=$BENCH_DIR/logs/ce_sri_svc.error.log
+CESRIEOF
+echo "  [OK] /etc/supervisor/conf.d/ce-sri-svc.conf created"
+
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start all || true
@@ -67,6 +110,14 @@ if [ -f "$_CESRI_SVC/setTESTMODE.sh" ]; then
   echo "  [OK] setTESTMODE.sh applied, ERP_HOST=$SITE_URL"
 else
   echo "  [SKIP] setTESTMODE.sh not found"
+fi
+
+echo "=== B2b: npm install for ce_sri_svc ==="
+if [ -f "$_CESRI_SVC/package.json" ]; then
+  sudo -u "$ERP_USER" bash -c "cd $_CESRI_SVC && npm install 2>&1"
+  echo "  [OK] npm install completed for ce_sri_svc"
+else
+  echo "  [SKIP] no package.json in ce_sri_svc"
 fi
 
 echo "=== C: BaRe/envars.sh symlink ==="
@@ -124,7 +175,8 @@ echo "  [OK] supervisor updated"
 
 echo "=== H2: bench restart ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
-echo "  [OK] bench restarted"
+sudo supervisorctl restart frappe-bench-ce-sri-svc || true
+echo "  [OK] bench + ce_sri_svc restarted"
 
 echo "=== H3: reset admin password (bench restore overwrites it) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-password $ERP_USER_PWD"
@@ -237,6 +289,76 @@ sudo ln -sf /etc/nginx/sites-available/dev01.iridium.blue /etc/nginx/sites-enabl
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 echo "  [OK] nginx reloaded with SSL site"
+
+echo "=== L0: deploy stop.py to bench dir ==="
+cat > $BENCH_DIR/stop.py << 'STOPPYEOF'
+#!/usr/bin/env python3
+
+"""stop.py — gracefully shut down bench Redis instances and free bound ports.
+
+Reads the port suffix from ./config/redis_cache.conf, then for each known
+bench port prefix (1100, 1200, 1300, 900, 800, 500) sends a Redis SHUTDOWN
+via redis-cli.  Falls back to fuser -k for any port that remains in use.
+
+Must be run from the bench directory (e.g. ~/frappe-bench).
+"""
+
+import os
+import socket
+import errno
+import time
+
+PORTS = [1100, 1200, 1300, 900, 800, 500]
+
+
+def get_port_suffix():
+    """Extract the last digit of the 'port' line from redis_cache.conf."""
+    try:
+        with open("./config/redis_cache.conf") as f:
+            for line in f:
+                key, _, value = line.partition(" ")
+                if key.strip() == "port":
+                    return value.strip()[-1:]
+    except IOError:
+        print("redis_cache.conf not found — are you in the bench directory?")
+        raise SystemExit(1)
+    print("No 'port' line found in redis_cache.conf")
+    raise SystemExit(1)
+
+
+def stop_port(port):
+    """Attempt to free a single port: Redis SHUTDOWN first, then fuser -k."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind(("127.0.0.1", port))
+        print(f"Port {port} already closed")
+    except socket.error as e:
+        if e.errno == errno.EADDRINUSE:
+            os.system(f"echo 'shutdown' | redis-cli -h 127.0.0.1 -p {port}")
+            time.sleep(3)
+            try:
+                sock2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock2.bind(("127.0.0.1", port))
+                sock2.close()
+            except socket.error:
+                os.system(f"fuser {port}/tcp -k")
+    finally:
+        sock.close()
+
+
+def main():
+    suffix = get_port_suffix()
+    for prefix in PORTS:
+        stop_port(int(f"{prefix}{suffix}"))
+    print("bench stopped")
+
+
+if __name__ == "__main__":
+    main()
+STOPPYEOF
+chown $ERP_USER:$ERP_USER $BENCH_DIR/stop.py
+chmod 755 $BENCH_DIR/stop.py
+echo "  [OK] stop.py deployed to $BENCH_DIR"
 
 echo "=== L: install bash aliases ==="
 DB_NAME=$(python3 -c "import json; print(json.load(open('$BENCH_DIR/sites/$SITE_URL/site_config.json'))['db_name'])" 2>/dev/null || echo "unknown_db")

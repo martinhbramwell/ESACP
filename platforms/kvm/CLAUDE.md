@@ -22,16 +22,30 @@
 - `prepare_hypervisor.sh` — pre-bootstrap: check + apply controller prereqs; check hypervisor state
 - **Disk pool collision**: pre-existing `.qcow2` files with same name will be REUSED by virt-install, not created fresh. Always destroy VMs with `--remove-all-storage` before rebuilding. Confirm with `virsh --connect qemu:///system vol-list esacp | grep target`.
 
+## ERPNext Terminology — avoid "production" ambiguity
+
+The word "production" has three unrelated meanings in this project. Use these terms instead:
+
+| Concept | Term to use | NOT |
+|---|---|---|
+| Live business ERP (erp.logichem.solutions) | **production** or **prod** | — |
+| Frappe served via supervisor + gunicorn + nginx | **supervisor mode** | "production mode" |
+| Frappe served via `bench start` (honcho) | **development mode** | — |
+| `npm install` without devDependencies | `npm install --omit=dev` | "production install" |
+
+Dev/staging VMs run in **supervisor mode** — this does not make them "production".
+
 ## ERPNext Differentiation Pipeline
 
 `POST /api/provision/erpnext` generates `platforms/kvm/{hostname}-differentiate.sh` at Step 12 (committed as repo artifact). Steps in the script:
-- **A**: Write `/opt/ce_sri/envars.sh`; **A2**: symlink bench dir; **A3**: start bench services (supervisor)
-- **B**: fix ownership; **C**: BaRe/envars.sh symlink; **D**: bench new-site + install-app erpnext (idempotent via `bench doctor` check)
+- **A**: Write `/opt/ce_sri/envars.sh`; **A2**: symlink bench dir; **A2b**: patch Procfile (ce_sri_svc + split worker queues); **A3**: bench setup supervisor + start; **A3b**: separate supervisor conf for ce_sri_svc (survives `bench setup supervisor` reruns)
+- **B**: fix ownership; **B2**: enforce AMBIENTE=1 + ERP_HOST; **B2b**: `npm install` for ce_sri_svc (full — nodemon/babel-node are devDeps)
+- **C**: BaRe/envars.sh symlink; **D**: bench new-site + install-app erpnext (idempotent via `bench doctor` check)
 - **E**: place ddlViews.sql; **F**: installApps.sh
 - **G-pre**: strip `DEFINER=<user>` from backup SQL (decompress → sed → recompress → repack tgz)
-- **G**: handleRestore.sh (includes: restore → patch log fix for `delete_duplicate_indexes` → migrate → views); **H/H2/H3**: supervisor reload + bench restart + reset admin password
+- **G**: handleRestore.sh (includes: restore → patch log fix for `delete_duplicate_indexes` → migrate → views); **H/H2/H3**: supervisor reload + bench restart (including ce_sri_svc) + reset admin password
 - **I**: install TLS cert (idempotent — skips if cert already at `/etc/nginx/certs/iridium.blue/`)
-- **J**: nginx config; **K**: DH params + enable site; **L**: install bash_aliases
+- **J**: nginx config; **K**: DH params + enable site; **L0**: deploy stop.py; **L**: install bash_aliases
 
 `POST /api/refresh/{hostname}` SCPs the saved script to the VM and runs `sudo bash` — full re-run is safe because Section D is idempotent.
 

@@ -1153,6 +1153,7 @@ echo "  [WARN] Deploy wildcard cert to saconsole and re-run to enable HTTPS"
 """
 
         bash_aliases_tmpl = (PLATFORMS_KVM / "bash_aliases.tmpl").read_text()
+        stop_py_content = (PLATFORMS_KVM / "stop.py").read_text()
 
         differentiate_sh = f"""\
 #!/usr/bin/env bash
@@ -1198,10 +1199,53 @@ else
     exit 1
 fi
 
+echo "=== A2b: patch Procfile for ce_sri_svc + production worker queues ==="
+PROCFILE="$BENCH_DIR/Procfile"
+if ! grep -q 'ce_sri_svc' "$PROCFILE" 2>/dev/null; then
+  cat > "$PROCFILE" << 'PROCEOF'
+redis_cache: redis-server config/redis_cache.conf
+redis_queue: redis-server config/redis_queue.conf
+
+web: bench serve --port 8000
+
+socketio: /usr/bin/node apps/frappe/socketio.js
+ce_sri_svc: apps/ce_sri/services/ce_sri_svc/go.sh
+
+watch: bench watch
+
+schedule: bench schedule
+worker_short: bench worker --queue short 1>> logs/worker.log 2>> logs/worker.error.log
+worker_long: bench worker --queue long 1>> logs/worker.log 2>> logs/worker.error.log
+worker_default: bench worker --queue default 1>> logs/worker.log 2>> logs/worker.error.log
+PROCEOF
+  chown $ERP_USER:$ERP_USER "$PROCFILE"
+  echo "  [OK] Procfile patched with ce_sri_svc + split worker queues"
+else
+  echo "  [OK] Procfile already contains ce_sri_svc — skipping"
+fi
+
 echo "=== A3: start bench services (supervisor) ==="
 # Packer template never ran 'bench setup supervisor' — do it now before any bench commands
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
 sudo cp "$BENCH_DIR/config/supervisor.conf" /etc/supervisor/conf.d/frappe-bench.conf
+echo "=== A3b: supervisor conf for ce_sri_svc (separate — survives bench setup supervisor) ==="
+cat > /etc/supervisor/conf.d/ce-sri-svc.conf << CESRIEOF
+[program:frappe-bench-ce-sri-svc]
+command=$BENCH_DIR/apps/ce_sri/services/ce_sri_svc/go.sh
+environment=PATH="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+priority=4
+autostart=true
+autorestart=true
+user=$ERP_USER
+directory=$BENCH_DIR/apps/ce_sri/services/ce_sri_svc
+startretries=10
+startsecs=5
+stopwaitsecs=10
+stdout_logfile=$BENCH_DIR/logs/ce_sri_svc.log
+stderr_logfile=$BENCH_DIR/logs/ce_sri_svc.error.log
+CESRIEOF
+echo "  [OK] /etc/supervisor/conf.d/ce-sri-svc.conf created"
+
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start all || true
@@ -1224,6 +1268,14 @@ if [ -f "$_CESRI_SVC/setTESTMODE.sh" ]; then
   echo "  [OK] setTESTMODE.sh applied, ERP_HOST=$SITE_URL"
 else
   echo "  [SKIP] setTESTMODE.sh not found"
+fi
+
+echo "=== B2b: npm install for ce_sri_svc ==="
+if [ -f "$_CESRI_SVC/package.json" ]; then
+  sudo -u "$ERP_USER" bash -c "cd $_CESRI_SVC && npm install 2>&1"
+  echo "  [OK] npm install completed for ce_sri_svc"
+else
+  echo "  [SKIP] no package.json in ce_sri_svc"
 fi
 
 echo "=== C: BaRe/envars.sh symlink ==="
@@ -1278,13 +1330,22 @@ echo "  [OK] supervisor updated"
 
 echo "=== H2: bench restart ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
-echo "  [OK] bench restarted"
+sudo supervisorctl restart frappe-bench-ce-sri-svc || true
+echo "  [OK] bench + ce_sri_svc restarted"
 
 echo "=== H3: reset admin password (bench restore overwrites it) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-password $ERP_USER_PWD"
 echo "  [OK] admin password reset to ERP_USER_PWD"
 
 {tls_section}
+echo "=== L0: deploy stop.py to bench dir ==="
+cat > $BENCH_DIR/stop.py << 'STOPPYEOF'
+{stop_py_content}
+STOPPYEOF
+chown $ERP_USER:$ERP_USER $BENCH_DIR/stop.py
+chmod 755 $BENCH_DIR/stop.py
+echo "  [OK] stop.py deployed to $BENCH_DIR"
+
 echo "=== L: install bash aliases ==="
 DB_NAME=$(python3 -c "import json; print(json.load(open('$BENCH_DIR/sites/$SITE_URL/site_config.json'))['db_name'])" 2>/dev/null || echo "unknown_db")
 cat > /home/$ERP_USER/.bash_aliases << ALIASEOF
