@@ -9,7 +9,7 @@ Endpoints:
     GET  /api/hosts                  → current KVM hosts + IP suggestions + erp_user/erp_url
     POST /api/hosts/add              → add host to hosts_map.yml, regen inventory
     POST /api/provision/{hostname}   → start background job: cloud-init + WG + buildVM + provisionVM
-    POST /api/refresh/{hostname}     → re-SCP + re-run {hostname}-differentiate.sh (idempotent)
+    POST /api/refresh/{hostname}     → re-SCP + re-run {hostname}-differentiate.sh (git pull + idempotent)
     GET  /api/health/{hostname}      → quick SSH check: { web, app, db } each green/amber/red
     GET  /api/jobs/{job_id}          → poll job status + log lines
 """
@@ -59,14 +59,19 @@ TOSHIBA_HYPERVISOR_USER = "hasan"
 # Metadata JSON lives in hasan's home dir (writable without sudo).
 TOSHIBA_METADATA_DIR = f"/home/{TOSHIBA_HYPERVISOR_USER}/esacp-packer-output"
 
-# Logichem bespoke app sources (controller-local)
+# Logichem bespoke app sources (controller-local) — only BKP + ddlViews still rsynced
 LOGICHEM_DIR       = Path.home() / "projects" / "Logichem"
-CE_SRI_SRC         = LOGICHEM_DIR / "ce_sri_prod"
-RETURNABLE_SRC     = LOGICHEM_DIR / "returnable_prod"
-ROUTE_PLANNER_SRC  = LOGICHEM_DIR / "route_planner_prod"
-BARE_SRC           = LOGICHEM_DIR / "BaRe"
 BKP_SRC            = LOGICHEM_DIR / "ce_sri" / "BKP"
 VIEWS_DDL_SRC      = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "views.ddl"
+
+# GitHub deploy keys for bespoke app repos (SCP'd to VM during provision)
+DEPLOY_KEY_DIR       = Path.home() / ".ssh"
+DEPLOY_KEYS          = {
+    "ce_sri":         DEPLOY_KEY_DIR / "you_gh_ce_sri",
+    "ce_sri_svc":     DEPLOY_KEY_DIR / "you_gh_ce_sri_svc",
+    "route_planner":  DEPLOY_KEY_DIR / "you_gh_route_planner",
+}
+DEPLOY_KEY_PASSPHRASE = DEPLOY_KEY_DIR / "you_gh.txt"
 
 # saconsole access from controller (ProxyJump through hypervisor)
 SACONSOLE_IP        = "192.168.122.10"
@@ -965,35 +970,49 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
         else:
             emit("  [OK] WireGuard spoke configured")
 
-        # ── Step 10: rsync apps + BaRe + BKP (controller → VM) ───────────────
-        # rsync into the ORIGINAL bench dir (rename happens inside differentiate.sh)
-        # --rsync-path="sudo rsync" because bench/apps is owned by ERP_USER.
-        emit("── Step 10: rsync apps + BaRe + BKP ──")
-        rsync_targets = [
-            (CE_SRI_SRC,         f"{bench_dir_orig}/apps/ce_sri"),
-            (RETURNABLE_SRC,     f"{bench_dir_orig}/apps/returnable"),
-            (ROUTE_PLANNER_SRC,  f"{bench_dir_orig}/apps/route_planner"),
-            (BARE_SRC,           f"{bench_dir_orig}/BaRe"),
-            (BKP_SRC,            f"{bench_dir_orig}/BKP"),
-        ]
-        for src_path, dst in rsync_targets:
-            if not src_path.exists():
-                emit(f"  [SKIP] {src_path} not found")
-                continue
+        # ── Step 10: SCP deploy keys + rsync BKP (controller → VM) ────────────
+        # Apps are now cloned from GitHub inside differentiate.sh (section A2d).
+        # Only BKP (database backup archive) is still rsynced from controller.
+        emit("── Step 10: SCP deploy keys + rsync BKP ──")
+
+        # SCP deploy keys + passphrase to /tmp/ on VM (differentiate.sh moves them)
+        scp_files = []
+        for key_name, key_path in DEPLOY_KEYS.items():
+            if key_path.exists():
+                scp_files.append(str(key_path))
+            else:
+                emit(f"  [WARN] deploy key {key_path.name} not found — {key_name} clone will fail")
+        if DEPLOY_KEY_PASSPHRASE.exists():
+            scp_files.append(str(DEPLOY_KEY_PASSPHRASE))
+        else:
+            emit("  [WARN] deploy key passphrase not found — private repo clones will fail")
+
+        if scp_files:
+            r = subprocess.run(
+                ["scp"] + scp_opts + scp_files + [f"you@{vm.virbr0_ip}:/tmp/"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if r.returncode != 0:
+                raise RuntimeError(f"SCP deploy keys failed: {r.stderr.strip()}")
+            emit(f"  [OK] {len(scp_files)} deploy key files → /tmp/")
+
+        # rsync BKP (database backup — not a git repo)
+        if BKP_SRC.exists():
             r = subprocess.run(
                 [
                     "rsync", "-a", "--delete",
-                    "--exclude=*.egg-info",
                     "--rsync-path=sudo rsync",
                     "-e", rsync_e,
-                    f"{src_path}/",
-                    f"you@{vm.virbr0_ip}:{dst}/",
+                    f"{BKP_SRC}/",
+                    f"you@{vm.virbr0_ip}:{bench_dir_orig}/BKP/",
                 ],
                 capture_output=True, text=True, timeout=300,
             )
             if r.returncode != 0:
-                raise RuntimeError(f"rsync {src_path.name} failed: {r.stderr.strip()}")
-            emit(f"  [OK] {src_path.name} → {dst}")
+                raise RuntimeError(f"rsync BKP failed: {r.stderr.strip()}")
+            emit(f"  [OK] BKP → {bench_dir_orig}/BKP")
+        else:
+            emit(f"  [SKIP] {BKP_SRC} not found")
 
         # ── Step 11: SCP ddlViews.sql → /tmp/ on VM ──────────────────────────
         emit("── Step 11: SCP ddlViews.sql ──")
@@ -1015,10 +1034,8 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
         # ── Step 12: Generate + SCP differentiate.sh ─────────────────────────
         # All on-VM logic lives in this script — no SSH quoting games.
         emit("── Step 12: Deploy differentiate.sh ──")
-        # chown paths reference the original bench dir (rename happens in section A2)
-        chown_paths = " ".join(
-            f"{bench_dir_orig}/apps/{n}" for n in ("ce_sri", "returnable", "route_planner")
-        ) + f" {bench_dir_orig}/BaRe {bench_dir_orig}/BKP"
+        # chown paths: only BKP needs ownership fix (apps are git-cloned as ERP_USER)
+        chown_paths = f"{bench_dir_orig}/BKP"
         private_files = f"{bench_dir}/sites/{site_url}/private/files"
         ddl_placement = (
             f"  sudo -u {ERP_USER} cp {ddl_on_vm} {private_files}/ddlViews.sql\n"
@@ -1224,6 +1241,108 @@ else
   echo "  [OK] Procfile already contains ce_sri_svc — skipping"
 fi
 
+echo "=== A2c: setup deploy keys for GitHub ==="
+mkdir -p /home/$ERP_USER/.ssh
+chmod 700 /home/$ERP_USER/.ssh
+
+# Move deploy keys from /tmp/ to ERP_USER's .ssh
+for key in you_gh_ce_sri you_gh_ce_sri_svc you_gh_route_planner you_gh.txt; do
+    if [ -f /tmp/$key ]; then
+        mv /tmp/$key /home/$ERP_USER/.ssh/$key
+        chmod 600 /home/$ERP_USER/.ssh/$key
+    fi
+done
+
+# SSH config aliases for per-repo deploy keys
+cat > /home/$ERP_USER/.ssh/config << 'SSHCFGEOF'
+Host ce_sri.gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/you_gh_ce_sri
+    IdentitiesOnly yes
+
+Host ce_sri_svc.gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/you_gh_ce_sri_svc
+    IdentitiesOnly yes
+
+Host route_planner.gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/you_gh_route_planner
+    IdentitiesOnly yes
+SSHCFGEOF
+chmod 600 /home/$ERP_USER/.ssh/config
+
+# SSH_ASKPASS script for non-interactive passphrase entry
+cat > /home/$ERP_USER/.ssh/gh_askpass.sh << ASKEOF
+#!/bin/bash
+cat /home/$ERP_USER/.ssh/you_gh.txt
+ASKEOF
+chmod 700 /home/$ERP_USER/.ssh/gh_askpass.sh
+
+chown -R $ERP_USER:$ERP_USER /home/$ERP_USER/.ssh
+echo "  [OK] deploy keys + SSH config installed"
+
+echo "=== A2d: clone apps from GitHub ==="
+# Private repos use deploy keys via SSH config aliases + SSH_ASKPASS
+_GH_CLONE() {{
+  sudo -u "$ERP_USER" bash -c "
+    export DISPLAY=:0
+    export SSH_ASKPASS=/home/$ERP_USER/.ssh/gh_askpass.sh
+    export SSH_ASKPASS_REQUIRE=force
+    export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no'
+    $1
+  "
+}}
+
+# ce_sri (private)
+if [ ! -d "$BENCH_DIR/apps/ce_sri/.git" ]; then
+  _GH_CLONE "cd $BENCH_DIR && git clone git@ce_sri.gh:martinhbramwell/ce_sri.git apps/ce_sri --branch wip/2026-03-25"
+  echo "  [OK] ce_sri cloned"
+else
+  _GH_CLONE "cd $BENCH_DIR/apps/ce_sri && git pull"
+  echo "  [OK] ce_sri pulled"
+fi
+
+# route_planner (private)
+if [ ! -d "$BENCH_DIR/apps/route_planner/.git" ]; then
+  _GH_CLONE "cd $BENCH_DIR && git clone git@route_planner.gh:martinhbramwell/route_planner.git apps/route_planner --branch wip/2026-03-31"
+  echo "  [OK] route_planner cloned"
+else
+  _GH_CLONE "cd $BENCH_DIR/apps/route_planner && git pull"
+  echo "  [OK] route_planner pulled"
+fi
+
+# BtlMng → returnable (public — HTTPS, no key needed)
+if [ ! -d "$BENCH_DIR/apps/returnable/.git" ]; then
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && git clone https://github.com/martinhbramwell/BtlMng.git apps/returnable --branch wip/2026-03-31"
+  echo "  [OK] returnable (BtlMng) cloned"
+else
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR/apps/returnable && git pull"
+  echo "  [OK] returnable pulled"
+fi
+
+# ce_sri_svc (private — Node.js service, nested inside ce_sri)
+if [ ! -d "$BENCH_DIR/apps/ce_sri/services/ce_sri_svc/.git" ]; then
+  _GH_CLONE "mkdir -p $BENCH_DIR/apps/ce_sri/services && cd $BENCH_DIR && git clone git@ce_sri_svc.gh:martinhbramwell/ce_sri_svc.git apps/ce_sri/services/ce_sri_svc --branch wip/2026-03-31"
+  echo "  [OK] ce_sri_svc cloned"
+else
+  _GH_CLONE "cd $BENCH_DIR/apps/ce_sri/services/ce_sri_svc && git pull"
+  echo "  [OK] ce_sri_svc pulled"
+fi
+
+# BaRe (public — HTTPS, no key needed)
+if [ ! -d "$BENCH_DIR/BaRe/.git" ]; then
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && git clone https://github.com/martinhbramwell/BaRe.git BaRe"
+  echo "  [OK] BaRe cloned"
+else
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR/BaRe && git pull"
+  echo "  [OK] BaRe pulled"
+fi
+echo "  [OK] all apps cloned/pulled from GitHub"
+
 echo "=== A3: start bench services (supervisor) ==="
 # Packer template never ran 'bench setup supervisor' — do it now before any bench commands
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
@@ -1256,18 +1375,28 @@ echo "  [OK] bench services started"
 sudo chmod o+x /home/"$ERP_USER"
 echo "  [OK] /home/$ERP_USER world-traversable for nginx"
 
-echo "=== B: fix ownership of rsynced dirs ==="
+echo "=== B: fix ownership of BKP ==="
 sudo chown -R "$ERP_USER:$ERP_USER" {chown_paths.replace(bench_dir_orig, "$BENCH_DIR")}
-echo "  [OK] ownership -> $ERP_USER"
+echo "  [OK] BKP ownership -> $ERP_USER"
 
-echo "=== B2: enforce AMBIENTE=1 (Pruebas) for ce_sri ==="
+echo "=== B2: enforce AMBIENTE=1 (Pruebas) for ce_sri — fixes #80 ==="
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
-if [ -f "$_CESRI_SVC/setTESTMODE.sh" ]; then
-  sudo -u "$ERP_USER" bash -c "cd $_CESRI_SVC && bash setTESTMODE.sh"
+if [ -f "$_CESRI_SVC/.env.sample" ]; then
+  # Generate .env from .env.sample with AMBIENTE=1 (test SRI endpoint).
+  # No production credentials — service will not process invoices, but will not
+  # fire legally binding ones either. Safe by construction.
+  sudo -u "$ERP_USER" cp "$_CESRI_SVC/.env.sample" "$_CESRI_SVC/.env"
+  sudo -u "$ERP_USER" sed -i "s|^export AMBIENTE=.*|export AMBIENTE=1|" "$_CESRI_SVC/.env"
   sudo -u "$ERP_USER" sed -i "s|^export ERP_HOST=.*|export ERP_HOST=$SITE_URL|" "$_CESRI_SVC/.env"
-  echo "  [OK] setTESTMODE.sh applied, ERP_HOST=$SITE_URL"
+  sudo -u "$ERP_USER" sed -i "s|^export ERP_PTCL=.*|export ERP_PTCL=https|" "$_CESRI_SVC/.env"
+  echo "  [OK] .env generated from .env.sample — AMBIENTE=1, ERP_HOST=$SITE_URL"
+elif [ -f "$_CESRI_SVC/.env" ]; then
+  # .env already exists (Refresh case) — enforce AMBIENTE=1 + ERP_HOST
+  sudo -u "$ERP_USER" sed -i "s|^export AMBIENTE=.*|export AMBIENTE=1|" "$_CESRI_SVC/.env"
+  sudo -u "$ERP_USER" sed -i "s|^export ERP_HOST=.*|export ERP_HOST=$SITE_URL|" "$_CESRI_SVC/.env"
+  echo "  [OK] existing .env patched — AMBIENTE=1, ERP_HOST=$SITE_URL"
 else
-  echo "  [SKIP] setTESTMODE.sh not found"
+  echo "  [WARN] no .env.sample or .env found in ce_sri_svc"
 fi
 
 echo "=== B2b: npm install for ce_sri_svc ==="
@@ -1525,24 +1654,17 @@ def start_refresh(hostname: str):
     if not wg_ip:
         raise HTTPException(400, f"No WireGuard IP configured for '{hostname}'")
 
-    try:
-        with open(GROUP_VARS_ALL) as _f:
-            erp_user = yaml.safe_load(_f).get("erp_user", "erpadm")
-    except Exception:
-        erp_user = "erpadm"
-
     job_id       = str(uuid.uuid4())[:8]
     jobs[job_id] = {"status": "running", "log": [], "hostname": hostname}
     threading.Thread(
         target=_run_refresh,
-        args=(job_id, hostname, wg_ip, script, erp_user),
+        args=(job_id, hostname, wg_ip, script),
         daemon=True,
     ).start()
     return {"job_id": job_id}
 
 
-def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path,
-                 erp_user: str = "erpadm"):
+def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
     job = jobs[job_id]
 
     def emit(line: str):
@@ -1575,33 +1697,7 @@ def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path,
         else:
             emit(f"  [SKIP] ddlViews.sql not found at {VIEWS_DDL_SRC}")
 
-        emit("── Syncing app code + BaRe ──")
-        bench_dir = f"/home/{erp_user}/frappe-bench"
-        rsync_targets = [
-            (CE_SRI_SRC,         f"{bench_dir}/apps/ce_sri"),
-            (RETURNABLE_SRC,     f"{bench_dir}/apps/returnable"),
-            (ROUTE_PLANNER_SRC,  f"{bench_dir}/apps/route_planner"),
-            (BARE_SRC,           f"{bench_dir}/BaRe"),
-        ]
-        for src_path, dst in rsync_targets:
-            if not src_path.exists():
-                emit(f"  [SKIP] {src_path.name} not found")
-                continue
-            r = subprocess.run(
-                [
-                    "rsync", "-a", "--delete",
-                    "--exclude=*.egg-info",
-                    "--rsync-path=sudo rsync",
-                    "-e", f"ssh {' '.join(ssh_opts)}",
-                    f"{src_path}/",
-                    f"you@{wg_ip}:{dst}/",
-                ],
-                capture_output=True, text=True, timeout=300,
-            )
-            if r.returncode != 0:
-                emit(f"  [WARN] rsync {src_path.name} failed: {r.stderr.strip()} — continuing")
-            else:
-                emit(f"  [OK] {src_path.name} → {dst}")
+        # App code sync handled by differentiate.sh section A2d (git pull from GitHub)
 
         emit("── Running differentiate.sh (idempotent) ──")
         proc = subprocess.Popen(

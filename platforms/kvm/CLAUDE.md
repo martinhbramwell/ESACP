@@ -38,8 +38,11 @@ Dev/staging VMs run in **supervisor mode** — this does not make them "producti
 ## ERPNext Differentiation Pipeline
 
 `POST /api/provision/erpnext` generates `platforms/kvm/{hostname}-differentiate.sh` at Step 12 (committed as repo artifact). Steps in the script:
-- **A**: Write `/opt/ce_sri/envars.sh`; **A2**: symlink bench dir; **A2b**: patch Procfile (ce_sri_svc + split worker queues); **A3**: bench setup supervisor + start; **A3b**: separate supervisor conf for ce_sri_svc (survives `bench setup supervisor` reruns)
-- **B**: fix ownership; **B2**: enforce AMBIENTE=1 + ERP_HOST; **B2b**: `npm install` for ce_sri_svc (full — nodemon/babel-node are devDeps)
+- **A**: Write `/opt/ce_sri/envars.sh`; **A2**: symlink bench dir; **A2b**: patch Procfile (ce_sri_svc + split worker queues)
+- **A2c**: install deploy keys + SSH config aliases (`ce_sri.gh`, `ce_sri_svc.gh`, `route_planner.gh`) + SSH_ASKPASS script
+- **A2d**: clone apps from GitHub (idempotent — clone if missing, `git pull` if exists): ce_sri, route_planner, BtlMng/returnable, ce_sri_svc, BaRe
+- **A3**: bench setup supervisor + start; **A3b**: separate supervisor conf for ce_sri_svc (survives `bench setup supervisor` reruns)
+- **B**: fix BKP ownership (apps are git-cloned as ERP_USER — no chown needed); **B2**: enforce AMBIENTE=1 + ERP_HOST; **B2b**: `npm install` for ce_sri_svc (full — nodemon/babel-node are devDeps)
 - **C**: BaRe/envars.sh symlink; **D**: bench new-site + install-app erpnext (idempotent via `bench doctor` check)
 - **E**: place ddlViews.sql; **F**: installApps.sh
 - **G-pre**: strip `DEFINER=<user>` from backup SQL (decompress → sed → recompress → repack tgz)
@@ -47,7 +50,9 @@ Dev/staging VMs run in **supervisor mode** — this does not make them "producti
 - **I**: install TLS cert (idempotent — skips if cert already at `/etc/nginx/certs/iridium.blue/`)
 - **J**: nginx config; **K**: DH params + enable site; **L0**: deploy stop.py; **L**: install bash_aliases
 
-`POST /api/refresh/{hostname}` SCPs the saved script to the VM and runs `sudo bash` — full re-run is safe because Section D is idempotent.
+Step 10 SCPs deploy keys + passphrase to `/tmp/` on the VM; section A2c moves them to ERP_USER's `~/.ssh/`. Only BKP (database backup) is still rsynced from controller. Apps are cloned from GitHub using per-repo deploy keys with SSH_ASKPASS for non-interactive passphrase.
+
+`POST /api/refresh/{hostname}` SCPs the saved script to the VM and runs `sudo bash` — section A2d does `git pull` on existing repos, full re-run is safe because all sections are idempotent.
 
 ## WireGuard & Networking
 

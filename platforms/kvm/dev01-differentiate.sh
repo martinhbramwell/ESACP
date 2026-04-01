@@ -66,6 +66,108 @@ else
   echo "  [OK] Procfile already contains ce_sri_svc — skipping"
 fi
 
+echo "=== A2c: setup deploy keys for GitHub ==="
+mkdir -p /home/$ERP_USER/.ssh
+chmod 700 /home/$ERP_USER/.ssh
+
+# Move deploy keys from /tmp/ to ERP_USER's .ssh
+for key in you_gh_ce_sri you_gh_ce_sri_svc you_gh_route_planner you_gh.txt; do
+    if [ -f /tmp/$key ]; then
+        mv /tmp/$key /home/$ERP_USER/.ssh/$key
+        chmod 600 /home/$ERP_USER/.ssh/$key
+    fi
+done
+
+# SSH config aliases for per-repo deploy keys
+cat > /home/$ERP_USER/.ssh/config << 'SSHCFGEOF'
+Host ce_sri.gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/you_gh_ce_sri
+    IdentitiesOnly yes
+
+Host ce_sri_svc.gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/you_gh_ce_sri_svc
+    IdentitiesOnly yes
+
+Host route_planner.gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/you_gh_route_planner
+    IdentitiesOnly yes
+SSHCFGEOF
+chmod 600 /home/$ERP_USER/.ssh/config
+
+# SSH_ASKPASS script for non-interactive passphrase entry
+cat > /home/$ERP_USER/.ssh/gh_askpass.sh << ASKEOF
+#!/bin/bash
+cat /home/$ERP_USER/.ssh/you_gh.txt
+ASKEOF
+chmod 700 /home/$ERP_USER/.ssh/gh_askpass.sh
+
+chown -R $ERP_USER:$ERP_USER /home/$ERP_USER/.ssh
+echo "  [OK] deploy keys + SSH config installed"
+
+echo "=== A2d: clone apps from GitHub ==="
+# Private repos use deploy keys via SSH config aliases + SSH_ASKPASS
+_GH_CLONE() {
+  sudo -u "$ERP_USER" bash -c "
+    export DISPLAY=:0
+    export SSH_ASKPASS=/home/$ERP_USER/.ssh/gh_askpass.sh
+    export SSH_ASKPASS_REQUIRE=force
+    export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no'
+    $1
+  "
+}
+
+# ce_sri (private)
+if [ ! -d "$BENCH_DIR/apps/ce_sri/.git" ]; then
+  _GH_CLONE "cd $BENCH_DIR && git clone git@ce_sri.gh:martinhbramwell/ce_sri.git apps/ce_sri --branch wip/2026-03-25"
+  echo "  [OK] ce_sri cloned"
+else
+  _GH_CLONE "cd $BENCH_DIR/apps/ce_sri && git pull"
+  echo "  [OK] ce_sri pulled"
+fi
+
+# route_planner (private)
+if [ ! -d "$BENCH_DIR/apps/route_planner/.git" ]; then
+  _GH_CLONE "cd $BENCH_DIR && git clone git@route_planner.gh:martinhbramwell/route_planner.git apps/route_planner --branch wip/2026-03-31"
+  echo "  [OK] route_planner cloned"
+else
+  _GH_CLONE "cd $BENCH_DIR/apps/route_planner && git pull"
+  echo "  [OK] route_planner pulled"
+fi
+
+# BtlMng → returnable (public — HTTPS, no key needed)
+if [ ! -d "$BENCH_DIR/apps/returnable/.git" ]; then
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && git clone https://github.com/martinhbramwell/BtlMng.git apps/returnable --branch wip/2026-03-31"
+  echo "  [OK] returnable (BtlMng) cloned"
+else
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR/apps/returnable && git pull"
+  echo "  [OK] returnable pulled"
+fi
+
+# ce_sri_svc (private — Node.js service, nested inside ce_sri)
+if [ ! -d "$BENCH_DIR/apps/ce_sri/services/ce_sri_svc/.git" ]; then
+  _GH_CLONE "mkdir -p $BENCH_DIR/apps/ce_sri/services && cd $BENCH_DIR && git clone git@ce_sri_svc.gh:martinhbramwell/ce_sri_svc.git apps/ce_sri/services/ce_sri_svc --branch wip/2026-03-31"
+  echo "  [OK] ce_sri_svc cloned"
+else
+  _GH_CLONE "cd $BENCH_DIR/apps/ce_sri/services/ce_sri_svc && git pull"
+  echo "  [OK] ce_sri_svc pulled"
+fi
+
+# BaRe (public — HTTPS, no key needed)
+if [ ! -d "$BENCH_DIR/BaRe/.git" ]; then
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && git clone https://github.com/martinhbramwell/BaRe.git BaRe"
+  echo "  [OK] BaRe cloned"
+else
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR/BaRe && git pull"
+  echo "  [OK] BaRe pulled"
+fi
+echo "  [OK] all apps cloned/pulled from GitHub"
+
 echo "=== A3: start bench services (supervisor) ==="
 # Packer template never ran 'bench setup supervisor' — do it now before any bench commands
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
@@ -98,18 +200,28 @@ echo "  [OK] bench services started"
 sudo chmod o+x /home/"$ERP_USER"
 echo "  [OK] /home/$ERP_USER world-traversable for nginx"
 
-echo "=== B: fix ownership of rsynced dirs ==="
-sudo chown -R "$ERP_USER:$ERP_USER" $BENCH_DIR/apps/ce_sri $BENCH_DIR/apps/returnable $BENCH_DIR/apps/route_planner $BENCH_DIR/BaRe $BENCH_DIR/BKP
-echo "  [OK] ownership -> $ERP_USER"
+echo "=== B: fix ownership of BKP ==="
+sudo chown -R "$ERP_USER:$ERP_USER" $BENCH_DIR/BKP
+echo "  [OK] BKP ownership -> $ERP_USER"
 
-echo "=== B2: enforce AMBIENTE=1 (Pruebas) for ce_sri ==="
+echo "=== B2: enforce AMBIENTE=1 (Pruebas) for ce_sri — fixes #80 ==="
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
-if [ -f "$_CESRI_SVC/setTESTMODE.sh" ]; then
-  sudo -u "$ERP_USER" bash -c "cd $_CESRI_SVC && bash setTESTMODE.sh"
+if [ -f "$_CESRI_SVC/.env.sample" ]; then
+  # Generate .env from .env.sample with AMBIENTE=1 (test SRI endpoint).
+  # No production credentials — service will not process invoices, but will not
+  # fire legally binding ones either. Safe by construction.
+  sudo -u "$ERP_USER" cp "$_CESRI_SVC/.env.sample" "$_CESRI_SVC/.env"
+  sudo -u "$ERP_USER" sed -i "s|^export AMBIENTE=.*|export AMBIENTE=1|" "$_CESRI_SVC/.env"
   sudo -u "$ERP_USER" sed -i "s|^export ERP_HOST=.*|export ERP_HOST=$SITE_URL|" "$_CESRI_SVC/.env"
-  echo "  [OK] setTESTMODE.sh applied, ERP_HOST=$SITE_URL"
+  sudo -u "$ERP_USER" sed -i "s|^export ERP_PTCL=.*|export ERP_PTCL=https|" "$_CESRI_SVC/.env"
+  echo "  [OK] .env generated from .env.sample — AMBIENTE=1, ERP_HOST=$SITE_URL"
+elif [ -f "$_CESRI_SVC/.env" ]; then
+  # .env already exists (Refresh case) — enforce AMBIENTE=1 + ERP_HOST
+  sudo -u "$ERP_USER" sed -i "s|^export AMBIENTE=.*|export AMBIENTE=1|" "$_CESRI_SVC/.env"
+  sudo -u "$ERP_USER" sed -i "s|^export ERP_HOST=.*|export ERP_HOST=$SITE_URL|" "$_CESRI_SVC/.env"
+  echo "  [OK] existing .env patched — AMBIENTE=1, ERP_HOST=$SITE_URL"
 else
-  echo "  [SKIP] setTESTMODE.sh not found"
+  echo "  [WARN] no .env.sample or .env found in ce_sri_svc"
 fi
 
 echo "=== B2b: npm install for ce_sri_svc ==="
@@ -355,6 +467,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 STOPPYEOF
 chown $ERP_USER:$ERP_USER $BENCH_DIR/stop.py
 chmod 755 $BENCH_DIR/stop.py
