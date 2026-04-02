@@ -14,6 +14,7 @@ Endpoints:
     GET  /api/jobs/{job_id}          → poll job status + log lines
 """
 
+from datetime import datetime, timezone
 import json
 import re
 import shutil
@@ -457,14 +458,18 @@ def _run_build_template(job_id: str):
     # Patterns where consecutive identical-suffix lines should replace rather than append
     _COMPACT_SUFFIXES = ("— waiting 30s ...",)
 
+    def _ts():
+        return datetime.now(timezone.utc).strftime("%H:%M:%S")
+
     def emit(line: str):
+        stamped = f"[{_ts()}] {line}"
         if job["log"] and any(line.endswith(s) for s in _COMPACT_SUFFIXES):
             if any(job["log"][-1].endswith(s) for s in _COMPACT_SUFFIXES):
-                job["log"][-1] = line   # update in-place — no new entry
-                print(f"[job {job_id}] {line}", flush=True)
+                job["log"][-1] = stamped
+                print(f"[job {job_id}] {stamped}", flush=True)
                 return
-        job["log"].append(line)
-        print(f"[job {job_id}] {line}", flush=True)
+        job["log"].append(stamped)
+        print(f"[job {job_id}] {stamped}", flush=True)
 
     try:
         emit("── ERPNext v13 template build ──")
@@ -739,9 +744,13 @@ ethernets:
 def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
     job = jobs[job_id]
 
+    def _ts():
+        return datetime.now(timezone.utc).strftime("%H:%M:%S")
+
     def emit(line: str):
-        job["log"].append(line)
-        print(f"[job {job_id}] {line}", flush=True)
+        stamped = f"[{_ts()}] {line}"
+        job["log"].append(stamped)
+        print(f"[job {job_id}] {stamped}", flush=True)
 
     target_ssh = [
         "ssh",
@@ -1651,9 +1660,13 @@ def start_provision(hostname: str):
 def _run_provision(job_id: str, hostname: str, host_cfg: dict):
     job = jobs[job_id]
 
+    def _ts():
+        return datetime.now(timezone.utc).strftime("%H:%M:%S")
+
     def emit(line: str):
-        job["log"].append(line)
-        print(f"[job {job_id}] {line}", flush=True)
+        stamped = f"[{_ts()}] {line}"
+        job["log"].append(stamped)
+        print(f"[job {job_id}] {stamped}", flush=True)
 
     try:
         # ── Step 1: cloud-init files ─────────────────────────────────────────
@@ -1761,9 +1774,13 @@ def start_refresh(hostname: str):
 def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
     job = jobs[job_id]
 
+    def _ts():
+        return datetime.now(timezone.utc).strftime("%H:%M:%S")
+
     def emit(line: str):
-        job["log"].append(line)
-        print(f"[job {job_id}] {line}", flush=True)
+        stamped = f"[{_ts()}] {line}"
+        job["log"].append(stamped)
+        print(f"[job {job_id}] {stamped}", flush=True)
 
     try:
         ssh_opts      = ["-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10"]
@@ -2015,9 +2032,13 @@ def start_destroy(hostname: str):
 def _run_destroy(job_id: str, hostname: str, host_cfg: dict):
     job = jobs[job_id]
 
+    def _ts():
+        return datetime.now(timezone.utc).strftime("%H:%M:%S")
+
     def emit(line: str):
-        job["log"].append(line)
-        print(f"[job {job_id}] {line}", flush=True)
+        stamped = f"[{_ts()}] {line}"
+        job["log"].append(stamped)
+        print(f"[job {job_id}] {stamped}", flush=True)
 
     try:
         # ── Step 1: Get public key + remove live WireGuard peer ──────────────
