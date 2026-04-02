@@ -1258,6 +1258,13 @@ ENVEOF
 sudo chmod 644 /opt/ce_sri/envars.sh
 echo "  [OK] /opt/ce_sri/envars.sh"
 
+echo "=== A1: install bash aliases (early — safety net for interactive sessions) ==="
+DB_NAME=$(python3 -c "import json; print(json.load(open('$BENCH_DIR/sites/$SITE_URL/site_config.json'))['db_name'])" 2>/dev/null || echo "unknown_db")
+cat > /home/$ERP_USER/.bash_aliases << ALIASEOF
+{bash_aliases_tmpl}
+ALIASEOF
+echo "  [OK] .bash_aliases installed for $ERP_USER"
+
 echo "=== A2: rename bench dir ==="
 if sudo test -d "$BENCH_DIR_ORIG" && ! sudo test -L "$BENCH_DIR"; then
     sudo -u "$ERP_USER" ln -sf "$BENCH_DIR_ORIG" "$BENCH_DIR"
@@ -1578,13 +1585,6 @@ STOPPYEOF
 chown $ERP_USER:$ERP_USER $BENCH_DIR/stop.py
 chmod 755 $BENCH_DIR/stop.py
 echo "  [OK] stop.py deployed to $BENCH_DIR"
-
-echo "=== L: install bash aliases ==="
-DB_NAME=$(python3 -c "import json; print(json.load(open('$BENCH_DIR/sites/$SITE_URL/site_config.json'))['db_name'])" 2>/dev/null || echo "unknown_db")
-cat > /home/$ERP_USER/.bash_aliases << ALIASEOF
-{bash_aliases_tmpl}
-ALIASEOF
-echo "  [OK] .bash_aliases installed for $ERP_USER"
 
 echo "=== Done ==="
 """
