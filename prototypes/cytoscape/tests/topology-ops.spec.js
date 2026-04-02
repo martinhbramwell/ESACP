@@ -95,11 +95,17 @@ async function deployFromTemplate(page, config) {
     vmRole = 'Unspecified',
   } = config
 
-  // Open Deploy dialog via right-click context menu on canvas
-  const cyCanvas = page.locator('#cy')
-  await cyCanvas.click({ button: 'right', position: { x: 400, y: 200 } })
-  await page.waitForSelector('#ctx-menu:not(.hidden)', { timeout: 3_000 })
-  await page.click('#ctx-add-target')
+  // Open Deploy dialog by simulating drag of ERPNext template tile into Dev zone.
+  // The tile's dragfree handler checks _zoneAtPos and opens the dialog if in zone-dev.
+  await page.evaluate(() => {
+    const cy = document.querySelector('#cy')?._cyreg?.cy
+    if (!cy) throw new Error('Cytoscape instance not found')
+    const tpl = cy.$('#tpl-erpnext')
+    if (tpl.empty()) throw new Error('ERPNext template tile not found')
+    // Move tile into Development zone (right half, top — x > splitX, y < splitY)
+    tpl.position({ x: 600, y: 200 })
+    tpl.emit('dragfree')
+  })
 
   await page.waitForSelector('#dialog-overlay:not(.hidden)', { timeout: 5_000 })
 
