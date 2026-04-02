@@ -1501,7 +1501,7 @@ import frappe
 count = frappe.db.sql("SELECT COUNT(*) FROM \`__Auth\`")[0][0]
 frappe.db.sql("DELETE FROM \`__Auth\`")
 frappe.db.commit()
-print(f"Cleared {count} stale __Auth entries")
+print(f"Cleared {{count}} stale __Auth entries")
 AUTHEOF
 echo "  [OK] stale __Auth entries cleared"
 API_SECRET=$(sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute frappe.core.doctype.user.user.generate_keys --args '[\"Administrator\"]'" | python3 -c "import sys,json; print(json.load(sys.stdin)['api_secret'])")
