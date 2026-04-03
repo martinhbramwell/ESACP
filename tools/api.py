@@ -1412,8 +1412,8 @@ echo "  [OK] admin password reset to ERP_USER_PWD"
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL console" << 'AUTHEOF'
 import frappe
-count = frappe.db.sql("SELECT COUNT(*) FROM \`__Auth\`")[0][0]
-frappe.db.sql("DELETE FROM \`__Auth\`")
+count = frappe.db.sql("SELECT COUNT(*) FROM `__Auth`")[0][0]
+frappe.db.sql("DELETE FROM `__Auth`")
 frappe.db.commit()
 print(f"Cleared {{count}} stale __Auth entries")
 AUTHEOF
