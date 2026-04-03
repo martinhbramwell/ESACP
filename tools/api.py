@@ -617,44 +617,58 @@ def start_provision_erpnext(vm: NewErpnextVM):
     data = load_hosts_map()
     kvm  = data["groups"].get("kvm", {})
 
-    if vm.hostname in kvm:
-        raise HTTPException(409, f"'{vm.hostname}' already exists in the kvm group")
-    for name, h in kvm.items():
-        if h.get("wg_ip") == vm.wg_ip:
-            raise HTTPException(409, f"WireGuard IP {vm.wg_ip} already used by '{name}'")
-        if h.get("virbr0_ip") == vm.virbr0_ip:
-            raise HTTPException(409, f"virbr0 IP {vm.virbr0_ip} already used by '{name}'")
+    already_registered = vm.hostname in kvm
+    needs_cleanup = False
+    if already_registered:
+        # Host is in hosts_map — check whether it's actually provisioned on the hypervisor.
+        # If provisioned (Baseline snapshot exists), reject. Otherwise clean up residue and rebuild.
+        host_cfg   = kvm[vm.hostname]
+        hypervisor = host_cfg.get("hypervisor")
+        vm_map     = _query_provisioned(hypervisor)
+        if vm_map and vm_map.get(vm.hostname) is True:
+            raise HTTPException(409, f"'{vm.hostname}' is already provisioned — Destroy it first")
+        # Flag cleanup for the job thread — any leftover VM/storage will be
+        # removed before vol-clone so we don't hit disk pool collisions.
+        if vm_map is not None and vm.hostname in vm_map:
+            needs_cleanup = True
+    else:
+        # New host — check for IP collisions
+        for name, h in kvm.items():
+            if h.get("wg_ip") == vm.wg_ip:
+                raise HTTPException(409, f"WireGuard IP {vm.wg_ip} already used by '{name}'")
+            if h.get("virbr0_ip") == vm.virbr0_ip:
+                raise HTTPException(409, f"virbr0 IP {vm.virbr0_ip} already used by '{name}'")
 
-    # Register immediately so the UI can add the node
-    nickname  = vm.nickname or vm.hostname[:4]
-    groups    = _ZONE_GROUPS.get(vm.zone, _ZONE_GROUPS["development"])
-    role_line = f"      vm_role: {vm.vm_role}\n" if vm.vm_role and vm.vm_role != "dev" else ""
-    block = (
-        f"\n    {vm.hostname}:\n"
-        f"      hostname: {vm.hostname}\n"
-        f"      nickname: {nickname}\n"
-        f'      virbr0_ip: "{vm.virbr0_ip}"\n'
-        f'      wg_ip: "{vm.wg_ip}"\n'
-        f"      wg_role: spoke\n"
-        f"      ansible_managed: true\n"
-        f"      backend: {vm.hypervisor and 'kvm' or 'kvm'}\n"
-        f"      hypervisor: {vm.hypervisor}\n"
-        f"{role_line}"
-        f"      ansible_groups:\n"
-        + "\n".join(f"        - {g}" for g in groups) + "\n"
-    )
-    text   = HOSTS_MAP.read_text()
-    marker = "  # ── VirtualBox guests"
-    if marker not in text:
-        raise HTTPException(500, "Cannot find insertion point in hosts_map.yml")
-    HOSTS_MAP.write_text(text.replace(marker, block + marker))
+        # Register in hosts_map.yml so the UI can add the node
+        nickname  = vm.nickname or vm.hostname[:4]
+        groups    = _ZONE_GROUPS.get(vm.zone, _ZONE_GROUPS["development"])
+        role_line = f"      vm_role: {vm.vm_role}\n" if vm.vm_role and vm.vm_role != "dev" else ""
+        block = (
+            f"\n    {vm.hostname}:\n"
+            f"      hostname: {vm.hostname}\n"
+            f"      nickname: {nickname}\n"
+            f'      virbr0_ip: "{vm.virbr0_ip}"\n'
+            f'      wg_ip: "{vm.wg_ip}"\n'
+            f"      wg_role: spoke\n"
+            f"      ansible_managed: true\n"
+            f"      backend: {vm.hypervisor and 'kvm' or 'kvm'}\n"
+            f"      hypervisor: {vm.hypervisor}\n"
+            f"{role_line}"
+            f"      ansible_groups:\n"
+            + "\n".join(f"        - {g}" for g in groups) + "\n"
+        )
+        text   = HOSTS_MAP.read_text()
+        marker = "  # ── VirtualBox guests"
+        if marker not in text:
+            raise HTTPException(500, "Cannot find insertion point in hosts_map.yml")
+        HOSTS_MAP.write_text(text.replace(marker, block + marker))
 
-    result = subprocess.run(
-        ["python3", "tools/generate_inventory.py"],
-        cwd=PROJECT_ROOT, capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
+        result = subprocess.run(
+            ["python3", "tools/generate_inventory.py"],
+            cwd=PROJECT_ROOT, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
 
     job_id = str(uuid.uuid4())[:8]
     jobs[job_id] = {
@@ -664,9 +678,11 @@ def start_provision_erpnext(vm: NewErpnextVM):
         "type":     "provision_erpnext",
     }
 
+    cleanup_cfg = kvm.get(vm.hostname) if needs_cleanup else None
+
     threading.Thread(
         target=_run_provision_erpnext,
-        args=(job_id, vm),
+        args=(job_id, vm, cleanup_cfg),
         daemon=True,
     ).start()
 
@@ -741,7 +757,7 @@ ethernets:
         shutil.rmtree(work_dir)
 
 
-def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
+def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | None = None):
     job = jobs[job_id]
 
     def _ts():
@@ -762,6 +778,12 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM):
     ]
 
     try:
+        # ── Step 0: Clean up residue from a previous build ────────────────────
+        if cleanup_cfg:
+            emit("── Step 0: Cleaning up residue from previous build ──")
+            _destroy_vm(vm.hostname, cleanup_cfg, emit)
+            emit("  [OK] Old VM residue removed — starting fresh")
+
         # ── Step 1: WireGuard peer ────────────────────────────────────────────
         emit("── Step 1: Add WireGuard peer ──")
         if KEYS_SOPS.exists():

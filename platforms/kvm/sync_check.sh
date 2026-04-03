@@ -392,25 +392,38 @@ else
     fix "GH #50: copy tools/cf-mcp-refresh to ~/.local/bin/ and chmod +x"
 fi
 
-if grep -q 'cloudflare' "${HOME}/.claude/settings.json" 2>/dev/null; then
-    ok "cloudflare MCP entry present in ~/.claude/settings.json"
+# Claude Code reads mcpServers from ~/.claude.json (NOT ~/.claude/settings.json)
+# This has caused silent MCP failures multiple times — see feedback_mcp_settings_location.md
+CLAUDE_JSON="${HOME}/.claude.json"
+if python3 -c "import json; d=json.load(open('${CLAUDE_JSON}')); assert 'cloudflare' in d.get('mcpServers',{})" 2>/dev/null; then
+    ok "cloudflare MCP entry present in ~/.claude.json"
 else
-    fail "cloudflare MCP not configured in ~/.claude/settings.json"
-    fix "Add cloudflare entry (type: stdio) pointing to mcp-remote binary"
+    fail "cloudflare MCP not configured in ~/.claude.json (Claude Code ignores ~/.claude/settings.json for MCP)"
+    fix "Add mcpServers.cloudflare to ~/.claude.json — see feedback_mcp_settings_location.md"
 fi
 
-# Verify settings.json uses absolute path to mcp-remote, not npx
+# Also check grafana and github while we're here
+for srv in grafana github; do
+    if python3 -c "import json; d=json.load(open('${CLAUDE_JSON}')); assert '${srv}' in d.get('mcpServers',{})" 2>/dev/null; then
+        ok "${srv} MCP entry present in ~/.claude.json"
+    else
+        warn "${srv} MCP not configured in ~/.claude.json"
+        fix "Add mcpServers.${srv} to ~/.claude.json"
+    fi
+done
+
+# Verify cloudflare MCP uses absolute path to mcp-remote, not npx
 CF_CMD=$(python3 -c "
 import json, sys
 try:
-    d = json.load(open('${HOME}/.claude/settings.json'))
+    d = json.load(open('${CLAUDE_JSON}'))
     print(d.get('mcpServers', {}).get('cloudflare', {}).get('command', ''))
 except Exception:
     pass
 " 2>/dev/null)
 if [[ "${CF_CMD}" == "npx" ]]; then
     warn "cloudflare MCP uses 'npx' — may pause for interactive install confirmation"
-    fix "Set command to absolute mcp-remote path in ~/.claude/settings.json (see reference_mcp_remote_tokens.md)"
+    fix "Set command to absolute mcp-remote path in ~/.claude.json (see reference_mcp_remote_tokens.md)"
 elif [[ -n "${CF_CMD}" && "${CF_CMD}" != "npx" ]]; then
     if [[ -x "${CF_CMD}" ]]; then
         ok "cloudflare MCP command is absolute path and executable: ${CF_CMD}"

@@ -1584,7 +1584,10 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
       })
       // Node appears immediately (unprovisioned); tile snaps back; job runs in background
       closeDialog()
-      _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone, vm_role })
+      // If node already on graph (re-provision of existing unprovisioned host), skip adding
+      if (cy.$(`#${hostname}`).empty()) {
+        _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone, vm_role })
+      }
       infoPanel.innerHTML = `<pre class="job-log">Deploying ${hostname} from template...\n</pre>`
       localStorage.setItem(JOB_KEY, JSON.stringify({ job_id, hostname, type: 'provision_erpnext' }))
       _attachJobPoller(job_id, hostname, 'provision_erpnext')
