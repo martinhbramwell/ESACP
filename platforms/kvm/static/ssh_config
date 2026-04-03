@@ -1,0 +1,17 @@
+Host ce_sri.gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/you_gh_ce_sri
+    IdentitiesOnly yes
+
+Host ce_sri_svc.gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/you_gh_ce_sri_svc
+    IdentitiesOnly yes
+
+Host route_planner.gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/you_gh_route_planner
+    IdentitiesOnly yes

@@ -1106,28 +1106,78 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
             emit(f"  [SKIP] ddlViews.sql not found at {VIEWS_DDL_SRC}")
             ddl_on_vm = ""
 
-        # ── Step 12: Generate + SCP differentiate.sh ─────────────────────────
-        # All on-VM logic lives in this script — no SSH quoting games.
-        emit("── Step 12: Deploy differentiate.sh ──")
-        # chown paths: only BKP needs ownership fix (apps are git-cloned as ERP_USER)
-        chown_paths = f"{bench_dir_orig}/BKP"
-        private_files = f"{bench_dir}/sites/{site_url}/private/files"
-        ddl_placement = (
-            f"  sudo -u {ERP_USER} cp {ddl_on_vm} {private_files}/ddlViews.sql\n"
-            f"  rm -f {ddl_on_vm}\n"
-            f"  echo '  [OK] ddlViews.sql placed'\n"
-        ) if ddl_on_vm else "  echo '  [SKIP] ddlViews.sql not available'\n"
+        # ── Step 12: Render config artifacts + deploy to VM ────────────────
+        emit("── Step 12: Render config + deploy differentiate.sh ──")
 
-        # nginx TLS hostname: e.g. dev01 for dev01.iridium.blue
+        # TLS / nginx constants
         tls_domain    = "iridium.blue"
         cert_dir      = f"/etc/nginx/certs/{tls_domain}"
         nginx_cert    = f"{cert_dir}/fullchain.pem"
         nginx_key     = f"{cert_dir}/privkey.pem"
-        nginx_dhparam = f"/etc/nginx/dhparam.pem"
-        # Frappe supervisor/nginx ports (standard single-bench layout)
+        nginx_dhparam = "/etc/nginx/dhparam.pem"
         gunicorn_port = 8000
         ws_port       = 9000
 
+        # Build shared params dict for all renderers
+        render_params = {
+            "erp_user": ERP_USER, "erp_user_pwd": ERP_USER_PWD, "mypwd": MYPWD,
+            "hostname": vm.hostname,
+            "tld": domain.split(".", 1)[1] if "." in domain else domain,
+            "site_url": site_url, "nickname": nickname_str,
+            "bench_name_new": bench_name_new, "bench_dir": bench_dir,
+            "gunicorn_port": gunicorn_port, "ws_port": ws_port,
+            "nginx_cert": nginx_cert, "nginx_key": nginx_key,
+            "nginx_dhparam": nginx_dhparam,
+        }
+
+        # Render config artifacts on controller
+        from tools.renderers.render_envars import render as r_envars
+        from tools.renderers.render_supervisor import render as r_supervisor
+        from tools.renderers.render_gh_askpass import render as r_askpass
+        from tools.renderers.render_nginx_vhost import render as r_nginx
+
+        rendered_dir = Path(tempfile.mkdtemp(prefix="esacp-rendered-"))
+        r_envars(render_params, output_path=rendered_dir / "envars.sh")
+        r_supervisor(render_params, output_path=rendered_dir / "ce_sri_svc_supervisor.conf")
+        r_askpass(render_params, output_path=rendered_dir / "gh_askpass.sh")
+        if have_cert:
+            r_nginx(render_params, output_path=rendered_dir / "nginx_vhost.conf")
+
+        # Copy static files into rendered bundle
+        shutil.copy(PLATFORMS_KVM / "static" / "Procfile", rendered_dir / "Procfile")
+        shutil.copy(PLATFORMS_KVM / "static" / "ssh_config", rendered_dir / "ssh_config")
+        shutil.copy(PLATFORMS_KVM / "stop.py", rendered_dir / "stop.py")
+
+        # Write params.json for VM-side renderer (bash_aliases needs runtime DB_NAME)
+        (rendered_dir / "params.json").write_text(json.dumps(render_params, indent=2))
+        emit(f"  [OK] {len(list(rendered_dir.iterdir()))} config artifacts rendered")
+
+        # SCP rendered bundle + renderers + templates to VM
+        for local_dir, remote_path in [
+            (str(rendered_dir) + "/", "/tmp/rendered/"),
+            (str(PROJECT_ROOT / "tools" / "renderers") + "/", "/tmp/renderers/"),
+            (str(PLATFORMS_KVM / "templates") + "/", "/tmp/templates/"),
+        ]:
+            r = subprocess.run(
+                ["rsync", "-a", "-e",
+                 f"ssh -o ProxyJump={TOSHIBA_ALIAS} -o StrictHostKeyChecking=no "
+                 f"-i {Path.home() / '.ssh' / 'hasan_mighty'}",
+                 local_dir, f"you@{vm.virbr0_ip}:{remote_path}"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if r.returncode != 0:
+                raise RuntimeError(f"rsync {remote_path} failed: {r.stderr.strip()}")
+        emit("  [OK] rendered bundle + renderers + templates deployed")
+
+        # Build the ddl_placement snippet (still f-string — 3 lines)
+        private_files = f"{bench_dir}/sites/{site_url}/private/files"
+        ddl_placement = (
+            f"sudo -u \"$ERP_USER\" cp {ddl_on_vm} \"{private_files}/ddlViews.sql\"\n"
+            f"rm -f {ddl_on_vm}\n"
+            f"echo '  [OK] ddlViews.sql placed'"
+        ) if ddl_on_vm else "echo '  [SKIP] ddlViews.sql not available'"
+
+        # TLS section: cert install + nginx vhost placement + DH params + enable
         if have_cert:
             tls_section = f"""\
 echo "=== I: install TLS cert ==="
@@ -1145,86 +1195,8 @@ else
   exit 1
 fi
 
-echo "=== J: generate nginx config ==="
-sudo tee /etc/nginx/sites-available/{site_url} > /dev/null << 'NGINXEOF'
-upstream frappe-{bench_name_new}-{site_url} {{
-    server 127.0.0.1:{gunicorn_port};
-}}
-upstream frappe-socketio-{bench_name_new} {{
-    server 127.0.0.1:{ws_port};
-}}
-
-server {{
-    listen 80;
-    server_name {site_url};
-    return 301 https://$host$request_uri;
-}}
-
-server {{
-    listen 443 ssl http2;
-    server_name {site_url};
-
-    ssl_certificate      {nginx_cert};
-    ssl_certificate_key  {nginx_key};
-    ssl_dhparam          {nginx_dhparam};
-    ssl_protocols        TLSv1.2 TLSv1.3;
-    ssl_ciphers          ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-    ssl_session_cache    shared:SSL:10m;
-    ssl_session_timeout  1d;
-    ssl_session_tickets  off;
-
-    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
-    add_header X-Frame-Options SAMEORIGIN always;
-    add_header X-Content-Type-Options nosniff always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-    gzip on;
-    gzip_vary on;
-    gzip_proxied any;
-    gzip_comp_level 6;
-    gzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss application/atom+xml image/svg+xml;
-
-    root /home/{ERP_USER}/{bench_name_new}/sites;
-
-    location /assets {{
-        try_files $uri =404;
-    }}
-
-    location ~ ^/files/.*$ {{
-        try_files /{site_url}/public$uri @webserver;
-    }}
-
-    location /socket.io {{
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_pass http://frappe-socketio-{bench_name_new};
-    }}
-
-    location @webserver {{
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Frappe-Site-Name {site_url};
-        proxy_set_header X-Use-X-Accel-Redirect True;
-        proxy_read_timeout 120;
-        proxy_pass http://frappe-{bench_name_new}-{site_url};
-    }}
-
-    location / {{
-        rewrite ^(.+)/$ $1 permanent;
-        try_files /{site_url}/public$uri @webserver;
-    }}
-}}
-NGINXEOF
+echo "=== J: deploy nginx vhost config ==="
+sudo cp /tmp/rendered/nginx_vhost.conf /etc/nginx/sites-available/{site_url}
 echo "  [OK] /etc/nginx/sites-available/{site_url}"
 
 echo "=== K: DH params + enable site ==="
@@ -1239,13 +1211,10 @@ sudo nginx -t && sudo systemctl reload nginx
 echo "  [OK] nginx reloaded with SSL site"
 """
         else:
-            tls_section = f"""\
+            tls_section = """\
 echo "=== I-K: TLS cert not available — HTTP only ==="
 echo "  [WARN] Deploy wildcard cert to saconsole and re-run to enable HTTPS"
 """
-
-        bash_aliases_tmpl = (PLATFORMS_KVM / "bash_aliases.tmpl").read_text()
-        stop_py_content = (PLATFORMS_KVM / "stop.py").read_text()
 
         differentiate_sh = f"""\
 #!/usr/bin/env bash
@@ -1258,34 +1227,13 @@ ERP_USER="{ERP_USER}"
 MYPWD="{MYPWD}"
 ERP_USER_PWD="{ERP_USER_PWD}"
 
-echo "=== A: /opt/ce_sri/ + envars.sh ==="
+pip3 install --quiet jinja2 2>/dev/null || true
+
+echo "=== A: deploy pre-rendered envars.sh ==="
 sudo mkdir -p /opt/ce_sri
-sudo chmod 755 /opt/ce_sri
-sudo tee /opt/ce_sri/envars.sh > /dev/null << 'ENVEOF'
-#!/usr/bin/env bash
-export ERP_USER_PWD="{ERP_USER_PWD}"
-export MYPWD="{MYPWD}"
-export ERPNEXT_SITE="{vm.hostname}"
-export ERPNEXT_DNS="{vm.hostname}"
-export ERPNEXT_TLD="{domain.split('.', 1)[1] if '.' in domain else domain}"
-export ERPNEXT_DOMAIN="{site_url}"
-export ERPNEXT_SITE_URL="{site_url}"
-export ERP_USER_NAME="{ERP_USER}"
-export ERPNEXT_SITE_NICKNAME="{nickname_str}"
-export TARGET_BENCH_NAME="{bench_name_new}"
-export TARGET_BENCH="$HOME/{bench_name_new}"
-export RESTORE_SITE_CONFIG="no"
-export KEEP_SITE_PASSWORD="yes"
-ENVEOF
+sudo cp /tmp/rendered/envars.sh /opt/ce_sri/envars.sh
 sudo chmod 644 /opt/ce_sri/envars.sh
 echo "  [OK] /opt/ce_sri/envars.sh"
-
-echo "=== A1: install bash aliases (early — safety net for interactive sessions) ==="
-DB_NAME=$(python3 -c "import json; print(json.load(open('$BENCH_DIR/sites/$SITE_URL/site_config.json'))['db_name'])" 2>/dev/null || echo "unknown_db")
-cat > /home/$ERP_USER/.bash_aliases << ALIASEOF
-{bash_aliases_tmpl}
-ALIASEOF
-echo "  [OK] .bash_aliases installed for $ERP_USER"
 
 echo "=== A2: rename bench dir ==="
 if sudo test -d "$BENCH_DIR_ORIG" && ! sudo test -L "$BENCH_DIR"; then
@@ -1298,27 +1246,12 @@ else
     exit 1
 fi
 
-echo "=== A2b: patch Procfile for ce_sri_svc + production worker queues ==="
+echo "=== A2b: deploy Procfile ==="
 PROCFILE="$BENCH_DIR/Procfile"
 if ! grep -q 'ce_sri_svc' "$PROCFILE" 2>/dev/null; then
-  cat > "$PROCFILE" << 'PROCEOF'
-redis_cache: redis-server config/redis_cache.conf
-redis_queue: redis-server config/redis_queue.conf
-
-web: bench serve --port 8000
-
-socketio: /usr/bin/node apps/frappe/socketio.js
-ce_sri_svc: apps/ce_sri/services/ce_sri_svc/go.sh
-
-watch: bench watch
-
-schedule: bench schedule
-worker_short: bench worker --queue short 1>> logs/worker.log 2>> logs/worker.error.log
-worker_long: bench worker --queue long 1>> logs/worker.log 2>> logs/worker.error.log
-worker_default: bench worker --queue default 1>> logs/worker.log 2>> logs/worker.error.log
-PROCEOF
+  cp /tmp/rendered/Procfile "$PROCFILE"
   chown $ERP_USER:$ERP_USER "$PROCFILE"
-  echo "  [OK] Procfile patched with ce_sri_svc + split worker queues"
+  echo "  [OK] Procfile deployed"
 else
   echo "  [OK] Procfile already contains ce_sri_svc — skipping"
 fi
@@ -1326,49 +1259,20 @@ fi
 echo "=== A2c: setup deploy keys for GitHub ==="
 mkdir -p /home/$ERP_USER/.ssh
 chmod 700 /home/$ERP_USER/.ssh
-
-# Move deploy keys from /tmp/ to ERP_USER's .ssh
 for key in you_gh_ce_sri you_gh_ce_sri_svc you_gh_route_planner you_gh.txt; do
     if [ -f /tmp/$key ]; then
         mv /tmp/$key /home/$ERP_USER/.ssh/$key
         chmod 600 /home/$ERP_USER/.ssh/$key
     fi
 done
-
-# SSH config aliases for per-repo deploy keys
-cat > /home/$ERP_USER/.ssh/config << 'SSHCFGEOF'
-Host ce_sri.gh
-    HostName github.com
-    User git
-    IdentityFile ~/.ssh/you_gh_ce_sri
-    IdentitiesOnly yes
-
-Host ce_sri_svc.gh
-    HostName github.com
-    User git
-    IdentityFile ~/.ssh/you_gh_ce_sri_svc
-    IdentitiesOnly yes
-
-Host route_planner.gh
-    HostName github.com
-    User git
-    IdentityFile ~/.ssh/you_gh_route_planner
-    IdentitiesOnly yes
-SSHCFGEOF
+cp /tmp/rendered/ssh_config /home/$ERP_USER/.ssh/config
 chmod 600 /home/$ERP_USER/.ssh/config
-
-# SSH_ASKPASS script for non-interactive passphrase entry
-cat > /home/$ERP_USER/.ssh/gh_askpass.sh << ASKEOF
-#!/bin/bash
-cat /home/$ERP_USER/.ssh/you_gh.txt
-ASKEOF
+cp /tmp/rendered/gh_askpass.sh /home/$ERP_USER/.ssh/gh_askpass.sh
 chmod 700 /home/$ERP_USER/.ssh/gh_askpass.sh
-
 chown -R $ERP_USER:$ERP_USER /home/$ERP_USER/.ssh
 echo "  [OK] deploy keys + SSH config installed"
 
 echo "=== A2d: clone apps from GitHub ==="
-# Private repos use deploy keys via SSH config aliases + SSH_ASKPASS
 _GH_CLONE() {{
   sudo -u "$ERP_USER" bash -c "
     export DISPLAY=:0
@@ -1378,8 +1282,6 @@ _GH_CLONE() {{
     $1
   "
 }}
-
-# ce_sri (private)
 if [ ! -d "$BENCH_DIR/apps/ce_sri/.git" ]; then
   _GH_CLONE "cd $BENCH_DIR && git clone git@ce_sri.gh:martinhbramwell/ce_sri.git apps/ce_sri --branch wip/2026-03-25"
   echo "  [OK] ce_sri cloned"
@@ -1387,8 +1289,6 @@ else
   _GH_CLONE "cd $BENCH_DIR/apps/ce_sri && git pull"
   echo "  [OK] ce_sri pulled"
 fi
-
-# route_planner (private)
 if [ ! -d "$BENCH_DIR/apps/route_planner/.git" ]; then
   _GH_CLONE "cd $BENCH_DIR && git clone git@route_planner.gh:martinhbramwell/route_planner.git apps/route_planner --branch wip/2026-03-31"
   echo "  [OK] route_planner cloned"
@@ -1396,8 +1296,6 @@ else
   _GH_CLONE "cd $BENCH_DIR/apps/route_planner && git pull"
   echo "  [OK] route_planner pulled"
 fi
-
-# BtlMng → returnable (public — HTTPS, no key needed)
 if [ ! -d "$BENCH_DIR/apps/returnable/.git" ]; then
   sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && git clone https://github.com/martinhbramwell/BtlMng.git apps/returnable --branch wip/2026-03-31"
   echo "  [OK] returnable (BtlMng) cloned"
@@ -1405,8 +1303,6 @@ else
   sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR/apps/returnable && git pull"
   echo "  [OK] returnable pulled"
 fi
-
-# ce_sri_svc (private — Node.js service, nested inside ce_sri)
 if [ ! -d "$BENCH_DIR/apps/ce_sri/services/ce_sri_svc/.git" ]; then
   _GH_CLONE "mkdir -p $BENCH_DIR/apps/ce_sri/services && cd $BENCH_DIR && git clone git@ce_sri_svc.gh:martinhbramwell/ce_sri_svc.git apps/ce_sri/services/ce_sri_svc --branch wip/2026-03-31"
   echo "  [OK] ce_sri_svc cloned"
@@ -1414,8 +1310,6 @@ else
   _GH_CLONE "cd $BENCH_DIR/apps/ce_sri/services/ce_sri_svc && git pull"
   echo "  [OK] ce_sri_svc pulled"
 fi
-
-# BaRe (public — HTTPS, no key needed)
 if [ ! -d "$BENCH_DIR/BaRe/.git" ]; then
   sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && git clone https://github.com/martinhbramwell/BaRe.git BaRe"
   echo "  [OK] BaRe cloned"
@@ -1426,39 +1320,22 @@ fi
 echo "  [OK] all apps cloned/pulled from GitHub"
 
 echo "=== A3: start bench services (supervisor) ==="
-# Packer template never ran 'bench setup supervisor' — do it now before any bench commands
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
 sudo cp "$BENCH_DIR/config/supervisor.conf" /etc/supervisor/conf.d/frappe-bench.conf
-echo "=== A3b: supervisor conf for ce_sri_svc (separate — survives bench setup supervisor) ==="
-cat > /etc/supervisor/conf.d/ce-sri-svc.conf << CESRIEOF
-[program:frappe-bench-ce-sri-svc]
-command=$BENCH_DIR/apps/ce_sri/services/ce_sri_svc/go.sh
-environment=PATH="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-priority=4
-autostart=true
-autorestart=true
-user=$ERP_USER
-directory=$BENCH_DIR/apps/ce_sri/services/ce_sri_svc
-startretries=10
-startsecs=5
-stopwaitsecs=10
-stdout_logfile=$BENCH_DIR/logs/ce_sri_svc.log
-stderr_logfile=$BENCH_DIR/logs/ce_sri_svc.error.log
-CESRIEOF
-echo "  [OK] /etc/supervisor/conf.d/ce-sri-svc.conf created"
-
+echo "=== A3b: deploy ce_sri_svc supervisor conf ==="
+sudo cp /tmp/rendered/ce_sri_svc_supervisor.conf /etc/supervisor/conf.d/ce-sri-svc.conf
+echo "  [OK] /etc/supervisor/conf.d/ce-sri-svc.conf deployed"
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start all || true
 echo "  Waiting 20s for Redis to be ready..."
 sleep 20
 echo "  [OK] bench services started"
-# nginx (www-data) must be able to traverse /home/$ERP_USER to serve static assets
 sudo chmod o+x /home/"$ERP_USER"
 echo "  [OK] /home/$ERP_USER world-traversable for nginx"
 
 echo "=== B: fix ownership of BKP ==="
-sudo chown -R "$ERP_USER:$ERP_USER" {chown_paths.replace(bench_dir_orig, "$BENCH_DIR")}
+sudo chown -R "$ERP_USER:$ERP_USER" $BENCH_DIR/BKP
 echo "  [OK] BKP ownership -> $ERP_USER"
 
 echo "=== B2: (removed — .env generated by install.py before_install in H4c) ==="
@@ -1494,6 +1371,7 @@ fi
 echo "=== E: place ddlViews.sql ==="
 sudo -u "$ERP_USER" mkdir -p "$BENCH_DIR/sites/$SITE_URL/private/files"
 {ddl_placement}
+
 echo "=== F: installApps.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/installApps.sh"
 echo "  [OK] installApps.sh complete"
@@ -1532,9 +1410,6 @@ sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-p
 echo "  [OK] admin password reset to ERP_USER_PWD"
 
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
-# Production DB has ALL __Auth entries encrypted with production's encryption_key.
-# This site has a different encryption_key — every encrypted value will fail.
-# Clear them all, then regenerate only what's needed (Administrator API key).
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL console" << 'AUTHEOF'
 import frappe
 count = frappe.db.sql("SELECT COUNT(*) FROM \`__Auth\`")[0][0]
@@ -1554,7 +1429,6 @@ sudo -u "$ERP_USER" mkdir -p /home/$ERP_USER/.ssh/secrets
 for f in /tmp/*.p12 /tmp/ce_sri_parms_*.json /tmp/docType_Logo.png; do
   if [ -f "$f" ]; then
     DEST="/home/$ERP_USER/.ssh/secrets/$(basename "$f")"
-    # Rename generated parms file to canonical name
     if [[ "$f" == *ce_sri_parms_*.json ]]; then
       DEST="/home/$ERP_USER/.ssh/secrets/ce_sri_parms.json"
     fi
@@ -1570,24 +1444,16 @@ sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup nginx --yes" || true
 echo "  [OK] config/nginx.conf generated"
 
 echo "=== H4d: run ce_sri before_install ==="
-# install.py handles: site_config.json, nginx vhost patch, Procfile patch,
-# supervisor patch, API test, service test, client scripts,
-# company logo, naming series, test data
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.before_install"
 echo "  [OK] ce_sri before_install complete"
 
 echo "=== H4e: generate .env via UPDATE_SRI_SERVICE_PARAMETERS.py ==="
-# Overwrites the .env that install.py's configureNodeJSService() produced.
-# Uses ce_sri_parms.json (placed in H4b) + the template from ce_sri app.
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
 sudo -u "$ERP_USER" bash -c "cd $_CESRI_SVC && python3 UPDATE_SRI_SERVICE_PARAMETERS.py --parms /home/$ERP_USER/.ssh/secrets/ce_sri_parms.json"
-# Patch site-specific values that differ from the parms base
 sudo -u "$ERP_USER" sed -i "s|^export ERP_HOST=.*|export ERP_HOST=$SITE_URL|" "$_CESRI_SVC/.env"
 sudo -u "$ERP_USER" sed -i "s|^export ERP_PTCL=.*|export ERP_PTCL=https|" "$_CESRI_SVC/.env"
 sudo -u "$ERP_USER" sed -i "s|^export ERP_PORT=.*|export ERP_PORT=443|" "$_CESRI_SVC/.env"
-# Patch API token with the regenerated key from H4a
 sudo -u "$ERP_USER" sed -i "s|^export ERP_API_TKN=.*|export ERP_API_TKN=${{API_KEY}}:${{API_SECRET}}|" "$_CESRI_SVC/.env"
-# Patch cert path for this VM's user
 sudo -u "$ERP_USER" sed -i "s|^export SIGNING_CERTIFICATE_PATH=.*|export SIGNING_CERTIFICATE_PATH=/home/$ERP_USER/.ssh/secrets|" "$_CESRI_SVC/.env"
 echo "  [OK] .env generated and patched for $SITE_URL"
 
@@ -1600,13 +1466,21 @@ sudo nginx -t && sudo systemctl reload nginx || true
 echo "  [OK] services restarted after install.py"
 
 {tls_section}
-echo "=== L0: deploy stop.py to bench dir ==="
-cat > $BENCH_DIR/stop.py << 'STOPPYEOF'
-{stop_py_content}
-STOPPYEOF
+echo "=== L0: deploy stop.py ==="
+cp /tmp/rendered/stop.py $BENCH_DIR/stop.py
 chown $ERP_USER:$ERP_USER $BENCH_DIR/stop.py
 chmod 755 $BENCH_DIR/stop.py
 echo "  [OK] stop.py deployed to $BENCH_DIR"
+
+echo "=== L: render bash_aliases (VM-side — needs DB_NAME from site_config.json) ==="
+DB_NAME=$(python3 -c "import json; print(json.load(open('$BENCH_DIR/sites/$SITE_URL/site_config.json'))['db_name'])" 2>/dev/null || echo "unknown_db")
+python3 /tmp/renderers/render_bash_aliases.py \\
+  --template /tmp/templates/bash_aliases.j2 \\
+  --params /tmp/rendered/params.json \\
+  --output /home/$ERP_USER/.bash_aliases \\
+  --extra db_name="$DB_NAME"
+chown $ERP_USER:$ERP_USER /home/$ERP_USER/.bash_aliases
+echo "  [OK] .bash_aliases rendered for $ERP_USER"
 
 echo "=== Done ==="
 """

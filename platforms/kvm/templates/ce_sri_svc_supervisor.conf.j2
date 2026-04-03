@@ -1,0 +1,13 @@
+[program:frappe-bench-ce-sri-svc]
+command={{ bench_dir }}/apps/ce_sri/services/ce_sri_svc/go.sh
+environment=PATH="{{ bench_dir }}/apps/ce_sri/services/ce_sri_svc/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+priority=4
+autostart=true
+autorestart=true
+user={{ erp_user }}
+directory={{ bench_dir }}/apps/ce_sri/services/ce_sri_svc
+startretries=10
+startsecs=5
+stopwaitsecs=10
+stdout_logfile={{ bench_dir }}/logs/ce_sri_svc.log
+stderr_logfile={{ bench_dir }}/logs/ce_sri_svc.error.log
