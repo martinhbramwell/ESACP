@@ -1050,6 +1050,8 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
             import json as _json
             parms = _json.loads(CE_SRI_PARMS_BASE.read_text())
             parms["erpnext_api"]["local_site"] = site_url
+            parms["erpnext_api"]["api_protocol"] = "https"
+            parms["erpnext_api"]["api_port"] = "443"
             parms["electronic_signature"]["certificate_location"] = f"/home/{ERP_USER}/.ssh/secrets"
             parms["electronic_signature"]["sri_p12_cert"] = CE_SRI_P12_CERT.name
             parms["environment"]["local_site_nickname"] = nickname_str
@@ -1152,10 +1154,11 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
         (rendered_dir / "params.json").write_text(json.dumps(render_params, indent=2))
         emit(f"  [OK] {len(list(rendered_dir.iterdir()))} config artifacts rendered")
 
-        # SCP rendered bundle + renderers + templates to VM
+        # SCP rendered bundle + renderers + templates + vm_scripts to VM
         for local_dir, remote_path in [
             (str(rendered_dir) + "/", "/tmp/rendered/"),
             (str(PROJECT_ROOT / "tools" / "renderers") + "/", "/tmp/renderers/"),
+            (str(PROJECT_ROOT / "tools" / "vm_scripts") + "/", "/tmp/vm_scripts/"),
             (str(PLATFORMS_KVM / "templates") + "/", "/tmp/templates/"),
         ]:
             r = subprocess.run(
@@ -1377,19 +1380,7 @@ sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/installApps.sh"
 echo "  [OK] installApps.sh complete"
 
 echo "=== G-pre: strip DEFINER clauses from backup SQL ==="
-_BKP_ARCHIVE=$(tr -d '\\r\\n' < "$BENCH_DIR/BKP/BACKUP.txt")
-_BKP_PATH="$BENCH_DIR/BKP/$_BKP_ARCHIVE"
-_SQL_ENTRY="${{_BKP_ARCHIVE%.tgz}}-database.sql.gz"
-_WORK="/tmp/_definer_strip"
-rm -rf "$_WORK" && mkdir -p "$_WORK"
-tar -xzf "$_BKP_PATH" -C "$_WORK"
-gunzip -c "$_WORK/$_SQL_ENTRY" \\
-  | sed 's/DEFINER=[^ ]*/DEFINER=CURRENT_USER/g' \\
-  | gzip > "$_WORK/${{_SQL_ENTRY}}.clean"
-mv "$_WORK/${{_SQL_ENTRY}}.clean" "$_WORK/$_SQL_ENTRY"
-(cd "$_WORK" && tar -czf "$_BKP_PATH" -- *)
-rm -rf "$_WORK"
-echo "  [OK] DEFINER stripped from $_SQL_ENTRY"
+python3 /tmp/vm_scripts/gpre_strip_definer.py --bench-dir "$BENCH_DIR"
 
 echo "=== G: handleRestore.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
@@ -1410,19 +1401,7 @@ sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-p
 echo "  [OK] admin password reset to ERP_USER_PWD"
 
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL console" << 'AUTHEOF'
-import frappe
-count = frappe.db.sql("SELECT COUNT(*) FROM `__Auth`")[0][0]
-frappe.db.sql("DELETE FROM `__Auth`")
-frappe.db.commit()
-print(f"Cleared {{count}} stale __Auth entries")
-AUTHEOF
-echo "  [OK] stale __Auth entries cleared"
-API_SECRET=$(sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute frappe.core.doctype.user.user.generate_keys --args '[\"Administrator\"]'" | python3 -c "import sys,json; print(json.load(sys.stdin)['api_secret'])")
-API_KEY=$(sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute frappe.client.get_value --args '[\"User\", \"Administrator\", \"api_key\"]'" | python3 -c "import sys,json; print(json.load(sys.stdin)['api_key'])")
-echo "  API_KEY=$API_KEY"
-sudo -u "$ERP_USER" bash -c "echo 'KEYS=\"${{API_KEY}}:${{API_SECRET}}\"' > $BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh"
-echo "  [OK] apikey.sh written"
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && $BENCH_DIR/env/bin/python /tmp/vm_scripts/h4a_apikeys.py --site $SITE_URL --bench-dir $BENCH_DIR"
 
 echo "=== H4b: place secrets for install.py ==="
 sudo -u "$ERP_USER" mkdir -p /home/$ERP_USER/.ssh/secrets
@@ -1449,13 +1428,11 @@ echo "  [OK] ce_sri before_install complete"
 
 echo "=== H4e: generate .env via UPDATE_SRI_SERVICE_PARAMETERS.py ==="
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
+python3 /tmp/vm_scripts/h4e_patch_parms.py \
+  --apikey-sh "$BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh" \
+  --parms /home/$ERP_USER/.ssh/secrets/ce_sri_parms.json
 sudo -u "$ERP_USER" bash -c "cd $_CESRI_SVC && python3 UPDATE_SRI_SERVICE_PARAMETERS.py --parms /home/$ERP_USER/.ssh/secrets/ce_sri_parms.json"
-sudo -u "$ERP_USER" sed -i "s|^export ERP_HOST=.*|export ERP_HOST=$SITE_URL|" "$_CESRI_SVC/.env"
-sudo -u "$ERP_USER" sed -i "s|^export ERP_PTCL=.*|export ERP_PTCL=https|" "$_CESRI_SVC/.env"
-sudo -u "$ERP_USER" sed -i "s|^export ERP_PORT=.*|export ERP_PORT=443|" "$_CESRI_SVC/.env"
-sudo -u "$ERP_USER" sed -i "s|^export ERP_API_TKN=.*|export ERP_API_TKN=${{API_KEY}}:${{API_SECRET}}|" "$_CESRI_SVC/.env"
-sudo -u "$ERP_USER" sed -i "s|^export SIGNING_CERTIFICATE_PATH=.*|export SIGNING_CERTIFICATE_PATH=/home/$ERP_USER/.ssh/secrets|" "$_CESRI_SVC/.env"
-echo "  [OK] .env generated and patched for $SITE_URL"
+echo "  [OK] .env generated for $SITE_URL"
 
 echo "=== H4f: restart after install.py + .env changes ==="
 sudo supervisorctl reread

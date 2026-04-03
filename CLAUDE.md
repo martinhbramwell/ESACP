@@ -99,6 +99,36 @@ Common scopes: `kvm`, `vbox`, `observability`, `wireguard`, `ansible`, `claude`,
 
 ---
 
+## Banned Patterns — `sed` and heredocs-as-code
+
+**No `sed`** in any script generated or maintained by this project. Every text transformation must be a Python function (`str.replace()`, `re.sub()`, or a proper parser). `sed` introduces escaping fragility that compounds across SSH, f-string, and heredoc layers.
+
+**No heredocs feeding code** to interpreters (`bench console`, `python`, `mysql`, etc.) through shell layers. Instead:
+- Write a standalone `.py` (or `.sql`) file
+- Deploy it to the target (SCP, Jinja2 render, or embed in the repo)
+- Run it directly: `sudo -u $ERP_USER $BENCH_DIR/env/bin/python /tmp/script.py`
+
+**Why**: Heredocs carrying code through `bash -c "..."` inside Python f-strings create three interacting escaping layers (Python string → shell double-quotes → heredoc body). This is the root cause of #93 and has burned multiple sessions. A standalone file has zero escaping layers.
+
+**Heredocs feeding short data** (a password, a filename) to stdin are acceptable when no code is involved.
+
+**Existing violations**: None — G-pre, H4e, and H4a have all been migrated to standalone Python scripts in `tools/vm_scripts/`.
+
+## Function and script size limits
+
+Any function or standalone script over **50 lines** needs decomposition. This is a gradient, not a cliff:
+
+| Lines | Signal |
+|---|---|
+| ≤ 50 | Fine |
+| 51–70 | Look for a split point |
+| 71–100 | Must split before committing |
+| 101+ | Reject — decompose into focused units |
+
+`differentiate.sh` (297 lines) is a known violation — it is a pipeline of labelled sections (A, B, C…) that should each be an independent script called from a thin orchestrator. Refactor as sections are next touched.
+
+---
+
 ## Global Conduct Rules (enforced — see `~/.claude/CLAUDE.md`)
 
 Confirm before acting · Root cause over symptoms · GitHub Issues as institutional memory · No real names in docs · No masking of errors · No modification of third-party code
