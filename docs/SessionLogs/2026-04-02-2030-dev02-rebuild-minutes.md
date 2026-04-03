@@ -22,7 +22,7 @@ Destroy and recreate dev02 end-to-end with zero failures.
 ## Decisions
 - **Jinja2 refactor** (GH #89) is the right fix — eliminates the entire class of escaping bugs
 - Codebase reset to known-good: `dev02-differentiate.sh` reverted, api.py H4a template reverted, only re-provision logic kept
-- saconsole was running the whole time — WG peer updates to saconsole failed because Ansible SSH to saconsole was broken by the SSH alias resolving wrong (not ProxyJump). dev02/dev03 WG unreachable likely because their peers were removed/re-added across destroy/rebuild cycles without successful Ansible updates to saconsole's wg0.conf
+- saconsole was running the whole time — Ansible WG updates to saconsole failed during destroy/rebuild cycles (exit code 4, UNREACHABLE). Root cause not diagnosed — sync_check was not run when the failures occurred. dev02/dev03 WG peers likely missing from saconsole's wg0.conf because the Ansible updates never succeeded. Needs investigation next session.
 
 ## Learnings Recorded
 - `feedback_stop_and_redesign.md` — two occurrences of same bug class = stop, redesign
