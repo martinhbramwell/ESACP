@@ -176,12 +176,12 @@ sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
 sudo supervisorctl restart frappe-bench-ce-sri-svc || true
 echo "  [OK] bench + ce_sri_svc restarted"
 
-echo "=== H3: reset admin password (bench restore overwrites it) ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-password $ERP_USER_PWD"
-echo "  [OK] admin password reset to ERP_USER_PWD"
-
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && $BENCH_DIR/env/bin/python /tmp/vm_scripts/h4a_apikeys.py --site $SITE_URL --bench-dir $BENCH_DIR"
+
+echo "=== H3: reset admin password (H4a wipes __Auth — must run after) ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-password $ERP_USER_PWD"
+echo "  [OK] admin password reset to ERP_USER_PWD"
 
 echo "=== H4b: place secrets for install.py ==="
 sudo -u "$ERP_USER" mkdir -p /home/$ERP_USER/.ssh/secrets
