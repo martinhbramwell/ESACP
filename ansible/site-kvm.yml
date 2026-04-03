@@ -84,7 +84,7 @@
     # Controller reaches saconsole via toshiba's LAN IP (port-forwarded to
     # saconsole's virbr0 192.168.122.10:51820). Mighty's own virbr0 owns
     # 192.168.122.0/24 so it cannot reach that IP directly.
-    wg_hub_endpoint: "192.168.40.16"
+    wg_hub_endpoint: "toshy.iridium.blue"
   roles:
     - role: wireguard
       tags: [wireguard]

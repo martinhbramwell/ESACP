@@ -3,7 +3,7 @@
 ## toshiba — Remote KVM Hypervisor (Stage 2.2)
 
 - **Host**: Ubuntu 20.04.6, KVM/libvirt 6.0.0, virt-install 2.2.1, SSH alias: `toshy`, user: `hasan`
-- **LAN IP**: 192.168.40.16; hasan requires sudo password interactively — no non-interactive sudo
+- **LAN IP**: toshy.iridium.blue; hasan requires sudo password interactively — no non-interactive sudo
 - **Storage**: system disk 98% full — ALL VM images on 1TB at `/mnt/esacp-disk` (fstab ✅)
   - libvirt pool `esacp` → `/mnt/esacp-disk/var/lib/libvirt/images/` (active ✅)
 - **`--os-variant`**: toshiba osinfo-db tops out at `ubuntu20.04` — use it for all `virt-install` calls here

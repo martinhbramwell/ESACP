@@ -42,7 +42,7 @@ Verify: `hostname` returns `toshiba`.
 ### 2. Stable LAN IP
 
 Assign a static IP or create a persistent DHCP reservation on your router for the
-machine's MAC address. toshiba uses `192.168.40.16` on interface `wlp2s0`.
+machine's MAC address. toshiba uses `toshy.iridium.blue` on interface `wlp2s0`.
 
 Update `/etc/netplan/` or equivalent if configuring statically. Verify:
 

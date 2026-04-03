@@ -6,7 +6,7 @@
 2. `saconsole` — docker + observability + desktop + control_plane + mcp_grafana
 3. Authorise saconsole pubkey on targets
 4. `targets` — node_exporter + docker + mariadb + nginx_ui
-5. `controller WireGuard` — runs on `hosts: localhost`, `connection: local`; does NOT inherit `group_vars/kvm.yml`; hub endpoint hardcoded in Play 5 vars: `wg_hub_endpoint: "192.168.40.16"`
+5. `controller WireGuard` — runs on `hosts: localhost`, `connection: local`; does NOT inherit `group_vars/kvm.yml`; hub endpoint hardcoded in Play 5 vars: `wg_hub_endpoint: "toshy.iridium.blue"`
 
 ## Inventory
 

@@ -34,7 +34,7 @@ ANSIBLE_DIR="${PROJ_ROOT}/ansible"
 
 HYPERVISOR_ALIAS="toshy"
 HYPERVISOR_USER="hasan"
-HYPERVISOR_LAN_IP="192.168.40.16"   # used in next-steps guidance only
+HYPERVISOR_LAN_IP="toshy.iridium.blue"   # used in next-steps guidance only
 
 REMOTE_IMAGES_DIR="/mnt/esacp-disk/var/lib/libvirt/images"
 UBUNTU_ISO_NAME="ubuntu-24.04.4-live-server-amd64.iso"
