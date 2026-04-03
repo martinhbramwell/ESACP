@@ -24,12 +24,16 @@ Remove all `sed` usage from the differentiate pipeline, replacing with Python sc
 | `ad69aee` | refactor(kvm): eliminate all sed from differentiate pipeline |
 | `dfa81d3` | chore(kvm): track h4a_apikeys.py in tools/vm_scripts |
 | `4f735ff` | fix(kvm): stream DEFINER strip to avoid OOM on low-RAM VMs |
+| `579d617` | docs(session): minutes + next agenda |
 
 ## Issues
 | Issue | Status | Notes |
 |---|---|---|
 | #93 | Closed (4f735ff) | dev02 end-to-end verified |
+| #94 | Open | H4a wipes admin password set by H3 — `DELETE FROM __Auth` destroys password row |
+
+## Root cause — admin login failure
+H3 runs `bench set-admin-password sasa` → writes password to `__Auth`. Then H4a runs `DELETE FROM __Auth` (blanket wipe) and only regenerates `api_key`/`api_secret`. Password row is destroyed. Fix: move H3 after H4a, or have H4a preserve `fieldname='password'` rows.
 
 ## Observations
 - dev02 Commission section missing custom fields vs dev01 — ce_sri fixture bugs #83/#84 still affecting fresh deploys (fixed manually on dev01, not committed to ce_sri repo)
-- Admin password `sasa` set by H3 may be overwritten by `before_install` in H4d — had to re-set manually

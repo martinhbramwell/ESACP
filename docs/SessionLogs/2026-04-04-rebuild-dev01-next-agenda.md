@@ -16,7 +16,7 @@
    - #84: fixture JSON includes standard ERPNext field → aborts Custom Field import, 12 fields skipped
    - These block clean deploys — must be fixed before rebuilding
 
-2. **Investigate admin password override** — check if `ce_sri.install.before_install` (H4d) resets Administrator password after H3 sets it to `sasa`
+2. **Fix #94: move H3 after H4a** — H4a does `DELETE FROM __Auth` which wipes the password H3 just set. Move H3 to run after H4a (or have H4a preserve password rows).
 
 3. **Destroy dev01 + dev02** via Playwright topology UI
 
