@@ -3,6 +3,8 @@
 Replaces `DEFINER=<user>@<host>` with `DEFINER=CURRENT_USER` in the SQL
 dump inside a .tgz backup archive. Operates in-place on the archive.
 
+Streams line-by-line to avoid loading the full dump into memory.
+
 Usage (on target VM):
     python3 /tmp/vm_scripts/gpre_strip_definer.py \
         --bench-dir /home/erpadm/frappe-bench-D2IRBL
@@ -33,23 +35,22 @@ def main():
 
     work_dir = Path(tempfile.mkdtemp(prefix="_definer_strip_"))
     try:
-        # Extract archive
         with tarfile.open(archive_path, "r:gz") as tf:
             tf.extractall(work_dir)
 
         sql_gz_path = work_dir / sql_entry
+        tmp_gz_path = work_dir / (sql_entry + ".clean")
 
-        # Decompress, replace, recompress
-        with gzip.open(sql_gz_path, "rb") as f:
-            sql_data = f.read()
+        count = 0
+        with gzip.open(sql_gz_path, "rb") as fin, \
+             gzip.open(tmp_gz_path, "wb") as fout:
+            for line in fin:
+                cleaned, n = DEFINER_RE.subn(b"DEFINER=CURRENT_USER", line)
+                count += n
+                fout.write(cleaned)
 
-        count = len(DEFINER_RE.findall(sql_data))
-        sql_data = DEFINER_RE.sub(b"DEFINER=CURRENT_USER", sql_data)
+        tmp_gz_path.rename(sql_gz_path)
 
-        with gzip.open(sql_gz_path, "wb") as f:
-            f.write(sql_data)
-
-        # Repack archive
         with tarfile.open(archive_path, "w:gz") as tf:
             for item in work_dir.iterdir():
                 tf.add(item, arcname=item.name)
