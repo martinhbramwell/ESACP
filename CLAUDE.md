@@ -15,6 +15,8 @@ At the start of every session, before doing anything else:
 
 **One objective per session.** Hard rule.
 
+**1:1:1 discipline** — 1 issue = 1 branch = 1 session. Branch from main, PR to merge, clean working tree always. No accumulating uncommitted changes on main.
+
 **Bug workflow** — whenever a bug is found:
 1. Open a GitHub issue immediately (`gh issue create --repo martinhbramwell/ESACP`)
 2. Fix the code, committing with `fixes #N`
