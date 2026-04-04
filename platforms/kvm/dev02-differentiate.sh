@@ -208,9 +208,7 @@ echo "  [OK] ce_sri before_install complete"
 
 echo "=== H4e: generate .env via UPDATE_SRI_SERVICE_PARAMETERS.py ==="
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
-python3 /tmp/vm_scripts/h4e_patch_parms.py \
-  --apikey-sh "$BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh" \
-  --parms /home/$ERP_USER/.ssh/secrets/ce_sri_parms.json
+python3 /tmp/vm_scripts/h4e_patch_parms.py   --apikey-sh "$BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh"   --parms /home/$ERP_USER/.ssh/secrets/ce_sri_parms.json
 sudo -u "$ERP_USER" bash -c "cd $_CESRI_SVC && python3 UPDATE_SRI_SERVICE_PARAMETERS.py --parms /home/$ERP_USER/.ssh/secrets/ce_sri_parms.json"
 echo "  [OK] .env generated for $SITE_URL"
 
