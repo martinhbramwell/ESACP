@@ -4,7 +4,27 @@ Each session works exactly one issue on its own branch. PR to main at session en
 
 ---
 
-## Session A — #103: Allow cd + git compound commands without approval prompt
+## Session A — dev03 WireGuard spoke unreachable (need issue first)
+
+**Priority: HIGH** — dev03 deployed but unreachable via WireGuard mesh.
+
+### Problem
+Deploy pipeline Step 9 (Ansible WG spoke) failed because dev03 was not in inventory at that point — the destroy removed it from `hosts_map.yml`/inventory/keys, and the deploy didn't re-add it before the spoke step. The pipeline continued, so ERPNext is running but the VM has no WG tunnel.
+
+### Steps
+1. Open issue
+2. Diagnose: is dev03 missing from `hosts_map.yml` / `inventory/kvm.yml` / `keys.sops.yml`?
+3. Re-add dev03 to all three, regenerate inventory
+4. Run Ansible WG spoke for dev03 (or Refresh via topology UI)
+5. Verify: `ping 10.10.0.14` from Mighty
+
+### Acceptance
+- dev03 reachable via WG mesh (`ping 10.10.0.14`)
+- `sync_check.sh` passes all dev03 checks
+
+---
+
+## Session B — #103: Allow cd + git compound commands without approval prompt
 
 **Branch:** `fix/103-cd-git-permissions`
 
