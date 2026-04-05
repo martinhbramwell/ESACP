@@ -69,6 +69,7 @@ groups:
         - development
         - lab
 
+
     dev01:
       hostname: dev01
       nickname: D1IRBL
