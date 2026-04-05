@@ -18,6 +18,7 @@
 #   7.  VMs on toshiba (derived from hosts_map.yml)
 #   8.  WireGuard — local interface + handshake
 #   9.  WireGuard mesh — ping all peers (derived from hosts_map.yml)
+#   9b. WireGuard hub peer drift — saconsole live peers vs inventory spokes
 #  10.  Observability stack (saconsole)
 #  11.  ERPNext sites — HTTPS reachability (derived from hosts_map.yml)
 #  12.  MCP endpoints — all SSE servers in ~/.claude/settings.json
@@ -242,6 +243,34 @@ for label_ip in ${WG_PEERS}; do
         fix "Check wg0 handshake and that ${label} VM is running on toshiba"
     fi
 done
+
+# ── 9b. WireGuard hub peer drift — saconsole live peers vs inventory spokes ───
+hdr "9b. WireGuard hub peer drift (saconsole)"
+
+# Count expected spokes from hosts_map.yml (all hosts with wg_role=spoke, any group)
+EXPECTED_SPOKES=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
+import yaml, sys
+d = yaml.safe_load(open(sys.argv[1]))
+seen = set()
+for group_name, members in d.get('groups', {}).items():
+    if not isinstance(members, dict):
+        continue
+    for name, h in members.items():
+        if isinstance(h, dict) and h.get('wg_role') == 'spoke' and name not in seen:
+            seen.add(name)
+print(len(seen))
+PYEOF
+)
+
+# Count live peers on saconsole hub
+LIVE_PEERS=$(remote_saconsole "sudo wg show wg0 2>/dev/null | grep -c '^peer:'" 2>/dev/null || echo "0")
+
+if [[ "${LIVE_PEERS}" -eq "${EXPECTED_SPOKES}" ]]; then
+    ok "saconsole hub has ${LIVE_PEERS} WG peers — matches inventory (${EXPECTED_SPOKES} spokes)"
+else
+    fail "saconsole hub has ${LIVE_PEERS} WG peers — inventory expects ${EXPECTED_SPOKES} spokes"
+    fix "Re-run: cd ansible && ansible-playbook -i inventory/kvm.yml site-kvm.yml --limit saconsole --tags wireguard"
+fi
 
 # ── 10. Observability stack — saconsole ───────────────────────────────────────
 hdr "10. Observability stack (saconsole)"
