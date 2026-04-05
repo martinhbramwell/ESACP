@@ -48,7 +48,9 @@ Dev/staging VMs run in **supervisor mode** — this does not make them "producti
 - **C**: BaRe/envars.sh symlink; **D**: bench new-site + install-app erpnext (idempotent via `bench doctor` check)
 - **E**: place ddlViews.sql; **F**: installApps.sh
 - **G-pre**: strip `DEFINER=<user>` from backup SQL via `gpre_strip_definer.py` (Python `re.sub` — no sed)
-- **G**: handleRestore.sh (includes: restore → patch log fix for `delete_duplicate_indexes` → migrate → views); **H/H2**: supervisor reload + bench restart (including ce_sri_svc)
+- **G**: handleRestore.sh (includes: restore → patch log fix for `delete_duplicate_indexes` → migrate → views)
+- **G2**: `g2_clear_fixture_custom_fields.py` — deletes fixture-defined Custom Fields + colliding DocField entries from restored DB, seeds patch log, then re-runs `bench migrate` to reimport fixtures with correct `insert_after` positioning. Without this, production DB restore overwrites fixture values and Custom Fields render in wrong form sections.
+- **H/H2**: supervisor reload + bench restart (including ce_sri_svc)
 - **H4a**: clear ALL stale `__Auth` entries (encrypted with production's `encryption_key`) then regenerate API key+secret for Administrator via `h4a_apikeys.py`; **H3**: reset admin password (runs AFTER H4a — H4a's `DELETE FROM __Auth` wipes the password, so H3 must follow)
 - **H4b**: place secrets (P12 cert, `ce_sri_parms.json`, logo) from `/tmp/` to `~/.ssh/secrets/`
 - **H4c**: run `ce_sri.install.before_install` — handles site_config.json, nginx vhost patch, API test, service test, client scripts, company logo, naming series, test data
