@@ -166,6 +166,15 @@ echo "=== G: handleRestore.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"
 
+echo "=== G2: clear fixture Custom Fields + re-migrate ==="
+echo "  Clearing fixture-defined Custom Fields from restored DB..."
+python3 /tmp/vm_scripts/g2_clear_fixture_custom_fields.py \
+  --bench-dir "$BENCH_DIR" --site "$SITE_URL"
+echo "  Re-running bench migrate to reimport fixtures..."
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL migrate" 2>&1 \
+  | grep -E "^(Migrating|Executing|Updating|Building)" | tail -10
+echo "  [OK] fixtures reimported with correct positioning"
+
 echo "=== H: supervisor reload (post-restore) ==="
 sudo supervisorctl reread
 sudo supervisorctl update

@@ -37,22 +37,6 @@ groups:
         - development
         - lab
 
-    dev01:
-      hostname: dev01
-      nickname: D1IRBL
-      virbr0_ip: "192.168.122.21"
-      wg_ip: "10.10.0.13"
-      wg_role: spoke
-      ansible_managed: true
-      backend: kvm
-      hypervisor: toshiba
-      vm_role: dev:unspecified
-      ansible_groups:
-        - kvm
-        - targets
-        - development
-        - lab
-
     dev03:
       hostname: dev03
       nickname: D3IRBL
@@ -74,6 +58,22 @@ groups:
       nickname: D2IRBL
       virbr0_ip: "192.168.122.20"
       wg_ip: "10.10.0.12"
+      wg_role: spoke
+      ansible_managed: true
+      backend: kvm
+      hypervisor: toshiba
+      vm_role: dev:unspecified
+      ansible_groups:
+        - kvm
+        - targets
+        - development
+        - lab
+
+    dev01:
+      hostname: dev01
+      nickname: D1IRBL
+      virbr0_ip: "192.168.122.21"
+      wg_ip: "10.10.0.13"
       wg_role: spoke
       ansible_managed: true
       backend: kvm
