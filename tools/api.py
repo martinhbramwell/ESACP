@@ -77,7 +77,7 @@ DEPLOY_KEY_PASSPHRASE = DEPLOY_KEY_DIR / "you_gh.txt"
 # ce_sri secrets (SCP'd to VM for install.py's before_install)
 CE_SRI_SECRETS_DIR   = Path.home() / ".ssh" / "secrets"
 CE_SRI_P12_CERT      = CE_SRI_SECRETS_DIR / "PRESIDENTE_DANIEL_LEONARD_WILD_STAPEL_1709470171_171224162014.p12"
-CE_SRI_PARMS_BASE    = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "ce_sri_parms.json"
+CE_SRI_PARMS_SOPS    = PROJECT_ROOT / "config" / "ce_sri_parms.sops.json"
 CE_SRI_LOGO          = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "docType_Logo.png"
 
 # saconsole access from controller (ProxyJump through hypervisor)
@@ -1024,6 +1024,10 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
         else:
             emit("  [WARN] deploy key passphrase not found — private repo clones will fail")
 
+        # Include controller pubkey so differentiate.sh can install it for erpadm
+        if controller_pubkey_path.exists():
+            scp_files.append(str(controller_pubkey_path))
+
         if scp_files:
             r = subprocess.run(
                 ["scp"] + scp_opts + scp_files + [f"you@{vm.virbr0_ip}:/tmp/"],
@@ -1045,10 +1049,16 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
         else:
             emit(f"  [WARN] company logo not found at {CE_SRI_LOGO}")
 
-        # Generate site-specific ce_sri_parms.json
-        if CE_SRI_PARMS_BASE.exists():
+        # Generate site-specific ce_sri_parms.json (decrypt SOPS → patch → write temp)
+        if CE_SRI_PARMS_SOPS.exists():
             import json as _json
-            parms = _json.loads(CE_SRI_PARMS_BASE.read_text())
+            sops_r = subprocess.run(
+                ["sops", "-d", str(CE_SRI_PARMS_SOPS)],
+                capture_output=True, text=True, timeout=15,
+            )
+            if sops_r.returncode != 0:
+                raise RuntimeError(f"sops decrypt failed: {sops_r.stderr.strip()}")
+            parms = _json.loads(sops_r.stdout)
             parms["erpnext_api"]["local_site"] = site_url
             parms["erpnext_api"]["api_protocol"] = "https"
             parms["erpnext_api"]["api_port"] = "443"
@@ -1061,7 +1071,7 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
             parms_tmp.write_text(_json.dumps(parms, indent=2))
             cesri_scp_files.append(str(parms_tmp))
         else:
-            emit(f"  [WARN] ce_sri_parms.json base not found at {CE_SRI_PARMS_BASE}")
+            emit(f"  [WARN] ce_sri_parms.sops.json not found at {CE_SRI_PARMS_SOPS}")
 
         if cesri_scp_files:
             r = subprocess.run(
@@ -1275,6 +1285,25 @@ chmod 700 /home/$ERP_USER/.ssh/gh_askpass.sh
 chown -R $ERP_USER:$ERP_USER /home/$ERP_USER/.ssh
 echo "  [OK] deploy keys + SSH config installed"
 
+echo "=== A2e: deploy controller pubkey to erpadm authorized_keys ==="
+ERPADM_SSH="/home/$ERP_USER/.ssh"
+ERPADM_AK="$ERPADM_SSH/authorized_keys"
+if [ -f /tmp/hasan_mighty.pub ]; then
+    mkdir -p "$ERPADM_SSH"
+    if [ -f "$ERPADM_AK" ] && grep -qf /tmp/hasan_mighty.pub "$ERPADM_AK" 2>/dev/null; then
+        echo "  [OK] controller pubkey already in authorized_keys — skipping"
+    else
+        cat /tmp/hasan_mighty.pub >> "$ERPADM_AK"
+        echo "  [OK] controller pubkey appended to $ERPADM_AK"
+    fi
+    chmod 700 "$ERPADM_SSH"
+    chmod 600 "$ERPADM_AK"
+    chown -R $ERP_USER:$ERP_USER "$ERPADM_SSH"
+    rm -f /tmp/hasan_mighty.pub
+else
+    echo "  [WARN] /tmp/hasan_mighty.pub not found — erpadm SSH access not configured"
+fi
+
 echo "=== A2d: clone apps from GitHub ==="
 _GH_CLONE() {{
   sudo -u "$ERP_USER" bash -c "
@@ -1404,6 +1433,22 @@ echo "=== H2: bench restart ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
 sudo supervisorctl restart frappe-bench-ce-sri-svc || true
 echo "  [OK] bench + ce_sri_svc restarted"
+
+echo "=== H2b: wait for gunicorn to respond ==="
+PING_URL="http://127.0.0.1:{gunicorn_port}/api/method/ping"
+WAITED=0
+MAX_WAIT=60
+while [ $WAITED -lt $MAX_WAIT ]; do
+    if curl -sf "$PING_URL" >/dev/null 2>&1; then
+        echo "  [OK] gunicorn responding after ${{WAITED}}s"
+        break
+    fi
+    sleep 2
+    WAITED=$((WAITED + 2))
+done
+if [ $WAITED -ge $MAX_WAIT ]; then
+    echo "  [WARN] gunicorn did not respond within ${{MAX_WAIT}}s — continuing anyway"
+fi
 
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && $BENCH_DIR/env/bin/python /tmp/vm_scripts/h4a_apikeys.py --site $SITE_URL --bench-dir $BENCH_DIR"
@@ -1644,17 +1689,19 @@ def start_refresh(hostname: str):
     if not wg_ip:
         raise HTTPException(400, f"No WireGuard IP configured for '{hostname}'")
 
+    host_cfg = kvm[hostname]
+
     job_id       = str(uuid.uuid4())[:8]
     jobs[job_id] = {"status": "running", "log": [], "hostname": hostname}
     threading.Thread(
         target=_run_refresh,
-        args=(job_id, hostname, wg_ip, script),
+        args=(job_id, hostname, wg_ip, script, host_cfg),
         daemon=True,
     ).start()
     return {"job_id": job_id}
 
 
-def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
+def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path, host_cfg: dict):
     job = jobs[job_id]
 
     def _ts():
@@ -1678,6 +1725,20 @@ def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
             raise RuntimeError(f"SCP failed: {r.stderr.strip()}")
         emit("  [OK] script uploaded")
 
+        emit("── Uploading controller pubkey ──")
+        controller_pubkey_path = Path.home() / ".ssh" / "hasan_mighty.pub"
+        if controller_pubkey_path.exists():
+            r = subprocess.run(
+                ["scp"] + ssh_opts + [str(controller_pubkey_path), f"you@{wg_ip}:/tmp/hasan_mighty.pub"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if r.returncode != 0:
+                emit(f"  [WARN] scp hasan_mighty.pub failed: {r.stderr.strip()} — continuing")
+            else:
+                emit("  [OK] hasan_mighty.pub uploaded")
+        else:
+            emit("  [SKIP] controller pubkey not found")
+
         emit("── Uploading ddlViews.sql ──")
         if VIEWS_DDL_SRC.exists():
             r = subprocess.run(
@@ -1692,6 +1753,75 @@ def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
             emit(f"  [SKIP] ddlViews.sql not found at {VIEWS_DDL_SRC}")
 
         # App code sync handled by differentiate.sh section A2d (git pull from GitHub)
+
+        # ── Render + upload config bundle (same artifacts as provision Step 12) ──
+        emit("── Rendering + uploading config bundle ──")
+        nickname_str = host_cfg.get("nickname", hostname[:4])
+        groups = host_cfg.get("ansible_groups", [])
+        if "production" in groups:
+            zone_key = "production"
+        elif "staging" in groups:
+            zone_key = "staging"
+        else:
+            zone_key = "development"
+        domain = ZONE_DOMAINS.get(zone_key, "iridium.blue")
+        site_url = f"{hostname}.{domain}"
+        bench_name_new = f"frappe-bench-{nickname_str}"
+        with open(GROUP_VARS_ALL) as _f:
+            ERP_USER = yaml.safe_load(_f).get("erp_user", "erpadm")
+        bench_dir = f"/home/{ERP_USER}/{bench_name_new}"
+        ERP_USER_PWD = "sasa"
+        MYPWD = "erpnext_build"
+
+        tls_domain = "iridium.blue"
+        cert_dir = f"/etc/nginx/certs/{tls_domain}"
+        gunicorn_port = 8000
+        ws_port = 9000
+
+        render_params = {
+            "erp_user": ERP_USER, "erp_user_pwd": ERP_USER_PWD, "mypwd": MYPWD,
+            "hostname": hostname,
+            "tld": domain.split(".", 1)[1] if "." in domain else domain,
+            "site_url": site_url, "nickname": nickname_str,
+            "bench_name_new": bench_name_new, "bench_dir": bench_dir,
+            "gunicorn_port": gunicorn_port, "ws_port": ws_port,
+            "nginx_cert": f"{cert_dir}/fullchain.pem",
+            "nginx_key": f"{cert_dir}/privkey.pem",
+            "nginx_dhparam": "/etc/nginx/dhparam.pem",
+        }
+
+        from tools.renderers.render_envars import render as r_envars
+        from tools.renderers.render_supervisor import render as r_supervisor
+        from tools.renderers.render_gh_askpass import render as r_askpass
+        from tools.renderers.render_nginx_vhost import render as r_nginx
+
+        rendered_dir = Path(tempfile.mkdtemp(prefix="esacp-refresh-"))
+        r_envars(render_params, output_path=rendered_dir / "envars.sh")
+        r_supervisor(render_params, output_path=rendered_dir / "ce_sri_svc_supervisor.conf")
+        r_askpass(render_params, output_path=rendered_dir / "gh_askpass.sh")
+        r_nginx(render_params, output_path=rendered_dir / "nginx_vhost.conf")
+
+        shutil.copy(PLATFORMS_KVM / "static" / "Procfile", rendered_dir / "Procfile")
+        shutil.copy(PLATFORMS_KVM / "static" / "ssh_config", rendered_dir / "ssh_config")
+        shutil.copy(PLATFORMS_KVM / "stop.py", rendered_dir / "stop.py")
+        (rendered_dir / "params.json").write_text(json.dumps(render_params, indent=2))
+
+        rsync_e = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10"
+        for local_dir, remote_path in [
+            (str(rendered_dir) + "/", "/tmp/rendered/"),
+            (str(PROJECT_ROOT / "tools" / "renderers") + "/", "/tmp/renderers/"),
+            (str(PROJECT_ROOT / "tools" / "vm_scripts") + "/", "/tmp/vm_scripts/"),
+            (str(PLATFORMS_KVM / "templates") + "/", "/tmp/templates/"),
+        ]:
+            r = subprocess.run(
+                ["rsync", "-a", "-e", rsync_e,
+                 local_dir, f"you@{wg_ip}:{remote_path}"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if r.returncode != 0:
+                raise RuntimeError(f"rsync {remote_path} failed: {r.stderr.strip()}")
+        shutil.rmtree(rendered_dir, ignore_errors=True)
+        emit(f"  [OK] config bundle + renderers + templates + vm_scripts deployed")
 
         emit("── Running differentiate.sh (idempotent) ──")
         proc = subprocess.Popen(
