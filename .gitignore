@@ -97,6 +97,9 @@ override.yml
 dialog*.txt
 DIALOG
 
+# Playwright / test runner output
+test-results/
+
 # ISOs — never track (seed ISOs, installer ISOs, symlinks to /var/lib/libvirt/images/)
 *.iso
 # Disk images — never track (covers accidental blank/space-named files that bypass *.iso)
