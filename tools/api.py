@@ -1415,6 +1415,10 @@ echo "=== G: handleRestore.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"
 
+echo "=== G1: seed tabPatch Log (skip patches that crash on restored DB) ==="
+python3 /tmp/vm_scripts/g1_seed_patch_log.py \
+  --bench-dir "$BENCH_DIR" --site "$SITE_URL"
+
 echo "=== G2: clear fixture Custom Fields + re-migrate ==="
 echo "  Clearing fixture-defined Custom Fields from restored DB..."
 python3 /tmp/vm_scripts/g2_clear_fixture_custom_fields.py \

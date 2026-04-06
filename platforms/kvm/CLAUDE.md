@@ -49,8 +49,9 @@ Dev/staging VMs run in **supervisor mode** — this does not make them "producti
 - **C**: BaRe/envars.sh symlink; **D**: bench new-site + install-app erpnext (idempotent via `bench doctor` check)
 - **E**: place ddlViews.sql; **F**: installApps.sh
 - **G-pre**: strip `DEFINER=<user>` from backup SQL via `gpre_strip_definer.py` (Python `re.sub` — no sed)
-- **G**: handleRestore.sh (includes: restore → patch log fix for `delete_duplicate_indexes` → migrate → views)
-- **G2**: `g2_clear_fixture_custom_fields.py` — deletes fixture-defined Custom Fields + colliding DocField entries from restored DB, seeds patch log, then re-runs `bench migrate` to reimport fixtures with correct `insert_after` positioning. Without this, production DB restore overwrites fixture values and Custom Fields render in wrong form sections.
+- **G**: handleRestore.sh (restore → migrate → views). The first migrate may log a non-fatal `delete_duplicate_indexes` failure — G1 prevents it from recurring in G2's migrate.
+- **G1**: `g1_seed_patch_log.py` — seeds `tabPatch Log` for patches that crash on restored production DBs (e.g. `delete_duplicate_indexes` queries missing `session_status` table). Must run AFTER `bench restore` (which wipes the DB) but BEFORE G2's `bench migrate`.
+- **G2**: `g2_clear_fixture_custom_fields.py` — deletes fixture-defined Custom Fields + colliding DocField entries from restored DB, then re-runs `bench migrate` to reimport fixtures with correct `insert_after` positioning. Without this, production DB restore overwrites fixture values and Custom Fields render in wrong form sections.
 - **H/H2**: supervisor reload + bench restart (including ce_sri_svc); **H2b**: poll `curl /api/method/ping` (max 60s) — ensures gunicorn is ready before H4a/H4d
 - **H4a**: clear ALL stale `__Auth` entries (encrypted with production's `encryption_key`) then regenerate API key+secret for Administrator via `h4a_apikeys.py`; **H3**: reset admin password (runs AFTER H4a — H4a's `DELETE FROM __Auth` wipes the password, so H3 must follow)
 - **H4b**: place secrets (P12 cert, `ce_sri_parms.json`, logo) from `/tmp/` to `~/.ssh/secrets/`
