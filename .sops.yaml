@@ -7,6 +7,11 @@ creation_rules:
     age: >-
       age185wy6suru3x53leqjf866zsz02vece8cnsy6g92tz7ae0ykw45dsjp2sl8
 
+  # Encrypt .sops.json files with age
+  - path_regex: \.sops\.json$
+    age: >-
+      age185wy6suru3x53leqjf866zsz02vece8cnsy6g92tz7ae0ykw45dsjp2sl8
+
   # Encrypt any file with .secret extension
   - path_regex: \.secret$
     age: >-

@@ -77,7 +77,7 @@ DEPLOY_KEY_PASSPHRASE = DEPLOY_KEY_DIR / "you_gh.txt"
 # ce_sri secrets (SCP'd to VM for install.py's before_install)
 CE_SRI_SECRETS_DIR   = Path.home() / ".ssh" / "secrets"
 CE_SRI_P12_CERT      = CE_SRI_SECRETS_DIR / "PRESIDENTE_DANIEL_LEONARD_WILD_STAPEL_1709470171_171224162014.p12"
-CE_SRI_PARMS_BASE    = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "ce_sri_parms.json"
+CE_SRI_PARMS_SOPS    = PROJECT_ROOT / "config" / "ce_sri_parms.sops.json"
 CE_SRI_LOGO          = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "docType_Logo.png"
 
 # saconsole access from controller (ProxyJump through hypervisor)
@@ -1049,10 +1049,16 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
         else:
             emit(f"  [WARN] company logo not found at {CE_SRI_LOGO}")
 
-        # Generate site-specific ce_sri_parms.json
-        if CE_SRI_PARMS_BASE.exists():
+        # Generate site-specific ce_sri_parms.json (decrypt SOPS → patch → write temp)
+        if CE_SRI_PARMS_SOPS.exists():
             import json as _json
-            parms = _json.loads(CE_SRI_PARMS_BASE.read_text())
+            sops_r = subprocess.run(
+                ["sops", "-d", str(CE_SRI_PARMS_SOPS)],
+                capture_output=True, text=True, timeout=15,
+            )
+            if sops_r.returncode != 0:
+                raise RuntimeError(f"sops decrypt failed: {sops_r.stderr.strip()}")
+            parms = _json.loads(sops_r.stdout)
             parms["erpnext_api"]["local_site"] = site_url
             parms["erpnext_api"]["api_protocol"] = "https"
             parms["erpnext_api"]["api_port"] = "443"
@@ -1065,7 +1071,7 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
             parms_tmp.write_text(_json.dumps(parms, indent=2))
             cesri_scp_files.append(str(parms_tmp))
         else:
-            emit(f"  [WARN] ce_sri_parms.json base not found at {CE_SRI_PARMS_BASE}")
+            emit(f"  [WARN] ce_sri_parms.sops.json not found at {CE_SRI_PARMS_SOPS}")
 
         if cesri_scp_files:
             r = subprocess.run(
