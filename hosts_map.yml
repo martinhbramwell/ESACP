@@ -53,11 +53,11 @@ groups:
         - development
         - lab
 
-    dev02:
-      hostname: dev02
-      nickname: D2IRBL
-      virbr0_ip: "192.168.122.20"
-      wg_ip: "10.10.0.12"
+    dev01:
+      hostname: dev01
+      nickname: D1IRBL
+      virbr0_ip: "192.168.122.21"
+      wg_ip: "10.10.0.13"
       wg_role: spoke
       ansible_managed: true
       backend: kvm
@@ -69,12 +69,11 @@ groups:
         - development
         - lab
 
-
-    dev01:
-      hostname: dev01
-      nickname: D1IRBL
-      virbr0_ip: "192.168.122.21"
-      wg_ip: "10.10.0.13"
+    dev02:
+      hostname: dev02
+      nickname: D2IRBL
+      virbr0_ip: "192.168.122.20"
+      wg_ip: "10.10.0.12"
       wg_role: spoke
       ansible_managed: true
       backend: kvm
