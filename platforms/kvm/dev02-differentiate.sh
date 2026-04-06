@@ -174,6 +174,10 @@ sudo -u "$ERP_USER" cp /tmp/ddlViews.sql "/home/erpadm/frappe-bench-D2IRBL/sites
 rm -f /tmp/ddlViews.sql
 echo '  [OK] ddlViews.sql placed'
 
+echo "=== E1: seed tabPatch Log (skip patches that crash on restored DB) ==="
+python3 /tmp/vm_scripts/g1_seed_patch_log.py \
+  --bench-dir "$BENCH_DIR" --site "$SITE_URL"
+
 echo "=== F: installApps.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/installApps.sh"
 echo "  [OK] installApps.sh complete"
@@ -185,7 +189,7 @@ echo "=== G: handleRestore.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"
 
-echo "=== G1: seed tabPatch Log (skip patches that crash on restored DB) ==="
+echo "=== G1: re-seed tabPatch Log (restore wiped DB) ==="
 python3 /tmp/vm_scripts/g1_seed_patch_log.py \
   --bench-dir "$BENCH_DIR" --site "$SITE_URL"
 
