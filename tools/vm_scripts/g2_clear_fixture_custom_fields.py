@@ -77,11 +77,19 @@ def clear_fields(db_name, db_password, fixture_records):
     names = {r["name"] for r in fixture_records}
     dt_fn_pairs = [(r["dt"], r["fieldname"]) for r in fixture_records]
 
-    # 1. Delete fixture Custom Fields so migrate reimports with correct values
+    # 1a. Delete fixture Custom Fields by name
     quoted = ", ".join(f"'{n}'" for n in sorted(names))
     run_sql(db_name, db_password,
             f"DELETE FROM `tabCustom Field` WHERE name IN ({quoted});")
-    print(f"  [OK] Cleared {len(names)} Custom Fields from tabCustom Field")
+    print(f"  [OK] Cleared {len(names)} Custom Fields by name from tabCustom Field")
+
+    # 1b. Delete by (dt, fieldname) — catches records where production DB used
+    #     a different auto-generated name for the same field
+    for dt, fn in dt_fn_pairs:
+        run_sql(db_name, db_password,
+                f"DELETE FROM `tabCustom Field` WHERE dt='{dt}' "
+                f"AND fieldname='{fn}';")
+    print(f"  [OK] Cleared Custom Fields by (dt, fieldname) ({len(dt_fn_pairs)} checked)")
 
     # 2. Delete colliding DocField entries (production Developer Mode edits
     #    stored as standard fields — block fixture Custom Field insertion)
