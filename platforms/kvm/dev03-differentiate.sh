@@ -53,6 +53,25 @@ chmod 700 /home/$ERP_USER/.ssh/gh_askpass.sh
 chown -R $ERP_USER:$ERP_USER /home/$ERP_USER/.ssh
 echo "  [OK] deploy keys + SSH config installed"
 
+echo "=== A2e: deploy controller pubkey to erpadm authorized_keys ==="
+ERPADM_SSH="/home/$ERP_USER/.ssh"
+ERPADM_AK="$ERPADM_SSH/authorized_keys"
+if [ -f /tmp/hasan_mighty.pub ]; then
+    mkdir -p "$ERPADM_SSH"
+    if [ -f "$ERPADM_AK" ] && grep -qf /tmp/hasan_mighty.pub "$ERPADM_AK" 2>/dev/null; then
+        echo "  [OK] controller pubkey already in authorized_keys — skipping"
+    else
+        cat /tmp/hasan_mighty.pub >> "$ERPADM_AK"
+        echo "  [OK] controller pubkey appended to $ERPADM_AK"
+    fi
+    chmod 700 "$ERPADM_SSH"
+    chmod 600 "$ERPADM_AK"
+    chown -R $ERP_USER:$ERP_USER "$ERPADM_SSH"
+    rm -f /tmp/hasan_mighty.pub
+else
+    echo "  [WARN] /tmp/hasan_mighty.pub not found — erpadm SSH access not configured"
+fi
+
 echo "=== A2d: clone apps from GitHub ==="
 _GH_CLONE() {
   sudo -u "$ERP_USER" bash -c "
@@ -184,6 +203,22 @@ echo "=== H2: bench restart ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
 sudo supervisorctl restart frappe-bench-ce-sri-svc || true
 echo "  [OK] bench + ce_sri_svc restarted"
+
+echo "=== H2b: wait for gunicorn to respond ==="
+PING_URL="http://127.0.0.1:8000/api/method/ping"
+WAITED=0
+MAX_WAIT=60
+while [ $WAITED -lt $MAX_WAIT ]; do
+    if curl -sf "$PING_URL" >/dev/null 2>&1; then
+        echo "  [OK] gunicorn responding after ${WAITED}s"
+        break
+    fi
+    sleep 2
+    WAITED=$((WAITED + 2))
+done
+if [ $WAITED -ge $MAX_WAIT ]; then
+    echo "  [WARN] gunicorn did not respond within ${MAX_WAIT}s — continuing anyway"
+fi
 
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && $BENCH_DIR/env/bin/python /tmp/vm_scripts/h4a_apikeys.py --site $SITE_URL --bench-dir $BENCH_DIR"

@@ -1683,17 +1683,19 @@ def start_refresh(hostname: str):
     if not wg_ip:
         raise HTTPException(400, f"No WireGuard IP configured for '{hostname}'")
 
+    host_cfg = kvm[hostname]
+
     job_id       = str(uuid.uuid4())[:8]
     jobs[job_id] = {"status": "running", "log": [], "hostname": hostname}
     threading.Thread(
         target=_run_refresh,
-        args=(job_id, hostname, wg_ip, script),
+        args=(job_id, hostname, wg_ip, script, host_cfg),
         daemon=True,
     ).start()
     return {"job_id": job_id}
 
 
-def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
+def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path, host_cfg: dict):
     job = jobs[job_id]
 
     def _ts():
@@ -1745,6 +1747,75 @@ def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path):
             emit(f"  [SKIP] ddlViews.sql not found at {VIEWS_DDL_SRC}")
 
         # App code sync handled by differentiate.sh section A2d (git pull from GitHub)
+
+        # ── Render + upload config bundle (same artifacts as provision Step 12) ──
+        emit("── Rendering + uploading config bundle ──")
+        nickname_str = host_cfg.get("nickname", hostname[:4])
+        groups = host_cfg.get("ansible_groups", [])
+        if "production" in groups:
+            zone_key = "production"
+        elif "staging" in groups:
+            zone_key = "staging"
+        else:
+            zone_key = "development"
+        domain = ZONE_DOMAINS.get(zone_key, "iridium.blue")
+        site_url = f"{hostname}.{domain}"
+        bench_name_new = f"frappe-bench-{nickname_str}"
+        with open(GROUP_VARS_ALL) as _f:
+            ERP_USER = yaml.safe_load(_f).get("erp_user", "erpadm")
+        bench_dir = f"/home/{ERP_USER}/{bench_name_new}"
+        ERP_USER_PWD = "sasa"
+        MYPWD = "erpnext_build"
+
+        tls_domain = "iridium.blue"
+        cert_dir = f"/etc/nginx/certs/{tls_domain}"
+        gunicorn_port = 8000
+        ws_port = 9000
+
+        render_params = {
+            "erp_user": ERP_USER, "erp_user_pwd": ERP_USER_PWD, "mypwd": MYPWD,
+            "hostname": hostname,
+            "tld": domain.split(".", 1)[1] if "." in domain else domain,
+            "site_url": site_url, "nickname": nickname_str,
+            "bench_name_new": bench_name_new, "bench_dir": bench_dir,
+            "gunicorn_port": gunicorn_port, "ws_port": ws_port,
+            "nginx_cert": f"{cert_dir}/fullchain.pem",
+            "nginx_key": f"{cert_dir}/privkey.pem",
+            "nginx_dhparam": "/etc/nginx/dhparam.pem",
+        }
+
+        from tools.renderers.render_envars import render as r_envars
+        from tools.renderers.render_supervisor import render as r_supervisor
+        from tools.renderers.render_gh_askpass import render as r_askpass
+        from tools.renderers.render_nginx_vhost import render as r_nginx
+
+        rendered_dir = Path(tempfile.mkdtemp(prefix="esacp-refresh-"))
+        r_envars(render_params, output_path=rendered_dir / "envars.sh")
+        r_supervisor(render_params, output_path=rendered_dir / "ce_sri_svc_supervisor.conf")
+        r_askpass(render_params, output_path=rendered_dir / "gh_askpass.sh")
+        r_nginx(render_params, output_path=rendered_dir / "nginx_vhost.conf")
+
+        shutil.copy(PLATFORMS_KVM / "static" / "Procfile", rendered_dir / "Procfile")
+        shutil.copy(PLATFORMS_KVM / "static" / "ssh_config", rendered_dir / "ssh_config")
+        shutil.copy(PLATFORMS_KVM / "stop.py", rendered_dir / "stop.py")
+        (rendered_dir / "params.json").write_text(json.dumps(render_params, indent=2))
+
+        rsync_e = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10"
+        for local_dir, remote_path in [
+            (str(rendered_dir) + "/", "/tmp/rendered/"),
+            (str(PROJECT_ROOT / "tools" / "renderers") + "/", "/tmp/renderers/"),
+            (str(PROJECT_ROOT / "tools" / "vm_scripts") + "/", "/tmp/vm_scripts/"),
+            (str(PLATFORMS_KVM / "templates") + "/", "/tmp/templates/"),
+        ]:
+            r = subprocess.run(
+                ["rsync", "-a", "-e", rsync_e,
+                 local_dir, f"you@{wg_ip}:{remote_path}"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if r.returncode != 0:
+                raise RuntimeError(f"rsync {remote_path} failed: {r.stderr.strip()}")
+        shutil.rmtree(rendered_dir, ignore_errors=True)
+        emit(f"  [OK] config bundle + renderers + templates + vm_scripts deployed")
 
         emit("── Running differentiate.sh (idempotent) ──")
         proc = subprocess.Popen(
