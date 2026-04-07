@@ -190,8 +190,8 @@ echo "  [OK] installApps.sh complete"
 echo "=== G-pre: strip DEFINER clauses from backup SQL ==="
 python3 /tmp/vm_scripts/gpre_strip_definer.py --bench-dir "$BENCH_DIR"
 
-echo "=== G: handleRestore.sh ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
+echo "=== G: handleRestore.sh (social login deferred to post-H4a) ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && DEFER_SOCIAL_LOGIN=1 bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"
 
 echo "=== G1: re-seed tabPatch Log (restore wiped DB) ==="
@@ -233,6 +233,28 @@ fi
 
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && $BENCH_DIR/env/bin/python /tmp/vm_scripts/h4a_apikeys.py --site $SITE_URL --bench-dir $BENCH_DIR"
+
+echo "=== H4a-sl: restore Social Login config (deferred from G — needs fresh __Auth) ==="
+APIKEY_SH="$BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh"
+if [ -f "$APIKEY_SH" ]; then
+    source "$APIKEY_SH"
+    RESOURCE_URL="https://$SITE_URL/api/resource"
+    SWITCHES="--location --insecure --no-progress-meter --request"
+    AUTH_HEADER="Authorization: token $KEYS"
+    CONTENT_HEADER="Content-Type: application/json"
+    SLK="Social%20Login%20Key"
+    SOCIAL_CONF="$BENCH_DIR/sites/$SITE_URL/socials_google.json"
+    if [ -f "$SOCIAL_CONF" ]; then
+        curl $SWITCHES DELETE --header "$AUTH_HEADER" --header "$CONTENT_HEADER" "$RESOURCE_URL/$SLK/google" >/dev/null 2>&1 || true
+        RSLT=$(curl $SWITCHES POST --header "$AUTH_HEADER" --header "$CONTENT_HEADER" -d @"$SOCIAL_CONF" "$RESOURCE_URL/$SLK")
+        MSG=$(echo "$RSLT" | jq -r .data.social_login_provider 2>/dev/null || echo "unknown")
+        echo "  [OK] Social Login restored (provider: $MSG)"
+    else
+        echo "  [SKIP] No socials_google.json found — Social Login not configured"
+    fi
+else
+    echo "  [WARN] apikey.sh not found — cannot restore Social Login"
+fi
 
 echo "=== H3: reset admin password (H4a wipes __Auth — must run after) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-password $ERP_USER_PWD"
