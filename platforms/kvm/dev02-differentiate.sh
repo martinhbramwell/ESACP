@@ -111,11 +111,11 @@ else
   echo "  [OK] ce_sri_svc pulled"
 fi
 if [ ! -d "$BENCH_DIR/BaRe/.git" ]; then
-  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && git clone -b fix/1-delegate-migrate-blockers https://github.com/martinhbramwell/BaRe.git BaRe"
-  echo "  [OK] BaRe cloned (fix/1-delegate-migrate-blockers)"
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && git clone https://github.com/martinhbramwell/BaRe.git BaRe"
+  echo "  [OK] BaRe cloned"
 else
-  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR/BaRe && git fetch origin && git checkout fix/1-delegate-migrate-blockers && git pull"
-  echo "  [OK] BaRe switched to fix/1-delegate-migrate-blockers and pulled"
+  sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR/BaRe && git checkout main && git pull"
+  echo "  [OK] BaRe pulled"
 fi
 echo "  [OK] all apps cloned/pulled from GitHub"
 
