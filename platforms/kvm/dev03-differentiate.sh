@@ -120,6 +120,12 @@ fi
 echo "  [OK] all apps cloned/pulled from GitHub"
 
 echo "=== A3: start bench services (supervisor) ==="
+cp /tmp/rendered/stop.py $BENCH_DIR/stop.py
+chown $ERP_USER:$ERP_USER $BENCH_DIR/stop.py
+chmod 755 $BENCH_DIR/stop.py
+echo "  Stopping stale bench/honcho processes before supervisor takes over..."
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && python3 stop.py"
+sudo supervisorctl stop all 2>/dev/null || true
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
 sudo cp "$BENCH_DIR/config/supervisor.conf" /etc/supervisor/conf.d/frappe-bench.conf
 echo "=== A3b: deploy ce_sri_svc supervisor conf ==="
@@ -208,8 +214,9 @@ sudo supervisorctl update
 echo "  [OK] supervisor updated"
 
 echo "=== H2: bench restart ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
-sudo supervisorctl restart frappe-bench-ce-sri-svc || true
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && python3 stop.py"
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart"
+sudo supervisorctl restart frappe-bench-ce-sri-svc
 echo "  [OK] bench + ce_sri_svc restarted"
 
 echo "=== H2b: wait for gunicorn to respond ==="
@@ -267,9 +274,10 @@ echo "  [OK] .env generated for $SITE_URL"
 echo "=== H4f: restart after install.py + .env changes ==="
 sudo supervisorctl reread
 sudo supervisorctl update
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart || true"
-sudo supervisorctl restart frappe-bench-ce-sri-svc || true
-sudo nginx -t && sudo systemctl reload nginx || true
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && python3 stop.py"
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart"
+sudo supervisorctl restart frappe-bench-ce-sri-svc
+sudo nginx -t && sudo systemctl reload nginx
 echo "  [OK] services restarted after install.py"
 
 echo "=== I: install TLS cert ==="
