@@ -85,7 +85,7 @@ docs/                      # DiagramDesign.md, FailoverDesign.md, RUNBOOK.md
 All commits must:
 1. **Conventional Commits** format: `<type>[optional scope]: <description>`
 2. **GPG-signed** (`git commit -S`)
-3. **Co-author trailer**: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
+3. **Co-author trailer**: `Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>`
 4. **Update relevant CLAUDE.md** if the commit changes architecture, key files, stage status, or gotchas
 
 | Type | When |
