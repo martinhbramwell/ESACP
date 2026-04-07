@@ -1101,13 +1101,26 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
             site_url, nickname_str, ERP_USER,
         )
 
-        # rsync BKP (database backup — not a git repo)
-        if BKP_SRC.exists():
+        # rsync BKP — only BACKUP.txt + the file it names (not the whole directory)
+        backup_txt = BKP_SRC / "BACKUP.txt"
+        if BKP_SRC.exists() and backup_txt.exists():
+            active_file = backup_txt.read_text().strip()
+            active_path = BKP_SRC / active_file
+            if not active_path.exists():
+                raise RuntimeError(f"BACKUP.txt names '{active_file}' but it does not exist in {BKP_SRC}")
+            size_mb = active_path.stat().st_size / (1024 * 1024)
+            # Extract date from filename like 20260404_162416-erp_logichem_solutions.tgz
+            date_part = active_file[:8]  # 20260404
+            date_str = f"{date_part[:4]}/{date_part[4:6]}/{date_part[6:8]}"
+            emit(f"  Copying database backup of {date_str} (~{size_mb:.0f}MB) — expect delay")
             r = subprocess.run(
                 [
-                    "rsync", "-a", "--delete",
+                    "rsync", "-a",
                     "--rsync-path=sudo rsync",
                     "-e", rsync_e,
+                    "--include", "BACKUP.txt",
+                    "--include", active_file,
+                    "--exclude", "*",
                     f"{BKP_SRC}/",
                     f"you@{vm.virbr0_ip}:{bench_dir_orig}/BKP/",
                 ],
@@ -1115,7 +1128,9 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
             )
             if r.returncode != 0:
                 raise RuntimeError(f"rsync BKP failed: {r.stderr.strip()}")
-            emit(f"  [OK] BKP → {bench_dir_orig}/BKP")
+            emit(f"  [OK] BKP ({active_file}) → {bench_dir_orig}/BKP")
+        elif BKP_SRC.exists():
+            emit(f"  [SKIP] {backup_txt} not found — cannot determine active backup")
         else:
             emit(f"  [SKIP] {BKP_SRC} not found")
 
