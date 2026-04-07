@@ -757,6 +757,63 @@ ethernets:
         shutil.rmtree(work_dir)
 
 
+def _scp_cesri_secrets(
+    emit, scp_opts: list[str], target_ip: str,
+    site_url: str, nickname_str: str, erp_user: str,
+) -> int:
+    """Decrypt SOPS parms, patch per-VM values, SCP P12 + parms + logo to /tmp/.
+
+    Returns the number of files successfully transferred (0 = nothing to send).
+    Called from both Deploy and Refresh so secrets are always fresh on the VM.
+    """
+    import json as _json
+
+    cesri_scp_files: list[str] = []
+    if CE_SRI_P12_CERT.exists():
+        cesri_scp_files.append(str(CE_SRI_P12_CERT))
+    else:
+        emit(f"  [WARN] P12 cert not found at {CE_SRI_P12_CERT}")
+    if CE_SRI_LOGO.exists():
+        cesri_scp_files.append(str(CE_SRI_LOGO))
+    else:
+        emit(f"  [WARN] company logo not found at {CE_SRI_LOGO}")
+
+    if CE_SRI_PARMS_SOPS.exists():
+        sops_r = subprocess.run(
+            ["sops", "-d", str(CE_SRI_PARMS_SOPS)],
+            capture_output=True, text=True, timeout=15,
+        )
+        if sops_r.returncode != 0:
+            raise RuntimeError(f"sops decrypt failed: {sops_r.stderr.strip()}")
+        parms = _json.loads(sops_r.stdout)
+        parms["erpnext_api"]["local_site"] = site_url
+        parms["erpnext_api"]["api_protocol"] = "https"
+        parms["erpnext_api"]["api_port"] = "443"
+        parms["electronic_signature"]["certificate_location"] = f"/home/{erp_user}/.ssh/secrets"
+        parms["electronic_signature"]["sri_p12_cert"] = CE_SRI_P12_CERT.name
+        parms["environment"]["local_site_nickname"] = nickname_str
+        parms["environment"]["company_logo_location"] = f"/home/{erp_user}/.ssh/secrets"
+        parms["revenue_service"]["test_or_production_mode"] = "1"
+        parms_tmp = Path("/tmp") / f"ce_sri_parms_{nickname_str}.json"
+        parms_tmp.write_text(_json.dumps(parms, indent=2))
+        cesri_scp_files.append(str(parms_tmp))
+    else:
+        emit(f"  [WARN] ce_sri_parms.sops.json not found at {CE_SRI_PARMS_SOPS}")
+
+    if not cesri_scp_files:
+        return 0
+
+    r = subprocess.run(
+        ["scp"] + scp_opts + cesri_scp_files + [f"you@{target_ip}:/tmp/"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if r.returncode != 0:
+        emit(f"  [WARN] SCP ce_sri secrets failed: {r.stderr.strip()}")
+        return 0
+    emit(f"  [OK] {len(cesri_scp_files)} ce_sri secret files → /tmp/")
+    return len(cesri_scp_files)
+
+
 def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | None = None):
     job = jobs[job_id]
 
@@ -1025,6 +1082,7 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
             emit("  [WARN] deploy key passphrase not found — private repo clones will fail")
 
         # Include controller pubkey so differentiate.sh can install it for erpadm
+        controller_pubkey_path = Path.home() / ".ssh" / "hasan_mighty.pub"
         if controller_pubkey_path.exists():
             scp_files.append(str(controller_pubkey_path))
 
@@ -1038,50 +1096,10 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
             emit(f"  [OK] {len(scp_files)} deploy key files → /tmp/")
 
         # SCP ce_sri secrets (P12 cert, ce_sri_parms.json, logo) to /tmp/ on VM
-        # install.py's before_install() reads these from ~/.ssh/secrets/
-        cesri_scp_files = []
-        if CE_SRI_P12_CERT.exists():
-            cesri_scp_files.append(str(CE_SRI_P12_CERT))
-        else:
-            emit(f"  [WARN] P12 cert not found at {CE_SRI_P12_CERT}")
-        if CE_SRI_LOGO.exists():
-            cesri_scp_files.append(str(CE_SRI_LOGO))
-        else:
-            emit(f"  [WARN] company logo not found at {CE_SRI_LOGO}")
-
-        # Generate site-specific ce_sri_parms.json (decrypt SOPS → patch → write temp)
-        if CE_SRI_PARMS_SOPS.exists():
-            import json as _json
-            sops_r = subprocess.run(
-                ["sops", "-d", str(CE_SRI_PARMS_SOPS)],
-                capture_output=True, text=True, timeout=15,
-            )
-            if sops_r.returncode != 0:
-                raise RuntimeError(f"sops decrypt failed: {sops_r.stderr.strip()}")
-            parms = _json.loads(sops_r.stdout)
-            parms["erpnext_api"]["local_site"] = site_url
-            parms["erpnext_api"]["api_protocol"] = "https"
-            parms["erpnext_api"]["api_port"] = "443"
-            parms["electronic_signature"]["certificate_location"] = f"/home/{ERP_USER}/.ssh/secrets"
-            parms["electronic_signature"]["sri_p12_cert"] = CE_SRI_P12_CERT.name
-            parms["environment"]["local_site_nickname"] = nickname_str
-            parms["environment"]["company_logo_location"] = f"/home/{ERP_USER}/.ssh/secrets"
-            parms["revenue_service"]["test_or_production_mode"] = "1"
-            parms_tmp = Path("/tmp") / f"ce_sri_parms_{vm.hostname}.json"
-            parms_tmp.write_text(_json.dumps(parms, indent=2))
-            cesri_scp_files.append(str(parms_tmp))
-        else:
-            emit(f"  [WARN] ce_sri_parms.sops.json not found at {CE_SRI_PARMS_SOPS}")
-
-        if cesri_scp_files:
-            r = subprocess.run(
-                ["scp"] + scp_opts + cesri_scp_files + [f"you@{vm.virbr0_ip}:/tmp/"],
-                capture_output=True, text=True, timeout=30,
-            )
-            if r.returncode != 0:
-                emit(f"  [WARN] SCP ce_sri secrets failed: {r.stderr.strip()}")
-            else:
-                emit(f"  [OK] {len(cesri_scp_files)} ce_sri secret files → /tmp/")
+        _scp_cesri_secrets(
+            emit, scp_opts, vm.virbr0_ip,
+            site_url, nickname_str, ERP_USER,
+        )
 
         # rsync BKP (database backup — not a git repo)
         if BKP_SRC.exists():
@@ -1093,7 +1111,7 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
                     f"{BKP_SRC}/",
                     f"you@{vm.virbr0_ip}:{bench_dir_orig}/BKP/",
                 ],
-                capture_output=True, text=True, timeout=300,
+                capture_output=True, text=True, timeout=600,
             )
             if r.returncode != 0:
                 raise RuntimeError(f"rsync BKP failed: {r.stderr.strip()}")
@@ -1404,6 +1422,10 @@ echo "=== E: place ddlViews.sql ==="
 sudo -u "$ERP_USER" mkdir -p "$BENCH_DIR/sites/$SITE_URL/private/files"
 {ddl_placement}
 
+echo "=== E1: seed tabPatch Log (skip patches that crash on restored DB) ==="
+python3 /tmp/vm_scripts/g1_seed_patch_log.py \
+  --bench-dir "$BENCH_DIR" --site "$SITE_URL"
+
 echo "=== F: installApps.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/installApps.sh"
 echo "  [OK] installApps.sh complete"
@@ -1414,6 +1436,10 @@ python3 /tmp/vm_scripts/gpre_strip_definer.py --bench-dir "$BENCH_DIR"
 echo "=== G: handleRestore.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"
+
+echo "=== G1: re-seed tabPatch Log (restore wiped DB) ==="
+python3 /tmp/vm_scripts/g1_seed_patch_log.py \
+  --bench-dir "$BENCH_DIR" --site "$SITE_URL"
 
 echo "=== G2: clear fixture Custom Fields + re-migrate ==="
 echo "  Clearing fixture-defined Custom Fields from restored DB..."
@@ -1772,6 +1798,13 @@ def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path, host_cfg:
         bench_dir = f"/home/{ERP_USER}/{bench_name_new}"
         ERP_USER_PWD = "sasa"
         MYPWD = "erpnext_build"
+
+        # SCP ce_sri secrets (P12 cert, ce_sri_parms.json, logo) to /tmp/ on VM
+        emit("── Uploading ce_sri secrets (SOPS → decrypt → patch → SCP) ──")
+        _scp_cesri_secrets(
+            emit, ssh_opts, wg_ip,
+            site_url, nickname_str, ERP_USER,
+        )
 
         tls_domain = "iridium.blue"
         cert_dir = f"/etc/nginx/certs/{tls_domain}"

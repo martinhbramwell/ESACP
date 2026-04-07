@@ -99,15 +99,6 @@ def clear_fields(db_name, db_password, fixture_records):
                 f"AND fieldname='{fn}';")
     print(f"  [OK] Cleared colliding DocField entries ({len(dt_fn_pairs)} checked)")
 
-    # 3. Seed tabPatch Log for delete_duplicate_indexes (comment-format mismatch
-    #    causes re-run → crash on missing performance_schema tables)
-    run_sql(db_name, db_password,
-            "INSERT IGNORE INTO `tabPatch Log` "
-            "(name, patch, creation, modified, owner, modified_by) VALUES "
-            "('frappe.patches.v12_0.delete_duplicate_indexes  # 2022-12-15', "
-            "'frappe.patches.v12_0.delete_duplicate_indexes  # 2022-12-15', "
-            "NOW(), NOW(), 'Administrator', 'Administrator');")
-    print("  [OK] Seeded tabPatch Log for delete_duplicate_indexes")
 
 
 def main():

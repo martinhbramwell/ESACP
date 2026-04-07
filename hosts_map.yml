@@ -69,6 +69,7 @@ groups:
         - development
         - lab
 
+
     dev02:
       hostname: dev02
       nickname: D2IRBL
