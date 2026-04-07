@@ -1370,8 +1370,11 @@ fi
 echo "  [OK] all apps cloned/pulled from GitHub"
 
 echo "=== A3: start bench services (supervisor) ==="
+cp /tmp/rendered/stop.py $BENCH_DIR/stop.py
+chown $ERP_USER:$ERP_USER $BENCH_DIR/stop.py
+chmod 755 $BENCH_DIR/stop.py
 echo "  Stopping stale bench/honcho processes before supervisor takes over..."
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && python3 /tmp/rendered/stop.py"
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && python3 stop.py"
 sudo supervisorctl stop all 2>/dev/null || true
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup supervisor --yes"
 sudo cp "$BENCH_DIR/config/supervisor.conf" /etc/supervisor/conf.d/frappe-bench.conf
