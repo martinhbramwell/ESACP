@@ -79,6 +79,7 @@ CE_SRI_SECRETS_DIR   = Path.home() / ".ssh" / "secrets"
 CE_SRI_P12_CERT      = CE_SRI_SECRETS_DIR / "PRESIDENTE_DANIEL_LEONARD_WILD_STAPEL_1709470171_171224162014.p12"
 CE_SRI_PARMS_SOPS    = PROJECT_ROOT / "config" / "ce_sri_parms.sops.json"
 CE_SRI_LOGO          = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "docType_Logo.png"
+CE_SRI_SOCIALS_JSON  = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "socials_google.json"
 
 # saconsole access from controller (ProxyJump through hypervisor)
 SACONSOLE_IP        = "192.168.122.10"
@@ -777,6 +778,10 @@ def _scp_cesri_secrets(
         cesri_scp_files.append(str(CE_SRI_LOGO))
     else:
         emit(f"  [WARN] company logo not found at {CE_SRI_LOGO}")
+    if CE_SRI_SOCIALS_JSON.exists():
+        cesri_scp_files.append(str(CE_SRI_SOCIALS_JSON))
+    else:
+        emit(f"  [WARN] socials_google.json not found at {CE_SRI_SOCIALS_JSON}")
 
     if CE_SRI_PARMS_SOPS.exists():
         sops_r = subprocess.run(
@@ -1501,7 +1506,11 @@ fi
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && $BENCH_DIR/env/bin/python /tmp/vm_scripts/h4a_apikeys.py --site $SITE_URL --bench-dir $BENCH_DIR"
 
-echo "=== H4a-sl: restore Social Login config (deferred from G — needs fresh __Auth) ==="
+echo "=== H4a-sl: place + restore Social Login config (deferred from G — needs fresh __Auth) ==="
+if [ -f /tmp/socials_google.json ]; then
+    sudo -u "$ERP_USER" cp /tmp/socials_google.json "$BENCH_DIR/sites/$SITE_URL/socials_google.json"
+    echo "  [OK] socials_google.json placed in site directory"
+fi
 APIKEY_SH="$BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh"
 if [ -f "$APIKEY_SH" ]; then
     source "$APIKEY_SH"

@@ -234,7 +234,11 @@ fi
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && $BENCH_DIR/env/bin/python /tmp/vm_scripts/h4a_apikeys.py --site $SITE_URL --bench-dir $BENCH_DIR"
 
-echo "=== H4a-sl: restore Social Login config (deferred from G — needs fresh __Auth) ==="
+echo "=== H4a-sl: place + restore Social Login config (deferred from G — needs fresh __Auth) ==="
+if [ -f /tmp/socials_google.json ]; then
+    sudo -u "$ERP_USER" cp /tmp/socials_google.json "$BENCH_DIR/sites/$SITE_URL/socials_google.json"
+    echo "  [OK] socials_google.json placed in site directory"
+fi
 APIKEY_SH="$BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh"
 if [ -f "$APIKEY_SH" ]; then
     source "$APIKEY_SH"
