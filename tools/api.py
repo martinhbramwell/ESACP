@@ -1500,7 +1500,8 @@ while [ $WAITED -lt $MAX_WAIT ]; do
     WAITED=$((WAITED + 2))
 done
 if [ $WAITED -ge $MAX_WAIT ]; then
-    echo "  [WARN] gunicorn did not respond within ${{MAX_WAIT}}s — continuing anyway"
+    echo "  [FAIL] gunicorn did not respond within ${{MAX_WAIT}}s — aborting"
+    exit 1
 fi
 
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
@@ -1555,9 +1556,9 @@ echo "=== H4c: generate bench nginx.conf (install.py patches it) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup nginx --yes" || true
 echo "  [OK] config/nginx.conf generated"
 
-echo "=== H4d: run ce_sri before_install ==="
+echo "=== H4d: run ce_sri before_install (file patches only — no gunicorn needed) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.before_install"
-echo "  [OK] ce_sri before_install complete"
+echo "  [OK] ce_sri before_install complete (Procfile, supervisor.conf, nginx patched)"
 
 echo "=== H4e: generate .env via UPDATE_SRI_SERVICE_PARAMETERS.py ==="
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
@@ -1575,6 +1576,10 @@ sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart"
 sudo supervisorctl restart frappe-bench-ce-sri-svc
 sudo nginx -t && sudo systemctl reload nginx
 echo "  [OK] services restarted after install.py"
+
+echo "=== H4g: run ce_sri after_restart (API config — polls gunicorn internally) ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.after_restart"
+echo "  [OK] ce_sri after_restart complete"
 
 {tls_section}
 echo "=== L0: deploy stop.py ==="
