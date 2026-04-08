@@ -50,17 +50,19 @@ Dev/staging VMs run in **supervisor mode** — this does not make them "producti
 - **E**: place ddlViews.sql; **E1**: `g1_seed_patch_log.py` — seeds `tabPatch Log` for patches that crash on restored production DBs (e.g. `delete_duplicate_indexes` queries missing `session_status` table). Called twice: before F (protects F's migrate) and as G1 after G (safety net — restore wipes DB).
 - **F**: installApps.sh
 - **G-pre**: strip `DEFINER=<user>` from backup SQL via `gpre_strip_definer.py` (Python `re.sub` — no sed)
-- **G**: handleRestore.sh with `DEFER_SOCIAL_LOGIN=1` (restore → restart → g1+g2 cleanup → migrate → views; social login deferred to H4a-sl). handleRestore.sh delegates to `/tmp/vm_scripts/g1_seed_patch_log.py` and `g2_clear_fixture_custom_fields.py` between restore and migrate (BaRe commit `a012d32`). This is the primary cleanup point — G1+G2 below are redundant safety nets.
+- **G**: handleRestore.sh with `DEFER_SOCIAL_LOGIN=1` (restore → restart → g1+g2 cleanup → migrate → views; social login deferred to H4a-sl after step K). handleRestore.sh delegates to `/tmp/vm_scripts/g1_seed_patch_log.py` and `g2_clear_fixture_custom_fields.py` between restore and migrate (BaRe commit `a012d32`). This is the primary cleanup point — G1+G2 below are redundant safety nets.
 - **G1**: re-seed `tabPatch Log` — safety net re-run of E1 (idempotent)
 - **G2**: `g2_clear_fixture_custom_fields.py` — safety net re-run of g2 + second `bench migrate` to reimport fixtures with correct `insert_after` positioning. Without this, production DB restore overwrites fixture values and Custom Fields render in wrong form sections.
 - **H/H2**: supervisor reload + `stop.py` (free ports) + `bench restart` (including ce_sri_svc); **H2b**: poll `curl /api/method/ping` (max 60s) — ensures gunicorn is ready before H4a/H4d
-- **H4a**: clear ALL stale `__Auth` entries (encrypted with production's `encryption_key`) then regenerate API key+secret for Administrator via `h4a_apikeys.py`; **H4a-sl**: place `socials_google.json` from `/tmp/` into site dir, then restore Social Login Key via API with fresh credentials (deferred from G — #117); **H3**: reset admin password (runs AFTER H4a — H4a's `DELETE FROM __Auth` wipes the password, so H3 must follow)
+- **H4a**: clear ALL stale `__Auth` entries (encrypted with production's `encryption_key`) then regenerate API key+secret for Administrator via `h4a_apikeys.py`; **H3**: reset admin password (runs AFTER H4a — H4a's `DELETE FROM __Auth` wipes the password, so H3 must follow)
 - **H4b**: place secrets (P12 cert, `ce_sri_parms.json`, logo) from `/tmp/` to `~/.ssh/secrets/`
 - **H4c**: run `ce_sri.install.before_install` — handles site_config.json, nginx vhost patch, API test, service test, client scripts, company logo, naming series, test data
-- **H4f**: `stop.py` (free ports) + `bench restart` + ce_sri_svc restart + nginx reload after install.py + .env changes
+- **H4f**: `stop.py` (free ports) + `bench restart` + ce_sri_svc restart + nginx reload after install.py + .env changes; **H4f-poll**: gunicorn readiness poll (same pattern as H2b — max 120s) before H4g API work (#132)
 - **H4e**: `h4e_patch_parms.py` injects fresh API key into `ce_sri_parms.json`, then `UPDATE_SRI_SERVICE_PARAMETERS.py` generates all `.env` variants + `setTESTMODE.sh`/`setPRODUCTIONMODE.sh` + activates TEST mode
 - **I**: install TLS cert (idempotent — skips if cert already at `/etc/nginx/certs/iridium.blue/`)
-- **J**: nginx config; **K**: DH params + enable site; **L0**: deploy stop.py; **L**: install bash_aliases
+- **J**: nginx config; **K**: DH params + enable site + nginx reload (HTTPS now live)
+- **H4a-sl**: place `socials_google.json` from `/tmp/` into site dir, then restore Social Login Key via HTTPS API with fresh credentials from H4a (deferred from G — #117; moved after K because HTTPS/443 requires nginx vhost + TLS cert)
+- **L0**: deploy stop.py; **L**: install bash_aliases
 
 Step 10 SCPs deploy keys + passphrase + ce_sri secrets (P12 cert, generated `ce_sri_parms.json`, logo) + `tools/vm_scripts/` to `/tmp/` on the VM. The generated `ce_sri_parms.json` has per-VM overrides: `local_site`, `api_protocol=https`, `api_port=443`, `certificate_location`, `local_site_nickname`, `company_logo_location`, `test_or_production_mode=1`. Section A2c moves deploy keys to ERP_USER's `~/.ssh/`; section H4b moves ce_sri secrets to `~/.ssh/secrets/`. Only BKP (database backup) is still rsynced from controller. Apps are cloned from GitHub using per-repo deploy keys with SSH_ASKPASS for non-interactive passphrase.
 

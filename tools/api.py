@@ -1515,32 +1515,6 @@ fi
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && $BENCH_DIR/env/bin/python /tmp/vm_scripts/h4a_apikeys.py --site $SITE_URL --bench-dir $BENCH_DIR"
 
-echo "=== H4a-sl: place + restore Social Login config (deferred from G — needs fresh __Auth) ==="
-if [ -f /tmp/socials_google.json ]; then
-    sudo -u "$ERP_USER" cp /tmp/socials_google.json "$BENCH_DIR/sites/$SITE_URL/socials_google.json"
-    echo "  [OK] socials_google.json placed in site directory"
-fi
-APIKEY_SH="$BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh"
-if [ -f "$APIKEY_SH" ]; then
-    source "$APIKEY_SH"
-    RESOURCE_URL="https://$SITE_URL/api/resource"
-    SWITCHES="--location --insecure --no-progress-meter --request"
-    AUTH_HEADER="Authorization: token $KEYS"
-    CONTENT_HEADER="Content-Type: application/json"
-    SLK="Social%20Login%20Key"
-    SOCIAL_CONF="$BENCH_DIR/sites/$SITE_URL/socials_google.json"
-    if [ -f "$SOCIAL_CONF" ]; then
-        curl $SWITCHES DELETE --header "$AUTH_HEADER" --header "$CONTENT_HEADER" "$RESOURCE_URL/$SLK/google" >/dev/null 2>&1 || true
-        RSLT=$(curl $SWITCHES POST --header "$AUTH_HEADER" --header "$CONTENT_HEADER" -d @"$SOCIAL_CONF" "$RESOURCE_URL/$SLK")
-        MSG=$(echo "$RSLT" | jq -r .data.social_login_provider 2>/dev/null || echo "unknown")
-        echo "  [OK] Social Login restored (provider: $MSG)"
-    else
-        echo "  [SKIP] No socials_google.json found — Social Login not configured"
-    fi
-else
-    echo "  [WARN] apikey.sh not found — cannot restore Social Login"
-fi
-
 echo "=== H3: reset admin password (H4a wipes __Auth — must run after) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL set-admin-password $ERP_USER_PWD"
 echo "  [OK] admin password reset to ERP_USER_PWD"
@@ -1585,11 +1559,53 @@ sudo supervisorctl restart frappe-bench-ce-sri-svc
 sudo nginx -t && sudo systemctl reload nginx
 echo "  [OK] services restarted after install.py"
 
+echo "=== H4f-poll: wait for gunicorn to respond after restart ==="
+WAITED=0
+MAX_WAIT=120
+while [ $WAITED -lt $MAX_WAIT ]; do
+    if curl -sf --max-time 5 "http://$SITE_URL:{gunicorn_port}/api/method/ping" >/dev/null 2>&1; then
+        echo "  [OK] gunicorn responding after ${{WAITED}}s"
+        break
+    fi
+    sleep 2
+    WAITED=$((WAITED + 2))
+done
+if [ $WAITED -ge $MAX_WAIT ]; then
+    echo "  [FAIL] gunicorn did not respond within ${{MAX_WAIT}}s — aborting"
+    exit 1
+fi
+
 echo "=== H4g: run ce_sri after_restart (API config — polls gunicorn internally) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.after_restart"
 echo "  [OK] ce_sri after_restart complete"
 
 {tls_section}
+echo "=== H4a-sl: restore Social Login config (needs HTTPS + fresh __Auth from H4a) ==="
+if [ -f /tmp/socials_google.json ]; then
+    sudo -u "$ERP_USER" cp /tmp/socials_google.json "$BENCH_DIR/sites/$SITE_URL/socials_google.json"
+    echo "  [OK] socials_google.json placed in site directory"
+fi
+APIKEY_SH="$BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh"
+if [ -f "$APIKEY_SH" ]; then
+    source "$APIKEY_SH"
+    RESOURCE_URL="https://$SITE_URL/api/resource"
+    SWITCHES="--location --insecure --no-progress-meter --request"
+    AUTH_HEADER="Authorization: token $KEYS"
+    CONTENT_HEADER="Content-Type: application/json"
+    SLK="Social%20Login%20Key"
+    SOCIAL_CONF="$BENCH_DIR/sites/$SITE_URL/socials_google.json"
+    if [ -f "$SOCIAL_CONF" ]; then
+        curl $SWITCHES DELETE --header "$AUTH_HEADER" --header "$CONTENT_HEADER" "$RESOURCE_URL/$SLK/google" >/dev/null 2>&1 || true
+        RSLT=$(curl $SWITCHES POST --header "$AUTH_HEADER" --header "$CONTENT_HEADER" -d @"$SOCIAL_CONF" "$RESOURCE_URL/$SLK")
+        MSG=$(echo "$RSLT" | jq -r .data.social_login_provider 2>/dev/null || echo "unknown")
+        echo "  [OK] Social Login restored (provider: $MSG)"
+    else
+        echo "  [SKIP] No socials_google.json found — Social Login not configured"
+    fi
+else
+    echo "  [WARN] apikey.sh not found — cannot restore Social Login"
+fi
+
 echo "=== L0: deploy stop.py ==="
 cp /tmp/rendered/stop.py $BENCH_DIR/stop.py
 chown $ERP_USER:$ERP_USER $BENCH_DIR/stop.py
