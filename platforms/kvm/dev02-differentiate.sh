@@ -209,6 +209,14 @@ sudo supervisorctl reread
 sudo supervisorctl update
 echo "  [OK] supervisor updated"
 
+echo "=== H2a: ensure site hostname resolves to localhost ==="
+if ! grep -q "$SITE_URL" /etc/hosts; then
+    echo "127.0.0.1 $SITE_URL" | sudo tee -a /etc/hosts >/dev/null
+    echo "  [OK] added $SITE_URL to /etc/hosts"
+else
+    echo "  [OK] $SITE_URL already in /etc/hosts"
+fi
+
 echo "=== H2: bench restart ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && python3 stop.py"
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart"
@@ -216,11 +224,11 @@ sudo supervisorctl restart frappe-bench-ce-sri-svc
 echo "  [OK] bench + ce_sri_svc restarted"
 
 echo "=== H2b: wait for gunicorn to respond ==="
-PING_URL="http://127.0.0.1:8000/api/method/ping"
+PING_URL="http://$SITE_URL:8000/api/method/ping"
 WAITED=0
 MAX_WAIT=120
 while [ $WAITED -lt $MAX_WAIT ]; do
-    if curl -sf -H "Host: $SITE_URL" "$PING_URL" >/dev/null 2>&1; then
+    if curl -sf "$PING_URL" >/dev/null 2>&1; then
         echo "  [OK] gunicorn responding after ${WAITED}s"
         break
     fi
