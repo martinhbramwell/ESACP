@@ -174,6 +174,10 @@ else
   echo "  [OK] site created, erpnext installed"
 fi
 
+echo "=== D1: ensure currentsite.txt ==="
+sudo -u "$ERP_USER" bash -c "echo '$SITE_URL' > $BENCH_DIR/sites/currentsite.txt"
+echo "  [OK] currentsite.txt set to $SITE_URL"
+
 echo "=== E: place ddlViews.sql ==="
 sudo -u "$ERP_USER" mkdir -p "$BENCH_DIR/sites/$SITE_URL/private/files"
 sudo -u "$ERP_USER" cp /tmp/ddlViews.sql "/home/erpadm/frappe-bench-D2IRBL/sites/dev02.iridium.blue/private/files/ddlViews.sql"

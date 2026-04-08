@@ -1444,6 +1444,10 @@ else
   echo "  [OK] site created, erpnext installed"
 fi
 
+echo "=== D1: ensure currentsite.txt ==="
+sudo -u "$ERP_USER" bash -c "echo '$SITE_URL' > $BENCH_DIR/sites/currentsite.txt"
+echo "  [OK] currentsite.txt set to $SITE_URL"
+
 echo "=== E: place ddlViews.sql ==="
 sudo -u "$ERP_USER" mkdir -p "$BENCH_DIR/sites/$SITE_URL/private/files"
 {ddl_placement}

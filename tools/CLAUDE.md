@@ -39,6 +39,18 @@ Non-obvious behaviours:
 - `buildVM`: uses `virsh vol-create-as` + `virsh vol-upload` for seed ISO — not `sudo cp` (hangs in uvicorn threads)
 - `snapShotVM`: KVM-only, hardwired to `platforms/kvm/snapshot.py` → `virsh`
 
+## diagnose.py — Remote VM Process Diagnostics
+
+`python3 tools/diagnose.py <host> <subcommand> [args]` — reusable diagnostic functions for inspecting hung/stuck processes on KVM guest VMs via SSH.
+
+Subcommands:
+- `hung-procs` — list long-running bench/frappe/ce_sri processes with elapsed time
+- `proc-detail <pid>` — threads (wchan + kernel stack), file descriptors, TCP connections
+- `site-health` — quick check: currentsite.txt, gunicorn workers, supervisor services, nginx
+- `bench-log <job_id> [-n lines]` — tail a differentiation job log on saconsole
+
+All functions are importable (`from tools.diagnose import hung_procs, site_health, ...`) for use in other scripts or `api.py` health endpoints.
+
 ## generate_inventory.py
 
 - Reads `hosts_map.yml`, writes `ansible/inventory/kvm.yml`

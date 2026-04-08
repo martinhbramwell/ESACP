@@ -1,0 +1,27 @@
+# vm_registry.yml — Known VM configurations for Playwright tests
+#
+# These are the canonical deploy parameters for VMs that may or may not
+# currently exist.  hosts_map.yml reflects live state; this file reflects
+# intent.  run-topology-test reads from here when the VM is absent from
+# hosts_map.yml (i.e. after a destroy, before a deploy).
+
+dev01:
+  hostname: dev01
+  nickname: D1IRBL
+  wg_ip: "10.10.0.13"
+  virbr0_ip: "192.168.122.21"
+  zone: Development
+
+dev02:
+  hostname: dev02
+  nickname: D2IRBL
+  wg_ip: "10.10.0.12"
+  virbr0_ip: "192.168.122.20"
+  zone: Development
+
+dev03:
+  hostname: dev03
+  nickname: D3IRBL
+  wg_ip: "10.10.0.14"
+  virbr0_ip: "192.168.122.22"
+  zone: Development

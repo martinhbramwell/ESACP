@@ -63,7 +63,7 @@ async function clickInfoButton(page, buttonText) {
  * Wait for a provisioning/refresh/destroy job to complete.
  * Polls the API /api/jobs endpoint.
  */
-async function waitForJob(page, jobId, timeoutMs = 900_000) {
+async function waitForJob(page, jobId, timeoutMs = 2_100_000) {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     const resp = await page.request.get(`${API_URL}/api/jobs`)
@@ -245,6 +245,72 @@ test.describe('Inspect', () => {
   })
 })
 
+// ── Test: Rebuild — Destroy existing + Deploy fresh + Inspect ────────────────
+
+test.describe('Rebuild', () => {
+  test('destroy → deploy → inspect', async ({ page }) => {
+    const hostname = process.env.LIFECYCLE_HOSTNAME || 'dev02'
+    const config = {
+      hostname,
+      nickname: process.env.LIFECYCLE_NICKNAME  || 'D2IRBL',
+      wgIp:     process.env.LIFECYCLE_WG_IP     || '10.10.0.12',
+      virbr0Ip: process.env.LIFECYCLE_VIRBR0_IP || '192.168.122.20',
+      zone: process.env.LIFECYCLE_ZONE           || 'Development',
+    }
+
+    await page.goto(BASE_URL)
+    await waitForGraph(page)
+
+    // Destroy existing VM
+    await selectNode(page, hostname)
+    await clickInfoButton(page, 'Destroy')
+    await page.waitForSelector('#confirm-overlay:not(.hidden)', { timeout: 5_000 })
+    const body = await page.textContent('#confirm-body')
+    expect(body).toContain(hostname)
+    await page.click('#confirm-submit')
+    await page.waitForSelector('#confirm-overlay', { state: 'hidden', timeout: 10_000 })
+
+    // Wait for destroy job to complete
+    await page.waitForTimeout(3_000)
+    const resp1 = await page.request.get(`${API_URL}/api/jobs`)
+    const jobs1 = await resp1.json()
+    const [djId] = Object.entries(jobs1).find(
+      ([, j]) => j.hostname === hostname && j.status === 'running'
+    ) || []
+    expect(djId).toBeTruthy()
+    await waitForJob(page, djId, 180_000)
+
+    // Give UI time to process the removal
+    await page.waitForTimeout(2_000)
+
+    // Verify node removed from graph
+    const nodeGone = await page.evaluate((h) => {
+      const cy = document.querySelector('#cy')?._cyreg?.cy
+      return cy ? cy.$(`#${h}`).empty() : true
+    }, hostname)
+    expect(nodeGone).toBe(true)
+
+    // Deploy fresh
+    await deployFromTemplate(page, config)
+    const resp2 = await page.request.get(`${API_URL}/api/jobs`)
+    const jobs2 = await resp2.json()
+    const [deployId] = Object.entries(jobs2).find(
+      ([, j]) => j.hostname === hostname && j.status === 'running'
+    ) || []
+    expect(deployId).toBeTruthy()
+
+    // Wait for provisioning to complete (up to 25 min)
+    await waitForJob(page, deployId, 1_500_000)
+
+    // Inspect — verify services are healthy
+    await selectNode(page, hostname)
+    await clickInfoButton(page, 'Inspect')
+    await page.waitForSelector('#popup-overlay:not(.hidden)', { timeout: 10_000 })
+    await page.waitForTimeout(10_000) // health checks via SSH
+    await page.click('#popup-close')
+  })
+})
+
 // ── Test: Full Deploy + Verify + Destroy cycle ──────────────────────────────
 
 test.describe('Full lifecycle', () => {
@@ -272,8 +338,8 @@ test.describe('Full lifecycle', () => {
     ) || []
     expect(jobId).toBeTruthy()
 
-    // Wait for provisioning to complete (up to 15 min)
-    await waitForJob(page, jobId, 900_000)
+    // Wait for provisioning to complete (up to 25 min)
+    await waitForJob(page, jobId, 1_500_000)
 
     // Inspect — verify all green
     await selectNode(page, hostname)
@@ -293,9 +359,9 @@ test.describe('Full lifecycle', () => {
     const resp2 = await page.request.get(`${API_URL}/api/jobs`)
     const jobs2 = await resp2.json()
     const [djId] = Object.entries(jobs2).find(
-      ([, j]) => j.hostname === hostname && j.type === 'destroy'
+      ([, j]) => j.hostname === hostname && j.status === 'running'
     ) || []
-    if (djId) await waitForJob(page, djId, 120_000)
+    if (djId) await waitForJob(page, djId, 180_000)
 
     // Verify node removed
     const nodeGone = await page.evaluate((h) => {

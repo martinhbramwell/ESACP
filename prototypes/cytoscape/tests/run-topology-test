@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""
+run-topology-test — Run a Playwright topology test for a specific VM.
+
+Reads VM parameters from hosts_map.yml (single source of truth) and
+invokes the named Playwright test with the correct env vars.
+
+Usage:
+    run-topology-test <hostname> <test-name>
+
+Examples:
+    run-topology-test dev02 rebuild       # destroy → deploy → inspect
+    run-topology-test dev03 lifecycle     # deploy → inspect → destroy
+    run-topology-test dev01 inspect       # health check only
+    run-topology-test dev02 destroy       # destroy only
+    run-topology-test dev02 deploy        # deploy only
+    run-topology-test dev01 refresh       # refresh only
+"""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+try:
+    import yaml
+except ImportError:
+    print("Missing dependency: pyyaml", file=sys.stderr)
+    sys.exit(1)
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+HOSTS_MAP = PROJECT_ROOT / "hosts_map.yml"
+VM_REGISTRY = Path(__file__).resolve().parent / "vm_registry.yml"
+CYTOSCAPE_DIR = Path(__file__).resolve().parent.parent
+
+# Map short test names to Playwright grep patterns
+TEST_PATTERNS = {
+    "rebuild":   "destroy → deploy → inspect",
+    "lifecycle": "deploy → inspect → destroy",
+    "deploy":    "provisions a new VM",
+    "destroy":   "opens confirm dialog and destroys",
+    "refresh":   "triggers differentiation re-run",
+    "inspect":   "opens health check popup",
+}
+
+ZONE_MAP = {
+    "development": "Development",
+    "targets":     "Development",
+    "lab":         "Development",
+    "staging":     "Staging",
+    "production":  "Production",
+}
+
+
+def load_vm_params(hostname: str) -> dict:
+    """Load VM params from hosts_map.yml, falling back to vm_registry.yml."""
+    # Try hosts_map.yml first (live state)
+    with open(HOSTS_MAP) as f:
+        hosts = yaml.safe_load(f)
+    for group_name, group in hosts.get("groups", {}).items():
+        if isinstance(group, dict) and hostname in group:
+            vm = group[hostname]
+            zone = "Development"
+            for g in vm.get("ansible_groups", []):
+                if g in ZONE_MAP:
+                    zone = ZONE_MAP[g]
+                    break
+            return {
+                "hostname": vm["hostname"],
+                "nickname": vm.get("nickname", hostname),
+                "wg_ip": vm["wg_ip"],
+                "virbr0_ip": vm.get("virbr0_ip", ""),
+                "zone": zone,
+            }
+
+    # Fall back to vm_registry.yml (canonical params for destroyed VMs)
+    if VM_REGISTRY.exists():
+        with open(VM_REGISTRY) as f:
+            registry = yaml.safe_load(f) or {}
+        if hostname in registry:
+            vm = registry[hostname]
+            return {
+                "hostname": vm["hostname"],
+                "nickname": vm.get("nickname", hostname),
+                "wg_ip": vm["wg_ip"],
+                "virbr0_ip": vm.get("virbr0_ip", ""),
+                "zone": vm.get("zone", "Development"),
+            }
+
+    print(f"Error: '{hostname}' not in hosts_map.yml or vm_registry.yml", file=sys.stderr)
+    sys.exit(1)
+
+
+def main():
+    if len(sys.argv) < 3:
+        print(__doc__.strip())
+        sys.exit(1)
+
+    hostname = sys.argv[1]
+    test_name = sys.argv[2]
+
+    if test_name not in TEST_PATTERNS:
+        print(f"Unknown test: '{test_name}'", file=sys.stderr)
+        print(f"Available: {', '.join(sorted(TEST_PATTERNS))}", file=sys.stderr)
+        sys.exit(1)
+
+    vm = load_vm_params(hostname)
+    grep_pattern = TEST_PATTERNS[test_name]
+
+    env = os.environ.copy()
+    # All tests use LIFECYCLE_* or per-test env vars — set both
+    env["LIFECYCLE_HOSTNAME"] = vm["hostname"]
+    env["LIFECYCLE_NICKNAME"] = vm["nickname"]
+    env["LIFECYCLE_WG_IP"] = vm["wg_ip"]
+    env["LIFECYCLE_VIRBR0_IP"] = vm["virbr0_ip"]
+    env["LIFECYCLE_ZONE"] = vm["zone"]
+    # Per-test env vars (deploy/destroy/refresh/inspect tests)
+    env["DEPLOY_HOSTNAME"] = vm["hostname"]
+    env["DEPLOY_NICKNAME"] = vm["nickname"]
+    env["DEPLOY_WG_IP"] = vm["wg_ip"]
+    env["DEPLOY_VIRBR0_IP"] = vm["virbr0_ip"]
+    env["DESTROY_HOSTNAME"] = vm["hostname"]
+    env["REFRESH_HOSTNAME"] = vm["hostname"]
+    env["INSPECT_HOSTNAME"] = vm["hostname"]
+
+    cmd = ["npx", "playwright", "test", "--grep", grep_pattern]
+    print(f"  VM: {vm['hostname']} ({vm['nickname']})")
+    print(f"  Test: {test_name} → \"{grep_pattern}\"")
+    print(f"  Dir: {CYTOSCAPE_DIR}")
+    print()
+
+    result = subprocess.run(cmd, cwd=CYTOSCAPE_DIR, env=env)
+    sys.exit(result.returncode)
+
+
+if __name__ == "__main__":
+    main()

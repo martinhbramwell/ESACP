@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 960_000,        // 16 min — provisioning can take 15 min
+  timeout: 2_400_000,      // 40 min — rebuild = destroy (~2 min) + deploy (~30 min) + margin
   expect: { timeout: 10_000 },
   retries: 0,              // no retries — infra ops are not idempotent
   workers: 1,              // serial — shared hypervisor
