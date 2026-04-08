@@ -1490,9 +1490,9 @@ echo "  [OK] bench + ce_sri_svc restarted"
 echo "=== H2b: wait for gunicorn to respond ==="
 PING_URL="http://127.0.0.1:{gunicorn_port}/api/method/ping"
 WAITED=0
-MAX_WAIT=60
+MAX_WAIT=120
 while [ $WAITED -lt $MAX_WAIT ]; do
-    if curl -sf "$PING_URL" >/dev/null 2>&1; then
+    if curl -sf -H "Host: $SITE_URL" "$PING_URL" >/dev/null 2>&1; then
         echo "  [OK] gunicorn responding after ${{WAITED}}s"
         break
     fi
