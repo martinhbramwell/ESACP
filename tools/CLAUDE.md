@@ -53,7 +53,9 @@ All functions are importable (`from tools.diagnose import hung_procs, site_healt
 
 ## install_specific.py — VM Differentiation (standalone, SCP'd to VM)
 
-Replaces the old monolithic `ce_sri/install.py`. Runs standalone as the bench user — NOT via `bench execute` (avoids #136 deadlock). SCP'd to `/tmp/install_specific.py` on the VM.
+Replaces the old monolithic `ce_sri/install.py`. Runs standalone as the bench user — NOT via `bench execute` (avoids #136 deadlock, closed by PR #137). SCP'd to `/tmp/install_specific.py` on the VM.
+
+**API URLs use `localhost`** (gunicorn binds 127.0.0.1); the site name is sent as `Host` header via `_HOST_SITE` module global for Frappe multi-tenant routing. All doc names in URLs are encoded via `urllib.parse.quote`.
 
 ### Subcommands
 
