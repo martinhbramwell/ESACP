@@ -1220,6 +1220,17 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
                 raise RuntimeError(f"rsync {remote_path} failed: {r.stderr.strip()}")
         emit("  [OK] rendered bundle + renderers + templates deployed")
 
+        # SCP install_specific.py to /tmp/ on VM
+        _install_specific = str(PROJECT_ROOT / "tools" / "install_specific.py")
+        r = subprocess.run(
+            ["scp"] + scp_opts + [_install_specific, f"you@{vm.virbr0_ip}:/tmp/"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if r.returncode != 0:
+            emit(f"  [WARN] SCP install_specific.py failed: {r.stderr.strip()}")
+        else:
+            emit("  [OK] install_specific.py deployed to /tmp/")
+
         # Build the ddl_placement snippet (still f-string — 3 lines)
         private_files = f"{bench_dir}/sites/{site_url}/private/files"
         ddl_placement = (
@@ -1542,9 +1553,10 @@ echo "=== H4c: generate bench nginx.conf (install.py patches it) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup nginx --yes" || true
 echo "  [OK] config/nginx.conf generated"
 
-echo "=== H4d: run ce_sri before_install (file patches only — no gunicorn needed) ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.before_install"
-echo "  [OK] ce_sri before_install complete (Procfile, supervisor.conf, nginx patched)"
+echo "=== H4d: run install_specific.py before-install (file patches — no gunicorn needed) ==="
+export TARGET_BENCH="$BENCH_DIR" ERPNEXT_SITE_URL="$SITE_URL"
+sudo -u "$ERP_USER" -E bash -c "cd $BENCH_DIR && python3 /tmp/install_specific.py before-install"
+echo "  [OK] install_specific.py before-install complete"
 
 echo "=== H4e: generate .env via UPDATE_SRI_SERVICE_PARAMETERS.py ==="
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
@@ -1579,9 +1591,10 @@ if [ $WAITED -ge $MAX_WAIT ]; then
     exit 1
 fi
 
-echo "=== H4g: run ce_sri after_restart (API config — polls gunicorn internally) ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.after_restart"
-echo "  [OK] ce_sri after_restart complete"
+echo "=== H4g: run install_specific.py after-restart (API config — gunicorn must be up) ==="
+export TARGET_BENCH="$BENCH_DIR" ERPNEXT_SITE_URL="$SITE_URL"
+sudo -u "$ERP_USER" -E bash -c "cd $BENCH_DIR && python3 /tmp/install_specific.py after-restart"
+echo "  [OK] install_specific.py after-restart complete"
 
 {tls_section}
 echo "=== H4a-sl: restore Social Login config (needs HTTPS + fresh __Auth from H4a) ==="
@@ -1942,6 +1955,18 @@ def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path, host_cfg:
                 raise RuntimeError(f"rsync {remote_path} failed: {r.stderr.strip()}")
         shutil.rmtree(rendered_dir, ignore_errors=True)
         emit(f"  [OK] config bundle + renderers + templates + vm_scripts deployed")
+
+        # SCP install_specific.py to /tmp/ on VM
+        _install_specific = str(PROJECT_ROOT / "tools" / "install_specific.py")
+        r = subprocess.run(
+            ["scp", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10",
+             _install_specific, f"you@{wg_ip}:/tmp/"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if r.returncode != 0:
+            emit(f"  [WARN] SCP install_specific.py failed: {r.stderr.strip()}")
+        else:
+            emit("  [OK] install_specific.py deployed to /tmp/")
 
         emit("── Running differentiate.sh (idempotent) ──")
         proc = subprocess.Popen(

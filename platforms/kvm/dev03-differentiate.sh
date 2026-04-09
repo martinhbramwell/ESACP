@@ -191,8 +191,8 @@ echo "  [OK] installApps.sh complete"
 echo "=== G-pre: strip DEFINER clauses from backup SQL ==="
 python3 /tmp/vm_scripts/gpre_strip_definer.py --bench-dir "$BENCH_DIR"
 
-echo "=== G: handleRestore.sh ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
+echo "=== G: handleRestore.sh (social login deferred to post-H4a) ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && DEFER_SOCIAL_LOGIN=1 bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"
 
 echo "=== G1: re-seed tabPatch Log (restore wiped DB) ==="
@@ -261,9 +261,10 @@ echo "=== H4c: generate bench nginx.conf (install.py patches it) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup nginx --yes" || true
 echo "  [OK] config/nginx.conf generated"
 
-echo "=== H4d: run ce_sri before_install ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.before_install"
-echo "  [OK] ce_sri before_install complete"
+echo "=== H4d: run install_specific.py before-install (file patches — no gunicorn needed) ==="
+export TARGET_BENCH="$BENCH_DIR" ERPNEXT_SITE_URL="$SITE_URL"
+sudo -u "$ERP_USER" -E bash -c "cd $BENCH_DIR && python3 /tmp/install_specific.py before-install"
+echo "  [OK] install_specific.py before-install complete"
 
 echo "=== H4e: generate .env via UPDATE_SRI_SERVICE_PARAMETERS.py ==="
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"

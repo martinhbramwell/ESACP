@@ -51,6 +51,25 @@ Subcommands:
 
 All functions are importable (`from tools.diagnose import hung_procs, site_health, ...`) for use in other scripts or `api.py` health endpoints.
 
+## install_specific.py — VM Differentiation (standalone, SCP'd to VM)
+
+Replaces the old monolithic `ce_sri/install.py`. Runs standalone as the bench user — NOT via `bench execute` (avoids #136 deadlock). SCP'd to `/tmp/install_specific.py` on the VM.
+
+### Subcommands
+
+| Subcommand | When called | What it does |
+|---|---|---|
+| `phase1` | After envars deployed, before app clones | Clone BaRe, symlink envars.sh, render bash_aliases |
+| `gate` | After installApps + G-pre strip DEFINER | If no BKP/BACKUP.txt → handleBackup → exit; else → handleRestore |
+| `before-install` | After H4a/H3/H4b/H4c (secrets + nginx setup) | Write ce_sri.conf, patch site_config.json, nginx.conf, Procfile, supervisor.conf |
+| `after-restart` | After H4e/H4f/H4f-poll (gunicorn ready) | Confirm API, install Client Scripts, logo, naming series, test data |
+
+Config comes from environment variables (envars.sh sourced by differentiate.sh) + `ce_sri_parms.json` + `site_config.json`. HTTP via stdlib `urllib` — no `requests` dependency.
+
+**First run** (no golden backup): `gate` runs handleBackup.sh and exits. The backup is copied to `platforms/kvm/golden_backups/` on the controller.
+
+**Subsequent runs**: `gate` runs handleRestore.sh, then `before-install` and `after-restart` complete the ce_sri customization.
+
 ## generate_inventory.py
 
 - Reads `hosts_map.yml`, writes `ansible/inventory/kvm.yml`
