@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 from string import Template
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote as urlquote
 from urllib.request import Request, urlopen
 
 
@@ -69,11 +70,17 @@ def _http(method, url, headers, data=None):
         return json.loads(resp.read().decode("utf-8"))
 
 
+_HOST_SITE = None  # set by _load_globals(); sent as Host header
+
+
 def _auth_headers(api_key):
-    return {
+    hdrs = {
         "Content-Type": "application/json; charset=utf-8",
         "Authorization": f"token {api_key}",
     }
+    if _HOST_SITE:
+        hdrs["Host"] = _HOST_SITE
+    return hdrs
 
 
 def api_get(url, api_key):
@@ -275,7 +282,7 @@ def _overlay_parms(parser, parms):
                            "nodejs_service_port"],
         "revenue_service": ["value_added_tax_rate", "test_or_production_mode"],
         "electronic_signature": ["certificate_location", "cert_pwd", "sri_p12_cert"],
-        "environment": ["company_tax_id", "company_logo_location",
+        "environment": ["company_tax_id", "company_logo", "company_logo_location",
                         "legal_company_name", "legal_head_office_address",
                         "legal_branch_office_address", "pretty_company_name",
                         "local_site_nickname", "bold_company_name"],
@@ -448,7 +455,13 @@ def cmd_before_install():
 # ---------------------------------------------------------------------------
 
 def _load_globals(bd, su):
-    """Load ce_sri.conf and derive API URLs + key."""
+    """Load ce_sri.conf and derive API URLs + key.
+
+    URLs use localhost (gunicorn binds 127.0.0.1); the site name is
+    stored in _HOST_SITE so _auth_headers adds it as Host header for
+    Frappe multi-tenant routing.
+    """
+    global _HOST_SITE
     cfg = configparser.ConfigParser()
     conf_path = Path(bd) / "config" / "ce_sri.conf"
     if not conf_path.exists():
@@ -458,7 +471,8 @@ def _load_globals(bd, su):
     site = cfg.get("erpnext_api", "local_site", fallback=su)
     port = cfg.get("erpnext_api", "webserver_port", fallback="8000")
     key = cfg.get("erpnext_api", "erpnext_api_key")
-    base = f"http://{site}:{port}/api"
+    _HOST_SITE = site
+    base = f"http://localhost:{port}/api"
     return cfg, key, f"{base}/resource", f"{base}/method"
 
 
@@ -480,7 +494,8 @@ def install_custom_scripts(bd, rsrc_url, api_key):
     dt = "Sales Invoice"
     record = f"{dt}-Form"
     script_type = "Client Script"
-    api_url = f"{rsrc_url}/{script_type.replace(' ', '%20')}"
+    api_url = f"{rsrc_url}/{urlquote(script_type)}"
+    encoded_record = urlquote(record)
 
     # Find the JS file in the ce_sri app
     js_path = Path(bd) / "apps" / "ce_sri" / "ce_sri" / "frags" / "Sales_Invoice-Form.js"
@@ -490,7 +505,7 @@ def install_custom_scripts(bd, rsrc_url, api_key):
 
     script_text = js_path.read_text()
     try:
-        api_delete(f"{api_url}/{record}", api_key)
+        api_delete(f"{api_url}/{encoded_record}", api_key)
         print(f"  [OK] Deleted previous Client Script '{record}'")
     except (URLError, HTTPError):
         print(f"  [INFO] No previous Client Script '{record}' to delete")
@@ -502,12 +517,16 @@ def install_custom_scripts(bd, rsrc_url, api_key):
 
 def install_company_logo(rsrc_url, mthd_url, api_key, cfg):
     """Upload logo, set Website Settings and Company logo."""
-    logo_location = cfg.get("environment", "company_logo_location", fallback="")
-    if not logo_location or not Path(logo_location).exists():
-        print(f"  [SKIP] Logo not found at {logo_location}")
+    logo_dir = cfg.get("environment", "company_logo_location", fallback="")
+    logo_file = cfg.get("environment", "company_logo", fallback="")
+    if not logo_dir or not logo_file:
+        print(f"  [SKIP] Logo config missing (dir={logo_dir!r}, file={logo_file!r})")
+        return
+    logo_path = Path(logo_dir) / logo_file
+    if not logo_path.exists():
+        print(f"  [SKIP] Logo not found at {logo_path}")
         return
 
-    logo_path = Path(logo_location)
     logo_name = logo_path.name
     b64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
 
@@ -515,6 +534,7 @@ def install_company_logo(rsrc_url, mthd_url, api_key, cfg):
     attach_url = f"{mthd_url}/frappe.client.attach_file"
     api_post(attach_url, api_key, {
         "doctype": "Website Settings",
+        "docname": "Website Settings",
         "filename": logo_name,
         "decode_base64": 1,
         "filedata": b64,
@@ -522,7 +542,7 @@ def install_company_logo(rsrc_url, mthd_url, api_key, cfg):
     print(f"  [OK] Logo uploaded: {logo_name}")
 
     # Set Website Settings
-    ws_url = f"{rsrc_url}/Website%20Settings/Website%20Settings"
+    ws_url = f"{rsrc_url}/{urlquote('Website Settings')}/{urlquote('Website Settings')}"
     api_put(ws_url, api_key, {
         "banner_image": f"/files/{logo_name}",
         "brand_html": f'<img src="/files/{logo_name}" style="max-height: 80px;">',
@@ -531,7 +551,7 @@ def install_company_logo(rsrc_url, mthd_url, api_key, cfg):
     # Set Company logo
     company = cfg.get("environment", "pretty_company_name", fallback="")
     if company:
-        co_url = f"{rsrc_url}/Company/{company}"
+        co_url = f"{rsrc_url}/Company/{urlquote(company)}"
         api_put(co_url, api_key, {"company_logo": f"/files/{logo_name}"})
     print("  [OK] Website branding installed")
 
@@ -558,7 +578,7 @@ def install_naming_series(rsrc_url, mthd_url, api_key, test_suc_pde, starting):
     srvr_url = f"{mthd_url}/runserverobj"
 
     # Get Naming Series modified date
-    ns_url = f"{rsrc_url}/Naming%20Series/Naming%20Series"
+    ns_url = f"{rsrc_url}/{urlquote('Naming Series')}/{urlquote('Naming Series')}"
     resp = api_get(ns_url, api_key)
     modified = resp["data"]["modified"]
 
@@ -635,8 +655,8 @@ def install_test_data(rsrc_url, api_key, test_suc_pde):
 def _create_test_records(rsrc_url, api_key, datasets):
     """GET-then-POST each record; skip if it already exists."""
     for doc_type, doc_name, record in datasets:
-        post_url = f"{rsrc_url}/{doc_type.replace(' ', '%20')}"
-        get_url = f"{post_url}/{doc_name.replace(' ', '%20')}"
+        post_url = f"{rsrc_url}/{urlquote(doc_type)}"
+        get_url = f"{post_url}/{urlquote(doc_name)}"
         try:
             resp = api_get(get_url, api_key)
             if "exc_type" in resp and resp["exc_type"] == "DoesNotExistError":
