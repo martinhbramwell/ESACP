@@ -1813,14 +1813,14 @@ handle.addEventListener('mousedown', e => {
 
 document.addEventListener('mousemove', e => {
   if (!resizing) return
-  const appTop    = header.getBoundingClientRect().bottom
   const appBottom = document.getElementById('app').getBoundingClientRect().bottom
   const handleH   = handle.offsetHeight
-  const newCyH    = e.clientY - appTop
   const newInfoH  = appBottom - e.clientY - handleH
-  if (newCyH > 80 && newInfoH > 40) {
-    cyEl.style.flex          = 'none'
-    cyEl.style.height        = newCyH + 'px'
+  if (newInfoH > 40) {
+    // Only fix the info-panel height; let #cy keep flex:1 so it absorbs
+    // any extra space when the browser window is resized.
+    cyEl.style.flex          = '1'
+    cyEl.style.height        = ''
     infoPanelEl.style.height = newInfoH + 'px'
     cy.resize()
   }
