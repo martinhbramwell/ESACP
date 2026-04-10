@@ -165,6 +165,18 @@ test.describe('Deploy from Template', () => {
       ([, j]) => j.hostname === hostname && j.status === 'running'
     )
     expect(activeJob).toBeTruthy()
+    const [jobId] = activeJob
+
+    // Wait for provisioning to complete (template clone + differentiation — up to 35 min)
+    await waitForJob(page, jobId, 2_100_000)
+
+    // Verify node is now provisioned and ERPNext is reachable
+    const resp2 = await page.request.get(`${API_URL}/api/hosts`)
+    const data2 = await resp2.json()
+    const host = data2.hosts.find(h => h.hostname === hostname)
+    expect(host).toBeTruthy()
+    expect(host.provisioned).toBe(true)
+    expect(host.erp_url).toBeTruthy()
   })
 })
 
@@ -187,6 +199,18 @@ test.describe('Refresh', () => {
       ([, j]) => j.hostname === hostname && j.status === 'running'
     )
     expect(refreshJob).toBeTruthy()
+    const [jobId] = refreshJob
+
+    // Wait for refresh to complete (differentiation re-run — up to 35 min)
+    await waitForJob(page, jobId, 2_100_000)
+
+    // Verify VM is still provisioned and healthy via API
+    const resp2 = await page.request.get(`${API_URL}/api/hosts`)
+    const data2 = await resp2.json()
+    const host = data2.hosts.find(h => h.hostname === hostname)
+    expect(host).toBeTruthy()
+    expect(host.provisioned).toBe(true)
+    expect(host.erp_url).toBeTruthy()
   })
 })
 
