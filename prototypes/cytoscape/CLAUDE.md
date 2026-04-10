@@ -31,6 +31,11 @@ Nodes reflect libvirt power state (`vm_state` from `/api/hosts`):
 - **Unprovisioned**: amber dashed border (`#f0a020`), warm amber label (`#e8c060`), full icon, `[unprovisioned]` suffix — takes precedence over shut-off styling
 - Shut-off selector requires `[?provisioned]` so it never overrides unprovisioned nodes
 - `_refreshVmState()` polls `/api/hosts` every 30s and patches node data in-place (no re-layout)
+- **Provisioning/Refreshing/Destroying** (active job): blue dashed border (`#4488dd`), cyan label (`#66aaff`), `[provisioning...]`/`[refreshing...]`/`[destroying...]` suffix — overrides unprovisioned amber. Driven by `job_status` node data set by `_attachJobPoller()`.
+- **Clicking a provisioning node** shows live job log in the info panel via `_showNodeJobLog()` — fetches full log snapshot from `/api/jobs/{id}`, primary poller continues to append new lines. Clicking away and back re-fetches the snapshot.
+- `_refreshVmState()` skips label rebuild for nodes with `job_status === 'running'`
+- **Power control buttons**: Start (shut-off VMs), Stop + Reboot (running VMs) — synchronous API calls via `_vmPowerAction()`, immediate `_refreshVmState()` after action, re-renders info panel with updated buttons
+- **Memory guard**: Start button may return HTTP 409 with RAM-exceeded message — surfaced as error text in the info panel
 
 ## Viewport Initialisation
 

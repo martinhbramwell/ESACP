@@ -82,6 +82,19 @@ export async function startRefresh(hostname) {
   return post(`/api/refresh/${hostname}`, {})
 }
 
+// VM power control — returns { ok, message } or throws with detail
+export async function startVm(hostname) {
+  return post(`/api/vm/${hostname}/start`, {})
+}
+
+export async function stopVm(hostname) {
+  return post(`/api/vm/${hostname}/stop`, {})
+}
+
+export async function rebootVm(hostname) {
+  return post(`/api/vm/${hostname}/reboot`, {})
+}
+
 // Returns { web, app, db } each 'green' | 'amber' | 'red'
 export async function fetchHealth(hostname) {
   const res = await fetch(`/api/health/${hostname}`, { signal: signal() })

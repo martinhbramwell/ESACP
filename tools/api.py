@@ -2452,6 +2452,154 @@ def _remove_keys_from_sops(hostname: str, emit):
         work_dir.rmdir()
 
 
+# ── VM power control ─────────────────────────────────────────────────────────
+
+# Safety margin: reserve this much KiB for the host OS when checking RAM.
+_HOST_RAM_RESERVE_KIB = 2 * 1024 * 1024   # 2 GiB
+
+
+def _virsh_ssh(hypervisor: str, virsh_cmd: str, timeout: int = 30) -> subprocess.CompletedProcess:
+    """Run a single virsh command on a hypervisor via SSH."""
+    full_cmd = f"virsh --connect qemu:///system {virsh_cmd}"
+    return subprocess.run(
+        ["ssh", hypervisor, full_cmd],
+        capture_output=True, text=True, timeout=timeout,
+    )
+
+
+def _check_memory(hypervisor: str, hostname: str) -> str | None:
+    """Return an error message if starting *hostname* would exceed safe RAM, else None.
+
+    Queries the hypervisor for total host memory, memory consumed by all
+    running domains, and the target VM's configured memory.  If starting
+    the VM would leave less than _HOST_RAM_RESERVE_KIB for the host OS,
+    returns a human-readable rejection string.
+    """
+    # 1. Host total memory (KiB) from `virsh nodeinfo`
+    r = _virsh_ssh(hypervisor, "nodeinfo")
+    if r.returncode != 0:
+        return f"Cannot query hypervisor memory: {r.stderr.strip()}"
+    host_mem_kib = 0
+    for line in r.stdout.splitlines():
+        if line.startswith("Memory size:"):
+            # "Memory size:      16331264 kB"
+            host_mem_kib = int(line.split(":")[1].strip().split()[0])
+            break
+    if host_mem_kib == 0:
+        return "Could not parse host memory from virsh nodeinfo"
+
+    # 2. Sum memory of all currently-running domains
+    r_list = _virsh_ssh(hypervisor, "list --name")
+    if r_list.returncode != 0:
+        return f"Cannot list running VMs: {r_list.stderr.strip()}"
+    running_vms = [v.strip() for v in r_list.stdout.splitlines() if v.strip()]
+
+    used_kib = 0
+    for vm in running_vms:
+        r_info = _virsh_ssh(hypervisor, f"dominfo {vm}")
+        if r_info.returncode != 0:
+            continue
+        for line in r_info.stdout.splitlines():
+            if line.startswith("Max memory:"):
+                used_kib += int(line.split(":")[1].strip().split()[0])
+                break
+
+    # 3. Target VM's configured memory
+    r_target = _virsh_ssh(hypervisor, f"dominfo {hostname}")
+    if r_target.returncode != 0:
+        return f"Cannot query VM config for '{hostname}': {r_target.stderr.strip()}"
+    target_kib = 0
+    for line in r_target.stdout.splitlines():
+        if line.startswith("Max memory:"):
+            target_kib = int(line.split(":")[1].strip().split()[0])
+            break
+
+    needed = used_kib + target_kib
+    available = host_mem_kib - _HOST_RAM_RESERVE_KIB
+    if needed > available:
+        used_mb = used_kib // 1024
+        target_mb = target_kib // 1024
+        host_mb = host_mem_kib // 1024
+        reserve_mb = _HOST_RAM_RESERVE_KIB // 1024
+        running_list = ", ".join(running_vms) if running_vms else "(none)"
+        return (
+            f"Not enough memory on hypervisor — "
+            f"{target_mb} MiB needed for {hostname}, "
+            f"{used_mb} MiB already used by [{running_list}], "
+            f"host has {host_mb} MiB total ({reserve_mb} MiB reserved for host OS). "
+            f"Shut down another VM first."
+        )
+    return None
+
+
+@app.post("/api/vm/{hostname}/start")
+def vm_start(hostname: str):
+    """Start a shut-off VM, with a memory guard to prevent OOM."""
+    data = load_hosts_map()
+    kvm = data["groups"].get("kvm", {})
+    if hostname not in kvm:
+        raise HTTPException(404, f"'{hostname}' not in hosts_map.yml")
+    host_cfg = kvm[hostname]
+    hypervisor = host_cfg.get("hypervisor")
+    if not hypervisor:
+        raise HTTPException(400, f"No hypervisor configured for '{hostname}'")
+
+    # Memory guard
+    mem_err = _check_memory(hypervisor, hostname)
+    if mem_err:
+        raise HTTPException(409, mem_err)
+
+    r = _virsh_ssh(hypervisor, f"start {hostname}")
+    if r.returncode != 0:
+        detail = r.stderr.strip() or r.stdout.strip()
+        if "already active" in (r.stdout + r.stderr).lower():
+            return {"ok": True, "message": f"{hostname} is already running"}
+        raise HTTPException(500, f"virsh start failed: {detail}")
+    return {"ok": True, "message": f"{hostname} started"}
+
+
+@app.post("/api/vm/{hostname}/stop")
+def vm_stop(hostname: str):
+    """Graceful shutdown of a running VM (virsh shutdown)."""
+    data = load_hosts_map()
+    kvm = data["groups"].get("kvm", {})
+    if hostname not in kvm:
+        raise HTTPException(404, f"'{hostname}' not in hosts_map.yml")
+    host_cfg = kvm[hostname]
+    hypervisor = host_cfg.get("hypervisor")
+    if not hypervisor:
+        raise HTTPException(400, f"No hypervisor configured for '{hostname}'")
+    if host_cfg.get("wg_role") == "hub":
+        raise HTTPException(400, f"Cannot stop hub node '{hostname}' — this would break the mesh")
+
+    r = _virsh_ssh(hypervisor, f"shutdown {hostname}")
+    if r.returncode != 0:
+        detail = r.stderr.strip() or r.stdout.strip()
+        if "domain is not running" in (r.stdout + r.stderr).lower():
+            return {"ok": True, "message": f"{hostname} is already stopped"}
+        raise HTTPException(500, f"virsh shutdown failed: {detail}")
+    return {"ok": True, "message": f"{hostname} shutting down"}
+
+
+@app.post("/api/vm/{hostname}/reboot")
+def vm_reboot(hostname: str):
+    """Reboot a running VM (virsh reboot)."""
+    data = load_hosts_map()
+    kvm = data["groups"].get("kvm", {})
+    if hostname not in kvm:
+        raise HTTPException(404, f"'{hostname}' not in hosts_map.yml")
+    host_cfg = kvm[hostname]
+    hypervisor = host_cfg.get("hypervisor")
+    if not hypervisor:
+        raise HTTPException(400, f"No hypervisor configured for '{hostname}'")
+
+    r = _virsh_ssh(hypervisor, f"reboot {hostname}")
+    if r.returncode != 0:
+        detail = r.stderr.strip() or r.stdout.strip()
+        raise HTTPException(500, f"virsh reboot failed: {detail}")
+    return {"ok": True, "message": f"{hostname} rebooting"}
+
+
 # ── GET /api/jobs ─────────────────────────────────────────────────────────────
 
 @app.get("/api/jobs")
