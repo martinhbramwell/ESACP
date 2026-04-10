@@ -270,9 +270,10 @@ echo "=== H4c: generate bench nginx.conf (install.py patches it) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup nginx --yes" || true
 echo "  [OK] config/nginx.conf generated"
 
-echo "=== H4d: run ce_sri before_install (file patches only — no gunicorn needed) ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.before_install"
-echo "  [OK] ce_sri before_install complete (Procfile, supervisor.conf, nginx patched)"
+echo "=== H4d: run install_specific.py before-install (file patches — no gunicorn needed) ==="
+export TARGET_BENCH="$BENCH_DIR" ERPNEXT_SITE_URL="$SITE_URL"
+sudo -u "$ERP_USER" -E bash -c "cd $BENCH_DIR && python3 /tmp/install_specific.py before-install"
+echo "  [OK] install_specific.py before-install complete"
 
 echo "=== H4e: generate .env via UPDATE_SRI_SERVICE_PARAMETERS.py ==="
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
@@ -305,9 +306,10 @@ if [ $WAITED -ge $MAX_WAIT ]; then
     exit 1
 fi
 
-echo "=== H4g: run ce_sri after_restart (API config — polls gunicorn internally) ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.after_restart"
-echo "  [OK] ce_sri after_restart complete"
+echo "=== H4g: run install_specific.py after-restart (API config — gunicorn must be up) ==="
+export TARGET_BENCH="$BENCH_DIR" ERPNEXT_SITE_URL="$SITE_URL"
+sudo -u "$ERP_USER" -E bash -c "cd $BENCH_DIR && python3 /tmp/install_specific.py after-restart"
+echo "  [OK] install_specific.py after-restart complete"
 
 echo "=== I: install TLS cert ==="
 sudo mkdir -p /etc/nginx/certs/iridium.blue

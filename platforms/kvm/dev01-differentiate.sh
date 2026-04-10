@@ -174,6 +174,10 @@ else
   echo "  [OK] site created, erpnext installed"
 fi
 
+echo "=== D1: ensure currentsite.txt ==="
+sudo -u "$ERP_USER" bash -c "echo '$SITE_URL' > $BENCH_DIR/sites/currentsite.txt"
+echo "  [OK] currentsite.txt set to $SITE_URL"
+
 echo "=== E: place ddlViews.sql ==="
 sudo -u "$ERP_USER" mkdir -p "$BENCH_DIR/sites/$SITE_URL/private/files"
 sudo -u "$ERP_USER" cp /tmp/ddlViews.sql "/home/erpadm/frappe-bench-D1IRBL/sites/dev01.iridium.blue/private/files/ddlViews.sql"
@@ -181,8 +185,7 @@ rm -f /tmp/ddlViews.sql
 echo '  [OK] ddlViews.sql placed'
 
 echo "=== E1: seed tabPatch Log (skip patches that crash on restored DB) ==="
-python3 /tmp/vm_scripts/g1_seed_patch_log.py \
-  --bench-dir "$BENCH_DIR" --site "$SITE_URL"
+python3 /tmp/vm_scripts/g1_seed_patch_log.py   --bench-dir "$BENCH_DIR" --site "$SITE_URL"
 
 echo "=== F: installApps.sh ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/installApps.sh"
@@ -191,13 +194,12 @@ echo "  [OK] installApps.sh complete"
 echo "=== G-pre: strip DEFINER clauses from backup SQL ==="
 python3 /tmp/vm_scripts/gpre_strip_definer.py --bench-dir "$BENCH_DIR"
 
-echo "=== G: handleRestore.sh ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bash BaRe/handleRestore.sh"
+echo "=== G: handleRestore.sh (social login deferred to post-H4a) ==="
+sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && DEFER_SOCIAL_LOGIN=1 bash BaRe/handleRestore.sh"
 echo "  [OK] database restored"
 
 echo "=== G1: re-seed tabPatch Log (restore wiped DB) ==="
-python3 /tmp/vm_scripts/g1_seed_patch_log.py \
-  --bench-dir "$BENCH_DIR" --site "$SITE_URL"
+python3 /tmp/vm_scripts/g1_seed_patch_log.py   --bench-dir "$BENCH_DIR" --site "$SITE_URL"
 
 echo "=== G2: clear fixture Custom Fields + re-migrate ==="
 echo "  Clearing fixture-defined Custom Fields from restored DB..."
@@ -211,6 +213,14 @@ sudo supervisorctl reread
 sudo supervisorctl update
 echo "  [OK] supervisor updated"
 
+echo "=== H2a: ensure site hostname resolves to localhost ==="
+if ! grep -q "$SITE_URL" /etc/hosts; then
+    echo "127.0.0.1 $SITE_URL" | sudo tee -a /etc/hosts >/dev/null
+    echo "  [OK] added $SITE_URL to /etc/hosts"
+else
+    echo "  [OK] $SITE_URL already in /etc/hosts"
+fi
+
 echo "=== H2: bench restart ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && python3 stop.py"
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart"
@@ -218,9 +228,9 @@ sudo supervisorctl restart frappe-bench-ce-sri-svc
 echo "  [OK] bench + ce_sri_svc restarted"
 
 echo "=== H2b: wait for gunicorn to respond ==="
-PING_URL="http://127.0.0.1:8000/api/method/ping"
+PING_URL="http://$SITE_URL:8000/api/method/ping"
 WAITED=0
-MAX_WAIT=60
+MAX_WAIT=120
 while [ $WAITED -lt $MAX_WAIT ]; do
     if curl -sf "$PING_URL" >/dev/null 2>&1; then
         echo "  [OK] gunicorn responding after ${WAITED}s"
@@ -230,7 +240,8 @@ while [ $WAITED -lt $MAX_WAIT ]; do
     WAITED=$((WAITED + 2))
 done
 if [ $WAITED -ge $MAX_WAIT ]; then
-    echo "  [WARN] gunicorn did not respond within ${MAX_WAIT}s — continuing anyway"
+    echo "  [FAIL] gunicorn did not respond within ${MAX_WAIT}s — aborting"
+    exit 1
 fi
 
 echo "=== H4a: clear stale encrypted secrets + regenerate API key ==="
@@ -259,9 +270,10 @@ echo "=== H4c: generate bench nginx.conf (install.py patches it) ==="
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench setup nginx --yes" || true
 echo "  [OK] config/nginx.conf generated"
 
-echo "=== H4d: run ce_sri before_install ==="
-sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL execute ce_sri.install.before_install"
-echo "  [OK] ce_sri before_install complete"
+echo "=== H4d: run install_specific.py before-install (file patches — no gunicorn needed) ==="
+export TARGET_BENCH="$BENCH_DIR" ERPNEXT_SITE_URL="$SITE_URL"
+sudo -u "$ERP_USER" -E bash -c "cd $BENCH_DIR && python3 /tmp/install_specific.py before-install"
+echo "  [OK] install_specific.py before-install complete"
 
 echo "=== H4e: generate .env via UPDATE_SRI_SERVICE_PARAMETERS.py ==="
 _CESRI_SVC="$BENCH_DIR/apps/ce_sri/services/ce_sri_svc"
@@ -277,6 +289,27 @@ sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench restart"
 sudo supervisorctl restart frappe-bench-ce-sri-svc
 sudo nginx -t && sudo systemctl reload nginx
 echo "  [OK] services restarted after install.py"
+
+echo "=== H4f-poll: wait for gunicorn to respond after restart ==="
+WAITED=0
+MAX_WAIT=120
+while [ $WAITED -lt $MAX_WAIT ]; do
+    if curl -sf --max-time 5 "http://$SITE_URL:8000/api/method/ping" >/dev/null 2>&1; then
+        echo "  [OK] gunicorn responding after ${WAITED}s"
+        break
+    fi
+    sleep 2
+    WAITED=$((WAITED + 2))
+done
+if [ $WAITED -ge $MAX_WAIT ]; then
+    echo "  [FAIL] gunicorn did not respond within ${MAX_WAIT}s — aborting"
+    exit 1
+fi
+
+echo "=== H4g: run install_specific.py after-restart (API config — gunicorn must be up) ==="
+export TARGET_BENCH="$BENCH_DIR" ERPNEXT_SITE_URL="$SITE_URL"
+sudo -u "$ERP_USER" -E bash -c "cd $BENCH_DIR && python3 /tmp/install_specific.py after-restart"
+echo "  [OK] install_specific.py after-restart complete"
 
 echo "=== I: install TLS cert ==="
 sudo mkdir -p /etc/nginx/certs/iridium.blue
@@ -307,6 +340,32 @@ sudo ln -sf /etc/nginx/sites-available/dev01.iridium.blue /etc/nginx/sites-enabl
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 echo "  [OK] nginx reloaded with SSL site"
+
+echo "=== H4a-sl: restore Social Login config (needs HTTPS + fresh __Auth from H4a) ==="
+if [ -f /tmp/socials_google.json ]; then
+    sudo -u "$ERP_USER" cp /tmp/socials_google.json "$BENCH_DIR/sites/$SITE_URL/socials_google.json"
+    echo "  [OK] socials_google.json placed in site directory"
+fi
+APIKEY_SH="$BENCH_DIR/sites/$SITE_URL/private/files/apikey.sh"
+if [ -f "$APIKEY_SH" ]; then
+    source "$APIKEY_SH"
+    RESOURCE_URL="https://$SITE_URL/api/resource"
+    SWITCHES="--location --insecure --no-progress-meter --request"
+    AUTH_HEADER="Authorization: token $KEYS"
+    CONTENT_HEADER="Content-Type: application/json"
+    SLK="Social%20Login%20Key"
+    SOCIAL_CONF="$BENCH_DIR/sites/$SITE_URL/socials_google.json"
+    if [ -f "$SOCIAL_CONF" ]; then
+        curl $SWITCHES DELETE --header "$AUTH_HEADER" --header "$CONTENT_HEADER" "$RESOURCE_URL/$SLK/google" >/dev/null 2>&1 || true
+        RSLT=$(curl $SWITCHES POST --header "$AUTH_HEADER" --header "$CONTENT_HEADER" -d @"$SOCIAL_CONF" "$RESOURCE_URL/$SLK")
+        MSG=$(echo "$RSLT" | jq -r .data.social_login_provider 2>/dev/null || echo "unknown")
+        echo "  [OK] Social Login restored (provider: $MSG)"
+    else
+        echo "  [SKIP] No socials_google.json found — Social Login not configured"
+    fi
+else
+    echo "  [WARN] apikey.sh not found — cannot restore Social Login"
+fi
 
 echo "=== L0: deploy stop.py ==="
 cp /tmp/rendered/stop.py $BENCH_DIR/stop.py
