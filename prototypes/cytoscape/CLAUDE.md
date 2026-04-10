@@ -78,13 +78,19 @@ Any operation the Cytoscape UI can perform MUST be performed via the browser ext
 
 ## Playwright Tests
 
-Tests live in `prototypes/cytoscape/tests/`. Run from the `prototypes/cytoscape` directory.
+Tests live in `prototypes/cytoscape/tests/`. Run from the `prototypes/cytoscape` directory. Shared helpers (`waitForGraph`, `selectNode`, `clickInfoButton`, `waitForJob`, constants) in `tests/helpers.js` — imported by all spec files.
 
 ```bash
-npx playwright test --grep "inspect"    # read-only, safest
-npx playwright test --grep "lifecycle"  # destroy + deploy cycle
-npx playwright test --grep "fixture"    # verify ce_sri fixtures post-deploy
+npx playwright test --grep "inspect"        # read-only, safest
+npx playwright test --grep "lifecycle"      # destroy + deploy cycle
+npx playwright test --grep "fixture"        # verify ce_sri fixtures post-deploy
+npx playwright test --grep "button guards"  # unprovisioned node negative test
+npx playwright test --grep "e2e"            # cloud-init provision (real run)
 ```
+
+Test files:
+- `topology-ops.spec.js` — Deploy, Refresh, Destroy, Inspect, Rebuild, Lifecycle, Power, Provisioning state
+- `unprovisioned.spec.js` — button guards (negative) + e2e Provision via cloud-init path (#143)
 
 **Prefer Playwright over Chrome extension** for topology operations (Deploy, Refresh, Destroy, Inspect). Cheaper in API credits, more reliable, and produces repeatable regression scripts. Chrome extension remains valid for visual inspection, ad-hoc exploration, and read-only production browsing.
 

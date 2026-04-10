@@ -1,5 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test'
+import { BASE_URL, API_URL, waitForGraph, selectNode, clickInfoButton, waitForJob } from './helpers.js'
 
 /**
  * ESACP Topology UI — Playwright end-to-end tests
@@ -19,63 +20,6 @@ import { test, expect } from '@playwright/test'
  *   - uvicorn tools.api:app --port 8088  (FastAPI backend)
  *   - bash doCytoscape.sh                (Vite dev server on :5173)
  */
-
-const BASE_URL = process.env.TOPOLOGY_URL || 'http://localhost:5173'
-const API_URL  = process.env.API_URL || 'http://localhost:8088'
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-/**
- * Wait for the Cytoscape graph to initialise (nodes rendered).
- */
-async function waitForGraph(page) {
-  await page.waitForSelector('#cy canvas', { timeout: 10_000 })
-  // Give Cytoscape a moment to lay out nodes
-  await page.waitForTimeout(1500)
-}
-
-/**
- * Click a VM node on the graph by hostname.
- * Uses the API to find the node's WG IP, then clicks via evaluate.
- */
-async function selectNode(page, hostname) {
-  await page.evaluate((h) => {
-    const cy = document.querySelector('#cy')?._cyreg?.cy
-    if (!cy) throw new Error('Cytoscape instance not found')
-    const node = cy.$(`#${h}`)
-    if (node.empty()) throw new Error(`Node '${h}' not found on graph`)
-    node.emit('tap')
-  }, hostname)
-  // Wait for info panel to populate
-  await page.waitForTimeout(500)
-}
-
-/**
- * Click an action button in the info panel by text content.
- */
-async function clickInfoButton(page, buttonText) {
-  const btn = page.locator('#info-panel button', { hasText: buttonText })
-  await expect(btn).toBeVisible({ timeout: 5_000 })
-  await btn.click()
-}
-
-/**
- * Wait for a provisioning/refresh/destroy job to complete.
- * Polls the API /api/jobs endpoint.
- */
-async function waitForJob(page, jobId, timeoutMs = 2_100_000) {
-  const start = Date.now()
-  while (Date.now() - start < timeoutMs) {
-    const resp = await page.request.get(`${API_URL}/api/jobs`)
-    const jobs = await resp.json()
-    const job = jobs[jobId]
-    if (!job) throw new Error(`Job ${jobId} not found`)
-    if (job.status === 'done') return job
-    if (job.status === 'failed') throw new Error(`Job ${jobId} failed`)
-    await page.waitForTimeout(5_000)
-  }
-  throw new Error(`Job ${jobId} timed out after ${timeoutMs}ms`)
-}
 
 // ── Deploy from Template ────────────────────────────────────────────────────
 
