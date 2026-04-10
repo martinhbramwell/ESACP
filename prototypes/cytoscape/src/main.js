@@ -390,6 +390,13 @@ const CY_STYLE = [
     }
   },
 
+  // ── Provisioning (active job running for this node) ──
+  // MUST come after shut-off: a shut-off VM being provisioned shows blue, not grey.
+  {
+    selector: 'node[job_status = "running"]:not(.template-node):not(.phantom)',
+    style: { 'border-color': '#4488dd', 'border-width': 2, 'border-style': 'dashed', 'background-opacity': 1, 'color': '#66aaff' }
+  },
+
   // ── Template lifecycle states — MUST come after VM styles ──
   // Cytoscape :not(.template-node) is buggy and matches template nodes too.
   // Placing tpl-* styles after VM styles ensures they win by array position.
@@ -529,7 +536,8 @@ async function _refreshVmState() {
 
       node.data('vm_state', next)
 
-      // Rebuild label to reflect new state
+      // Rebuild label to reflect new state — but never overwrite a provisioning label
+      if (node.data('job_status') === 'running') continue
       const hostname = h.hostname ?? h.id
       const provisioned = h.provisioned
       let label = hostname
@@ -790,11 +798,25 @@ function renderInfo(data) {
 }
 
 // Render info + contextual action buttons for this VM node.
-// No-ops while a job is running (don't overwrite the job log).
+// If THIS node has an active job, show its live log stream.
+// If a DIFFERENT node has an active job, still show info for this one (read-only).
 // Template tiles have their own renderTemplateInfo — bail out if called for one.
 function renderInfoWithActions(data) {
+  if (data.template === 'yes') {
+    if (activeJob && activeJob.type !== 'build_template') return
+    renderTemplateInfo(data)
+    return
+  }
+
+  // This node has an active job — show live log
+  if (data.job_status === 'running' && data.job_id) {
+    _showNodeJobLog(data.id, data.job_id, data.job_type ?? 'job')
+    return
+  }
+
+  // A different job is running — don't overwrite its log
   if (activeJob) return
-  if (data.template === 'yes') { renderTemplateInfo(data); return }
+
   renderInfo(data)
 
   const role        = data.role
@@ -1143,6 +1165,23 @@ function renderJobLog(lines, done, status) {
   }
 }
 
+// Show live job log for a node that has an active job.
+// Fetches current log state from the API and attaches a display-only poller.
+// The primary poller (in _attachJobPoller) still owns completion handling.
+function _showNodeJobLog(nodeId, jobId, type) {
+  const typeLabel = type.replace(/_/g, ' ')
+  infoPanel.innerHTML = `<pre class="job-log">${typeLabel} in progress for ${nodeId}…\n</pre>`
+
+  // Fetch current log snapshot, then append all lines seen so far
+  fetch(`/api/jobs/${jobId}`)
+    .then(r => r.json())
+    .then(job => {
+      if (job.log && job.log.length) renderJobLog(job.log, false, null)
+      if (job.status !== 'running') renderJobLog([], true, job.status)
+    })
+    .catch(() => {})
+}
+
 // ── Promote button ────────────────────────────────────────────────────────────
 
 const btnPromote = document.getElementById('btn-promote')
@@ -1293,6 +1332,17 @@ function _executeDestroy(hostname) {
 
 function _attachJobPoller(job_id, hostname, type) {
   activeJob = { job_id, hostname, type }
+
+  // Bind job state to the node so it shows [provisioning...] and allows log viewing
+  const jobNode = cy.$(`#${hostname}`)
+  if (!jobNode.empty()) {
+    jobNode.data('job_id', job_id)
+    jobNode.data('job_status', 'running')
+    jobNode.data('job_type', type)
+    const verbMap = { provision: 'provisioning', provision_erpnext: 'provisioning', refresh: 'refreshing', destroy: 'destroying', build_template: 'building' }
+    jobNode.data('label', `${hostname}\n[${verbMap[type] ?? 'working'}...]`)
+  }
+
   pollJob(
     job_id,
     lines  => renderJobLog(lines, false, null),
@@ -1300,19 +1350,32 @@ function _attachJobPoller(job_id, hostname, type) {
       renderJobLog([], true, status)
       activeJob = null
       localStorage.removeItem(JOB_KEY)
+
+      // Clear per-node job state
+      const doneNode = cy.$(`#${hostname}`)
+      if (!doneNode.empty()) {
+        doneNode.data('job_id', null)
+        doneNode.data('job_status', null)
+        doneNode.data('job_type', null)
+      }
+
       if (type === 'build_template') {
         _setTemplateState(status === 'done' ? 'ready' : 'none')
       } else if (status === 'done') {
         if (type === 'provision' || type === 'provision_erpnext') {
-          const node = cy.$(`#${hostname}`)
-          node.data('provisioned', true)
-          node.data('label', hostname)
+          if (!doneNode.empty()) {
+            doneNode.data('provisioned', true)
+            doneNode.data('label', hostname)
+          }
         } else if (type === 'destroy') {
-          const node = cy.$(`#${hostname}`)
-          cy.remove(node.connectedEdges())
-          cy.remove(node)
+          cy.remove(doneNode.connectedEdges())
+          cy.remove(doneNode)
           hint('Click an ERPNext template tile to add a VM.')
         }
+      } else if (!doneNode.empty()) {
+        // Job failed — revert label to unprovisioned or hostname
+        const prov = doneNode.data('provisioned')
+        doneNode.data('label', prov ? hostname : `${hostname}\n[unprovisioned]`)
       }
       _updatePromoteButton()
     }
