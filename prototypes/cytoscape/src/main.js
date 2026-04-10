@@ -222,18 +222,23 @@ function buildNodesEdges(apiHosts) {
 
   const vmNodes = allHosts.map(h => {
     const zone = h.wg_role === 'controller' ? 'zone-console' : zoneFor(h)
+    const vmState = h.vm_state ?? null
+    const shutOff = vmState === 'shut off'
+    let label = h.hostname
+    if (h.provisioned === false)  label = `${h.hostname}\n[unprovisioned]`
+    else if (h.provisioned === null) label = `${h.hostname}\n[unknown]`
+    else if (shutOff)             label = `${h.hostname}\n[shut off]`
     return {
       data: {
         id:             h.id ?? h.hostname,
-        label:          h.provisioned === false ? `${h.hostname}\n[unprovisioned]`
-                      : h.provisioned === null  ? `${h.hostname}\n[unknown]`
-                      : h.hostname,
+        label,
         role:           h.wg_role,
         vm_role:        normalizeVmRole(h.vm_role, zone),
         platform:       h.backend ?? 'kvm',
         wg_ip:          h.wg_ip      ?? '',
         virbr0_ip:      h.virbr0_ip  ?? '',
         provisioned:    !!h.provisioned,
+        vm_state:       vmState,
         ansible_groups: h.ansible_groups ?? [],
         zone_id:        zone,
         nickname:       h.nickname   ?? '',
@@ -366,6 +371,12 @@ const CY_STYLE = [
     style: { 'border-color': '#f0a020', 'border-width': 2, 'border-style': 'dashed' }
   },
 
+  // ── Shut off (provisioned but not running) ──
+  {
+    selector: 'node[vm_state = "shut off"]:not(.template-node):not(.phantom)',
+    style: { 'opacity': 0.4, 'border-color': '#667788' }
+  },
+
   // ── Template lifecycle states — MUST come after VM styles ──
   // Cytoscape :not(.template-node) is buggy and matches template nodes too.
   // Placing tpl-* styles after VM styles ensures they win by array position.
@@ -488,6 +499,36 @@ async function init() {
     _fitZoneGraph()
     _updateZoneOverlay()
   })
+
+  // Poll VM state every 30s so icons stay honest.
+  setInterval(_refreshVmState, 30_000)
+}
+
+async function _refreshVmState() {
+  try {
+    const data = await fetchHosts()
+    for (const h of data.hosts) {
+      const node = cy.$(`#${h.id ?? h.hostname}`)
+      if (node.empty()) continue
+      const prev = node.data('vm_state')
+      const next = h.vm_state ?? null
+      if (prev === next) continue
+
+      node.data('vm_state', next)
+
+      // Rebuild label to reflect new state
+      const hostname = h.hostname ?? h.id
+      const provisioned = h.provisioned
+      let label = hostname
+      if (provisioned === false)       label = `${hostname}\n[unprovisioned]`
+      else if (provisioned === null)   label = `${hostname}\n[unknown]`
+      else if (next === 'shut off')    label = `${hostname}\n[shut off]`
+      node.data('label', label)
+      node.data('provisioned', !!provisioned)
+    }
+  } catch {
+    // API unreachable — leave current state unchanged
+  }
 }
 
 // ── Quad-zone splitter ────────────────────────────────────────────────────────

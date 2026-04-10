@@ -23,6 +23,15 @@ Phantom anchors hold zone corners to prevent zones collapsing. Requirements:
 3. Selector: `node.phantom[phantom = "yes"]` (specificity 21) placed AFTER base VM style in CY_STYLE array
 4. Anchor nodes must NOT have a `parent` field (no compound nodes)
 
+## VM Power State Display
+
+Nodes reflect libvirt power state (`vm_state` from `/api/hosts`):
+- **Running**: normal appearance (full opacity, coloured border)
+- **Shut off**: dimmed (opacity 0.4, grey `#667788` border) + `[shut off]` label suffix
+- **Unprovisioned**: amber dashed border (takes precedence over shut-off label, but dimming still applies)
+- Style selector: `node[vm_state = "shut off"]:not(.template-node):not(.phantom)`
+- `_refreshVmState()` polls `/api/hosts` every 30s and patches node data in-place (no re-layout)
+
 ## Viewport Initialisation
 
 Never use `cy.fit()` at init — unreliable because phantom positions may be wrong and flex dimensions unsettled. Use `_fitZoneGraph()` inside `requestAnimationFrame()`:
