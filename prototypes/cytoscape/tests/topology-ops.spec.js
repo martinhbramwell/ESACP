@@ -371,3 +371,133 @@ test.describe('Full lifecycle', () => {
     expect(nodeGone).toBe(true)
   })
 })
+
+// ── VM Power Control ───────────────────────────────────────────────────────
+
+/**
+ * Power control tests: Start / Stop / Reboot buttons and memory guard.
+ *
+ * These tests verify that the correct buttons appear based on vm_state,
+ * that clicking them calls the API and refreshes state, and that the
+ * memory guard surfaces errors from the backend.
+ *
+ * Usage:
+ *   POWER_HOSTNAME=dev03 npx playwright test --grep "power"
+ *   npx playwright test --grep "power"
+ */
+
+test.describe('power — VM power control', () => {
+  const hostname = process.env.POWER_HOSTNAME || 'dev03'
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(BASE_URL)
+    await waitForGraph(page)
+  })
+
+  test('shows Stop + Reboot buttons for a running VM', async ({ page }) => {
+    // Verify the VM is running via API first
+    const resp = await page.request.get(`${API_URL}/api/hosts`)
+    const data = await resp.json()
+    const host = data.hosts.find(h => h.hostname === hostname)
+    test.skip(!host || host.vm_state !== 'running', `${hostname} is not running — skipping`)
+
+    await selectNode(page, hostname)
+    const stopBtn   = page.locator('#info-panel button', { hasText: 'Stop' })
+    const rebootBtn = page.locator('#info-panel button', { hasText: 'Reboot' })
+    await expect(stopBtn).toBeVisible({ timeout: 3_000 })
+    await expect(rebootBtn).toBeVisible({ timeout: 3_000 })
+    // Start should NOT be visible for a running VM
+    const startBtn = page.locator('#info-panel button', { hasText: 'Start' })
+    await expect(startBtn).toHaveCount(0)
+  })
+
+  test('shows Start button for a shut-off VM', async ({ page }) => {
+    const resp = await page.request.get(`${API_URL}/api/hosts`)
+    const data = await resp.json()
+    const shutOff = data.hosts.find(h => h.vm_state === 'shut off' && h.provisioned)
+    test.skip(!shutOff, 'No shut-off provisioned VM available — skipping')
+
+    await selectNode(page, shutOff.hostname)
+    const startBtn = page.locator('#info-panel button', { hasText: 'Start' })
+    await expect(startBtn).toBeVisible({ timeout: 3_000 })
+    // Stop should NOT be visible for a shut-off VM
+    const stopBtn = page.locator('#info-panel button', { hasText: 'Stop' })
+    await expect(stopBtn).toHaveCount(0)
+  })
+
+  test('Stop button shuts down VM and refreshes state', async ({ page }) => {
+    const resp = await page.request.get(`${API_URL}/api/hosts`)
+    const data = await resp.json()
+    const host = data.hosts.find(h => h.hostname === hostname)
+    test.skip(!host || host.vm_state !== 'running', `${hostname} is not running — skipping`)
+
+    await selectNode(page, hostname)
+    await clickInfoButton(page, 'Stop')
+
+    // Graceful shutdown may take several seconds. The _refreshVmState() call
+    // in _vmPowerAction fires immediately after virsh returns — the VM may
+    // still be in "running" state. Poll the API until the state changes.
+    await expect(async () => {
+      const r = await page.request.get(`${API_URL}/api/hosts`)
+      const d = await r.json()
+      const h = d.hosts.find(x => x.hostname === hostname)
+      expect(h.vm_state).toBe('shut off')
+    }).toPass({ timeout: 30_000, intervals: [3_000] })
+  })
+
+  test('Start button starts VM and refreshes state', async ({ page }) => {
+    const resp = await page.request.get(`${API_URL}/api/hosts`)
+    const data = await resp.json()
+    const host = data.hosts.find(h => h.hostname === hostname)
+    test.skip(!host || host.vm_state !== 'shut off', `${hostname} is not shut off — skipping`)
+
+    await selectNode(page, hostname)
+    await clickInfoButton(page, 'Start')
+
+    // After start + state refresh, the info panel re-renders with Stop/Reboot
+    // buttons (the transient "started" message is replaced by renderInfoWithActions)
+    const stopBtn = page.locator('#info-panel button', { hasText: 'Stop' })
+    await expect(stopBtn).toBeVisible({ timeout: 30_000 })
+
+    // Verify via API that state changed
+    const resp2 = await page.request.get(`${API_URL}/api/hosts`)
+    const data2 = await resp2.json()
+    const host2 = data2.hosts.find(h => h.hostname === hostname)
+    expect(host2.vm_state).toBe('running')
+  })
+
+  test('memory guard surfaces error when insufficient RAM', async ({ page }) => {
+    // Intercept the Vite-proxied path (the browser fetches /api/vm/…, not localhost:8088)
+    await page.route('**/api/vm/*/start', async route => {
+      await route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          detail: 'Not enough memory on hypervisor — 4096 MiB needed for dev99, '
+                + '12288 MiB already used by [saconsole, dev03], '
+                + 'host has 15948 MiB total (2048 MiB reserved for host OS). '
+                + 'Shut down another VM first.'
+        })
+      })
+    })
+
+    // Patch node data to simulate shut-off, then re-tap to get the Start button
+    await page.evaluate((h) => {
+      const cy = document.querySelector('#cy')?._cyreg?.cy
+      if (!cy) return
+      const node = cy.$(`#${h}`)
+      if (node.empty()) return
+      node.data('vm_state', 'shut off')
+      node.data('provisioned', true)
+      node.data('label', `${h}\n[shut off]`)
+      node.emit('tap')
+    }, hostname)
+    await page.waitForTimeout(500)
+
+    await clickInfoButton(page, 'Start')
+
+    // Verify the memory guard error is displayed
+    await expect(page.locator('#info-panel')).toContainText('Not enough memory', { timeout: 5_000 })
+    await expect(page.locator('#info-panel')).toContainText('Shut down another VM first', { timeout: 3_000 })
+  })
+})

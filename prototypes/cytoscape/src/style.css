@@ -518,6 +518,22 @@ pre.job-log {
 
 .action-btn--clone:hover { background: #283200; }
 
+.action-btn--start {
+  background: #0a2a10;
+  border-color: #44cc66;
+  color: #44cc66;
+}
+
+.action-btn--start:hover { background: #104a1a; }
+
+.action-btn--stop {
+  background: #2a1a00;
+  border-color: #cc8844;
+  color: #cc8844;
+}
+
+.action-btn--stop:hover { background: #4a2a00; }
+
 /* ── Dev-zone role selector (radio buttons in info panel) ────────────────── */
 
 .role-selector {

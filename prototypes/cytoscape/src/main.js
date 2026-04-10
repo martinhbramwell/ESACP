@@ -2,7 +2,7 @@ import './style.css'
 import cytoscape from 'cytoscape'
 import { openPopup } from './popup.js'
 import { registry } from './registry.js'
-import { fetchHosts, fetchJobs, addHost, startProvision, startProvisionErpnext, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate, startRefresh } from './api.js'
+import { fetchHosts, fetchJobs, addHost, startProvision, startProvisionErpnext, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate, startRefresh, startVm, stopVm, rebootVm } from './api.js'
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 // base64-encoded SVGs used as Cytoscape background-image per node type.
@@ -857,6 +857,34 @@ function renderInfoWithActions(data) {
     actions.appendChild(btn)
   }
 
+  // ── VM power control: Start / Stop / Reboot ──
+  if (isOperational && provisioned) {
+    const vmState = data.vm_state ?? null
+    if (vmState === 'shut off') {
+      const btn = document.createElement('button')
+      btn.className   = 'action-btn action-btn--start'
+      btn.textContent = '▶ Start'
+      btn.title       = 'Start this VM (memory check will run first)'
+      btn.onclick     = () => _vmPowerAction(data.id, 'start')
+      actions.appendChild(btn)
+    }
+    if (vmState === 'running') {
+      const stopBtn = document.createElement('button')
+      stopBtn.className   = 'action-btn action-btn--stop'
+      stopBtn.textContent = '⏹ Stop'
+      stopBtn.title       = 'Graceful shutdown (virsh shutdown)'
+      stopBtn.onclick     = () => _vmPowerAction(data.id, 'stop')
+      actions.appendChild(stopBtn)
+
+      const rebootBtn = document.createElement('button')
+      rebootBtn.className   = 'action-btn action-btn--secondary'
+      rebootBtn.textContent = '↻ Reboot'
+      rebootBtn.title       = 'Reboot this VM'
+      rebootBtn.onclick     = () => _vmPowerAction(data.id, 'reboot')
+      actions.appendChild(rebootBtn)
+    }
+  }
+
   // Clone to Staging — provisioned dev spoke; disabled if role unsuitable
   if (isOperational && provisioned && data.zone_id === 'zone-dev') {
     const roleType = vm_role.split(':')[1]  // 'unspecified', 'master', 'slave'
@@ -1209,6 +1237,25 @@ function runRefresh(hostname) {
     .catch(err => {
       infoPanel.innerHTML = `<p class="hint error">Refresh failed to start: ${err.message}</p>`
     })
+}
+
+// ── VM power control (start / stop / reboot) ────────────────────────────────
+
+async function _vmPowerAction(hostname, action) {
+  const labels = { start: 'Starting', stop: 'Stopping', reboot: 'Rebooting' }
+  const apiFn  = { start: startVm,    stop: stopVm,     reboot: rebootVm }
+  infoPanel.innerHTML = `<p class="hint">${labels[action]} ${hostname}...</p>`
+  try {
+    const result = await apiFn[action](hostname)
+    infoPanel.innerHTML = `<p class="hint">${result.message}</p>`
+    // Immediate state refresh — don't wait for the 30s poll
+    await _refreshVmState()
+    // Re-render info panel with updated buttons
+    const node = cy.$(`#${hostname}`)
+    if (!node.empty()) renderInfoWithActions(node.data())
+  } catch (err) {
+    infoPanel.innerHTML = `<p class="hint error">${err.message}</p>`
+  }
 }
 
 function runProvision(hostname) {
