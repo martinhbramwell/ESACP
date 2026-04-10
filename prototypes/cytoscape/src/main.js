@@ -148,7 +148,13 @@ function normalizeVmRole(rawRole, zoneId) {
   const zone = zoneId.replace('zone-', '')  // 'dev', 'staging', 'production', 'console'
   if (rawRole === 'master') return `${zone}:master`
   if (rawRole === 'slave')  return `${zone}:slave`
-  return rawRole  // already in two-part format
+  // Two-part format: only master/slave are valid type suffixes for icon selection.
+  // Anything else (e.g. dev:erpnext) normalises to zone:unspecified.
+  if (rawRole.includes(':')) {
+    const type = rawRole.split(':')[1]
+    if (type !== 'master' && type !== 'slave') return `${zone}:unspecified`
+  }
+  return rawRole
 }
 
 function nextDevPosition(cy) {
