@@ -374,13 +374,20 @@ const CY_STYLE = [
   // ── Unprovisioned ──
   {
     selector: 'node[!provisioned]:not(.template-node):not(.phantom)',
-    style: { 'border-color': '#f0a020', 'border-width': 2, 'border-style': 'dashed' }
+    style: { 'border-color': '#f0a020', 'border-width': 2, 'border-style': 'dashed', 'color': '#e8c060' }
   },
 
   // ── Shut off (provisioned but not running) ──
+  // Only matches provisioned nodes — unprovisioned keeps its amber dashed style.
+  // No whole-node opacity: dim the icon only, keep label legible.
   {
-    selector: 'node[vm_state = "shut off"]:not(.template-node):not(.phantom)',
-    style: { 'opacity': 0.4, 'border-color': '#667788' }
+    selector: 'node[vm_state = "shut off"][?provisioned]:not(.template-node):not(.phantom)',
+    style: {
+      'border-color':       '#556677',
+      'border-style':       'dotted',
+      'background-opacity': 0.15,
+      'color':              '#8899aa',
+    }
   },
 
   // ── Template lifecycle states — MUST come after VM styles ──
