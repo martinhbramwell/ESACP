@@ -152,21 +152,23 @@ def _last_octet(ip: str) -> int:
 
 # ── GET /api/hosts ────────────────────────────────────────────────────────────
 
-def _query_provisioned(hypervisor: str | None) -> dict[str, bool] | None:
-    """Return a dict mapping VM name → provisioned (True/False), or None if unreachable.
+def _query_provisioned(hypervisor: str | None) -> dict[str, dict] | None:
+    """Return a dict mapping VM name → {provisioned, vm_state}, or None if unreachable.
 
     provisioned=True  → VM has a 'Baseline' snapshot (Ansible completed)
     provisioned=False → VM exists but has no 'Baseline' snapshot (in-flight or partial)
+    vm_state          → libvirt domain state string (e.g. 'running', 'shut off')
 
     One SSH call per hypervisor; the remote shell loops over all VMs.
     """
     script = (
         "for vm in $(virsh --connect qemu:///system list --all --name | grep -v '^$'); do "
+        "  state=$(virsh --connect qemu:///system domstate $vm 2>/dev/null | head -1); "
         "  if virsh --connect qemu:///system snapshot-list $vm --name 2>/dev/null "
         "     | grep -qi 'baseline'; then "
-        "    echo provisioned:$vm; "
+        "    echo \"provisioned:$state:$vm\"; "
         "  else "
-        "    echo exists:$vm; "
+        "    echo \"exists:$state:$vm\"; "
         "  fi; "
         "done"
     )
@@ -181,9 +183,13 @@ def _query_provisioned(hypervisor: str | None) -> dict[str, bool] | None:
             for line in r.stdout.splitlines():
                 line = line.strip()
                 if line.startswith("provisioned:"):
-                    result[line[len("provisioned:"):]] = True
+                    rest = line[len("provisioned:"):]
+                    state, name = rest.split(":", 1)
+                    result[name] = {"provisioned": True, "vm_state": state}
                 elif line.startswith("exists:"):
-                    result[line[len("exists:"):]] = False
+                    rest = line[len("exists:"):]
+                    state, name = rest.split(":", 1)
+                    result[name] = {"provisioned": False, "vm_state": state}
             return result
     except Exception:
         pass
@@ -224,8 +230,13 @@ def get_hosts():
         vm_map  = vm_cache.get(hv)
         if vm_map is None:
             provisioned = None          # hypervisor unreachable
+            vm_state    = None
+        elif name in vm_map:
+            provisioned = vm_map[name]["provisioned"]
+            vm_state    = vm_map[name]["vm_state"]
         else:
-            provisioned = vm_map.get(name, False)  # False = not yet created
+            provisioned = False         # not yet created
+            vm_state    = None
 
         # Derive zone key from ansible_groups for erp_url
         groups   = h.get("ansible_groups", [])
@@ -250,6 +261,7 @@ def get_hosts():
             "backend":       h.get("backend", "kvm"),
             "hypervisor":    hv or "",
             "provisioned":   provisioned,
+            "vm_state":      vm_state,
             "ansible_groups": groups,
             "vm_role":       h.get("vm_role", "dev"),
             "erp_user":      _erp_user,

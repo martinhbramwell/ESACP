@@ -8,7 +8,7 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/hosts` | KVM hosts + IP suggestions + default hypervisor; includes `vm_role`, `erp_user`, `erp_url`, `hypervisor` |
+| GET | `/api/hosts` | KVM hosts + IP suggestions + default hypervisor; includes `vm_role`, `vm_state`, `erp_user`, `erp_url`, `hypervisor` |
 | POST | `/api/hosts/add` | Append to `hosts_map.yml`, regen inventory; accepts `zone`, `vm_role` |
 | POST | `/api/provision/{host}` | Job: cloud-init + WG + buildVM + provisionVM + saconsole WireGuard hub update (Step 5) |
 | POST | `/api/provision/erpnext` | Template-based deploy: vol-clone + `--import` + differentiation (Steps 1–18) |
@@ -22,6 +22,7 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 ### Key Design Points
 
 - `provisioned` = VM has a snapshot containing "Baseline" (not just VM exists)
+- `vm_state` = libvirt domain state string (`running`, `shut off`, or `null` if hypervisor unreachable); polled by UI every 30s
 - Template build uses `nohup` on saconsole — survives uvicorn reload; log polled via SSH tail every 5s; exit code written to `/tmp/packer-build-output.log.exit`
 - `POST /api/provision/erpnext` writes `platforms/kvm/{hostname}-differentiate.sh` at Step 12 — committed as repo artifact; re-runnable via Refresh
 - `_scp_cesri_secrets()` is a shared helper called by **both** Deploy (Step 10) and Refresh. It decrypts `config/ce_sri_parms.sops.json` via SOPS/age on the controller, patches per-VM overrides (`local_site`, `api_protocol=https`, `api_port=443`, `certificate_location`, `local_site_nickname`, `company_logo_location`, `test_or_production_mode=1`), and SCPs the P12 cert + patched parms JSON + logo + `socials_google.json` to `/tmp/` on the VM. H4b then moves them to `~/.ssh/secrets/`, H4e injects the fresh API key (via `h4e_patch_parms.py`), `UPDATE_SRI_SERVICE_PARAMETERS.py` generates all `.env` variants — no sed. H4a-sl runs after step K (nginx vhost + TLS cert deployed) to restore Social Login via HTTPS API with fresh credentials from H4a (#117)
