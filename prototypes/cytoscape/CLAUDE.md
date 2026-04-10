@@ -26,10 +26,10 @@ Phantom anchors hold zone corners to prevent zones collapsing. Requirements:
 ## VM Power State Display
 
 Nodes reflect libvirt power state (`vm_state` from `/api/hosts`):
-- **Running**: normal appearance (full opacity, coloured border)
-- **Shut off**: dimmed (opacity 0.4, grey `#667788` border) + `[shut off]` label suffix
-- **Unprovisioned**: amber dashed border (takes precedence over shut-off label, but dimming still applies)
-- Style selector: `node[vm_state = "shut off"]:not(.template-node):not(.phantom)`
+- **Running**: full brightness, coloured border, bright label
+- **Shut off** (provisioned): grey dotted border (`#556677`), faded icon (`background-opacity: 0.15`), muted label (`#8899aa`), `[shut off]` suffix
+- **Unprovisioned**: amber dashed border (`#f0a020`), warm amber label (`#e8c060`), full icon, `[unprovisioned]` suffix — takes precedence over shut-off styling
+- Shut-off selector requires `[?provisioned]` so it never overrides unprovisioned nodes
 - `_refreshVmState()` polls `/api/hosts` every 30s and patches node data in-place (no re-layout)
 
 ## Viewport Initialisation
