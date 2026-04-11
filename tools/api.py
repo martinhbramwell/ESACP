@@ -30,6 +30,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from tools.pipeline.stages.env_kvm import KvmEnv
+from tools.pipeline.stages.stage_1_vm_creation import run_stage_1
+
 PROJECT_ROOT        = Path(__file__).parent.parent
 PLATFORMS_KVM       = PROJECT_ROOT / "platforms" / "kvm"
 PLATFORMS_PACKER    = PROJECT_ROOT / "platforms" / "packer"
@@ -852,121 +855,15 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
     ]
 
     try:
-        # ── Step 0: Clean up residue from a previous build ────────────────────
-        if cleanup_cfg:
-            emit("── Step 0: Cleaning up residue from previous build ──")
-            _destroy_vm(vm.hostname, cleanup_cfg, emit)
-            emit("  [OK] Old VM residue removed — starting fresh")
-
-        # ── Step 1: WireGuard peer ────────────────────────────────────────────
-        emit("── Step 1: Add WireGuard peer ──")
-        if KEYS_SOPS.exists():
-            dec = subprocess.run(
-                ["sops", "-d", str(KEYS_SOPS)],
-                cwd=PROJECT_ROOT, capture_output=True, text=True,
-            )
-            if vm.hostname in dec.stdout:
-                emit(f"  WireGuard keys for '{vm.hostname}' already present — skipping")
-            else:
-                _add_wg_peer(vm.hostname, emit)
-        else:
-            emit("  keys.sops.yml not found — skipping WireGuard peer generation")
-
-        # ── Step 2: Build seed ISO ────────────────────────────────────────────
-        emit("── Step 2: Build cloud-config seed ISO ──")
-        seed_local = _build_template_seed_iso(vm, emit)
-
-        # ── Step 3: Upload seed ISO to hypervisor ────────────────────────────
-        emit("── Step 3: Upload seed ISO to hypervisor ──")
-        remote_seed = f"{TOSHIBA_IMAGES_DIR}/{vm.hostname}-seed.iso"
-        r = subprocess.run(
-            ["scp", str(seed_local), f"{TOSHIBA_HYPERVISOR_USER}@{TOSHIBA_ALIAS}:{remote_seed}"],
-            capture_output=True, text=True,
+        # ── Stage 1: VM Creation (Steps 0–7) ─────────────────────────────────
+        kvm_env = KvmEnv.from_project_root(PROJECT_ROOT)
+        run_stage_1(
+            hostname=vm.hostname,
+            virbr0_ip=vm.virbr0_ip,
+            env=kvm_env,
+            emit=emit,
+            cleanup_cfg=cleanup_cfg,
         )
-        if r.returncode != 0:
-            raise RuntimeError(f"scp seed ISO failed: {r.stderr.strip()}")
-        emit(f"  [OK] Seed ISO at {TOSHIBA_ALIAS}:{remote_seed}")
-
-        # ── Step 4: Clone template qcow2 ─────────────────────────────────────
-        emit("── Step 4: Clone template qcow2 ──")
-        meta_r = subprocess.run(
-            ["ssh", TOSHIBA_ALIAS,
-             f"cat {TOSHIBA_METADATA_DIR}/erpnext-v13-latest.json 2>/dev/null"],
-            capture_output=True, text=True, timeout=10,
-        )
-        if meta_r.returncode != 0 or not meta_r.stdout.strip():
-            raise RuntimeError("Template metadata not found on toshiba — run a Packer build first")
-        meta = json.loads(meta_r.stdout)
-        template_image = meta.get("image")
-        if not template_image:
-            raise RuntimeError("Template metadata missing 'image' field")
-        emit(f"  Template image: {template_image}")
-
-        clone_r = subprocess.run(
-            ["ssh", TOSHIBA_ALIAS,
-             f"virsh --connect qemu:///system vol-clone --pool {TOSHIBA_POOL} "
-             f"'{template_image}' '{vm.hostname}.qcow2'"],
-            capture_output=True, text=True, timeout=300,
-        )
-        if clone_r.returncode != 0:
-            raise RuntimeError(f"vol-clone failed: {clone_r.stderr.strip()}")
-        emit(f"  [OK] Cloned {template_image} → {vm.hostname}.qcow2")
-
-        # ── Step 5: virt-install --import ─────────────────────────────────────
-        emit("── Step 5: virt-install --import ──")
-        virt_cmd = (
-            f"virt-install --connect qemu:///system"
-            f" --name {vm.hostname}"
-            f" --ram 4096"
-            f" --vcpus 2"
-            f" --disk vol={TOSHIBA_POOL}/{vm.hostname}.qcow2"
-            f" --disk path={remote_seed},device=cdrom,readonly=on"
-            f" --network network=default"
-            f" --os-variant ubuntu20.04"
-            f" --import"
-            f" --graphics vnc"
-            f" --noautoconsole"
-        )
-        r = subprocess.run(
-            ["ssh", TOSHIBA_ALIAS, virt_cmd],
-            capture_output=True, text=True, timeout=120,
-        )
-        if r.returncode != 0:
-            raise RuntimeError(f"virt-install --import failed: {r.stderr.strip()}")
-        emit(f"  [OK] VM {vm.hostname} started (booting from template)")
-
-        # ── Step 6: Wait for SSH ──────────────────────────────────────────────
-        emit("── Step 6: Wait for SSH ──")
-        subprocess.run(["ssh-keygen", "-R", vm.virbr0_ip], capture_output=True)
-        subprocess.run(["ssh-keygen", "-R", vm.hostname],  capture_output=True)
-
-        ssh_ready = False
-        for attempt in range(60):
-            time.sleep(10)
-            r = subprocess.run(
-                target_ssh + ["echo ready"],
-                capture_output=True, text=True,
-            )
-            if r.returncode == 0 and "ready" in r.stdout:
-                emit(f"  [OK] SSH up after ~{(attempt + 1) * 10}s")
-                ssh_ready = True
-                break
-            if attempt % 3 == 0:
-                emit(f"  Waiting for SSH ... ({(attempt + 1) * 10}s)")
-        if not ssh_ready:
-            raise RuntimeError("VM did not become SSH-ready within 10 minutes")
-
-        # ── Step 7: Baseline snapshot ─────────────────────────────────────────
-        emit("── Step 7: Take Baseline snapshot ──")
-        r = subprocess.run(
-            ["ssh", TOSHIBA_ALIAS,
-             f"virsh --connect qemu:///system snapshot-create-as {vm.hostname} 'Baseline' --atomic"],
-            capture_output=True, text=True, timeout=60,
-        )
-        if r.returncode != 0:
-            emit(f"  [WARN] Baseline snapshot failed: {r.stderr.strip()}")
-        else:
-            emit("  [OK] Baseline snapshot taken")
 
         # ── Step 8: Update saconsole WireGuard ───────────────────────────────
         emit("── Step 8: Update saconsole WireGuard (Ansible) ──")
