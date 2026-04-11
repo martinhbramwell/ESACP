@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from tools.pipeline.types import Config
+from tools.pipeline.stages.common.types import Config
 
 SACONSOLE_IP = "192.168.122.10"
 

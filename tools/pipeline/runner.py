@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-from tools.pipeline.types import Config, Emit, TaskResult
+from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 
 def run_pipeline(

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from tools.pipeline.ssh import saconsole_ssh_run, ssh_run
-from tools.pipeline.types import Config, Emit, TaskResult
+from tools.pipeline.stages.common.ssh import saconsole_ssh_run, ssh_run
+from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 ACME_CERT_HOME = "/opt/acme-certs"
 DOMAIN = "iridium.blue"

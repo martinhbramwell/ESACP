@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from tools.pipeline.types import Config
+from tools.pipeline.stages.common.types import Config
 
 ZONE_DOMAINS: dict[str, str] = {
     "development": "iridium.blue",

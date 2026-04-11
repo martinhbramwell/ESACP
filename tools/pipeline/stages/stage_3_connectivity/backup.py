@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tools.pipeline.ssh import rsync_to_vm, ssh_run
-from tools.pipeline.types import Config, Emit, TaskResult
+from tools.pipeline.stages.common.ssh import rsync_to_vm, ssh_run
+from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 BKP_SRC = Path.home() / "projects" / "Logichem" / "ce_sri" / "BKP"
 

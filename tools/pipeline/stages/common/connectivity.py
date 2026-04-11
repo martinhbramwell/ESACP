@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from tools.pipeline.ssh import ssh_run
-from tools.pipeline.types import Config, Emit, TaskResult
+from tools.pipeline.stages.common.ssh import ssh_run
+from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 
 def ensure_connectivity(config: Config, emit: Emit) -> TaskResult:

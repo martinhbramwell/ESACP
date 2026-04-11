@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tools.pipeline.ssh import scp_to_vm, ssh_run
-from tools.pipeline.types import Config, Emit, TaskResult
+from tools.pipeline.stages.common.ssh import scp_to_vm, ssh_run
+from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 DEPLOY_KEY_DIR = Path.home() / ".ssh"
 DEPLOY_KEYS = {

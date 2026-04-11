@@ -6,8 +6,8 @@ import json
 import subprocess
 from pathlib import Path
 
-from tools.pipeline.ssh import scp_to_vm
-from tools.pipeline.types import Config, Emit, TaskResult
+from tools.pipeline.stages.common.ssh import scp_to_vm
+from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 CE_SRI_SECRETS_DIR = Path.home() / ".ssh" / "secrets"
 CE_SRI_P12_CERT = CE_SRI_SECRETS_DIR / (

@@ -7,8 +7,8 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from tools.pipeline.ssh import rsync_to_vm, scp_to_vm
-from tools.pipeline.types import Config, Emit, TaskResult
+from tools.pipeline.stages.common.ssh import rsync_to_vm, scp_to_vm
+from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 
 def _build_render_params(config: Config) -> dict:
