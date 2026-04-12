@@ -42,20 +42,25 @@ def check_social_login(
     target_ip: str, ssh_opts: list[str], ssh_key: str,
     erp_user: str, bench_dir: str, site_url: str,
 ) -> tuple[bool, str]:
-    """Social Login Key 'google' exists via API."""
-    apikey_sh = f"{bench_dir}/sites/{site_url}/private/files/apikey.sh"
+    """Social Login Key 'google' exists (verified via DB, not API).
+
+    Uses direct MySQL query because Frappe v13 /api/resource/ GETs are
+    broken by missing apply_perm_level_on_api_calls field (#159).
+    """
     cmd = (
-        f"sudo -u {erp_user} bash -c '"
-        f"if [ -f {apikey_sh} ]; then"
-        f"  source {apikey_sh};"
-        f"  curl -sf --insecure --max-time 5"
-        f"  --header \"Authorization: token $KEYS\""
-        f"  https://{site_url}/api/resource/Social%20Login%20Key/google"
-        f"  >/dev/null && echo y;"
-        f"else echo n; fi'"
+        f"python3 -c \""
+        f"import json, subprocess, sys; "
+        f"c = json.load(open('{bench_dir}/sites/{site_url}/site_config.json')); "
+        f"r = subprocess.run("
+        f"['mysql', '-AD', c['db_name'], '-u' + c['db_name'], "
+        f"'-p' + c.get('db_password',''), "
+        f"'-e', 'SELECT name FROM \\`tabSocial Login Key\\` "
+        f"WHERE name=\\\"google\\\"', '--skip-column-names'], "
+        f"capture_output=True, text=True); "
+        f"print(r.stdout.strip()) if r.returncode == 0 else sys.exit(1)\""
     )
-    r = _ssh_vm(target_ip, ssh_opts, ssh_key, cmd, timeout=10)
-    if r.returncode == 0 and "y" in r.stdout:
+    r = _ssh_vm(target_ip, ssh_opts, ssh_key, cmd, timeout=15)
+    if r.returncode == 0 and "google" in r.stdout:
         return True, "Social Login Key 'google' present"
     return False, "Social Login Key 'google' not found"
 
@@ -105,51 +110,18 @@ def all_passed(results: list[tuple[bool, str]]) -> bool:
 
 # ── CLI entry point ──────────────────────────────────────────────────
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <hostname> [project_root]")
-        sys.exit(2)
-
-    host = sys.argv[1]
-    proj = sys.argv[2] if len(sys.argv) > 2 else str(
-        Path(__file__).resolve().parents[4])
-
-    import yaml
-
-    hm = Path(proj) / "hosts_map.yml"
-    with open(hm) as f:
-        data = yaml.safe_load(f)
-    host_cfg = data["groups"]["kvm"][host]
-
-    hypervisor = host_cfg.get("hypervisor", "toshiba")
-    virbr0_ip = host_cfg["virbr0_ip"]
-    ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
-    ssh_opts = [
-        "-o", f"ProxyJump={hypervisor}",
-        "-o", "StrictHostKeyChecking=no",
-    ]
-
-    erp_user = "erpadm"
-    nickname = host_cfg.get("nickname", host[:4])
-    bench_dir = f"/home/{erp_user}/frappe-bench-{nickname}"
-    site_url = host_cfg.get("site_url", f"{host}.iridium.blue")
-
-    results = verify_stage_9(
-        target_ip=virbr0_ip,
-        ssh_opts=ssh_opts,
-        ssh_key=ssh_key,
-        erp_user=erp_user,
-        bench_dir=bench_dir,
-        site_url=site_url,
+    from tools.pipeline.stages.common.verify_cli import (
+        parse_verify_args,
+        print_results,
     )
 
-    print(f"\n── Stage 9 verification: {host} ──")
-    passed = failed = 0
-    for ok, msg in results:
-        tag = "\u2705" if ok else "\u274c"
-        print(f"  {tag}  {msg}")
-        if ok:
-            passed += 1
-        else:
-            failed += 1
-    print(f"\n  {passed} passed, {failed} failed")
-    sys.exit(0 if failed == 0 else 1)
+    ctx = parse_verify_args()
+    results = verify_stage_9(
+        target_ip=ctx.target_ip,
+        ssh_opts=ctx.ssh_opts,
+        ssh_key=ctx.ssh_key,
+        erp_user=ctx.erp_user,
+        bench_dir=ctx.bench_dir,
+        site_url=ctx.site_url,
+    )
+    print_results("Stage 9", ctx.hostname, results)

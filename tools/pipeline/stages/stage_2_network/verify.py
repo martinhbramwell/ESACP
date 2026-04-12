@@ -141,35 +141,17 @@ def all_passed(results: list[tuple[bool, str]]) -> bool:
 
 # ── CLI entry point ──────────────────────────────────────────────────────
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <hostname> [project_root]")
-        sys.exit(2)
-
-    host = sys.argv[1]
-    proj = sys.argv[2] if len(sys.argv) > 2 else str(Path(__file__).resolve().parents[4])
-
-    # Load host config from hosts_map.yml
-    hm = Path(proj) / "hosts_map.yml"
-    with open(hm) as f:
-        data = yaml.safe_load(f)
-    host_cfg = data["groups"]["kvm"][host]
-
-    results = verify_stage_2(
-        hostname=host,
-        wg_ip=host_cfg["wg_ip"],
-        virbr0_ip=host_cfg["virbr0_ip"],
-        hypervisor=host_cfg.get("hypervisor", "toshiba"),
-        project_root=proj,
+    from tools.pipeline.stages.common.verify_cli import (
+        parse_verify_args,
+        print_results,
     )
 
-    print(f"\n── Stage 2 verification: {host} ──")
-    passed = failed = 0
-    for ok, msg in results:
-        tag = "✅" if ok else "❌"
-        print(f"  {tag}  {msg}")
-        if ok:
-            passed += 1
-        else:
-            failed += 1
-    print(f"\n  {passed} passed, {failed} failed")
-    sys.exit(0 if failed == 0 else 1)
+    ctx = parse_verify_args()
+    results = verify_stage_2(
+        hostname=ctx.hostname,
+        wg_ip=ctx.wg_ip,
+        virbr0_ip=ctx.virbr0_ip,
+        hypervisor=ctx.hypervisor,
+        project_root=ctx.project_root,
+    )
+    print_results("Stage 2", ctx.hostname, results)

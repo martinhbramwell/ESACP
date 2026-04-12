@@ -77,53 +77,17 @@ def all_passed(results: list[tuple[bool, str]]) -> bool:
 
 # ── CLI entry point ──────────────────────────────────────────────────────
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <hostname> [project_root]")
-        sys.exit(2)
-
-    host = sys.argv[1]
-    proj = sys.argv[2] if len(sys.argv) > 2 else str(
-        Path(__file__).resolve().parents[4])
-
-    import yaml
-
-    hm = Path(proj) / "hosts_map.yml"
-    with open(hm) as f:
-        data = yaml.safe_load(f)
-    host_cfg = data["groups"]["kvm"][host]
-
-    hypervisor = host_cfg.get("hypervisor", "toshiba")
-    virbr0_ip = host_cfg["virbr0_ip"]
-    ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
-    ssh_opts = [
-        "-o", f"ProxyJump={hypervisor}",
-        "-o", "StrictHostKeyChecking=no",
-    ]
-
-    # Derive domain from ansible_groups
-    groups = host_cfg.get("ansible_groups", [])
-    if "production" in groups:
-        domain = "logichem.solutions"
-    else:
-        domain = "iridium.blue"
-    site_url = f"{host}.{domain}"
-
-    results = verify_stage_5(
-        target_ip=virbr0_ip,
-        ssh_opts=ssh_opts,
-        ssh_key=ssh_key,
-        site_url=site_url,
-        domain=domain,
+    from tools.pipeline.stages.common.verify_cli import (
+        parse_verify_args,
+        print_results,
     )
 
-    print(f"\n── Stage 5 verification: {host} ──")
-    passed = failed = 0
-    for ok, msg in results:
-        tag = "\u2705" if ok else "\u274c"
-        print(f"  {tag}  {msg}")
-        if ok:
-            passed += 1
-        else:
-            failed += 1
-    print(f"\n  {passed} passed, {failed} failed")
-    sys.exit(0 if failed == 0 else 1)
+    ctx = parse_verify_args()
+    results = verify_stage_5(
+        target_ip=ctx.target_ip,
+        ssh_opts=ctx.ssh_opts,
+        ssh_key=ctx.ssh_key,
+        site_url=ctx.site_url,
+        domain=ctx.domain,
+    )
+    print_results("Stage 5", ctx.hostname, results)

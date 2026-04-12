@@ -102,39 +102,15 @@ if __name__ == "__main__":
         print(f"Usage: {sys.argv[0]} <hostname> [project_root]")
         sys.exit(2)
 
-    host = sys.argv[1]
-    proj = sys.argv[2] if len(sys.argv) > 2 else str(
-        Path(__file__).resolve().parents[4])
-
-    import yaml
-
-    hm = Path(proj) / "hosts_map.yml"
-    with open(hm) as f:
-        data = yaml.safe_load(f)
-    host_cfg = data["groups"]["kvm"][host]
-
-    hypervisor = host_cfg.get("hypervisor", "toshiba")
-    virbr0_ip = host_cfg["virbr0_ip"]
-    ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
-    ssh_opts = [
-        "-o", f"ProxyJump={hypervisor}",
-        "-o", "StrictHostKeyChecking=no",
-    ]
-
-    results = verify_stage_4(
-        target_ip=virbr0_ip,
-        ssh_opts=ssh_opts,
-        ssh_key=ssh_key,
+    from tools.pipeline.stages.common.verify_cli import (
+        parse_verify_args,
+        print_results,
     )
 
-    print(f"\n\u2500\u2500 Stage 4 verification: {host} \u2500\u2500")
-    passed = failed = 0
-    for ok, msg in results:
-        tag = "\u2705" if ok else "\u274c"
-        print(f"  {tag}  {msg}")
-        if ok:
-            passed += 1
-        else:
-            failed += 1
-    print(f"\n  {passed} passed, {failed} failed")
-    sys.exit(0 if failed == 0 else 1)
+    ctx = parse_verify_args()
+    results = verify_stage_4(
+        target_ip=ctx.target_ip,
+        ssh_opts=ctx.ssh_opts,
+        ssh_key=ctx.ssh_key,
+    )
+    print_results("Stage 4", ctx.hostname, results)
