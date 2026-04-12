@@ -15,6 +15,7 @@ from tools.pipeline.stages.common.types import Config, Emit
 from .verify import all_passed, verify_stage_5
 
 _SCRIPT = Path(__file__).parent / "tls_setup.sh"
+_DHPARAM = Path(__file__).resolve().parents[4] / "config" / "dhparam.pem"
 
 
 def run_stage_5(config: Config, emit: Emit) -> None:
@@ -44,9 +45,9 @@ def run_stage_5(config: Config, emit: Emit) -> None:
         emit("[OK] Stage 5 already satisfied — skipping")
         return
 
-    # ── SCP tls_setup.sh to VM ──
+    # ── SCP tls_setup.sh + shared dhparam.pem to VM ──
     emit("── Stage 5: TLS setup (sections I, J, K) ──")
-    r = scp_to_vm(config, [str(_SCRIPT)], "/tmp/", timeout=15)
+    r = scp_to_vm(config, [str(_SCRIPT), str(_DHPARAM)], "/tmp/", timeout=15)
     if r.returncode != 0:
         raise RuntimeError(f"SCP tls_setup.sh failed: {r.stderr.strip()}")
 

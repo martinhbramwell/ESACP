@@ -46,9 +46,14 @@ echo "  [OK] /etc/nginx/sites-available/${SITE_URL}"
 # ── Section K: DH params + enable site ───────────────────────────────
 echo "=== K: DH params + enable site ==="
 if [ ! -f "${NGINX_DHPARAM}" ]; then
-    echo "  Generating DH params (2048-bit) — once per VM, reused on redeploy ..."
-    openssl dhparam -out "${NGINX_DHPARAM}" 2048 2>/dev/null
-    echo "  [OK] DH params written to ${NGINX_DHPARAM}"
+    if [ -f /tmp/dhparam.pem ]; then
+        cp /tmp/dhparam.pem "${NGINX_DHPARAM}"
+        chmod 644 "${NGINX_DHPARAM}"
+        echo "  [OK] DH params installed to ${NGINX_DHPARAM}"
+    else
+        echo "  [ERROR] /tmp/dhparam.pem not found — SCP from controller failed?"
+        exit 1
+    fi
 else
     echo "  [OK] DH params already present — skipping"
 fi

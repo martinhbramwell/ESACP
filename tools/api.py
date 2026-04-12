@@ -1045,6 +1045,17 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
                 raise RuntimeError(f"rsync {remote_path} failed: {r.stderr.strip()}")
         emit("  [OK] rendered bundle + renderers + templates deployed")
 
+        # SCP shared dhparam.pem to /tmp/ on VM
+        _dhparam = str(PROJECT_ROOT / "config" / "dhparam.pem")
+        r = subprocess.run(
+            ["scp"] + scp_opts + [_dhparam, f"you@{vm.virbr0_ip}:/tmp/"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if r.returncode != 0:
+            emit(f"  [WARN] SCP dhparam.pem failed: {r.stderr.strip()}")
+        else:
+            emit("  [OK] dhparam.pem deployed to /tmp/")
+
         # SCP install_specific.py to /tmp/ on VM
         _install_specific = str(PROJECT_ROOT / "tools" / "install_specific.py")
         r = subprocess.run(
@@ -1088,9 +1099,14 @@ echo "  [OK] /etc/nginx/sites-available/{site_url}"
 
 echo "=== K: DH params + enable site ==="
 if [ ! -f {nginx_dhparam} ]; then
-    echo "  Generating DH params (2048-bit) — once per VM, reused on redeploy ..."
-    sudo openssl dhparam -out {nginx_dhparam} 2048 2>/dev/null
-    echo "  [OK] DH params written to {nginx_dhparam}"
+    if [ -f /tmp/dhparam.pem ]; then
+        sudo cp /tmp/dhparam.pem {nginx_dhparam}
+        sudo chmod 644 {nginx_dhparam}
+        echo "  [OK] DH params installed to {nginx_dhparam}"
+    else
+        echo "  [ERROR] /tmp/dhparam.pem not found"
+        exit 1
+    fi
 fi
 sudo ln -sf /etc/nginx/sites-available/{site_url} /etc/nginx/sites-enabled/{site_url}
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -1780,6 +1796,18 @@ def _run_refresh(job_id: str, hostname: str, wg_ip: str, script: Path, host_cfg:
                 raise RuntimeError(f"rsync {remote_path} failed: {r.stderr.strip()}")
         shutil.rmtree(rendered_dir, ignore_errors=True)
         emit(f"  [OK] config bundle + renderers + templates + vm_scripts deployed")
+
+        # SCP shared dhparam.pem to /tmp/ on VM
+        _dhparam = str(PROJECT_ROOT / "config" / "dhparam.pem")
+        r = subprocess.run(
+            ["scp", "-o", "StrictHostKeyChecking=no",
+             _dhparam, f"you@{wg_ip}:/tmp/"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if r.returncode != 0:
+            emit(f"  [WARN] SCP dhparam.pem failed: {r.stderr.strip()}")
+        else:
+            emit("  [OK] dhparam.pem deployed to /tmp/")
 
         # SCP install_specific.py to /tmp/ on VM
         _install_specific = str(PROJECT_ROOT / "tools" / "install_specific.py")
