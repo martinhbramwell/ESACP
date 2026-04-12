@@ -9,6 +9,7 @@ from __future__ import annotations
 from tools.pipeline.stages.common.types import Config, Emit
 
 from .cloudflare_dns import upsert_cloudflare_dns
+from .verify import all_passed, verify_stage_2
 from .saconsole_wg_hub import update_saconsole_wg_hub
 from .tls_cert import ensure_tls_cert
 from .wireguard_spoke import configure_wireguard_spoke
@@ -29,6 +30,19 @@ def run_stage_2(config: Config, emit: Emit) -> None:
     RuntimeError
         If any critical step fails.
     """
+    # ── Idempotency gate: skip if all postconditions already met ──
+    results = verify_stage_2(
+        hostname=config.hostname,
+        wg_ip=config.wg_ip,
+        virbr0_ip=config.virbr0_ip,
+        hypervisor=config.hypervisor or "toshiba",
+        project_root=config.project_root,
+        ssh_key=config.ssh_key,
+    )
+    if all_passed(results):
+        emit("[OK] Stage 2 already satisfied — skipping")
+        return
+
     # ── Step 8: Update saconsole WireGuard hub ──
     emit("── Step 8: Update saconsole WireGuard (Ansible) ──")
     r = update_saconsole_wg_hub(config, emit)

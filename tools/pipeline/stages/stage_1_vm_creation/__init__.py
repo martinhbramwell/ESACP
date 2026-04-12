@@ -12,6 +12,7 @@ from tools.pipeline.stages.common.types import Emit
 from tools.pipeline.stages.env_kvm import KvmEnv
 
 from .baseline_snapshot import take_baseline_snapshot
+from .verify import all_passed, verify_stage_1
 from .cleanup_residue import cleanup_residue
 from .clone_template import clone_template
 from .seed_iso import build_seed_iso
@@ -49,6 +50,18 @@ def run_stage_1(
     """
     if ssh_key is None:
         ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
+
+    # ── Idempotency gate: skip if all postconditions already met ──
+    results = verify_stage_1(
+        hostname=hostname,
+        virbr0_ip=virbr0_ip,
+        hypervisor=env.hypervisor_alias,
+        project_root=env.project_root,
+        ssh_key=ssh_key,
+    )
+    if all_passed(results):
+        emit("[OK] Stage 1 already satisfied — skipping")
+        return
 
     # ── Step 0: Clean up residue from a previous build ──
     if cleanup_cfg:
