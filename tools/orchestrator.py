@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Standalone test orchestrator: destroy + rebuild a VM through Stages 1–2.
+"""Standalone test orchestrator: destroy + rebuild a VM through Stages 1–3.
 
 Usage:
     ./tools/orchestrator.py dev03
 
-Destroys the VM on its hypervisor, then runs Stage 1 (VM Creation)
-and Stage 2 (Network).  Verifies postconditions after each stage —
-a verify failure after running is a hard error.
+Destroys the VM on its hypervisor, then runs Stage 1 (VM Creation),
+Stage 2 (Network), and Stage 3 (Connectivity).  Verifies postconditions
+after each stage — a verify failure after running is a hard error.
 """
 
 from __future__ import annotations
@@ -31,6 +31,11 @@ from tools.pipeline.stages.stage_2_network import run_stage_2
 from tools.pipeline.stages.stage_2_network.verify import (
     all_passed as s2_all_passed,
     verify_stage_2,
+)
+from tools.pipeline.stages.stage_3_connectivity import run_stage_3
+from tools.pipeline.stages.stage_3_connectivity.verify import (
+    all_passed as s3_all_passed,
+    verify_stage_3,
 )
 
 
@@ -92,7 +97,24 @@ def main(hostname: str) -> None:
         raise RuntimeError(f"Stage 2 verify failed: {'; '.join(failures)}")
     _emit("  [OK] Stage 2 verified")
 
-    _emit(f"=== Done — {hostname} rebuilt through Stage 2 ===")
+    # Phase 4: Stage 3 — Connectivity
+    _emit(f"── Connectivity for {hostname} via Stage 3 ──")
+    run_stage_3(cfg, _emit)
+
+    # Verify Stage 3 postconditions
+    s3_results = verify_stage_3(
+        target_ip=cfg.target_ip,
+        ssh_opts=cfg.ssh_opts,
+        ssh_key=cfg.ssh_key,
+        erp_user=cfg.erp_user,
+        bench_dir_orig=cfg.bench_dir_orig,
+    )
+    if not s3_all_passed(s3_results):
+        failures = [msg for ok, msg in s3_results if not ok]
+        raise RuntimeError(f"Stage 3 verify failed: {'; '.join(failures)}")
+    _emit("  [OK] Stage 3 verified")
+
+    _emit(f"=== Done — {hostname} rebuilt through Stage 3 ===")
 
 
 if __name__ == "__main__":
