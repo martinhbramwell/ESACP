@@ -19,7 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PID_FILE="/tmp/.claude-telegram-timer.pid"
 REASON_FILE="/tmp/.claude-telegram-reason"
 DETAIL_FILE="/tmp/.claude-telegram-reason-detail"
-DELAY_SECONDS=180
+DELAY_SECONDS=600
 
 cancel_timer() {
     if [ -f "$PID_FILE" ]; then
