@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Standalone test orchestrator: destroy + rebuild a VM through Stages 1–6.
+"""Standalone test orchestrator: destroy + rebuild a VM through Stages 1–7.
 
 Usage:
     ./tools/orchestrator.py dev03
 
 Destroys the VM on its hypervisor, then runs Stage 1 (VM Creation),
 Stage 2 (Network), Stage 3 (Connectivity), Stage 4 (Content Delivery),
-Stage 5 (TLS), and Stage 6 (Base Platform).  Verifies postconditions
-after each stage — a verify failure after running is a hard error.
+Stage 5 (TLS), Stage 6 (Base Platform), and Stage 7 (Data Restoration).
+Verifies postconditions after each stage — a verify failure after running
+is a hard error.
 """
 
 from __future__ import annotations
@@ -52,6 +53,11 @@ from tools.pipeline.stages.stage_6_base_platform import run_stage_6
 from tools.pipeline.stages.stage_6_base_platform.verify import (
     all_passed as s6_all_passed,
     verify_stage_6,
+)
+from tools.pipeline.stages.stage_7_data_restoration import run_stage_7
+from tools.pipeline.stages.stage_7_data_restoration.verify import (
+    all_passed as s7_all_passed,
+    verify_stage_7,
 )
 
 
@@ -179,7 +185,25 @@ def main(hostname: str) -> None:
         raise RuntimeError(f"Stage 6 verify failed: {'; '.join(failures)}")
     _emit("  [OK] Stage 6 verified")
 
-    _emit(f"=== Done — {hostname} rebuilt through Stage 6 ===")
+    # Phase 8: Stage 7 — Data Restoration
+    _emit(f"── Data restoration for {hostname} via Stage 7 ──")
+    run_stage_7(cfg, _emit)
+
+    # Verify Stage 7 postconditions
+    s7_results = verify_stage_7(
+        target_ip=cfg.target_ip,
+        ssh_opts=cfg.ssh_opts,
+        ssh_key=cfg.ssh_key,
+        erp_user=cfg.erp_user,
+        bench_dir=cfg.bench_dir,
+        site_url=cfg.site_url,
+    )
+    if not s7_all_passed(s7_results):
+        failures = [msg for ok, msg in s7_results if not ok]
+        raise RuntimeError(f"Stage 7 verify failed: {'; '.join(failures)}")
+    _emit("  [OK] Stage 7 verified")
+
+    _emit(f"=== Done — {hostname} rebuilt through Stage 7 ===")
 
 
 if __name__ == "__main__":
