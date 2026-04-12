@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Standalone test orchestrator: destroy + rebuild a VM through Stages 1–3.
+"""Standalone test orchestrator: destroy + rebuild a VM through Stages 1–4.
 
 Usage:
     ./tools/orchestrator.py dev03
 
 Destroys the VM on its hypervisor, then runs Stage 1 (VM Creation),
-Stage 2 (Network), and Stage 3 (Connectivity).  Verifies postconditions
+Stage 2 (Network), Stage 3 (Connectivity), and Stage 4 (Content Delivery).
+Verifies postconditions
 after each stage — a verify failure after running is a hard error.
 """
 
@@ -36,6 +37,11 @@ from tools.pipeline.stages.stage_3_connectivity import run_stage_3
 from tools.pipeline.stages.stage_3_connectivity.verify import (
     all_passed as s3_all_passed,
     verify_stage_3,
+)
+from tools.pipeline.stages.stage_4_content_delivery import run_stage_4
+from tools.pipeline.stages.stage_4_content_delivery.verify import (
+    all_passed as s4_all_passed,
+    verify_stage_4,
 )
 
 
@@ -114,7 +120,22 @@ def main(hostname: str) -> None:
         raise RuntimeError(f"Stage 3 verify failed: {'; '.join(failures)}")
     _emit("  [OK] Stage 3 verified")
 
-    _emit(f"=== Done — {hostname} rebuilt through Stage 3 ===")
+    # Phase 5: Stage 4 — Content Delivery
+    _emit(f"── Content delivery for {hostname} via Stage 4 ──")
+    run_stage_4(cfg, _emit)
+
+    # Verify Stage 4 postconditions
+    s4_results = verify_stage_4(
+        target_ip=cfg.target_ip,
+        ssh_opts=cfg.ssh_opts,
+        ssh_key=cfg.ssh_key,
+    )
+    if not s4_all_passed(s4_results):
+        failures = [msg for ok, msg in s4_results if not ok]
+        raise RuntimeError(f"Stage 4 verify failed: {'; '.join(failures)}")
+    _emit("  [OK] Stage 4 verified")
+
+    _emit(f"=== Done — {hostname} rebuilt through Stage 4 ===")
 
 
 if __name__ == "__main__":
