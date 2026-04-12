@@ -77,6 +77,35 @@ Config comes from environment variables (envars.sh sourced by differentiate.sh) 
 
 **Subsequent runs**: `gate` runs handleRestore.sh, then `before-install` and `after-restart` complete the ce_sri customization.
 
+## pipeline/ — Provision/Refresh Pipeline
+
+3-level decomposition: `macro/` → `stages/` → unit files. See `tools/pipeline/`.
+
+- **runner.py** — generic task executor: iterates `(Config, Emit) → TaskResult` functions, stops on first failure
+- **stages/common/** — `Config` (frozen dataclass), `Emit`, `TaskResult`, SSH/SCP/rsync helpers
+- **env_kvm.py** — `KvmEnv` dataclass (hypervisor alias, pool, image paths)
+
+### Stages extracted so far
+
+| Stage | Package | Orchestrator | Units |
+|---|---|---|---|
+| 1 — VM Creation | `stage_1_vm_creation/` | `run_stage_1()` | cleanup_residue, wireguard_peer, seed_iso, upload_seed, clone_template, virt_install, wait_ssh, baseline_snapshot |
+| 2 — Network | `stage_2_network/` | `run_stage_2()` | saconsole_wg_hub, cloudflare_dns, tls_cert, wireguard_spoke |
+
+### Verification / idempotency
+
+Each stage has a `verify.py` colocated with its code:
+- `stage_1_vm_creation/verify.py` — 6 checks (WG keys, VM exists, running, SSH, snapshot)
+- `stage_2_network/verify.py` — 5 checks (hub peer, CF DNS, TLS cert, WG interface, mesh ping)
+
+CLI: `python3 tools/pipeline/stages/stage_N_.../verify.py <hostname>` → exit 0/1.
+Importable: `verify_stage_N()` returns `list[tuple[bool, str]]`; `all_passed()` for gate logic.
+
+Verify functions serve three roles:
+1. **Acceptance test** — confirm a stage worked after running it
+2. **Idempotency gate** — skip the stage if all postconditions already met
+3. **Self-repair diagnostic** — pinpoint which unit needs re-running
+
 ## generate_inventory.py
 
 - Reads `hosts_map.yml`, writes `ansible/inventory/kvm.yml`
