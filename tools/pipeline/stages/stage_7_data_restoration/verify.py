@@ -87,15 +87,22 @@ def check_db_restored(
     target_ip: str, ssh_opts: list[str], ssh_key: str,
     erp_user: str, bench_dir: str, site_url: str,
 ) -> tuple[bool, str]:
-    """Section G: production data present (tabSales Invoice has rows)."""
-    r = _ssh_vm(
-        target_ip, ssh_opts, ssh_key,
-        f"sudo -u {erp_user} bash -c '"
-        f"cd {bench_dir} && bench --site {site_url} mariadb"
-        f" -e \"SELECT COUNT(*) AS c FROM \\`tabSales Invoice\\`\""
-        f" --skip-column-names 2>/dev/null'",
-        timeout=30,
+    """Section G: production data present (tabSales Invoice has rows).
+
+    Reads DB credentials from site_config.json and queries mysql directly
+    (bench mariadb does not accept -e).
+    """
+    cmd = (
+        f"python3 -c \""
+        f"import json, subprocess, sys; "
+        f"c = json.load(open('{bench_dir}/sites/{site_url}/site_config.json')); "
+        f"r = subprocess.run("
+        f"['mysql', '-AD', c['db_name'], '-u' + c['db_name'], '-p' + c.get('db_password',''), "
+        f"'-e', 'SELECT COUNT(*) FROM \\`tabSales Invoice\\`', '--skip-column-names'], "
+        f"capture_output=True, text=True); "
+        f"print(r.stdout.strip()) if r.returncode == 0 else sys.exit(1)\""
     )
+    r = _ssh_vm(target_ip, ssh_opts, ssh_key, cmd, timeout=30)
     if r.returncode == 0:
         count = r.stdout.strip()
         if count.isdigit() and int(count) > 0:

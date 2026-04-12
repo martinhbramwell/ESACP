@@ -51,7 +51,7 @@ def run_stage_7(config: Config, emit: Emit) -> None:
         f" {config.bench_dir} {config.site_url} {config.erp_user}"
         f" {config.db_root_pwd} {config.erp_user_pwd}"
     )
-    r = ssh_run(config, cmd, timeout=600)
+    r = ssh_run(config, cmd, timeout=1800)
     if r.returncode != 0:
         raise RuntimeError(
             f"data_restore.sh failed (exit {r.returncode}): "
