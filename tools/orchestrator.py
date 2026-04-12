@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Standalone test orchestrator: destroy + rebuild a VM through Stages 1–4.
+"""Standalone test orchestrator: destroy + rebuild a VM through Stages 1–5.
 
 Usage:
     ./tools/orchestrator.py dev03
 
 Destroys the VM on its hypervisor, then runs Stage 1 (VM Creation),
-Stage 2 (Network), Stage 3 (Connectivity), and Stage 4 (Content Delivery).
-Verifies postconditions
-after each stage — a verify failure after running is a hard error.
+Stage 2 (Network), Stage 3 (Connectivity), Stage 4 (Content Delivery),
+and Stage 5 (TLS).  Verifies postconditions after each stage — a verify
+failure after running is a hard error.
 """
 
 from __future__ import annotations
@@ -42,6 +42,11 @@ from tools.pipeline.stages.stage_4_content_delivery import run_stage_4
 from tools.pipeline.stages.stage_4_content_delivery.verify import (
     all_passed as s4_all_passed,
     verify_stage_4,
+)
+from tools.pipeline.stages.stage_5_tls import run_stage_5
+from tools.pipeline.stages.stage_5_tls.verify import (
+    all_passed as s5_all_passed,
+    verify_stage_5,
 )
 
 
@@ -135,7 +140,24 @@ def main(hostname: str) -> None:
         raise RuntimeError(f"Stage 4 verify failed: {'; '.join(failures)}")
     _emit("  [OK] Stage 4 verified")
 
-    _emit(f"=== Done — {hostname} rebuilt through Stage 4 ===")
+    # Phase 6: Stage 5 — TLS
+    _emit(f"── TLS for {hostname} via Stage 5 ──")
+    run_stage_5(cfg, _emit)
+
+    # Verify Stage 5 postconditions
+    s5_results = verify_stage_5(
+        target_ip=cfg.target_ip,
+        ssh_opts=cfg.ssh_opts,
+        ssh_key=cfg.ssh_key,
+        site_url=cfg.site_url,
+        domain=cfg.domain,
+    )
+    if not s5_all_passed(s5_results):
+        failures = [msg for ok, msg in s5_results if not ok]
+        raise RuntimeError(f"Stage 5 verify failed: {'; '.join(failures)}")
+    _emit("  [OK] Stage 5 verified")
+
+    _emit(f"=== Done — {hostname} rebuilt through Stage 5 ===")
 
 
 if __name__ == "__main__":
