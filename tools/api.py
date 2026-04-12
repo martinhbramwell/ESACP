@@ -30,8 +30,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from tools.pipeline.orchestration.load_host_config import load_host_config
+from tools.pipeline.stages.common.config import build_config
 from tools.pipeline.stages.env_kvm import KvmEnv
 from tools.pipeline.stages.stage_1_vm_creation import run_stage_1
+from tools.pipeline.stages.stage_2_network import run_stage_2
 
 PROJECT_ROOT        = Path(__file__).parent.parent
 PLATFORMS_KVM       = PROJECT_ROOT / "platforms" / "kvm"
@@ -865,118 +868,31 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
             cleanup_cfg=cleanup_cfg,
         )
 
-        # ── Step 8: Update saconsole WireGuard ───────────────────────────────
-        emit("── Step 8: Update saconsole WireGuard (Ansible) ──")
-        proc = subprocess.Popen(
-            [
-                "ansible-playbook",
-                "-i", "inventory/kvm.yml",
-                "site-kvm.yml",
-                "--limit", "saconsole",
-                "--tags", "wireguard",
-            ],
-            cwd=str(PROJECT_ROOT / "ansible"),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+        # ── Stage 2: Network (Steps 8–9) ───────────────────────────────────
+        host_cfg = load_host_config(vm.hostname, PROJECT_ROOT)
+        cfg = build_config(vm.hostname, host_cfg, str(PROJECT_ROOT))
+        run_stage_2(cfg, emit)
 
+        # Check whether TLS cert landed on VM (downstream steps need this)
+        cert_probe = subprocess.run(
+            target_ssh + ["test -f /tmp/fullchain.pem && echo y"],
+            capture_output=True, text=True, timeout=10,
         )
-        for line in _stream_lines(proc.stdout):
-            emit(line)
-        proc.wait()
-        if proc.returncode != 0:
-            emit(f"  [WARN] Ansible wireguard update failed (exit {proc.returncode})")
-        else:
-            emit("  [OK] saconsole WireGuard updated")
+        have_cert = cert_probe.returncode == 0 and "y" in cert_probe.stdout
 
-        # ── Step 8b: Cloudflare DNS A record ──────────────────────────────────
-        emit("── Step 8b: Cloudflare DNS A record ──")
-        _cf_dns_upsert(vm.hostname, vm.wg_ip, emit)
-
-        # ── Step 8c: Distribute TLS cert from saconsole to VM ─────────────────
-        emit("── Step 8c: Distribute TLS wildcard cert to VM ──")
-        domain_dir = f"{ACME_CERT_HOME_SACONSOLE}/iridium.blue"
-        sac_ssh_base = [
-            "ssh", "-o", f"ProxyJump={TOSHIBA_ALIAS}",
-            "-o", "StrictHostKeyChecking=no",
-            "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
-        ]
-        # Verify cert exists on saconsole
-        cert_check = subprocess.run(
-            sac_ssh_base + [f"you@{SACONSOLE_IP}",
-                            f"test -f {domain_dir}/fullchain.pem && echo found || echo missing"],
-            capture_output=True, text=True, timeout=15,
+        # ── Differentiation constants (derived from Config) ───────────────────
+        nickname_str   = cfg.nickname
+        domain         = cfg.domain
+        site_url       = cfg.site_url
+        ERP_USER       = cfg.erp_user
+        bench_dir_orig = cfg.bench_dir_orig
+        bench_dir      = cfg.bench_dir
+        MYPWD          = cfg.db_root_pwd
+        ERP_USER_PWD   = cfg.erp_user_pwd
+        rsync_e        = (
+            f"ssh {' '.join(cfg.ssh_opts)} -i {cfg.ssh_key}"
         )
-        if "found" not in cert_check.stdout:
-            emit(f"  [WARN] Wildcard cert not found on saconsole at {domain_dir} — nginx will be HTTP-only")
-            have_cert = False
-        else:
-            # Read each cert file from saconsole, push to VM /tmp/
-            for pem_name, tmp_name in [
-                ("fullchain.pem", "fullchain.pem"),
-                ("key.pem",       "privkey.pem"),
-                ("cert.pem",      "cert.pem"),
-            ]:
-                read_r = subprocess.run(
-                    sac_ssh_base + [f"you@{SACONSOLE_IP}", f"cat {domain_dir}/{pem_name}"],
-                    capture_output=True, timeout=15,
-                )
-                if read_r.returncode != 0:
-                    raise RuntimeError(f"Failed to read {pem_name} from saconsole")
-                write_r = subprocess.run(
-                    target_ssh + [f"sudo tee /tmp/{tmp_name} > /dev/null"],
-                    input=read_r.stdout,
-                    capture_output=True, timeout=15,
-                )
-                if write_r.returncode != 0:
-                    raise RuntimeError(f"Failed to write {tmp_name} to VM")
-            emit("  [OK] Cert files in /tmp/ on VM")
-            have_cert = True
-
-        # ── Differentiation constants ─────────────────────────────────────────
-        nickname_str = vm.nickname or vm.hostname[:4]
-        domain       = ZONE_DOMAINS.get(vm.zone, "iridium.blue")
-        site_url     = f"{vm.hostname}.{domain}"
-        bench_name   = "frappe-bench"                        # Packer template bench dir
-        bench_name_new = f"frappe-bench-{nickname_str}"      # renamed at differentiation
-        with open(GROUP_VARS_ALL) as _f:
-            ERP_USER = yaml.safe_load(_f).get("erp_user", "erpadm")
-        bench_dir_orig = f"/home/{ERP_USER}/{bench_name}"    # before rename
-        bench_dir      = f"/home/{ERP_USER}/{bench_name_new}" # after rename
-        MYPWD        = "erpnext_build"              # MariaDB root pwd set by Packer OS prep
-        ERP_USER_PWD = "sasa"
-        rsync_e      = (
-            f"ssh -o ProxyJump={TOSHIBA_ALIAS} "
-            f"-o StrictHostKeyChecking=no "
-            f"-i {Path.home() / '.ssh' / 'hasan_mighty'}"
-        )
-        scp_opts     = [
-            "-o", f"ProxyJump={TOSHIBA_ALIAS}",
-            "-o", "StrictHostKeyChecking=no",
-            "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
-        ]
-
-        # ── Step 9: Ansible wireguard spoke on new VM ─────────────────────────
-        emit("── Step 9: Configure WireGuard spoke (Ansible) ──")
-        proc = subprocess.Popen(
-            [
-                "ansible-playbook",
-                "-i", "inventory/kvm.yml",
-                "site-kvm.yml",
-                "--limit", vm.hostname,
-                "--tags", "wireguard",
-            ],
-            cwd=str(PROJECT_ROOT / "ansible"),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-
-        )
-        for line in _stream_lines(proc.stdout):
-            emit(line)
-        proc.wait()
-        if proc.returncode != 0:
-            emit(f"  [WARN] Ansible wireguard spoke failed (exit {proc.returncode}) — continuing")
-        else:
-            emit("  [OK] WireGuard spoke configured")
+        scp_opts       = [*cfg.ssh_opts, "-i", cfg.ssh_key]
 
         # ── Step 10: SCP deploy keys + rsync BKP (controller → VM) ────────────
         # Apps are now cloned from GitHub inside differentiate.sh (section A2d).
