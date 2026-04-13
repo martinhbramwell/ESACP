@@ -30,11 +30,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from tools.pipeline.orchestration.load_host_config import load_host_config
-from tools.pipeline.stages.common.config import build_config
-from tools.pipeline.stages.env_kvm import KvmEnv
-from tools.pipeline.stages.stage_1_vm_creation import run_stage_1
-from tools.pipeline.stages.stage_2_network import run_stage_2
 
 PROJECT_ROOT        = Path(__file__).parent.parent
 PLATFORMS_KVM       = PROJECT_ROOT / "platforms" / "kvm"
@@ -42,12 +37,7 @@ PLATFORMS_PACKER    = PROJECT_ROOT / "platforms" / "packer"
 CLOUD_INIT_DIR      = PLATFORMS_KVM / "cloud-init"
 HOSTS_MAP           = PROJECT_ROOT / "hosts_map.yml"
 GROUP_VARS_ALL      = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
-GROUP_VARS_ALL_SOPS = PROJECT_ROOT / "ansible" / "group_vars" / "all.sops.yml"
 KEYS_SOPS           = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
-
-# Cloudflare
-CF_ZONE_ID_IRIDIUM  = "631cd57fa246c8bc575bdc55bc0db70b"   # iridium.blue zone
-CF_DNS_TTL          = 120
 
 # Zone → canonical domain mapping
 ZONE_DOMAINS: dict[str, str] = {
@@ -56,8 +46,6 @@ ZONE_DOMAINS: dict[str, str] = {
     "production":  "logichem.solutions",
 }
 
-# acme.sh cert home on saconsole
-ACME_CERT_HOME_SACONSOLE = "/opt/acme-certs"
 
 # Toshiba paths (accessed over SSH)
 TOSHIBA_ALIAS        = "toshiba"
@@ -66,26 +54,6 @@ TOSHIBA_HYPERVISOR_USER = "hasan"
 # Metadata JSON lives in hasan's home dir (writable without sudo).
 TOSHIBA_METADATA_DIR = f"/home/{TOSHIBA_HYPERVISOR_USER}/esacp-packer-output"
 
-# Logichem bespoke app sources (controller-local) — only BKP + ddlViews still rsynced
-LOGICHEM_DIR       = Path.home() / "projects" / "Logichem"
-BKP_SRC            = LOGICHEM_DIR / "ce_sri" / "BKP"
-VIEWS_DDL_SRC      = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "views.ddl"
-
-# GitHub deploy keys for bespoke app repos (SCP'd to VM during provision)
-DEPLOY_KEY_DIR       = Path.home() / ".ssh"
-DEPLOY_KEYS          = {
-    "ce_sri":         DEPLOY_KEY_DIR / "you_gh_ce_sri",
-    "ce_sri_svc":     DEPLOY_KEY_DIR / "you_gh_ce_sri_svc",
-    "route_planner":  DEPLOY_KEY_DIR / "you_gh_route_planner",
-}
-DEPLOY_KEY_PASSPHRASE = DEPLOY_KEY_DIR / "you_gh.txt"
-
-# ce_sri secrets (SCP'd to VM for install.py's before_install)
-CE_SRI_SECRETS_DIR   = Path.home() / ".ssh" / "secrets"
-CE_SRI_P12_CERT      = CE_SRI_SECRETS_DIR / "PRESIDENTE_DANIEL_LEONARD_WILD_STAPEL_1709470171_171224162014.p12"
-CE_SRI_PARMS_SOPS    = PROJECT_ROOT / "config" / "ce_sri_parms.sops.json"
-CE_SRI_LOGO          = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "docType_Logo.png"
-CE_SRI_SOCIALS_JSON  = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "socials_google.json"
 
 # saconsole access from controller (ProxyJump through hypervisor)
 SACONSOLE_IP        = "192.168.122.10"
@@ -586,9 +554,6 @@ def promote_staging():
 
 # ── POST /api/provision/erpnext ──────────────────────────────────────────────
 
-TOSHIBA_IMAGES_DIR = "/mnt/esacp-disk/var/lib/libvirt/images"
-TOSHIBA_POOL       = "esacp"
-
 
 class NewErpnextVM(BaseModel):
     hostname:   str
@@ -708,133 +673,6 @@ def start_provision_erpnext(vm: NewErpnextVM):
     return {"job_id": job_id, "hostname": vm.hostname}
 
 
-def _build_template_seed_iso(vm: NewErpnextVM, emit) -> Path:
-    """Build a cloud-config (NoCloud) seed ISO for virt-install --import deployment.
-
-    The Packer-built template image already has the 'you' user from its original
-    cloud-init run. We inject the controller's SSH public key so api.py can SSH in
-    after boot, and set the per-VM hostname and static IP.
-    """
-    controller_pubkey_path = Path.home() / ".ssh" / "hasan_mighty.pub"
-    if not controller_pubkey_path.exists():
-        raise FileNotFoundError(f"Controller pubkey not found: {controller_pubkey_path}")
-    controller_pubkey = controller_pubkey_path.read_text().strip()
-
-    user_data = f"""\
-#cloud-config
-hostname: {vm.hostname}
-fqdn: {vm.hostname}.local
-manage_etc_hosts: true
-
-users:
-  - name: you
-    ssh_authorized_keys:
-      - {controller_pubkey}
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    groups: sudo, adm
-    lock_passwd: true
-    shell: /bin/bash
-"""
-
-    network_config = f"""\
-version: 2
-ethernets:
-  enp1s0:
-    addresses:
-      - {vm.virbr0_ip}/24
-    routes:
-      - to: default
-        via: 192.168.122.1
-    nameservers:
-      addresses: [8.8.8.8, 1.1.1.1]
-"""
-
-    meta_data = f"instance-id: {vm.hostname}\nlocal-hostname: {vm.hostname}\n"
-
-    work_dir = Path(tempfile.mkdtemp())
-    try:
-        (work_dir / "user-data").write_text(user_data)
-        (work_dir / "meta-data").write_text(meta_data)
-        (work_dir / "network-config").write_text(network_config)
-
-        seed_iso = PLATFORMS_KVM / f"{vm.hostname}-seed.iso"
-        r = subprocess.run(
-            [
-                "cloud-localds",
-                "--network-config", str(work_dir / "network-config"),
-                str(seed_iso),
-                str(work_dir / "user-data"),
-                str(work_dir / "meta-data"),
-            ],
-            capture_output=True, text=True,
-        )
-        if r.returncode != 0:
-            raise RuntimeError(f"cloud-localds failed: {r.stderr.strip()}")
-        emit(f"  [OK] Seed ISO: {seed_iso.name}")
-        return seed_iso
-    finally:
-        shutil.rmtree(work_dir)
-
-
-def _scp_cesri_secrets(
-    emit, scp_opts: list[str], target_ip: str,
-    site_url: str, nickname_str: str, erp_user: str,
-) -> int:
-    """Decrypt SOPS parms, patch per-VM values, SCP P12 + parms + logo to /tmp/.
-
-    Returns the number of files successfully transferred (0 = nothing to send).
-    Called from both Deploy and Refresh so secrets are always fresh on the VM.
-    """
-    import json as _json
-
-    cesri_scp_files: list[str] = []
-    if CE_SRI_P12_CERT.exists():
-        cesri_scp_files.append(str(CE_SRI_P12_CERT))
-    else:
-        emit(f"  [WARN] P12 cert not found at {CE_SRI_P12_CERT}")
-    if CE_SRI_LOGO.exists():
-        cesri_scp_files.append(str(CE_SRI_LOGO))
-    else:
-        emit(f"  [WARN] company logo not found at {CE_SRI_LOGO}")
-    if CE_SRI_SOCIALS_JSON.exists():
-        cesri_scp_files.append(str(CE_SRI_SOCIALS_JSON))
-    else:
-        emit(f"  [WARN] socials_google.json not found at {CE_SRI_SOCIALS_JSON}")
-
-    if CE_SRI_PARMS_SOPS.exists():
-        sops_r = subprocess.run(
-            ["sops", "-d", str(CE_SRI_PARMS_SOPS)],
-            capture_output=True, text=True, timeout=15,
-        )
-        if sops_r.returncode != 0:
-            raise RuntimeError(f"sops decrypt failed: {sops_r.stderr.strip()}")
-        parms = _json.loads(sops_r.stdout)
-        parms["erpnext_api"]["local_site"] = site_url
-        parms["erpnext_api"]["api_protocol"] = "https"
-        parms["erpnext_api"]["api_port"] = "443"
-        parms["electronic_signature"]["certificate_location"] = f"/home/{erp_user}/.ssh/secrets"
-        parms["electronic_signature"]["sri_p12_cert"] = CE_SRI_P12_CERT.name
-        parms["environment"]["local_site_nickname"] = nickname_str
-        parms["environment"]["company_logo_location"] = f"/home/{erp_user}/.ssh/secrets"
-        parms["revenue_service"]["test_or_production_mode"] = "1"
-        parms_tmp = Path("/tmp") / f"ce_sri_parms_{nickname_str}.json"
-        parms_tmp.write_text(_json.dumps(parms, indent=2))
-        cesri_scp_files.append(str(parms_tmp))
-    else:
-        emit(f"  [WARN] ce_sri_parms.sops.json not found at {CE_SRI_PARMS_SOPS}")
-
-    if not cesri_scp_files:
-        return 0
-
-    r = subprocess.run(
-        ["scp"] + scp_opts + cesri_scp_files + [f"you@{target_ip}:/tmp/"],
-        capture_output=True, text=True, timeout=30,
-    )
-    if r.returncode != 0:
-        emit(f"  [WARN] SCP ce_sri secrets failed: {r.stderr.strip()}")
-        return 0
-    emit(f"  [OK] {len(cesri_scp_files)} ce_sri secret files → /tmp/")
-    return len(cesri_scp_files)
 
 
 def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | None = None):
@@ -1093,73 +931,6 @@ def _generate_cloud_init(hostname: str, host_cfg: dict, emit):
 
     emit(f"  [OK] cloud-init written to {ci_dir}")
 
-
-def _get_cf_token() -> str:
-    """Decrypt all.sops.yml and return the cloudflare_acme_token."""
-    dec = subprocess.run(
-        ["sops", "-d", str(GROUP_VARS_ALL_SOPS)],
-        cwd=PROJECT_ROOT, capture_output=True, text=True,
-    )
-    if dec.returncode != 0:
-        raise RuntimeError(f"sops decrypt failed: {dec.stderr.strip()}")
-    data = yaml.safe_load(dec.stdout)
-    token = data.get("cloudflare_acme_token", "")
-    if not token:
-        raise RuntimeError("cloudflare_acme_token not found in all.sops.yml")
-    return token
-
-
-def _cf_dns_upsert(record_name: str, ip: str, emit) -> None:
-    """Create or update a Cloudflare DNS A record for record_name → ip.
-
-    record_name: e.g. 'dev01' → creates 'dev01.iridium.blue'
-    ip: WireGuard IP (10.10.0.x) — accessible to WireGuard peers only
-    """
-    import urllib.request
-    import urllib.error
-
-    token = _get_cf_token()
-    fqdn  = f"{record_name}.iridium.blue"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type":  "application/json",
-    }
-    base_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID_IRIDIUM}/dns_records"
-
-    # List existing records matching name
-    list_url = f"{base_url}?type=A&name={fqdn}"
-    req = urllib.request.Request(list_url, headers=headers, method="GET")
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            existing = json.loads(resp.read())
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"Cloudflare list DNS failed: {exc.code} {exc.read().decode()}")
-
-    records = existing.get("result", [])
-    body = json.dumps({"type": "A", "name": fqdn, "content": ip, "ttl": CF_DNS_TTL, "proxied": False}).encode()
-
-    if records:
-        record_id = records[0]["id"]
-        existing_ip = records[0].get("content", "")
-        if existing_ip == ip:
-            emit(f"  [OK] DNS {fqdn} → {ip} already up to date")
-            return
-        put_url = f"{base_url}/{record_id}"
-        req = urllib.request.Request(put_url, data=body, headers=headers, method="PUT")
-        action = "Updated"
-    else:
-        req = urllib.request.Request(base_url, data=body, headers=headers, method="POST")
-        action = "Created"
-
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            result = json.loads(resp.read())
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"Cloudflare DNS upsert failed: {exc.code} {exc.read().decode()}")
-
-    if not result.get("success"):
-        raise RuntimeError(f"Cloudflare DNS upsert failed: {result.get('errors')}")
-    emit(f"  [OK] {action} DNS A record: {fqdn} → {ip} (TTL {CF_DNS_TTL}s)")
 
 
 def _add_wg_peer(hostname: str, emit):
