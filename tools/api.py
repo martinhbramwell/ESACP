@@ -8,7 +8,6 @@ Start (from project root):
 Endpoints:
     GET  /api/hosts                  → current KVM hosts + IP suggestions + erp_user/erp_url
     POST /api/hosts/add              → add host to hosts_map.yml, regen inventory
-    POST /api/provision/{hostname}   → cloud-init provision (pre-registered host)
     POST /api/provision/erpnext      → template-based deploy via macro/provision.py (stages 1–9)
     POST /api/refresh/{hostname}     → re-run stages 3–9 via macro/refresh.py (idempotent)
     POST /api/destroy/{hostname}     → full teardown: WG + VM + hosts_map + keys + inventory
@@ -713,113 +712,6 @@ def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | No
         job["status"] = "error"
 
 
-# ── POST /api/provision/{hostname} ───────────────────────────────────────────
-
-@app.post("/api/provision/{hostname}")
-def start_provision(hostname: str):
-    """Start a background provisioning job for a KVM host."""
-    data = load_hosts_map()
-    kvm  = data["groups"].get("kvm", {})
-    if hostname not in kvm:
-        raise HTTPException(404, f"'{hostname}' not found in the kvm group of hosts_map.yml")
-
-    job_id        = str(uuid.uuid4())[:8]
-    jobs[job_id]  = {"status": "running", "log": [], "hostname": hostname}
-
-    threading.Thread(
-        target=_run_provision,
-        args=(job_id, hostname, kvm[hostname]),
-        daemon=True,
-    ).start()
-
-    return {"job_id": job_id}
-
-
-def _run_provision(job_id: str, hostname: str, host_cfg: dict):
-    job = jobs[job_id]
-
-    def _ts():
-        return datetime.now(timezone.utc).strftime("%H:%M:%S")
-
-    def emit(line: str):
-        stamped = f"[{_ts()}] {line}"
-        job["log"].append(stamped)
-        print(f"[job {job_id}] {stamped}", flush=True)
-
-    try:
-        # ── Step 1: cloud-init files ─────────────────────────────────────────
-        ci_dir = CLOUD_INIT_DIR / hostname
-        if ci_dir.exists():
-            emit(f"cloud-init: {ci_dir} exists — skipping generation")
-        else:
-            emit("── Generating cloud-init files ──")
-            _generate_cloud_init(hostname, host_cfg, emit)
-
-        # ── Step 2: WireGuard peer ───────────────────────────────────────────
-        if KEYS_SOPS.exists():
-            dec = subprocess.run(
-                ["sops", "-d", str(KEYS_SOPS)],
-                cwd=PROJECT_ROOT, capture_output=True, text=True,
-            )
-            if hostname in dec.stdout:
-                emit(f"WireGuard: keys for '{hostname}' already in keys.sops.yml — skipping")
-            else:
-                emit("── Adding WireGuard peer ──")
-                _add_wg_peer(hostname, emit)
-        else:
-            emit(f"WireGuard: keys.sops.yml not found — skipping peer generation")
-
-        # ── Steps 3 & 4: buildVM + provisionVM ──────────────────────────────
-        for sub in ("buildVM", "provisionVM"):
-            emit(f"── {sub} {hostname} ──")
-            proc = subprocess.Popen(
-                ["python3", "tools/esacp.py", sub, hostname],
-                cwd=PROJECT_ROOT,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-    
-            )
-            for line in _stream_lines(proc.stdout):
-                emit(line)
-            proc.wait()
-            if proc.returncode != 0:
-                emit(f"[ERROR] {sub} exited with code {proc.returncode}")
-                job["status"] = "error"
-                return
-            emit(f"[OK] {sub} complete")
-
-        # ── Step 5: Update saconsole hub WireGuard config ────────────────────
-        # saconsole's wg0.conf must be regenerated to include the new spoke peer.
-        emit("── Update saconsole WireGuard (add new peer) ──")
-        proc = subprocess.Popen(
-            [
-                "ansible-playbook",
-                "-i", "inventory/kvm.yml",
-                "site-kvm.yml",
-                "--limit", "saconsole",
-                "--tags", "wireguard",
-            ],
-            cwd=str(PROJECT_ROOT / "ansible"),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-
-        )
-        for line in _stream_lines(proc.stdout):
-            emit(line)
-        proc.wait()
-        if proc.returncode != 0:
-            emit(f"[WARN] saconsole WireGuard update failed (exit {proc.returncode}) — new peer may not connect")
-        else:
-            emit("[OK] saconsole WireGuard updated")
-
-        job["status"] = "done"
-        emit("── Provisioning complete ──")
-
-    except Exception as exc:
-        emit(f"[ERROR] {exc}")
-        job["status"] = "error"
-
-
 # ── POST /api/refresh/{hostname} ─────────────────────────────────────────────
 
 @app.post("/api/refresh/{hostname}")
@@ -917,64 +809,6 @@ def get_health(hostname: str):
     db = "green" if "ok" in db_out else ("amber" if not db_out else "red")
 
     return {"web": web, "app": app, "db": db}
-
-
-def _generate_cloud_init(hostname: str, host_cfg: dict, emit):
-    """Generate cloud-init user-data + meta-data from the target1 template."""
-    template_dir = CLOUD_INIT_DIR / "target1"
-    if not template_dir.exists():
-        raise FileNotFoundError(f"Template directory not found: {template_dir}")
-
-    ci_dir = CLOUD_INIT_DIR / hostname
-    ci_dir.mkdir(parents=True, exist_ok=True)
-
-    virbr0_ip = host_cfg.get("virbr0_ip", "")
-
-    user_data = (template_dir / "user-data").read_text()
-    user_data = user_data.replace("hostname: target1", f"hostname: {hostname}")
-    user_data = user_data.replace("192.168.122.11", virbr0_ip)
-    (ci_dir / "user-data").write_text(user_data)
-
-    meta_data = (template_dir / "meta-data").read_text()
-    meta_data = meta_data.replace("target1", hostname)
-    (ci_dir / "meta-data").write_text(meta_data)
-
-    emit(f"  [OK] cloud-init written to {ci_dir}")
-
-
-
-def _add_wg_peer(hostname: str, emit):
-    """Run add_peer.sh and insert the new public key into group_vars/all.yml."""
-    result = subprocess.run(
-        ["bash", "config/wireguard/add_peer.sh", hostname],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-    )
-    if result.stdout.strip():
-        for line in result.stdout.strip().splitlines():
-            emit(f"  {line}")
-    if result.returncode != 0:
-        raise RuntimeError(f"add_peer.sh failed:\n{result.stderr.strip()}")
-
-    # Extract "wg_pubkey_<name>: "<key>"" from add_peer.sh stdout
-    match = re.search(r'(wg_pubkey_[\w-]+):\s+"([^"]+)"', result.stdout)
-    if match:
-        key_name, key_value = match.group(1), match.group(2)
-        content = GROUP_VARS_ALL.read_text()
-        if key_name not in content:
-            lines     = content.splitlines(keepends=True)
-            insert_at = 0
-            for i, line in enumerate(lines):
-                if line.strip().startswith("wg_pubkey_"):
-                    insert_at = i + 1
-            lines.insert(insert_at, f'{key_name}: "{key_value}"\n')
-            GROUP_VARS_ALL.write_text("".join(lines))
-            emit(f"  [OK] Added {key_name} to group_vars/all.yml")
-        else:
-            emit(f"  [OK] {key_name} already present in group_vars/all.yml")
-    else:
-        emit("  [WARN] Could not parse public key from add_peer.sh output — update group_vars/all.yml manually")
 
 
 # ── POST /api/destroy/{hostname} ─────────────────────────────────────────────

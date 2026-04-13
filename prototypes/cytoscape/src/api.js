@@ -41,11 +41,6 @@ export async function fetchJobs() {
 }
 
 // Returns { job_id }
-export async function startProvision(hostname) {
-  return post(`/api/provision/${hostname}`, {})
-}
-
-// Returns { job_id }
 export async function startDestroy(hostname) {
   return post(`/api/destroy/${hostname}`, {})
 }
