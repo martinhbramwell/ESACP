@@ -10,10 +10,13 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 |---|---|---|
 | GET | `/api/hosts` | KVM hosts + IP suggestions + default hypervisor; includes `vm_role`, `vm_state`, `erp_user`, `erp_url`, `hypervisor` |
 | POST | `/api/hosts/add` | Append to `hosts_map.yml`, regen inventory; accepts `zone`, `vm_role` |
-| POST | `/api/provision/{host}` | Job: cloud-init + WG + buildVM + provisionVM + saconsole WireGuard hub update (Step 5) |
+| POST | `/api/provision/{host}` | Cloud-init provision for pre-registered host (buildVM + provisionVM) |
 | POST | `/api/provision/erpnext` | Template-based deploy via `macro/provision.py`: stages 1–9 + final snapshot |
 | POST | `/api/refresh/{host}` | Re-run stages 3–9 via `macro/refresh.py` (idempotent, over WireGuard) |
 | GET | `/api/health/{host}` | SSH checks: nginx (`systemctl is-active`), app (supervisorctl RUNNING count), db (mysql SELECT 1) |
+| GET | `/api/template/status` | Metadata for latest undifferentiated ERPNext image on toshiba |
+| POST | `/api/build/template` | Start background Packer build on saconsole (one at a time) |
+| DELETE | `/api/template` | Delete template artifact from toshiba, reset to not_built |
 | POST | `/api/vm/{host}/start` | Start a shut-off VM (memory guard rejects if host RAM insufficient) |
 | POST | `/api/vm/{host}/stop` | Graceful shutdown (`virsh shutdown`); rejects hub nodes |
 | POST | `/api/vm/{host}/reboot` | Reboot a running VM (`virsh reboot`) |

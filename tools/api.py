@@ -8,9 +8,19 @@ Start (from project root):
 Endpoints:
     GET  /api/hosts                  → current KVM hosts + IP suggestions + erp_user/erp_url
     POST /api/hosts/add              → add host to hosts_map.yml, regen inventory
-    POST /api/provision/{hostname}   → start background job: cloud-init + WG + buildVM + provisionVM
-    POST /api/refresh/{hostname}     → re-SCP + re-run {hostname}-differentiate.sh (git pull + idempotent)
+    POST /api/provision/{hostname}   → cloud-init provision (pre-registered host)
+    POST /api/provision/erpnext      → template-based deploy via macro/provision.py (stages 1–9)
+    POST /api/refresh/{hostname}     → re-run stages 3–9 via macro/refresh.py (idempotent)
+    POST /api/destroy/{hostname}     → full teardown: WG + VM + hosts_map + keys + inventory
     GET  /api/health/{hostname}      → quick SSH check: { web, app, db } each green/amber/red
+    GET  /api/template/status        → metadata for latest undifferentiated ERPNext image
+    POST /api/build/template         → start background Packer build on saconsole
+    DELETE /api/template             → delete template artifact from toshiba
+    POST /api/promote                → staging → production promotion (stub)
+    POST /api/vm/{hostname}/start    → start a shut-off VM (memory guard)
+    POST /api/vm/{hostname}/stop     → graceful shutdown
+    POST /api/vm/{hostname}/reboot   → reboot a running VM
+    GET  /api/jobs                   → list all jobs (page-refresh reconnect)
     GET  /api/jobs/{job_id}          → poll job status + log lines
 """
 
