@@ -59,3 +59,24 @@ echo "  Re-running bench migrate to reimport fixtures..."
 sudo -u "$ERP_USER" bash -c "cd $BENCH_DIR && bench --site $SITE_URL migrate" 2>&1 \
   | grep -E "^(Migrating|Executing|Updating|Building)" | tail -10
 echo "  [OK] fixtures reimported with correct positioning"
+
+echo "=== G3: fix Frappe v13 missing System Settings field (#159) ==="
+python3 -c "
+import json, subprocess, sys
+c = json.load(open('$BENCH_DIR/sites/$SITE_URL/site_config.json'))
+r = subprocess.run(
+    ['mysql', '-AD', c['db_name'], '-u' + c['db_name'], '-p' + c.get('db_password', ''), '-N', '-e',
+     \"SELECT value FROM tabSingles WHERE doctype='System Settings' AND field='apply_perm_level_on_api_calls'\"],
+    capture_output=True, text=True)
+if r.stdout.strip():
+    print('  [SKIP] apply_perm_level_on_api_calls already exists')
+    sys.exit(0)
+r2 = subprocess.run(
+    ['mysql', '-AD', c['db_name'], '-u' + c['db_name'], '-p' + c.get('db_password', ''), '-e',
+     \"INSERT INTO tabSingles (doctype, field, value) VALUES ('System Settings', 'apply_perm_level_on_api_calls', '0')\"],
+    capture_output=True, text=True)
+if r2.returncode != 0:
+    print(f'  [ERROR] {r2.stderr.strip()}')
+    sys.exit(1)
+print('  [OK] apply_perm_level_on_api_calls=0 inserted into tabSingles')
+"
