@@ -618,11 +618,12 @@ def start_provision_erpnext(vm: NewErpnextVM):
         host_cfg   = kvm[vm.hostname]
         hypervisor = host_cfg.get("hypervisor")
         vm_map     = _query_provisioned(hypervisor)
-        if vm_map and vm_map.get(vm.hostname) is True:
+        vm_info    = vm_map.get(vm.hostname, {}) if vm_map else {}
+        if vm_info.get("provisioned") is True:
             raise HTTPException(409, f"'{vm.hostname}' is already provisioned — Destroy it first")
         # Flag cleanup for the job thread — any leftover VM/storage will be
         # removed before vol-clone so we don't hit disk pool collisions.
-        if vm_map is not None and vm.hostname in vm_map:
+        if vm_map is not None and vm.hostname in vm_map and not vm_info.get("provisioned"):
             needs_cleanup = True
     else:
         # New host — check for IP collisions
