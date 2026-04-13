@@ -2,7 +2,7 @@ import './style.css'
 import cytoscape from 'cytoscape'
 import { openPopup } from './popup.js'
 import { registry } from './registry.js'
-import { fetchHosts, fetchJobs, addHost, startProvision, startProvisionErpnext, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate, startRefresh, startVm, stopVm, rebootVm } from './api.js'
+import { fetchHosts, fetchJobs, addHost, startProvisionErpnext, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate, startRefresh, startVm, stopVm, rebootVm } from './api.js'
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 // base64-encoded SVGs used as Cytoscape background-image per node type.
@@ -861,14 +861,6 @@ function renderInfoWithActions(data) {
     actions.appendChild(btn)
   }
 
-  if (isOperational && !provisioned) {
-    const btn = document.createElement('button')
-    btn.className   = 'action-btn'
-    btn.textContent = 'Provision'
-    btn.onclick     = () => runProvision(data.id)
-    actions.appendChild(btn)
-  }
-
   // Refresh — idempotent re-run of differentiate.sh; only if a saved script exists
   if (isOperational && provisioned && data.erp_url) {
     const btn = document.createElement('button')
@@ -1295,19 +1287,6 @@ async function _vmPowerAction(hostname, action) {
   } catch (err) {
     infoPanel.innerHTML = `<p class="hint error">${err.message}</p>`
   }
-}
-
-function runProvision(hostname) {
-  infoPanel.innerHTML = `<pre class="job-log">Starting provisioning for ${hostname}...\n</pre>`
-
-  startProvision(hostname)
-    .then(({ job_id }) => {
-      localStorage.setItem(JOB_KEY, JSON.stringify({ job_id, hostname, type: 'provision' }))
-      _attachJobPoller(job_id, hostname, 'provision')
-    })
-    .catch(err => {
-      infoPanel.innerHTML = `<p class="hint error">Provision failed: ${err.message}</p>`
-    })
 }
 
 // ── Destroy flow ──────────────────────────────────────────────────────────────

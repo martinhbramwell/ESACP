@@ -62,13 +62,12 @@ groups:
       ansible_managed: true
       backend: kvm
       hypervisor: toshiba
-      vm_role: dev:unspecified
+      vm_role: dev:erpnext
       ansible_groups:
         - kvm
         - targets
         - development
         - lab
-
 
     dev02:
       hostname: dev02

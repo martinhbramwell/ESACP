@@ -10,10 +10,12 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 |---|---|---|
 | GET | `/api/hosts` | KVM hosts + IP suggestions + default hypervisor; includes `vm_role`, `vm_state`, `erp_user`, `erp_url`, `hypervisor` |
 | POST | `/api/hosts/add` | Append to `hosts_map.yml`, regen inventory; accepts `zone`, `vm_role` |
-| POST | `/api/provision/{host}` | Job: cloud-init + WG + buildVM + provisionVM + saconsole WireGuard hub update (Step 5) |
-| POST | `/api/provision/erpnext` | Template-based deploy: vol-clone + `--import` + differentiation (Steps 1–18) |
-| POST | `/api/refresh/{host}` | Re-SCP + `sudo bash` differentiate.sh (git pull from GitHub + full re-run) |
+| POST | `/api/provision/erpnext` | Template-based deploy via `macro/provision.py`: stages 1–9 + final snapshot |
+| POST | `/api/refresh/{host}` | Re-run stages 3–9 via `macro/refresh.py` (idempotent, over WireGuard) |
 | GET | `/api/health/{host}` | SSH checks: nginx (`systemctl is-active`), app (supervisorctl RUNNING count), db (mysql SELECT 1) |
+| GET | `/api/template/status` | Metadata for latest undifferentiated ERPNext image on toshiba |
+| POST | `/api/build/template` | Start background Packer build on saconsole (one at a time) |
+| DELETE | `/api/template` | Delete template artifact from toshiba, reset to not_built |
 | POST | `/api/vm/{host}/start` | Start a shut-off VM (memory guard rejects if host RAM insufficient) |
 | POST | `/api/vm/{host}/stop` | Graceful shutdown (`virsh shutdown`); rejects hub nodes |
 | POST | `/api/vm/{host}/reboot` | Reboot a running VM (`virsh reboot`) |
@@ -28,11 +30,10 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 - `vm_state` = libvirt domain state string (`running`, `shut off`, or `null` if hypervisor unreachable); polled by UI every 30s
 - VM power actions (`/api/vm/{host}/start|stop|reboot`) are synchronous — no job/polling. `start` runs a memory guard check first (`_check_memory()`: virsh nodeinfo + dominfo sums vs 2 GiB host reserve). HTTP 409 on insufficient RAM
 - Template build uses `nohup` on saconsole — survives uvicorn reload; log polled via SSH tail every 5s; exit code written to `/tmp/packer-build-output.log.exit`
-- `POST /api/provision/erpnext` writes `platforms/kvm/{hostname}-differentiate.sh` at Step 12 — committed as repo artifact; re-runnable via Refresh
-- `_scp_cesri_secrets()` is a shared helper called by **both** Deploy (Step 10) and Refresh. It decrypts `config/ce_sri_parms.sops.json` via SOPS/age on the controller, patches per-VM overrides (`local_site`, `api_protocol=https`, `api_port=443`, `certificate_location`, `local_site_nickname`, `company_logo_location`, `test_or_production_mode=1`), and SCPs the P12 cert + patched parms JSON + logo + `socials_google.json` to `/tmp/` on the VM. H4b then moves them to `~/.ssh/secrets/`, H4e injects the fresh API key (via `h4e_patch_parms.py`), `UPDATE_SRI_SERVICE_PARAMETERS.py` generates all `.env` variants — no sed. H4a-sl runs after step K (nginx vhost + TLS cert deployed) to restore Social Login via HTTPS API with fresh credentials from H4a (#117)
-- Section H4d runs `ce_sri.install.before_install` (file patches: Procfile, supervisor.conf, nginx vhost — no gunicorn needed). Section H4g (after H4f restart) runs `ce_sri.install.after_restart` (API work: confirm connection, Custom Scripts, Node.js service — polls gunicorn internally). Split per #122.
+- `POST /api/provision/erpnext` delegates to `macro/provision.py` which runs stages 1–9 sequentially. Each stage has a verify-based idempotency gate — if all postconditions are already met, the stage is skipped. The final snapshot step runs unconditionally
+- `POST /api/refresh/{host}` delegates to `macro/refresh.py` which runs stages 3–9 (skipping VM creation and network). Same idempotency gates apply
+- ce_sri secrets deployment, deploy keys, Cloudflare DNS, TLS certs, and all differentiation steps are now handled by pipeline stage units, not by api.py helpers
 - `erp_user` sourced from `ansible/group_vars/all.yml` (single source of truth)
-- Python f-string templates in the differentiate.sh generator: `${BASH_VAR}` must be `${{BASH_VAR}}` — single braces are parsed as Python format expressions → NameError
 
 ## esacp.py — Unified Lab CLI
 
@@ -76,6 +77,42 @@ Config comes from environment variables (envars.sh sourced by differentiate.sh) 
 **First run** (no golden backup): `gate` runs handleBackup.sh and exits. The backup is copied to `platforms/kvm/golden_backups/` on the controller.
 
 **Subsequent runs**: `gate` runs handleRestore.sh, then `before-install` and `after-restart` complete the ce_sri customization.
+
+## pipeline/ — Provision/Refresh Pipeline
+
+3-level decomposition: `macro/` → `stages/` → unit files. See `tools/pipeline/`.
+
+- **runner.py** — generic task executor: iterates `(Config, Emit) → TaskResult` functions, stops on first failure
+- **stages/common/** — `Config` (frozen dataclass), `Emit`, `TaskResult`, SSH/SCP/rsync helpers
+- **env_kvm.py** — `KvmEnv` dataclass (hypervisor alias, pool, image paths)
+
+### Stages (all 9 extracted)
+
+| Stage | Package | Orchestrator | Units |
+|---|---|---|---|
+| 1 — VM Creation | `stage_1_vm_creation/` | `run_stage_1()` | cleanup_residue, wireguard_peer, seed_iso, upload_seed, clone_template, virt_install, wait_ssh, baseline_snapshot |
+| 2 — Network | `stage_2_network/` | `run_stage_2()` | saconsole_wg_hub, cloudflare_dns, tls_cert, wireguard_spoke |
+| 3 — Connectivity | `stage_3_connectivity/` | `run_stage_3()` | deploy_keys, controller_pubkey, cesri_secrets, backup, ddl_views |
+| 4 — Content Delivery | `stage_4_content_delivery/` | `run_stage_4()` | config_bundle (render + rsync) |
+| 5 — TLS | `stage_5_tls/` | `run_stage_5()` | cert install, nginx vhost, DH params |
+| 6 — Base Platform | `stage_6_base_platform/` | `run_stage_6()` | envars, bench symlink, deploy keys, app clone, supervisor, BaRe symlink |
+| 7 — Data Restoration | `stage_7_data_restoration/` | `run_stage_7()` | currentsite, bench doctor, ddlViews, erpnext install, DB restore |
+| 8 — App Config | `stage_8_app_config/` | `run_stage_8()` | /etc/hosts, apikey, secrets, nginx.conf, before-install, .env, gunicorn, after-restart |
+| 9 — Service Activation | `stage_9_service_activation/` | `run_stage_9()` | HTTPS check, Social Login, stop.py, bash_aliases |
+
+### Verification / idempotency
+
+Each stage has a `verify.py` colocated with its code. All 9 stages use the same pattern:
+1. Call `verify_stage_N()` → returns `list[tuple[bool, str]]`
+2. `all_passed()` → True = skip the stage ("already satisfied")
+
+CLI: `python3 tools/pipeline/stages/stage_N_.../verify.py <hostname>` → exit 0/1.
+Importable: `verify_stage_N()` returns `list[tuple[bool, str]]`; `all_passed()` for gate logic.
+
+Verify functions serve three roles:
+1. **Acceptance test** — confirm a stage worked after running it
+2. **Idempotency gate** — skip the stage if all postconditions already met
+3. **Self-repair diagnostic** — pinpoint which unit needs re-running
 
 ## generate_inventory.py
 
