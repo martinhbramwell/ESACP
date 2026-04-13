@@ -14,7 +14,8 @@ CE_SRI_P12_CERT = CE_SRI_SECRETS_DIR / (
     "PRESIDENTE_DANIEL_LEONARD_WILD_STAPEL_1709470171_171224162014.p12"
 )
 LOGICHEM_DIR = Path.home() / "projects" / "Logichem"
-CE_SRI_LOGO = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "LogichemLogo.png"
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+CE_SRI_LOGO = PROJECT_ROOT / "config" / "branding" / "LogichemLogo.png"
 CE_SRI_SOCIALS = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "socials_google.json"
 
 
