@@ -1,8 +1,8 @@
-"""Distribute wildcard TLS cert from saconsole to target VM."""
+"""Distribute wildcard TLS cert from the hub to target VM."""
 
 from __future__ import annotations
 
-from tools.pipeline.stages.common.ssh import saconsole_ssh_run, ssh_run
+from tools.pipeline.stages.common.ssh import hub_ssh_run, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 ACME_CERT_HOME = "/opt/acme-certs"
@@ -23,16 +23,16 @@ def _cert_exists_on_vm(config: Config) -> bool:
     return r.returncode == 0 and "y" in r.stdout
 
 
-def _cert_exists_on_saconsole(config: Config) -> bool:
-    r = saconsole_ssh_run(config,
-                          f"test -f {CERT_DIR}/fullchain.pem && echo found")
+def _cert_exists_on_hub(config: Config) -> bool:
+    r = hub_ssh_run(config,
+                    f"test -f {CERT_DIR}/fullchain.pem && echo found")
     return "found" in r.stdout
 
 
 def _push_pem(config: Config, pem_name: str, tmp_name: str) -> None:
-    read = saconsole_ssh_run(config, f"cat {CERT_DIR}/{pem_name}")
+    read = hub_ssh_run(config, f"cat {CERT_DIR}/{pem_name}")
     if read.returncode != 0:
-        raise RuntimeError(f"Failed to read {pem_name} from saconsole")
+        raise RuntimeError(f"Failed to read {pem_name} from hub")
     import subprocess
     write = subprocess.run(
         ["ssh", *config.ssh_opts, "-i", config.ssh_key,
@@ -45,12 +45,12 @@ def _push_pem(config: Config, pem_name: str, tmp_name: str) -> None:
 
 
 def ensure_tls_cert(config: Config, emit: Emit) -> TaskResult:
-    """Copy wildcard PEM files from saconsole → VM /tmp/."""
+    """Copy wildcard PEM files from the hub → VM /tmp/."""
     if _cert_exists_on_vm(config):
         return TaskResult(True, False, "TLS cert already on VM")
-    if not _cert_exists_on_saconsole(config):
-        emit("  [WARN] Cert not on saconsole — skipping (HTTP-only)")
-        return TaskResult(True, False, "No cert on saconsole")
+    if not _cert_exists_on_hub(config):
+        emit("  [WARN] Cert not on hub — skipping (HTTP-only)")
+        return TaskResult(True, False, "No cert on hub")
     try:
         for pem_name, tmp_name in PEM_MAP:
             _push_pem(config, pem_name, tmp_name)

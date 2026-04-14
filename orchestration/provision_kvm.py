@@ -14,7 +14,7 @@ The provisioner detects whether a VM is mid-autoinstall and waits automatically:
 
 Usage:
     python3 orchestration/provision_kvm.py                     # provision both VMs
-    python3 orchestration/provision_kvm.py --target saconsole  # single VM
+    python3 orchestration/provision_kvm.py --target <hub_key>  # single VM
     python3 orchestration/provision_kvm.py --target target1
     python3 orchestration/provision_kvm.py --check             # dry run (Ansible check mode)
     python3 orchestration/provision_kvm.py --tags wireguard    # run specific Ansible tags
@@ -45,10 +45,12 @@ PLAYBOOK      = "site-kvm.yml"
 SNAPSHOT_FRESH    = "Fresh Install"
 SNAPSHOT_BASELINE = "Stage 2.1 Baseline"
 
+from tools.host_identity import HUB_KEY, HUB_WG_IP
+
 KVM_VMS = {
-    "saconsole": {
+    HUB_KEY: {
         "description": "Ubuntu Server 24.04 — WireGuard hub + observability stack",
-        "wg_ip":       "10.10.0.1",
+        "wg_ip":       HUB_WG_IP,
     },
     "target1": {
         "description": "Ubuntu Server 24.04 — monitored host",
@@ -335,9 +337,9 @@ def main() -> int:
     table.add_column("Host", style="cyan")
     table.add_column("Service")
     table.add_column("Address")
-    table.add_row("saconsole", "Grafana",     "http://10.10.0.1:3000")
-    table.add_row("saconsole", "Prometheus",  "http://10.10.0.1:9090")
-    table.add_row("saconsole", "Alertmanager","http://10.10.0.1:9093")
+    table.add_row(HUB_KEY, "Grafana",     f"http://{HUB_WG_IP}:3000")
+    table.add_row(HUB_KEY, "Prometheus",  f"http://{HUB_WG_IP}:9090")
+    table.add_row(HUB_KEY, "Alertmanager",f"http://{HUB_WG_IP}:9093")
     table.add_row("target1",   "node_exporter metrics", "http://10.10.0.3:9100/metrics")
     console.print(table)
 

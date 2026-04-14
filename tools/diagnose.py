@@ -209,7 +209,7 @@ def print_site_health(checks: dict) -> None:
 # ── Job log ───────────────────────────────────────────────────────────────────
 
 def bench_log(host: str, job_id: str, lines: int = 40) -> str:
-    """Tail the differentiation job log on saconsole."""
+    """Tail the differentiation job log on the hub."""
     _, out = ssh(host, f"tail -n {lines} /tmp/job-{job_id}.log 2>/dev/null")
     return out
 
@@ -258,7 +258,7 @@ def main():
 
     p_health = sub.add_parser("site-health", help="Quick site health check")
 
-    p_log = sub.add_parser("bench-log", help="Tail a job log on saconsole")
+    p_log = sub.add_parser("bench-log", help="Tail a job log on the hub")
     p_log.add_argument("job_id")
     p_log.add_argument("-n", type=int, default=40)
 

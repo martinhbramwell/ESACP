@@ -2,7 +2,7 @@
 
 ## Stack
 
-All services in Docker at `/opt/observability/` on saconsole.
+All services in Docker at `/opt/observability/` on the hub.
 
 | Service | Port | Notes |
 |---|---|---|

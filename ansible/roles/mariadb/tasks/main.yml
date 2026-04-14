@@ -2,7 +2,7 @@
 # mariadb role — Deploy MariaDB + mysqld_exporter via Docker Compose
 #
 # MariaDB listens on Docker-internal port 3306 (not exposed to host).
-# mysqld_exporter listens on host port 9104; UFW restricts to saconsole WG IP.
+# mysqld_exporter listens on host port 9104; UFW restricts to hub WG IP.
 
 - name: Create MariaDB deploy directory
   file:
@@ -39,13 +39,13 @@
   no_log: true
   notify: recreate mariadb stack
 
-- name: Allow mysqld_exporter scraping from saconsole (WireGuard only)
+- name: Allow mysqld_exporter scraping from hub (WireGuard only)
   ufw:
     rule: allow
     port: "{{ mysqld_exporter_port | string }}"
     proto: tcp
-    from_ip: "10.10.0.1"
-    comment: "mysqld_exporter — saconsole WireGuard only"
+    from_ip: "{{ hub_wg_ip }}"
+    comment: "mysqld_exporter — hub WireGuard only"
 
 # ── Pull registry images and start stack ─────────────────────────────────────
 # bytebase/dbhub is a published image — no local build required.
@@ -85,13 +85,13 @@
   retries: 30
   delay: 5
 
-- name: Allow MariaDB MCP access from saconsole (WireGuard only)
+- name: Allow MariaDB MCP access from hub (WireGuard only)
   ufw:
     rule: allow
     port: "{{ mariadb_mcp_port | string }}"
     proto: tcp
-    from_ip: "10.10.0.1"
-    comment: "mariadb-mcp SSE — saconsole WireGuard only"
+    from_ip: "{{ hub_wg_ip }}"
+    comment: "mariadb-mcp SSE — hub WireGuard only"
 
 - name: Flush handlers
   meta: flush_handlers

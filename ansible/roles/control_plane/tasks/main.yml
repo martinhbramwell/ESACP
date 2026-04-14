@@ -1,17 +1,17 @@
 ---
-# control_plane role — saconsole as Ansible controller + Cytoscape UI host
+# control_plane role — hub VM as Ansible controller + Cytoscape UI host
 #
 # After this role runs:
 #   - ESACP repo is cloned at /opt/esacp
 #   - Ansible + SOPS + required collections are installed
 #   - SOPS age key is deployed for secret decryption
-#   - saconsole has an SSH keypair at ~/.ssh/id_ed25519
-#   - saconsole_ssh_pubkey fact is registered for use by sibling plays
+#   - Hub has an SSH keypair at ~/.ssh/id_ed25519
+#   - hub_ssh_pubkey fact is registered for use by sibling plays
 #   - Node.js is installed; Cytoscape app is built to /opt/esacp/prototypes/cytoscape/dist/
 #   - nginx serves the Cytoscape app on port {{ cytoscape_port }}
 #
-# Applied to saconsole only (Play 3 in site-vbox.yml).
-# Play 4 reads saconsole_ssh_pubkey from hostvars and pushes it to targets.
+# Applied to the hub only (Play 2 in site-kvm.yml).
+# Play 3 reads hub_ssh_pubkey from hostvars and pushes it to targets.
 
 # ── Ansible + SOPS ────────────────────────────────────────────────────────────
 
@@ -76,24 +76,24 @@
 
 # ── SSH keypair ───────────────────────────────────────────────────────────────
 
-- name: Generate saconsole SSH keypair
+- name: Generate hub SSH keypair
   become_user: "{{ ansible_user }}"
   command:
     cmd: >
       ssh-keygen -t ed25519
       -f /home/{{ ansible_user }}/.ssh/id_ed25519
       -N ''
-      -C saconsole-control-plane
+      -C {{ hub_key }}-control-plane
     creates: "/home/{{ ansible_user }}/.ssh/id_ed25519"
 
-- name: Read saconsole public key
+- name: Read hub public key
   slurp:
     src: "/home/{{ ansible_user }}/.ssh/id_ed25519.pub"
-  register: saconsole_pubkey_raw
+  register: hub_pubkey_raw
 
-- name: Register saconsole public key as host fact
+- name: Register hub public key as host fact
   set_fact:
-    saconsole_ssh_pubkey: "{{ saconsole_pubkey_raw.content | b64decode | trim }}"
+    hub_ssh_pubkey: "{{ hub_pubkey_raw.content | b64decode | trim }}"
 
 # ── Node.js ───────────────────────────────────────────────────────────────────
 

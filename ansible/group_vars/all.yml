@@ -7,6 +7,16 @@
 # Private keys and PSKs are in config/wireguard/keys.sops.yml (SOPS/age encrypted).
 wg_port: 51820
 wg_subnet: "10.10.0.0/24"
+
+# Hub identity — derived from hosts_map.yml (wg_role: hub).
+# Used by roles and playbooks instead of hardcoding "saconsole" or "10.10.0.1".
+hub_key: "saconsole"
+hub_vm_name: "saconsole"
+hub_hostname: "saconsole"
+hub_display_name: "Hub Console"
+hub_virbr0_ip: "192.168.122.10"
+hub_wg_ip: "10.10.0.1"
+
 wg_pubkey_controller: "j94APdOpRArs3J78vcnRVJC5ALIFy/W9qLFacKbwGzk="
 wg_pubkey_saconsole:  "nn916J0YAufbwZNOKvWs2VX6sV4BKuTqE//985lIiRw="
 wg_pubkey_dev01: "LUOR6yrc7mymKuMyXGKmSluGyNu03iedCWe2RHoVK0k="
@@ -28,8 +38,8 @@ admin_users:
       - docker
 
 # Operator SSH public key (WSL controller key).
-# handoff_console.sh copies ~/.ssh/id_ed25519.pub → saconsole:~/.ssh/operator.pub
-# so Ansible (running on saconsole) can install it on every managed host.
+# handoff_console.sh copies ~/.ssh/id_ed25519.pub → hub:~/.ssh/operator.pub
+# so Ansible (running on the hub) can install it on every managed host.
 # Gracefully absent when running Ansible directly from WSL (file won't exist there).
 operator_ssh_key: "{{ lookup('file', lookup('env', 'HOME') + '/.ssh/operator.pub', errors='ignore') | default('') }}"
 

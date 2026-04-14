@@ -8,7 +8,7 @@
   - libvirt pool `esacp` → `/mnt/esacp-disk/var/lib/libvirt/images/` (active ✅)
 - **`--os-variant`**: toshiba osinfo-db tops out at `ubuntu20.04` — use it for all `virt-install` calls here
 - **virsh**: plain `virsh` = user session. Always use `virsh --connect qemu:///system` or `sudo virsh`
-- **saconsole manages siblings** via `qemu+ssh://<hypervisor-alias>/system`
+- **hub manages siblings** via `qemu+ssh://<hypervisor-alias>/system`
 
 ## Shared Configuration — config.sh
 
@@ -20,12 +20,12 @@ Override any value via `ESACP_*` env vars (e.g. `ESACP_HYPERVISOR_ALIAS=toshy`).
 
 ## Bootstrap Scripts
 
-- `rebuild_lab.sh` — one-command full rebuild: destroy → bootstrap_saconsole → bootstrap_targets (Phase 3 SSHes to saconsole via ProxyJump)
-- `bootstrap_saconsole.sh` — idempotent 9-phase: seed ISO → upload → VM create → autoinstall wait → "Fresh Install" snapshot → Ansible → "Stage 2.2 Baseline" snapshot → handoff
+- `rebuild_lab.sh` — one-command full rebuild: destroy → bootstrap_hub → bootstrap_targets (Phase 3 SSHes to hub via ProxyJump)
+- `bootstrap_hub.sh` — idempotent 9-phase: seed ISO → upload → VM create → autoinstall wait → "Fresh Install" snapshot → Ansible → "Stage 2.2 Baseline" snapshot → handoff
   - Play 5 (controller WireGuard spoke) requires toshiba UDP 51820 port-forward first
-- `bootstrap_targets.sh` — runs FROM saconsole after `control_plane` role applied; injects saconsole pubkey via envsubst; direct virbr0 SSH (no ProxyJump)
-  - saconsole's `~/.ssh/id_ed25519` is the only key authorised in targets' cloud-init — controller key has no access
-  - Requires `cloud-image-utils` on saconsole (in saconsole/user-data packages)
+- `bootstrap_targets.sh` — runs FROM hub after `control_plane` role applied; injects hub pubkey via envsubst; direct virbr0 SSH (no ProxyJump)
+  - hub's `~/.ssh/id_ed25519` is the only key authorised in targets' cloud-init — controller key has no access
+  - Requires `cloud-image-utils` on hub (in hub/user-data packages)
 - `destroy_vms.sh` — tear down VMs on toshiba; also removes seed ISOs + clears known_hosts
 - `prepare_hypervisor.sh` — pre-bootstrap: check + apply controller prereqs; check hypervisor state
 - **Disk pool collision**: pre-existing `.qcow2` files with same name will be REUSED by virt-install, not created fresh. Always destroy VMs with `--remove-all-storage` before rebuilding. Confirm with `virsh --connect qemu:///system vol-list esacp | grep target`.
@@ -91,7 +91,7 @@ Step 10 SCPs deploy keys + passphrase + ce_sri secrets (P12 cert, generated `ce_
 
 - **known_hosts must be cleared at script START** (before any SSH attempt) on VM rebuild — not reactively after the error. Clear by hostname AND IP.
 - **virsh snapshot names with spaces via SSH**: pass as single double-quoted string directly — do NOT use `bash -c` wrapper. `ssh host "virsh ... 'Name With Spaces' --atomic"` (not `ssh host bash -c "..."`).
-- **Remote-hosted VMs SSH key split**: target1/target2 use saconsole's pubkey; ERPNext VMs (dev01, dev02, target3+) use hasan_mighty pubkey via cloud-init template.
+- **Remote-hosted VMs SSH key split**: target1/target2 use hub's pubkey; ERPNext VMs (dev01, dev02, target3+) use hasan_mighty pubkey via cloud-init template.
 - **`hypervisor` field in hosts_map.yml**: optional per-host field routing `esacp.py buildVM` to the remote KVM host via SSH. `generate_inventory.py` injects `ansible_ssh_common_args: "-o ProxyJump=..."` for all remote-hosted hosts.
 - **Secrets**: `ansible/group_vars/all.sops.yml` holds Telegram bot token, Grafana admin password. Requires SOPS + age key (`~/.config/sops/age/keys.txt`). See `SETUP_GUIDE.md`.
 

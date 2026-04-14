@@ -5,9 +5,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from tools.host_identity import HUB_VIRBR0_IP
 from tools.pipeline.stages.common.types import Config
-
-SACONSOLE_IP = "192.168.122.10"
 
 
 def _ssh_base(config: Config) -> list[str]:
@@ -64,17 +63,21 @@ def rsync_to_vm(
     )
 
 
-def saconsole_ssh_run(
+def hub_ssh_run(
     config: Config, cmd: str, *, timeout: int = 15,
 ) -> subprocess.CompletedProcess[str]:
-    """Run *cmd* on saconsole via ProxyJump through the hypervisor."""
+    """Run *cmd* on the hub VM via ProxyJump through the hypervisor."""
     hyp = config.hypervisor or "toshiba"
     return subprocess.run(
         ["ssh",
          "-o", f"ProxyJump={hyp}",
          "-o", "StrictHostKeyChecking=no",
          "-i", config.ssh_key,
-         f"you@{SACONSOLE_IP}",
+         f"you@{HUB_VIRBR0_IP}",
          cmd],
         capture_output=True, text=True, timeout=timeout,
     )
+
+
+# Backward-compatible alias
+saconsole_ssh_run = hub_ssh_run

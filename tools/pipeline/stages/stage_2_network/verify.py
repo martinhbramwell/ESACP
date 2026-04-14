@@ -13,6 +13,8 @@ from pathlib import Path
 
 import yaml
 
+from tools.host_identity import HUB_VIRBR0_IP
+
 
 def _ssh_vm(virbr0_ip: str, hypervisor: str, ssh_key: str,
             cmd: str, timeout: int = 15):
@@ -27,23 +29,22 @@ def _ssh_vm(virbr0_ip: str, hypervisor: str, ssh_key: str,
     )
 
 
-def _ssh_saconsole(hypervisor: str, ssh_key: str,
-                   cmd: str, timeout: int = 15):
+def _ssh_hub(hypervisor: str, ssh_key: str,
+             cmd: str, timeout: int = 15):
     return subprocess.run(
         ["ssh",
          "-o", f"ProxyJump={hypervisor}",
          "-o", "StrictHostKeyChecking=no",
          "-i", ssh_key,
-         "you@192.168.122.10", cmd],
+         f"you@{HUB_VIRBR0_IP}", cmd],
         capture_output=True, text=True, timeout=timeout,
     )
 
 
-def check_saconsole_wg_peer(
+def check_hub_wg_peer(
     hostname: str, project_root: str, hypervisor: str, ssh_key: str,
 ) -> tuple[bool, str]:
-    """saconsole's wg show lists the peer public key for this host."""
-    # Read the expected pubkey from group_vars
+    """Hub's wg show lists the peer public key for this host."""
     gv = Path(project_root) / "ansible" / "group_vars" / "all.yml"
     with open(gv) as f:
         data = yaml.safe_load(f)
@@ -51,12 +52,12 @@ def check_saconsole_wg_peer(
     if not pubkey:
         return False, f"No wg_pubkey_{hostname} in group_vars — can't verify hub"
 
-    r = _ssh_saconsole(hypervisor, ssh_key, "sudo wg show wg0")
+    r = _ssh_hub(hypervisor, ssh_key, "sudo wg show wg0")
     if r.returncode != 0:
-        return False, f"Cannot run wg show on saconsole: {r.stderr.strip()}"
+        return False, f"Cannot run wg show on hub: {r.stderr.strip()}"
     if pubkey in r.stdout:
-        return True, f"saconsole hub has peer {hostname} ({pubkey[:12]}…)"
-    return False, f"saconsole hub missing peer for {hostname}"
+        return True, f"Hub has peer {hostname} ({pubkey[:12]}…)"
+    return False, f"Hub missing peer for {hostname}"
 
 
 def check_cloudflare_dns(hostname: str, wg_ip: str) -> tuple[bool, str]:
@@ -127,7 +128,7 @@ def verify_stage_2(
     if ssh_key is None:
         ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
     return [
-        check_saconsole_wg_peer(hostname, project_root, hypervisor, ssh_key),
+        check_hub_wg_peer(hostname, project_root, hypervisor, ssh_key),
         check_cloudflare_dns(hostname, wg_ip),
         check_tls_cert_on_vm(virbr0_ip, hypervisor, ssh_key),
         check_vm_wg_interface(virbr0_ip, hypervisor, ssh_key),

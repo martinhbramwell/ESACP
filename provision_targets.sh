@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# provision_targets.sh — Run from saconsole to provision/update target VMs.
+# provision_targets.sh — Run from the hub to provision/update target VMs.
 #
-# Connects via WireGuard (saconsole is hub; targets at 10.10.0.3, 10.10.0.4).
+# Connects via WireGuard (hub at 10.10.0.1; targets at 10.10.0.3, 10.10.0.4).
 # Pulls latest repo changes before running Ansible.
 #
 # Usage:

@@ -391,7 +391,9 @@ def cmd_validate_keys(args, config: dict) -> int:
             ok = False
 
     psks = decrypted.get("preshared_keys", {})
-    for psk_key in ["controller_saconsole", "target1_saconsole"]:
+    hub = hub_vm(config)
+    for spoke in [h for h in expected_hosts if h != hub]:
+        psk_key = f"{spoke}_{hub}"
         icon = "[green]✓[/green]" if psk_key in psks else "[red]✗[/red]"
         console.print(f"  {icon} preshared_key: {psk_key}")
         if psk_key not in psks:
@@ -559,7 +561,7 @@ def _toshiba_add_known_hosts(virbr0_ip: str) -> None:
 def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
     """Build a VM on the toshiba remote hypervisor."""
     virbr0_ip   = vm_info.get("virbr0_ip", "")
-    ram         = 4096 if vm == "saconsole" else 2048
+    ram         = 4096 if vm == hub_vm(config) else 2048
     remote_seed = f"{TOSHIBA_IMAGES_DIR}/{vm}-seed.iso"
 
     vm_exists = _toshiba_vm_exists(vm)
@@ -805,7 +807,7 @@ def _create_vm(vm: str, config: dict) -> bool:
 
     seed  = IMAGES_DIR / f"{vm}-seed.iso"
     disk  = IMAGES_DIR / f"{vm}.qcow2"
-    ram   = 4096 if vm == "saconsole" else 2048
+    ram   = 4096 if vm == hub_vm(config) else 2048
     vcpus = 2
 
     cmd = [
@@ -1021,7 +1023,7 @@ def _filter_ansible_line(line: str, state: dict) -> Optional[str]:
         return f"\n[bold cyan]{clean}[/bold cyan]"
 
     if state.get("in_recap"):
-        # PLAY RECAP summary line: "saconsole : ok=77  changed=11 ..."
+        # PLAY RECAP summary line: "hostname : ok=77  changed=11 ..."
         if re.match(r"\w[\w.\-]+\s*:", clean):
             return f"  [dim]{clean}[/dim]"
         return None
@@ -1243,7 +1245,7 @@ def _get_grafana_creds(config: dict) -> tuple:
         console.print("  [dim]Grafana credentials from environment[/dim]")
         return user, password
 
-    # Try reading from saconsole's .env file
+    # Try reading from the hub's .env file
     hub = hub_vm(config)
     if hub:
         hub_ip = kvm_hosts(config)[hub].get("wg_ip")
@@ -1256,7 +1258,7 @@ def _get_grafana_creds(config: dict) -> tuple:
                     console.print(f"  [dim]Grafana credentials retrieved from {hub}[/dim]")
                     return user, password
 
-    console.print("[yellow]Grafana password not found in env or on saconsole.[/yellow]")
+    console.print("[yellow]Grafana password not found in env or on hub.[/yellow]")
     password = getpass.getpass("Grafana admin password: ")
     return user, password
 
@@ -1329,13 +1331,10 @@ def cmd_display_configuration(args, config: dict) -> int:
     wg.add(f"Port    : [cyan]{hosts_map.get('wireguard_port', '—')}[/cyan]  (UDP)")
 
     pubkeys = wg.add(f"Public keys  {_src(F_ALL)}")
-    for label, key in [
-        ("controller", "wg_pubkey_controller"),
-        ("saconsole",  "wg_pubkey_saconsole"),
-        ("target1",    "wg_pubkey_target1"),
-    ]:
-        val = all_vars.get(key, "—")
-        pubkeys.add(f"{label:<12}: [dim]{val}[/dim]")
+    for varname, val in all_vars.items():
+        if varname.startswith("wg_pubkey_"):
+            label = varname.removeprefix("wg_pubkey_")
+            pubkeys.add(f"{label:<12}: [dim]{val}[/dim]")
 
     encrypted = wg.add(f"Private keys / PSKs  {_src(F_KEYS)}")
     encrypted.add("[dim](SOPS/age encrypted — run validateKeys to verify)[/dim]")
@@ -1445,7 +1444,7 @@ def main() -> int:
 
     p = sub.add_parser("destroyVM",
                        help="Destroy a KVM VM and all its storage")
-    p.add_argument("vm", help="VM name (e.g. saconsole, target1)")
+    p.add_argument("vm", help="VM name (e.g. dev01, dev02)")
 
     p = sub.add_parser("buildVM",
                        help="Build seed ISO, create VM, wait for autoinstall")

@@ -4,22 +4,24 @@
 // fetch() returns the graph data for that level.
 // children keys must match node IDs returned by the parent's fetch().
 //
-// Network note: live API calls require the browser to reach saconsole's ports.
+// Network note: live API calls require the browser to reach the hub's ports.
 // From WSL/Windows (Platform 1), the KVM network is unreachable — fallback data
 // is used automatically. From Xubuntu (Platform 2), live calls will succeed
 // provided CORS headers are present. Add a Vite proxy in vite.config.js to work
 // around CORS without touching the VMs.
 
-const SACONSOLE  = 'http://192.168.122.10'
-const PROMETHEUS = `${SACONSOLE}:9090`
-const DOCKER_API = `${SACONSOLE}:8088`   // future saconsole REST bridge; not live yet
+// Hub VM URL base — derived from virbr0_ip in hosts_map.yml.
+// TODO: fetch from /api/hosts at runtime instead of hardcoding.
+const HUB_URL    = 'http://192.168.122.10'
+const PROMETHEUS = `${HUB_URL}:9090`
+const DOCKER_API = `${HUB_URL}:8088`   // future hub REST bridge; not live yet
 
 // ── Fallback static data ───────────────────────────────────────────────────
 // Realistic snapshots used when the live API is unreachable.
 
 const FALLBACK = {
 
-  saconsole_containers: {
+  hub_containers: {
     nodes: [
       { data: { id: 'grafana',       label: 'grafana',       image: 'grafana/grafana:10.2.3',            status: 'Up', state: 'running', ports: '3000' } },
       { data: { id: 'prometheus',    label: 'prometheus',    image: 'prom/prometheus:v2.48.1',           status: 'Up', state: 'running', ports: '9090' } },
@@ -133,7 +135,7 @@ function prometheusTargetsToGraph(data) {
 
 async function fetchDockerContainers() {
   // Docker daemon does not expose HTTP by default.
-  // This targets a future saconsole REST bridge at DOCKER_API.
+  // This targets a future hub REST bridge at DOCKER_API.
   // Falls back to static data when unreachable.
   try {
     const res = await fetch(`${DOCKER_API}/docker/containers`, {
@@ -145,7 +147,7 @@ async function fetchDockerContainers() {
     return dockerContainersToGraph(data)
   } catch (err) {
     console.warn('[registry] Docker API unreachable — using fallback:', err.message)
-    return FALLBACK.saconsole_containers
+    return FALLBACK.hub_containers
   }
 }
 

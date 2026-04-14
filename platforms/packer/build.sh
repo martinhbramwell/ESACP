@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build.sh — Orchestrate the ERPNext v13 Packer image build
 #
-# Runs FROM saconsole as user 'you'.
+# Runs FROM the hub as user 'you'.
 # Creates a short-lived build VM on toshiba, hands it to Packer (null builder),
 # exports the resulting qcow2, then destroys the VM.
 #
@@ -11,10 +11,10 @@
 # Usage:
 #   bash platforms/packer/build.sh [--frappe-branch version-13] [--erpnext-branch version-13]
 #
-# Prerequisites (all met after bootstrap_saconsole.sh):
-#   - packer installed on saconsole (this script checks and offers to install)
-#   - SSH access from saconsole to toshiba: ssh hasan@toshiba
-#   - cloud-image-utils on saconsole (cloud-localds)
+# Prerequisites (all met after bootstrap_hub.sh):
+#   - packer installed on the hub (this script checks and offers to install)
+#   - SSH access from the hub to toshiba: ssh hasan@toshiba
+#   - cloud-image-utils on the hub (cloud-localds)
 #   - Ubuntu 22.04 ISO on toshiba at UBUNTU_ISO_PATH
 
 set -euo pipefail
@@ -187,7 +187,7 @@ RENDERED_USERDATA="/tmp/packer-build-userdata.yml"
 [[ -d "${CLOUD_INIT_TEMPLATE}" ]] \
     || die "Cloud-init template not found: ${CLOUD_INIT_TEMPLATE}"
 
-# Inject saconsole SSH pubkey
+# Inject hub SSH pubkey
 envsubst < "${CLOUD_INIT_TEMPLATE}/user-data" > "${RENDERED_USERDATA}"
 cloud-localds "${SEED_ISO}" "${RENDERED_USERDATA}" "${CLOUD_INIT_TEMPLATE}/meta-data"
 rm -f "${RENDERED_USERDATA}"
@@ -293,7 +293,7 @@ remote "cat > '${METADATA_DIR}/erpnext-v13-latest.json'" <<METADATA
   "erpnext_branch": "${ERPNEXT_BRANCH}",
   "erp_user":       "${ERP_USER}",
   "built_at":       "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "built_by":       "saconsole:${SCRIPT_DIR}/build.sh",
+  "built_by":       "hub:${SCRIPT_DIR}/build.sh",
   "state":          "undifferentiated"
 }
 METADATA

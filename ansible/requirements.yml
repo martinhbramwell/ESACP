@@ -1,6 +1,6 @@
 ---
 # Ansible Galaxy collection requirements
-# Installed on saconsole by the control_plane role.
+# Installed on the hub by the control_plane role.
 # Also installable manually on any controller:
 #   ansible-galaxy collection install -r ansible/requirements.yml
 

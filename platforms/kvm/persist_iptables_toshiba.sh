@@ -3,7 +3,7 @@
 #
 # Run this DIRECTLY ON TOSHIBA (not from Mighty).
 # Applies and persists the two iptables rules required for Mighty's WireGuard
-# spoke to reach saconsole's hub (192.168.122.10:51820) via toshiba.
+# spoke to reach the hub (${HUB_VIRBR0_IP}:51820) via toshiba.
 #
 # Usage: bash platforms/kvm/persist_iptables_toshiba.sh
 # Requires: sudo, iptables-persistent (installed automatically if absent)
@@ -22,7 +22,7 @@ fi
 
 echo "==> Applying iptables rules..."
 
-# DNAT: incoming WireGuard UDP on WAN → saconsole
+# DNAT: incoming WireGuard UDP on WAN → hub
 sudo iptables -t nat -C PREROUTING \
   -i "${WAN_IF}" -p udp --dport "${WG_PORT}" \
   -j DNAT --to-destination "${SACONSOLE_IP}:${WG_PORT}" 2>/dev/null \
@@ -30,7 +30,7 @@ sudo iptables -t nat -C PREROUTING \
   -i "${WAN_IF}" -p udp --dport "${WG_PORT}" \
   -j DNAT --to-destination "${SACONSOLE_IP}:${WG_PORT}"
 
-# FORWARD: allow forwarded WireGuard UDP to saconsole (must be before libvirt chains)
+# FORWARD: allow forwarded WireGuard UDP to hub (must be before libvirt chains)
 sudo iptables -C FORWARD \
   -i "${WAN_IF}" -o virbr0 -p udp \
   -d "${SACONSOLE_IP}" --dport "${WG_PORT}" -j ACCEPT 2>/dev/null \

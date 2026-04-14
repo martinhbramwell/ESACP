@@ -59,6 +59,8 @@ def build_inventory(data: dict) -> dict:
                 "ansible_host": attrs.get("virbr0_ip", attrs["hostname"]),
                 "wg_ip":        attrs.get("wg_ip"),
                 "wg_role":      attrs.get("wg_role"),
+                "vm_name":      attrs.get("vm_name", logical_name),
+                "display_name": attrs.get("display_name", logical_name),
             }
             if attrs.get("ansible_connection"):
                 hv["ansible_connection"] = attrs["ansible_connection"]

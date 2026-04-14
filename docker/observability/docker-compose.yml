@@ -83,7 +83,7 @@ services:
 
   # Node Exporter - Host Metrics
   # network_mode: host gives the container the host's network namespace so that:
-  #   (a) nodename in node_uname_info matches the VM hostname (saconsole), not a container ID
+  #   (a) nodename in node_uname_info matches the VM hostname, not a container ID
   #   (b) wg0 and all other host interfaces are visible to the collector
   # Prometheus reaches it via host.docker.internal (see extra_hosts on prometheus service).
   node_exporter:

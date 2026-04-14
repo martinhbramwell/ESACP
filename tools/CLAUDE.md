@@ -2,7 +2,7 @@
 
 ## api.py — FastAPI Control Plane (port 8088)
 
-Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move to saconsole when promoted from prototype.
+Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move to hub when promoted from prototype.
 
 ### Endpoints
 
@@ -14,7 +14,7 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 | POST | `/api/refresh/{host}` | Re-run stages 3–9 via `macro/refresh.py` (idempotent, over WireGuard) |
 | GET | `/api/health/{host}` | SSH checks: nginx (`systemctl is-active`), app (supervisorctl RUNNING count), db (mysql SELECT 1) |
 | GET | `/api/template/status` | Metadata for latest undifferentiated ERPNext image on toshiba |
-| POST | `/api/build/template` | Start background Packer build on saconsole (one at a time) |
+| POST | `/api/build/template` | Start background Packer build on hub (one at a time) |
 | DELETE | `/api/template` | Delete template artifact from toshiba, reset to not_built |
 | POST | `/api/vm/{host}/start` | Start a shut-off VM (memory guard rejects if host RAM insufficient) |
 | POST | `/api/vm/{host}/stop` | Graceful shutdown (`virsh shutdown`); rejects hub nodes |
@@ -60,7 +60,7 @@ Extracted from api.py so both api.py and job_worker.py can use them. Contains:
 
 Non-obvious behaviours:
 - `provisionVM` Ansible output filter: shows PLAY headers, ✓ ok, ★ changed, ❌ fatal, RECAP only
-- `validateObservability` credential order: `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` env vars → SSH saconsole `/opt/observability/.env` → interactive prompt
+- `validateObservability` credential order: `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` env vars → SSH hub `/opt/observability/.env` → interactive prompt
 - `buildVM`: uses `virsh vol-create-as` + `virsh vol-upload` for seed ISO — not `sudo cp` (hangs in uvicorn threads)
 - `snapShotVM`: KVM-only, hardwired to `platforms/kvm/snapshot.py` → `virsh`
 
@@ -72,9 +72,17 @@ Subcommands:
 - `hung-procs` — list long-running bench/frappe/ce_sri processes with elapsed time
 - `proc-detail <pid>` — threads (wchan + kernel stack), file descriptors, TCP connections
 - `site-health` — quick check: currentsite.txt, gunicorn workers, supervisor services, nginx
-- `bench-log <job_id> [-n lines]` — tail a differentiation job log on saconsole
+- `bench-log <job_id> [-n lines]` — tail a differentiation job log on hub
 
 All functions are importable (`from tools.diagnose import hung_procs, site_health, ...`) for use in other scripts or `api.py` health endpoints.
+
+## host_identity.py — Hub Identity Constants
+
+Resolves host identities from `hosts_map.yml` at import time. Provides:
+- `HUB_KEY`, `HUB_VM_NAME`, `HUB_HOSTNAME`, `HUB_DISPLAY_NAME`, `HUB_VIRBR0_IP`, `HUB_WG_IP`
+- `hub_vm(config)`, `kvm_hosts(config)`, `host_field(key, field)`
+
+All Python code that previously hardcoded "saconsole" imports from here instead.
 
 ## install_specific.py — VM Differentiation (standalone, SCP'd to VM)
 
@@ -110,7 +118,7 @@ Config comes from environment variables (envars.sh sourced by differentiate.sh) 
 | Stage | Package | Orchestrator | Units |
 |---|---|---|---|
 | 1 — VM Creation | `stage_1_vm_creation/` | `run_stage_1()` | cleanup_residue, wireguard_peer, seed_iso, upload_seed, clone_template, virt_install, wait_ssh, baseline_snapshot |
-| 2 — Network | `stage_2_network/` | `run_stage_2()` | saconsole_wg_hub, cloudflare_dns, tls_cert, wireguard_spoke |
+| 2 — Network | `stage_2_network/` | `run_stage_2()` | hub_wg_hub, cloudflare_dns, tls_cert, wireguard_spoke |
 | 3 — Connectivity | `stage_3_connectivity/` | `run_stage_3()` | deploy_keys, controller_pubkey, cesri_secrets, backup, ddl_views |
 | 4 — Content Delivery | `stage_4_content_delivery/` | `run_stage_4()` | config_bundle (render + rsync) |
 | 5 — TLS | `stage_5_tls/` | `run_stage_5()` | cert install, nginx vhost, DH params |

@@ -3,8 +3,8 @@
 #
 # Play order:
 #   1. All KVM VMs:    common, ssh, firewall, fail2ban, wireguard
-#   2. saconsole:      docker, observability, desktop, control_plane, mcp_grafana
-#   3. targets:        authorise saconsole SSH pubkey (set by control_plane in Play 2)
+#   2. Hub ({{ hub_key }}): docker, observability, desktop, control_plane, mcp_grafana
+#   3. targets:        authorise hub SSH pubkey (set by control_plane in Play 2)
 #   4. targets:        node_exporter, docker, mariadb, nginx_ui
 #   5. Controller:     wireguard spoke config (connection: local)
 #
@@ -26,9 +26,9 @@
     - role: wireguard
       tags: [wireguard]
 
-# ── Play 2: saconsole — observability + desktop + control plane + MCP ─────
-- name: Observability + control plane — saconsole
-  hosts: saconsole
+# ── Play 2: Hub — observability + desktop + control plane + MCP ───────────
+- name: Observability + control plane — hub
+  hosts: "{{ hub_key }}"
   become: yes
   roles:
     - docker
@@ -39,30 +39,30 @@
     - role: acme_sh
       tags: [acme_sh]
 
-# ── Play 3: Authorise saconsole SSH pubkey on targets ─────────────────────
-# control_plane (Play 2) generates saconsole's keypair and registers
-# saconsole_ssh_pubkey as a host fact. This play pushes it to targets so
-# saconsole can Ansible-provision and manage them directly.
+# ── Play 3: Authorise hub SSH pubkey on targets ──────────────────────────
+# control_plane (Play 2) generates the hub's keypair and registers
+# hub_ssh_pubkey as a host fact. This play pushes it to targets so
+# the hub can Ansible-provision and manage them directly.
 #
-# When running --limit targets (e.g. from bootstrap_targets.sh), saconsole's
+# When running --limit targets (e.g. from bootstrap_targets.sh), the hub's
 # play does not execute and the fact is not in memory. Pass the pubkey via
-# --extra-vars "saconsole_override_pubkey=..." to satisfy this task.
-# Safe to skip when running --limit saconsole alone.
-- name: Authorise saconsole on targets
+# --extra-vars "hub_override_pubkey=..." to satisfy this task.
+# Safe to skip when running --limit <hub_key> alone.
+- name: Authorise hub on targets
   hosts: targets
   become: yes
   tasks:
-    - name: Add saconsole public key to authorized_keys
+    - name: Add hub public key to authorized_keys
       authorized_key:
         user: "{{ ansible_user }}"
-        key: "{{ saconsole_override_pubkey | default(hostvars['saconsole']['saconsole_ssh_pubkey'] | default('')) }}"
+        key: "{{ hub_override_pubkey | default(hostvars[hub_key]['hub_ssh_pubkey'] | default('')) }}"
         state: present
       when: >
-        saconsole_override_pubkey is defined
-        or (hostvars['saconsole']['saconsole_ssh_pubkey'] is defined
-            and hostvars['saconsole']['saconsole_ssh_pubkey'] != '')
+        hub_override_pubkey is defined
+        or (hostvars[hub_key]['hub_ssh_pubkey'] is defined
+            and hostvars[hub_key]['hub_ssh_pubkey'] != '')
 
-# ── Play 4: Target services — target1 + target2 ───────────────────────────
+# ── Play 4: Target services ──────────────────────────────────────────────
 - name: Target services — targets
   hosts: targets
   become: yes
@@ -81,8 +81,8 @@
     inventory_hostname: controller   # used by wg0.conf.j2 peer selection
     wg_ip: "10.10.0.2"
     wg_role: spoke
-    # Controller reaches saconsole via toshiba's LAN IP (port-forwarded to
-    # saconsole's virbr0 192.168.122.10:51820). Mighty's own virbr0 owns
+    # Controller reaches the hub via toshiba's LAN IP (port-forwarded to
+    # hub virbr0 {{ hub_virbr0_ip }}:51820). Mighty's own virbr0 owns
     # 192.168.122.0/24 so it cannot reach that IP directly.
     wg_hub_endpoint: "toshy.iridium.blue"
   roles:

@@ -13,7 +13,7 @@ Endpoints:
     POST /api/destroy/{hostname}     → full teardown: WG + VM + hosts_map + keys + inventory
     GET  /api/health/{hostname}      → quick SSH check: { web, app, db } each green/amber/red
     GET  /api/template/status        → metadata for latest undifferentiated ERPNext image
-    POST /api/build/template         → start background Packer build on saconsole
+    POST /api/build/template         → start background Packer build on hub
     DELETE /api/template             → delete template artifact from toshiba
     POST /api/promote                → staging → production promotion (stub)
     POST /api/vm/{hostname}/start    → start a shut-off VM (memory guard)
@@ -436,8 +436,8 @@ def delete_template():
 def start_build_template():
     """Start a background job to build the undifferentiated ERPNext v13 image.
 
-    Runs platforms/packer/build.sh on saconsole via SSH.
-    saconsole creates the build VM on toshiba, runs Packer provisioners,
+    Runs platforms/packer/build.sh on the hub via SSH.
+    The hub creates the build VM on toshiba, runs Packer provisioners,
     exports the qcow2, then destroys the build VM.
     Only one build may run at a time.
     """
@@ -495,7 +495,7 @@ def start_provision_erpnext(vm: NewErpnextVM):
       5.  virt-install --import (boots in seconds, cloud-init sets identity)
       6.  Wait for SSH
       7.  Take "Baseline" snapshot → node shows provisioned=True in UI
-      8.  Ansible wireguard role on saconsole (update hub wg0.conf)
+      8.  Ansible wireguard role on hub (update hub wg0.conf)
       Differentiation (steps 9–18):
       9.  Ansible wireguard role on new VM (configure spoke wg0)
       10. Push envars.sh → /opt/ce_sri/envars.sh
@@ -507,7 +507,7 @@ def start_provision_erpnext(vm: NewErpnextVM):
       16. handleRestore.sh (DB restore + views)
       17. bench restart
       18. Snapshot "ERPNext v13 Logichem DB Restored"
-      8. Ansible wireguard role on saconsole (add new spoke)
+      8. Ansible wireguard role on hub (add new spoke)
     """
     if not re.match(r'^[a-z][a-z0-9-]*$', vm.hostname):
         raise HTTPException(400, "hostname: lowercase letters/digits/hyphens, must start with a letter")

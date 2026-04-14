@@ -122,7 +122,7 @@ const ZONE_ANCHORS = [
 // All positions are chosen to fall within their zone's quadrant boundary.
 const INITIAL_POSITIONS = {
   // Console quadrant (TL): x 60-390, y 50-380
-  // Stockroom (single ERPNext tile) on the left; controller + saconsole on the right
+  // Stockroom (single ERPNext tile) on the left; controller + hub on the right
   'tpl-erpnext': { x: 160, y: 220 },
   controller:     { x: 330, y: 150 },
   saconsole:      { x: 330, y: 280 },
@@ -507,7 +507,7 @@ async function init() {
 
   _repositionUnknownNodes()  // place API-loaded nodes not in INITIAL_POSITIONS
   attachHandlers()
-  // Hub (saconsole) and controller are water-troughs — permanently fixed in Console.
+  // Hub and controller are water-troughs — permanently fixed in Console.
   cy.nodes('[role = "hub"], [role = "controller"]').lock()
   _updatePromoteButton()
   _reconnectActiveJob()
@@ -852,7 +852,7 @@ function renderInfoWithActions(data) {
   const actions = document.createElement('div')
   actions.className = 'action-bar'
 
-  // saconsole (hub) is the machine that runs build.sh — it creates templates
+  // The hub is the machine that runs build.sh — it creates templates
   if (role === 'hub') {
     const btn = document.createElement('button')
     btn.className   = 'action-btn action-btn--secondary'
@@ -1024,15 +1024,15 @@ async function _syncTemplateState() {
 }
 
 // Inline confirm → build template job
-// mode: 'create' (from saconsole) | 'update' (from template tile)
+// mode: 'create' (from hub) | 'update' (from template tile)
 function _startBuildTemplate(mode = 'update') {
   if (activeJob) return
 
   const isCreate   = mode === 'create'
   const title      = isCreate ? 'Create ERPNext v13 Template' : 'Update ERPNext v13 Template'
   const bodyCopy   = isCreate
-    ? 'Runs a ~45 min Packer build on saconsole.<br>Produces the undifferentiated base image: OS + MariaDB + bench + frappe + erpnext. No site. No apps. No data.'
-    : 'Runs a ~45 min Packer build on saconsole.<br>Replaces the current base image for all future ERPNext deployments.'
+    ? 'Runs a ~45 min Packer build on the hub.<br>Produces the undifferentiated base image: OS + MariaDB + bench + frappe + erpnext. No site. No apps. No data.'
+    : 'Runs a ~45 min Packer build on the hub.<br>Replaces the current base image for all future ERPNext deployments.'
   const confirmTxt = isCreate ? 'Confirm Create' : 'Confirm Update'
   const cancelMsg  = isCreate ? 'Create cancelled.' : 'Update cancelled.'
 
@@ -1047,7 +1047,7 @@ function _startBuildTemplate(mode = 'update') {
   confirmBtn.className   = 'action-btn'
   confirmBtn.textContent = confirmTxt
   confirmBtn.onclick = () => {
-    infoPanel.innerHTML = '<pre class="job-log">Starting ERPNext template build on saconsole…\n</pre>'
+    infoPanel.innerHTML = '<pre class="job-log">Starting ERPNext template build on the hub…\n</pre>'
     startBuildTemplate()
       .then(({ job_id }) => {
         _setTemplateState('building')
@@ -1241,7 +1241,7 @@ function _destroyTemplate() {
   confirmBtn.textContent = 'Confirm Destroy'
   confirmBtn.onclick = () => {
     deleteTemplate()
-      .then(() => hint('Template artifact deleted. Run "Create Template" from saconsole to rebuild.'))
+      .then(() => hint('Template artifact deleted. Run "Create Template" from the hub to rebuild.'))
       .catch(err => { infoPanel.innerHTML = `<p class="hint error">Destroy failed: ${err.message}</p>` })
   }
   const cancelBtn = document.createElement('button')

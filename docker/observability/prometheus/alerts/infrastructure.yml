@@ -80,7 +80,7 @@ groups:
           component: tls
         annotations:
           summary: "TLS cert expiring soon: {{ $labels.domain }}"
-          description: "Certificate for {{ $labels.domain }} expires in {{ $value | printf \"%.0f\" }} days. Automated renewal may have failed — check /tmp/acme-renew.log on saconsole."
+          description: "Certificate for {{ $labels.domain }} expires in {{ $value | printf \"%.0f\" }} days. Automated renewal may have failed — check /tmp/acme-renew.log on the hub."
 
       # Critical: less than 3 days left — service will break imminently
       - alert: TLSCertExpiryCritical

@@ -1,5 +1,5 @@
 ---
-# mcp_grafana role — Deploy grafana/mcp-grafana in SSE mode on saconsole
+# mcp_grafana role — Deploy grafana/mcp-grafana in SSE mode on the hub
 #
 # Joins the observability_network Docker network so it can reach grafana:3000
 # by container name, without needing port exposure between containers.

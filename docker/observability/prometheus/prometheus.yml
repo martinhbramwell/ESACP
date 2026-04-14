@@ -29,7 +29,7 @@ scrape_configs:
     static_configs:
       - targets: ['host.docker.internal:9100']
         labels:
-          host: 'saconsole'
+          host: 'hub'  # Ansible template uses {{ inventory_hostname }}
 
   # cAdvisor - Container metrics
   - job_name: 'cadvisor'

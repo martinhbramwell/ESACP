@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # prepare_hypervisor.sh — Check and prepare a bare KVM hypervisor host + controller
 #
-# Run from the project root on the CONTROLLER before running bootstrap_saconsole.sh.
+# Run from the project root on the CONTROLLER before running bootstrap_hub.sh.
 # Controller-side tools are auto-installed where possible.
 # Hypervisor-side checks report pass/fail with exact fix commands — they do not
 # apply changes over SSH (no sudo over BatchMode).
@@ -15,7 +15,7 @@
 #   3. Hypervisor state    (via SSH — check + fix guidance only)
 #   4. Post-bootstrap      (iptables port-forward — guidance only)
 #
-# After all checks pass, bootstrap_saconsole.sh preflight will succeed.
+# After all checks pass, bootstrap_hub.sh preflight will succeed.
 
 set -uo pipefail
 
@@ -23,7 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJ_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 ANSIBLE_DIR="${PROJ_ROOT}/ansible"
 
-# ── Configuration (must match bootstrap_saconsole.sh) ─────────────────────────
+# ── Configuration (must match bootstrap_hub.sh) ─────────────────────────
 
 HYPERVISOR_ALIAS="toshy"
 HYPERVISOR_USER="hasan"
@@ -333,8 +333,8 @@ fi  # end hypervisor_reachable block
 
 hdr "4. Post-bootstrap — WireGuard port-forward"
 echo ""
-echo "  After bootstrap_saconsole.sh completes, Mighty's WireGuard spoke needs"
-echo "  to reach saconsole (192.168.122.10:51820) through the hypervisor."
+echo "  After bootstrap_hub.sh completes, Mighty's WireGuard spoke needs"
+echo "  to reach the hub (${HUB_VIRBR0_IP}:51820) through the hypervisor."
 echo "  Run these two iptables rules on the hypervisor (replace wlp2s0 with"
 echo "  the actual LAN interface: \`ip route get 1 | awk '{print \$5; exit}'\`):"
 echo ""
@@ -357,12 +357,12 @@ echo "════════════════════════�
 echo ""
 
 if [[ ${FAIL} -gt 0 ]]; then
-    echo "❌  Fix all failures before running bootstrap_saconsole.sh."
+    echo "❌  Fix all failures before running bootstrap_hub.sh."
     exit 1
 elif [[ ${MANUAL_COUNT} -gt 0 ]]; then
     echo "👤  Complete [MANUAL] steps above, then re-run to confirm."
     exit 0
 else
-    echo "✅  Controller and hypervisor ready. Run bootstrap_saconsole.sh."
+    echo "✅  Controller and hypervisor ready. Run bootstrap_hub.sh."
     exit 0
 fi
