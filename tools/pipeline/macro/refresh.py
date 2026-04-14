@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from tools.pipeline.stages.common.config import build_config
+from tools.pipeline.stages.common.log_format import stage_banner
 from tools.pipeline.stages.common.types import Emit
 from tools.pipeline.stages.stage_3_connectivity import run_stage_3
 from tools.pipeline.stages.stage_4_content_delivery import run_stage_4
@@ -36,5 +37,5 @@ def run(
         ("Stage 9: Service Activation", run_stage_9),
     ]
     for label, stage_fn in _STAGES:
-        emit(f"═══ {label} ═══")
+        emit(stage_banner(label))
         stage_fn(config, emit)

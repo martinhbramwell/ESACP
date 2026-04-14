@@ -6,6 +6,7 @@ Orchestrates Steps 10–11 of the provision pipeline.  Extracted from
 
 from __future__ import annotations
 
+from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.types import Config, Emit
 
 from .backup import ensure_backup
@@ -43,40 +44,40 @@ def run_stage_3(config: Config, emit: Emit) -> None:
         emit("[OK] Stage 3 already satisfied — skipping")
         return
 
-    # ── Step 10a: Deploy keys ──
-    emit("── Step 10a: SCP deploy keys ──")
+    # ── Deploy keys ──
+    emit(step_header("SCP deploy keys"))
     r = ensure_deploy_keys(config, emit)
     if not r.success:
         raise RuntimeError(r.message)
     tag = "[CHANGED]" if r.changed else "[OK]"
     emit(f"  {tag} {r.message}")
 
-    # ── Step 10b: Controller pubkey ──
-    emit("── Step 10b: SCP controller pubkey ──")
+    # ── Controller pubkey ──
+    emit(step_header("SCP controller pubkey"))
     r = ensure_controller_pubkey(config, emit)
     if not r.success:
         raise RuntimeError(r.message)
     tag = "[CHANGED]" if r.changed else "[OK]"
     emit(f"  {tag} {r.message}")
 
-    # ── Step 10c: ce_sri secrets ──
-    emit("── Step 10c: ce_sri secrets (SOPS decrypt + patch + SCP) ──")
+    # ── ce_sri secrets ──
+    emit(step_header("ce_sri secrets (SOPS decrypt + patch + SCP)"))
     r = ensure_cesri_secrets(config, emit)
     if not r.success:
         raise RuntimeError(r.message)
     tag = "[CHANGED]" if r.changed else "[OK]"
     emit(f"  {tag} {r.message}")
 
-    # ── Step 10d: Rsync database backup ──
-    emit("── Step 10d: Rsync database backup ──")
+    # ── Rsync database backup ──
+    emit(step_header("Rsync database backup"))
     r = ensure_backup(config, emit)
     if not r.success:
         raise RuntimeError(r.message)
     tag = "[CHANGED]" if r.changed else "[OK]"
     emit(f"  {tag} {r.message}")
 
-    # ── Step 11: ddlViews.sql ──
-    emit("── Step 11: SCP ddlViews.sql ──")
+    # ── ddlViews.sql ──
+    emit(step_header("SCP ddlViews.sql"))
     r = ensure_ddl_views(config, emit)
     if not r.success:
         emit(f"  [WARN] {r.message}")

@@ -6,6 +6,7 @@ import subprocess
 
 from tools.pipeline.orchestration.load_host_config import load_host_config
 from tools.pipeline.stages.common.config import build_config
+from tools.pipeline.stages.common.log_format import stage_banner
 from tools.pipeline.stages.common.types import Emit
 from tools.pipeline.stages.env_kvm import KvmEnv
 from tools.pipeline.stages.stage_1_vm_creation import run_stage_1
@@ -32,7 +33,7 @@ def run(
     Raises RuntimeError on the first stage that fails.
     """
     # ── Stage 1: VM Creation (special signature — not yet Config-based) ──
-    emit("═══ Stage 1: VM Creation ═══")
+    emit(stage_banner("Stage 1: VM Creation"))
     kvm_env = KvmEnv.from_project_root(project_root)
     run_stage_1(
         hostname=hostname,
@@ -58,11 +59,11 @@ def run(
         ("Stage 9: Service Activation", run_stage_9),
     ]
     for label, stage_fn in _STAGES:
-        emit(f"═══ {label} ═══")
+        emit(stage_banner(label))
         stage_fn(config, emit)
 
     # ── Final snapshot ──
-    emit("═══ Final snapshot ═══")
+    emit(stage_banner("Final snapshot"))
     _take_final_snapshot(hostname, kvm_env.hypervisor_alias, emit)
 
 
