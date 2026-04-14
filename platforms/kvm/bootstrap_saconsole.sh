@@ -17,8 +17,8 @@
 #
 # Prerequisites:
 #   - cloud-image-utils (cloud-localds) installed on this controller
-#   - SSH alias 'toshy' configured in ~/.ssh/config
-#   - ~/.ssh/hasan_mighty: SSH keypair authorised on KVM VM guests
+#   - SSH alias for hypervisor configured in ~/.ssh/config (see config.sh)
+#   - SSH keypair for KVM VM guests (path from config.sh / ESACP_SSH_KEY)
 #   - SOPS age key at ~/.config/sops/age/keys.txt (for Ansible secrets)
 #
 # Idempotency: safe to re-run at any phase. Each step checks current state
@@ -27,21 +27,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJ_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-ANSIBLE_DIR="${PROJ_ROOT}/ansible"
 
-# ── Configuration ──────────────────────────────────────────────────────────────
+# ── Configuration (from hosts_map.yml + env overrides) ────────────────────────
+# shellcheck source=config.sh
+source "${SCRIPT_DIR}/config.sh"
 
-HYPERVISOR_ALIAS="toshy"
-HYPERVISOR_USER="hasan"
-HYPERVISOR_LAN_IP="toshy.iridium.blue"   # used in next-steps guidance only
-
-REMOTE_IMAGES_DIR="/mnt/esacp-disk/var/lib/libvirt/images"
 UBUNTU_ISO_NAME="ubuntu-24.04.4-live-server-amd64.iso"
-
-SACONSOLE_IP="192.168.122.10"
-SACONSOLE_USER="you"
-SSH_KEY="${HOME}/.ssh/hasan_mighty"
 
 SNAPSHOT_FRESH="Fresh Install"
 SNAPSHOT_BASELINE="Stage 2.2 Baseline"
@@ -332,33 +323,28 @@ chmod 600 ~/.ssh/authorized_keys
 REMOTE
 
 log "✅  saconsole SSH pubkey installed on ${HYPERVISOR_ALIAS}."
-log "    saconsole can now connect: qemu+ssh://hasan@toshiba/system"
+log "    saconsole can now connect: qemu+ssh://${HYPERVISOR_USER}@${ESACP_HYPERVISOR}/system"
 
-# Seed toshiba's host key into saconsole's known_hosts.
-# bootstrap_targets.sh runs FROM saconsole and SSHes to toshiba with
-# BatchMode=yes — on a fresh saconsole the known_hosts is empty and
-# BatchMode refuses the unknown key instead of prompting.
-# Base64 transfer avoids quoting/newline issues with multi-line key content.
-# Add toshiba to saconsole's /etc/hosts.
+# Add hypervisor to saconsole's /etc/hosts.
 # A fresh saconsole uses 8.8.8.8/1.1.1.1 (from cloud-init) and cannot
-# resolve the local hostname 'toshiba'. bootstrap_targets.sh uses
-# HYPERVISOR_ALIAS="toshiba" throughout — without this, all its SSH and
+# resolve the local hostname. bootstrap_targets.sh uses
+# HYPERVISOR_ALIAS throughout — without this, all its SSH and
 # virsh calls fail with "Temporary failure in name resolution".
-log "Adding toshiba → ${HYPERVISOR_LAN_IP} to saconsole /etc/hosts ..."
+log "Adding ${ESACP_HYPERVISOR} → ${HYPERVISOR_LAN_IP} to saconsole /etc/hosts ..."
 ssh \
     "${SACONSOLE_SSH_OPTS[@]}" \
     "${SACONSOLE_USER}@${SACONSOLE_IP}" \
-    "grep -qF 'toshiba' /etc/hosts 2>/dev/null \
-         || echo '${HYPERVISOR_LAN_IP} toshiba' | sudo tee -a /etc/hosts > /dev/null"
-log "✅  toshiba in saconsole /etc/hosts."
+    "grep -qF '${ESACP_HYPERVISOR}' /etc/hosts 2>/dev/null \
+         || echo '${HYPERVISOR_LAN_IP} ${ESACP_HYPERVISOR}' | sudo tee -a /etc/hosts > /dev/null"
+log "✅  ${ESACP_HYPERVISOR} in saconsole /etc/hosts."
 
-# Seed toshiba's host key into saconsole's known_hosts.
-# bootstrap_targets.sh runs FROM saconsole and SSHes to toshiba with
+# Seed hypervisor's host key into saconsole's known_hosts.
+# bootstrap_targets.sh runs FROM saconsole and SSHes to the hypervisor with
 # BatchMode=yes — on a fresh saconsole the known_hosts is empty and
 # BatchMode refuses the unknown key instead of prompting.
 # Base64 transfer avoids quoting/newline issues with multi-line key content.
 log "Seeding ${HYPERVISOR_ALIAS} host key into saconsole known_hosts ..."
-HYPER_KEYS_B64=$(ssh-keyscan -H toshiba "${HYPERVISOR_LAN_IP}" 2>/dev/null \
+HYPER_KEYS_B64=$(ssh-keyscan -H "${ESACP_HYPERVISOR}" "${HYPERVISOR_LAN_IP}" 2>/dev/null \
     | base64 -w0 || true)
 ssh \
     "${SACONSOLE_SSH_OPTS[@]}" \

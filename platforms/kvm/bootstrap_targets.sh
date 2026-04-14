@@ -22,26 +22,21 @@
 # Prerequisites:
 #   - control_plane role applied to saconsole (provides: Ansible, repo, SSH keypair)
 #   - cloud-image-utils installed: sudo apt install cloud-image-utils
-#   - SSH access from saconsole to toshiba: ssh hasan@toshiba (via saconsole's ~/.ssh/id_ed25519)
+#   - SSH access from saconsole to hypervisor (via saconsole's ~/.ssh/id_ed25519)
 #   - SOPS age key at ~/.config/sops/age/keys.txt
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJ_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-ANSIBLE_DIR="${PROJ_ROOT}/ansible"
 
-# ── Configuration ──────────────────────────────────────────────────────────────
+# ── Configuration (from hosts_map.yml + env overrides) ────────────────────────
+# shellcheck source=config.sh
+source "${SCRIPT_DIR}/config.sh"
 
-HYPERVISOR_ALIAS="toshiba"
-HYPERVISOR_USER="hasan"
-
-REMOTE_IMAGES_DIR="/mnt/esacp-disk/var/lib/libvirt/images"
-UBUNTU_ISO_NAME="ubuntu-22.04.2-live-server-amd64.iso"
-
-# Both targets on toshiba's virbr0 — saconsole is on the same network
-VM_USER="you"
+# Saconsole-specific overrides: SSH key is saconsole's own keypair, not controller's
 SSH_KEY="${HOME}/.ssh/id_ed25519"
+
+UBUNTU_ISO_NAME="ubuntu-22.04.2-live-server-amd64.iso"
 
 SNAPSHOT_FRESH="Fresh Install"
 SNAPSHOT_BASELINE="Stage 2.2 Targets Baseline"
@@ -49,9 +44,18 @@ SNAPSHOT_BASELINE="Stage 2.2 Targets Baseline"
 AUTOINSTALL_TIMEOUT=1800   # 30 minutes — max wait for autoinstall to complete
 SSH_POLL_TIMEOUT=120       # 2 minutes  — max wait for SSH after first boot
 
-TARGETS=(target1 target2)
-declare -A TARGET_IP=( [target1]="192.168.122.11" [target2]="192.168.122.12" )
-declare -A TARGET_RAM=( [target1]="2048"          [target2]="2048" )
+# Targets derived from hosts_map.yml (all KVM hosts with vm_role set)
+# shellcheck disable=SC2206
+TARGETS=(${ESACP_KVM_TARGETS})
+declare -A TARGET_IP
+declare -A TARGET_RAM
+for _t in "${TARGETS[@]}"; do
+    _tag="${_t^^}"
+    _tag="${_tag//-/_}"
+    eval "TARGET_IP[${_t}]=\${ESACP_VM_VIRBR0_IP_${_tag}}"
+    TARGET_RAM[${_t}]="2048"
+done
+unset _t _tag
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

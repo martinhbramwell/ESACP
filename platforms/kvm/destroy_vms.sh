@@ -16,22 +16,27 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-HYPERVISOR_ALIAS="toshy"
-HYPERVISOR_USER="hasan"
-REMOTE_IMAGES_DIR="/mnt/esacp-disk/var/lib/libvirt/images"
+# ── Configuration (from hosts_map.yml + env overrides) ────────────────────────
+# shellcheck source=config.sh
+source "${SCRIPT_DIR}/config.sh"
 
-ESACP_VMS=(saconsole target1 target2)
-declare -A VM_IPS=(
-    [saconsole]="192.168.122.10"
-    [target1]="192.168.122.11"
-    [target2]="192.168.122.12"
-)
+# All KVM VMs and their virbr0 IPs (derived from hosts_map.yml)
+# shellcheck disable=SC2206
+ESACP_VMS=(${ESACP_KVM_VMS})
+declare -A VM_IPS
+for _vm in "${ESACP_VMS[@]}"; do
+    _tag="${_vm^^}"
+    _tag="${_tag//-/_}"
+    eval "VM_IPS[${_vm}]=\${ESACP_VM_VIRBR0_IP_${_tag}}"
+done
+unset _vm _tag
 
-LOCAL_SEED_ISOS=(
-    saconsole-seed.iso
-    target1-toshiba-seed.iso
-    target2-toshiba-seed.iso
-)
+# Seed ISOs: saconsole + targets (targets use <vm>-<hypervisor>-seed.iso naming)
+LOCAL_SEED_ISOS=(saconsole-seed.iso)
+for _vm in ${ESACP_KVM_TARGETS}; do
+    LOCAL_SEED_ISOS+=("${_vm}-${ESACP_HYPERVISOR}-seed.iso")
+done
+unset _vm
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

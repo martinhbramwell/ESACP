@@ -20,15 +20,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-cd "${PROJECT_ROOT}"
+
+# ── Configuration (from hosts_map.yml + env overrides) ────────────────────────
+# shellcheck source=config.sh
+source "${SCRIPT_DIR}/config.sh"
+
+cd "${PROJ_ROOT}"
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
-HYPERVISOR_ALIAS="toshy"
-HYPERVISOR_USER="hasan"
-SACONSOLE_IP="192.168.122.10"
-SACONSOLE_USER="you"
-SSH_KEY="${HOME}/.ssh/hasan_mighty"
 
 # shellcheck source=utils.sh
 source "${SCRIPT_DIR}/utils.sh"
@@ -90,15 +89,11 @@ ssh \
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 hdr "Done"
-echo "  saconsole, target1, and target2 are provisioned."
+echo "  All KVM VMs (${ESACP_KVM_VMS}) are provisioned."
 echo ""
-echo "  Grafana:       http://10.10.0.1:3000"
-echo "  Prometheus:    http://10.10.0.1:9090"
-echo "  mcp-grafana:   http://10.10.0.1:8000/sse"
-echo "  MariaDB MCP:   http://10.10.0.3:9001/sse"
-echo "                 http://10.10.0.4:9001/sse"
-echo "  Nginx MCP:     http://10.10.0.3:9000/mcp"
-echo "                 http://10.10.0.4:9000/mcp"
+echo "  Grafana:       http://${ESACP_SACONSOLE_WG_IP}:3000"
+echo "  Prometheus:    http://${ESACP_SACONSOLE_WG_IP}:9090"
+echo "  mcp-grafana:   http://${ESACP_SACONSOLE_WG_IP}:8000/sse"
 echo ""
 echo "  Next: bash platforms/kvm/sync_check.sh"
 echo ""
