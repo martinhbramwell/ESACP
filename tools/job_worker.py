@@ -36,14 +36,16 @@ KEYS_SOPS = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
 CLOUD_INIT_DIR = PROJECT_ROOT / "platforms" / "kvm" / "cloud-init"
 PLATFORMS_PACKER = PROJECT_ROOT / "platforms" / "packer"
 
+from tools.host_identity import HUB_KEY, HUB_VIRBR0_IP
+
 TOSHIBA_ALIAS = "toshiba"
 TOSHIBA_HYPERVISOR_USER = "hasan"
-SACONSOLE_IP = "192.168.122.10"
-SACONSOLE_SSH = [
+HUB_IP = HUB_VIRBR0_IP
+HUB_SSH = [
     "ssh", "-o", f"ProxyJump={TOSHIBA_ALIAS}",
     "-o", "StrictHostKeyChecking=no",
     "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
-    f"you@{SACONSOLE_IP}",
+    f"you@{HUB_IP}",
 ]
 
 
@@ -150,14 +152,14 @@ def run_destroy(args: dict) -> None:
         raise RuntimeError(f"generate_inventory.py failed:\n{result.stderr}")
     emit("  [OK] inventory regenerated")
 
-    # Step 6: Update saconsole WireGuard config via Ansible
-    emit("── Update saconsole WireGuard config (Ansible) ──")
+    # Step 6: Update hub WireGuard config via Ansible
+    emit("── Update hub WireGuard config (Ansible) ──")
     proc = subprocess.Popen(
         [
             "ansible-playbook",
             "-i", "inventory/kvm.yml",
             "site-kvm.yml",
-            "--limit", "saconsole",
+            "--limit", HUB_KEY,
             "--tags", "wireguard",
         ],
         cwd=str(PROJECT_ROOT / "ansible"),
@@ -170,7 +172,7 @@ def run_destroy(args: dict) -> None:
     if proc.returncode != 0:
         emit(f"  [WARN] Ansible wireguard update failed (exit {proc.returncode})")
     else:
-        emit("  [OK] saconsole wg0.conf updated")
+        emit("  [OK] hub wg0.conf updated")
 
     # Step 7: Remove keys from keys.sops.yml
     emit("── Remove WireGuard keys ──")
@@ -208,24 +210,24 @@ def run_build_template(args: dict) -> None:
 
     emit("── ERPNext v13 template build ──")
 
-    # Sync packer directory to saconsole
-    emit("Syncing platforms/packer/ to saconsole ...")
+    # Sync packer directory to hub
+    emit("Syncing platforms/packer/ to hub ...")
     rsync = subprocess.run(
         ["rsync", "-az", "--delete",
          "-e", "ssh " + " ".join(ssh_opts),
          str(PLATFORMS_PACKER) + "/",
-         f"you@{SACONSOLE_IP}:/opt/esacp/platforms/packer/"],
+         f"you@{HUB_IP}:/opt/esacp/platforms/packer/"],
         capture_output=True, text=True,
     )
     if rsync.returncode != 0:
-        raise RuntimeError(f"rsync to saconsole failed: {rsync.stderr.strip()}")
+        raise RuntimeError(f"rsync to hub failed: {rsync.stderr.strip()}")
 
-    emit(f"Connecting to saconsole ({SACONSOLE_IP} via {TOSHIBA_ALIAS}) ...")
+    emit(f"Connecting to hub ({HUB_IP} via {TOSHIBA_ALIAS}) ...")
 
     REMOTE_LOG = "/tmp/packer-build-output.log"
     REMOTE_EXIT = "/tmp/packer-build-output.log.exit"
 
-    subprocess.run(SACONSOLE_SSH + [f"rm -f {REMOTE_LOG} {REMOTE_EXIT}"],
+    subprocess.run(HUB_SSH + [f"rm -f {REMOTE_LOG} {REMOTE_EXIT}"],
                    capture_output=True)
 
     start_cmd = (
@@ -233,16 +235,16 @@ def run_build_template(args: dict) -> None:
         f" > {REMOTE_LOG} 2>&1; echo $? > {REMOTE_EXIT}'"
         f" > /dev/null 2>&1 & echo $!"
     )
-    r = subprocess.run(SACONSOLE_SSH + [start_cmd], capture_output=True, text=True)
+    r = subprocess.run(HUB_SSH + [start_cmd], capture_output=True, text=True)
     if r.returncode != 0:
-        raise RuntimeError(f"Failed to start build on saconsole: {r.stderr.strip()}")
-    emit(f"Build detached on saconsole (PID {r.stdout.strip()}) — polling log ...")
+        raise RuntimeError(f"Failed to start build on hub: {r.stderr.strip()}")
+    emit(f"Build detached on hub (PID {r.stdout.strip()}) — polling log ...")
 
     offset = 0
     while True:
         time.sleep(5)
         r = subprocess.run(
-            SACONSOLE_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
+            HUB_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
             capture_output=True, text=True,
         )
         if r.stdout:
@@ -252,13 +254,13 @@ def run_build_template(args: dict) -> None:
             offset += len(r.stdout.encode("utf-8"))
 
         r = subprocess.run(
-            SACONSOLE_SSH + [f"cat {REMOTE_EXIT} 2>/dev/null || echo -1"],
+            HUB_SSH + [f"cat {REMOTE_EXIT} 2>/dev/null || echo -1"],
             capture_output=True, text=True,
         )
         exit_str = r.stdout.strip()
         if exit_str != "-1":
             r = subprocess.run(
-                SACONSOLE_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
+                HUB_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
                 capture_output=True, text=True,
             )
             for raw_line in r.stdout.splitlines():

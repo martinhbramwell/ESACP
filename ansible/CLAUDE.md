@@ -3,8 +3,8 @@
 ## site-kvm.yml Plays (5 total)
 
 1. `base-all` — base config for all KVM hosts
-2. `saconsole` — docker + observability + desktop + control_plane + mcp_grafana
-3. Authorise saconsole pubkey on targets
+2. `hub` — docker + observability + desktop + control_plane + mcp_grafana
+3. Authorise hub pubkey on targets
 4. `targets` — node_exporter + docker + mariadb + nginx_ui
 5. `controller WireGuard` — runs on `hosts: localhost`, `connection: local`; does NOT inherit `group_vars/kvm.yml`; hub endpoint hardcoded in Play 5 vars: `wg_hub_endpoint: "toshy.iridium.blue"`
 
@@ -24,7 +24,7 @@
 ## MariaDB Role
 
 - Uses `bytebase/dbhub:0.18.0` (NOT `MariaDB/mcp` — its main branch pulls PyTorch/CUDA ~3.5GB, breaks 20GB VMs)
-- Deployed to `/opt/mariadb/`; MariaDB port 3306 Docker-internal only (not exposed); mysqld_exporter port 9104 UFW-restricted to saconsole (10.10.0.1)
+- Deployed to `/opt/mariadb/`; MariaDB port 3306 Docker-internal only (not exposed); mysqld_exporter port 9104 UFW-restricted to hub (10.10.0.1)
 - Credentials in `/opt/mariadb/.env` (mode 0600); compose file templated: `ansible/roles/mariadb/templates/docker-compose.mariadb.yml.j2`
 - dbhub: SSE transport on port 9001 (internal 8080, `--transport http`); DSN passed via `--dsn mariadb://...` in compose command
 - **mysqld_exporter v0.15.x**: `DATA_SOURCE_NAME` env var removed — use `--config.my-cnf=<absolute-path>`; file mode must be `0644` (runs as `nobody`). (GH #45)
@@ -39,7 +39,7 @@
 
 ## mcp_grafana Role
 
-- `grafana/mcp-grafana:0.11.3` on saconsole; deploys to `/opt/mcp-grafana/`; SSE port 8000
+- `grafana/mcp-grafana:0.11.3` on hub; deploys to `/opt/mcp-grafana/`; SSE port 8000
 - Declares `observability_network` as `external: true` → reaches `grafana:3000` by container name
 - Start observability stack BEFORE mcp-grafana or the network won't exist
 - Endpoint: `http://10.10.0.1:8000/sse` (WireGuard peers only)

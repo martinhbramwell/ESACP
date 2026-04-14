@@ -18,8 +18,8 @@
 #   7.  VMs on toshiba (derived from hosts_map.yml)
 #   8.  WireGuard — local interface + handshake
 #   9.  WireGuard mesh — ping all peers (derived from hosts_map.yml)
-#   9b. WireGuard hub peer drift — saconsole live peers vs inventory spokes
-#  10.  Observability stack (saconsole)
+#   9b. WireGuard hub peer drift — hub live peers vs inventory spokes
+#  10.  Observability stack (hub)
 #  11.  ERPNext sites — HTTPS reachability (derived from hosts_map.yml)
 #  12.  MCP endpoints — all SSE servers in ~/.claude/settings.json
 #  13.  GitHub MCP server (binary + settings.json + token)
@@ -44,7 +44,7 @@ source "${_SCRIPT_DIR}/config.sh"
 remote_toshiba() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
     "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" "$@"; }
 
-remote_saconsole() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
+remote_hub() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
     -o ProxyJump="${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
     "${SACONSOLE_USER}@${SACONSOLE_IP}" "$@"; }
 
@@ -198,16 +198,16 @@ if [[ -n "${WG_DUMP}" ]]; then
     NOW=$(date +%s)
     AGE=$(( NOW - HS_TS ))
     if [[ ${HS_TS} -eq 0 ]]; then
-        warn "wg0: no handshake yet with saconsole hub"
+        warn "wg0: no handshake yet with hub"
         fix "Check toshiba iptables DNAT rule for UDP 51820 is still in place"
     elif [[ ${AGE} -lt 180 ]]; then
-        ok "wg0: handshake with saconsole ${AGE}s ago (healthy)"
+        ok "wg0: handshake with hub ${AGE}s ago (healthy)"
     elif [[ ${AGE} -lt 600 ]]; then
         warn "wg0: last handshake ${AGE}s ago — stale (expected <180s with keepalive=25s)"
         fix "Check toshiba iptables port-forward: sudo iptables -t nat -L PREROUTING -n"
     else
         fail "wg0: no handshake in ${AGE}s — WireGuard tunnel is down"
-        fix "Check toshiba iptables port-forward and saconsole wg0 status"
+        fix "Check toshiba iptables port-forward and hub wg0 status"
     fi
 else
     warn "Could not read wg0 dump (sudo may be required) — skipping handshake age check"
@@ -236,8 +236,8 @@ for label_ip in ${WG_PEERS}; do
     fi
 done
 
-# ── 9b. WireGuard hub peer drift — saconsole live peers vs inventory spokes ───
-hdr "9b. WireGuard hub peer drift (saconsole)"
+# ── 9b. WireGuard hub peer drift — hub live peers vs inventory spokes ───
+hdr "9b. WireGuard hub peer drift"
 
 # Count expected spokes from hosts_map.yml (all hosts with wg_role=spoke, any group)
 EXPECTED_SPOKES=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
@@ -254,18 +254,18 @@ print(len(seen))
 PYEOF
 )
 
-# Count live peers on saconsole hub
-LIVE_PEERS=$(remote_saconsole "sudo wg show wg0 2>/dev/null | grep -c '^peer:'" 2>/dev/null || echo "0")
+# Count live peers on hub
+LIVE_PEERS=$(remote_hub "sudo wg show wg0 2>/dev/null | grep -c '^peer:'" 2>/dev/null || echo "0")
 
 if [[ "${LIVE_PEERS}" -eq "${EXPECTED_SPOKES}" ]]; then
-    ok "saconsole hub has ${LIVE_PEERS} WG peers — matches inventory (${EXPECTED_SPOKES} spokes)"
+    ok "hub has ${LIVE_PEERS} WG peers — matches inventory (${EXPECTED_SPOKES} spokes)"
 else
-    fail "saconsole hub has ${LIVE_PEERS} WG peers — inventory expects ${EXPECTED_SPOKES} spokes"
-    fix "Re-run: cd ansible && ansible-playbook -i inventory/kvm.yml site-kvm.yml --limit saconsole --tags wireguard"
+    fail "hub has ${LIVE_PEERS} WG peers — inventory expects ${EXPECTED_SPOKES} spokes"
+    fix "Re-run: cd ansible && ansible-playbook -i inventory/kvm.yml site-kvm.yml --limit ${HUB_KEY} --tags wireguard"
 fi
 
-# ── 10. Observability stack — saconsole ───────────────────────────────────────
-hdr "10. Observability stack (saconsole)"
+# ── 10. Observability stack — hub ───────────────────────────────────────
+hdr "10. Observability stack (hub)"
 
 WG_HUB=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
 import yaml, sys
@@ -283,22 +283,22 @@ if [[ -n "${WG_HUB}" ]] && ping -c1 -W2 "${WG_HUB}" &>/dev/null; then
 fi
 
 if [[ "${SACONSOLE_REACHABLE}" == true ]]; then
-    OBS_CONTAINERS=$(remote_saconsole \
+    OBS_CONTAINERS=$(remote_hub \
         "docker ps --format '{{.Names}}:{{.Status}}'" 2>/dev/null || true)
 
     for svc in prometheus grafana loki promtail alertmanager node_exporter cadvisor mcp-grafana; do
         ROW=$(echo "${OBS_CONTAINERS}" | grep "^${svc}:" || true)
         if [[ -z "${ROW}" ]]; then
-            fail "saconsole: '${svc}' container not running"
-            fix "SSH to saconsole and run: docker-compose -f /opt/observability/docker-compose.yml up -d ${svc}"
+            fail "hub: '${svc}' container not running"
+            fix "SSH to hub and run: docker-compose -f /opt/observability/docker-compose.yml up -d ${svc}"
         elif echo "${ROW}" | grep -qi "unhealthy\|restarting\|exited"; then
-            warn "saconsole: '${svc}' — $(echo "${ROW}" | cut -d: -f2-)"
+            warn "hub: '${svc}' — $(echo "${ROW}" | cut -d: -f2-)"
         else
-            ok "saconsole: '${svc}' — up"
+            ok "hub: '${svc}' — up"
         fi
     done
 else
-    warn "saconsole unreachable over WireGuard — skipping observability checks"
+    warn "hub unreachable over WireGuard — skipping observability checks"
 fi
 
 # ── 11. ERPNext sites ─────────────────────────────────────────────────────────

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # generate_keys.sh — WireGuard key generation for ESACP Stage 2.1
 #
-# Generates keypairs for: controller (${HOSTNAME}), saconsole, target1, target2
-# Generates preshared keys for: controller↔saconsole, target1↔saconsole, target2↔saconsole
+# Generates keypairs for: controller, hub (saconsole key), target1, target2
+# Generates preshared keys for: controller↔hub, target1↔hub, target2↔hub
 #
 # Output: config/wireguard/keys.sops.yml  (age-encrypted via SOPS, safe to commit)
 #

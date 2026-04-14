@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# create_vms.sh — Create saconsole and target1 KVM VMs
+# create_vms.sh — Create hub and target1 KVM VMs
 #
-# saconsole (Ubuntu Server 24.04.4):
+# Hub (Ubuntu Server 24.04.4):
 #   Uses --location method with --extra-args. Fully automated, no manual step.
 #
 # target1 (Ubuntu Server 24.04.4):
 #   Uses --location method with --extra-args. Fully automated, no manual step.
 #
 # Usage (from project root):
-#   bash platforms/kvm/create_vms.sh [saconsole|target1|both]
+#   bash platforms/kvm/create_vms.sh [hub|target1|both]
 #
 # Default: both
 #
@@ -28,11 +28,11 @@ IMAGES_DIR="/var/lib/libvirt/images"
 # Resolve symlinks so QEMU (libvirt-qemu user) can access the files without
 # needing search permission on /home/hasan.
 # Both VMs use the Ubuntu Server 24.04.4 ISO.
-SACONSOLE_ISO="$(readlink -f "${PROJ_ROOT}/ubuntu-24.04.4-live-server-amd64.iso")"
+HUB_ISO="$(readlink -f "${PROJ_ROOT}/ubuntu-24.04.4-live-server-amd64.iso")"
 TARGET1_ISO="$(readlink -f "${PROJ_ROOT}/ubuntu-24.04.4-live-server-amd64.iso")"
 
 # Seed ISOs must live in IMAGES_DIR so QEMU can read them.
-SACONSOLE_SEED="${IMAGES_DIR}/saconsole-seed.iso"
+HUB_SEED="${IMAGES_DIR}/${HUB_KEY:-saconsole}-seed.iso"
 TARGET1_SEED="${IMAGES_DIR}/target1-seed.iso"
 
 # ── Preflight ────────────────────────────────────────────────────────────────
@@ -70,28 +70,28 @@ vm_exists() {
     virsh dominfo "$1" &>/dev/null
 }
 
-# ── saconsole ────────────────────────────────────────────────────────────────
+# ── hub ────────────────────────────────────────────────────────────────
 
-create_saconsole() {
-    if vm_exists saconsole; then
-        echo "VM 'saconsole' already exists — skipping. Delete it first to recreate:"
-        echo "  virsh destroy saconsole; virsh undefine saconsole --remove-all-storage"
+create_hub() {
+    if vm_exists "${HUB_VM_NAME:-saconsole}"; then
+        echo "VM '${HUB_VM_NAME:-saconsole}' already exists — skipping. Delete it first to recreate:"
+        echo "  virsh destroy ${HUB_VM_NAME:-saconsole}; virsh undefine ${HUB_VM_NAME:-saconsole} --remove-all-storage"
         return
     fi
 
-    check_iso "${SACONSOLE_ISO}" "Ubuntu Server ISO"
-    check_seed "${SACONSOLE_SEED}" "saconsole"
+    check_iso "${HUB_ISO}" "Ubuntu Server ISO"
+    check_seed "${HUB_SEED}" "${HUB_KEY:-saconsole}"
 
-    echo "Creating saconsole VM (fully automated)..."
+    echo "Creating hub VM (fully automated)..."
     # Ubuntu Server 24.04.4 live ISO; kernel/initrd under casper/.
     # The seed ISO is labeled 'cidata'; cloud-init auto-detects it (ds=nocloud).
     virt-install \
-        --name saconsole \
+        --name "${HUB_VM_NAME:-saconsole}" \
         --ram 4096 \
         --vcpus 2 \
-        --disk "path=${IMAGES_DIR}/saconsole.qcow2,size=20,format=qcow2" \
-        --location "${SACONSOLE_ISO},kernel=casper/vmlinuz,initrd=casper/initrd" \
-        --disk "path=${SACONSOLE_SEED},device=cdrom,readonly=on" \
+        --disk "path=${IMAGES_DIR}/${HUB_VM_NAME:-saconsole}.qcow2,size=20,format=qcow2" \
+        --location "${HUB_ISO},kernel=casper/vmlinuz,initrd=casper/initrd" \
+        --disk "path=${HUB_SEED},device=cdrom,readonly=on" \
         --network network=default \
         --os-variant ubuntu22.04 \
         --extra-args "autoinstall ds=nocloud" \
@@ -99,8 +99,8 @@ create_saconsole() {
         --noautoconsole
 
     echo ""
-    echo "✅  saconsole VM created and autoinstall running."
-    echo "    Monitor: virt-viewer saconsole"
+    echo "✅  Hub VM created and autoinstall running."
+    echo "    Monitor: virt-viewer ${HUB_VM_NAME:-saconsole}"
     echo "    The VM will power off when installation is complete."
 }
 
@@ -141,11 +141,11 @@ create_target1() {
 # ── Dispatch ─────────────────────────────────────────────────────────────────
 
 case "${TARGET}" in
-    saconsole) create_saconsole ;;
+    hub) create_hub ;;
     target1)   create_target1 ;;
-    both)      create_saconsole; create_target1 ;;
+    both)      create_hub; create_target1 ;;
     *)
-        echo "Usage: $0 [saconsole|target1|both]"
+        echo "Usage: $0 [hub|target1|both]"
         exit 1
         ;;
 esac

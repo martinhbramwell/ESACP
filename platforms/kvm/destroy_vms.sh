@@ -31,8 +31,8 @@ for _vm in "${ESACP_VMS[@]}"; do
 done
 unset _vm _tag
 
-# Seed ISOs: saconsole + targets (targets use <vm>-<hypervisor>-seed.iso naming)
-LOCAL_SEED_ISOS=(saconsole-seed.iso)
+# Seed ISOs: hub + targets (targets use <vm>-<hypervisor>-seed.iso naming)
+LOCAL_SEED_ISOS=(${HUB_KEY}-seed.iso)
 for _vm in ${ESACP_KVM_TARGETS}; do
     LOCAL_SEED_ISOS+=("${_vm}-${ESACP_HYPERVISOR}-seed.iso")
 done

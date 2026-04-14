@@ -3,7 +3,7 @@
 #
 # nginx-ui bundles nginx inside the image (no separate nginx container needed).
 # Port {{ nginx_ui_http_port }}: nginx HTTP (allow from WireGuard subnet)
-# Port {{ nginx_ui_api_port }}: nginx-ui admin API + MCP SSE endpoint (allow from saconsole WG only)
+# Port {{ nginx_ui_api_port }}: nginx-ui admin API + MCP SSE endpoint (allow from hub WG only)
 #
 # MCP endpoint: http://<target-wg-ip>:{{ nginx_ui_api_port }}/mcp?node_secret=<NGINX_UI_NODE_SECRET>
 # First-run setup is headless via NGINX_UI_NODE_SKIP_INSTALLATION env var.
@@ -46,13 +46,13 @@
     from_ip: "10.10.0.0/24"
     comment: "nginx HTTP — WireGuard subnet"
 
-- name: Allow nginx-ui admin/MCP from saconsole (WireGuard only)
+- name: Allow nginx-ui admin/MCP from hub (WireGuard only)
   ufw:
     rule: allow
     port: "{{ nginx_ui_api_port | string }}"
     proto: tcp
-    from_ip: "10.10.0.1"
-    comment: "nginx-ui admin/MCP — saconsole WireGuard only"
+    from_ip: "{{ hub_wg_ip }}"
+    comment: "nginx-ui admin/MCP — hub WireGuard only"
 
 - name: Pull nginx-ui image
   command: docker-compose -f {{ nginx_ui_deploy_dir }}/docker-compose.yml pull

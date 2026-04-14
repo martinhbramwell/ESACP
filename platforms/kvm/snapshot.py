@@ -97,7 +97,7 @@ def main() -> None:
         "action",
         choices=["create", "revert", "list", "delete", "start", "state"],
     )
-    parser.add_argument("vm", help="VM domain name (e.g. saconsole, target1)")
+    parser.add_argument("vm", help="VM domain name (e.g. dev01, dev02)")
     parser.add_argument("snapshot_name", nargs="?", help="Snapshot name (not needed for list/start/state)")
 
     args = parser.parse_args()

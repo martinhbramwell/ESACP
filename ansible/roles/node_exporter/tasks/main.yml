@@ -3,7 +3,7 @@
 #
 # Installs the binary directly (no Docker) so target1 can be monitored
 # without requiring a full container stack.
-# Port 9100 is restricted via UFW to saconsole's WireGuard IP only.
+# Port 9100 is restricted via UFW to the hub's WireGuard IP only.
 
 - name: Set node_exporter version
   set_fact:
@@ -52,13 +52,13 @@
     mode: '0644'
   notify: restart node_exporter
 
-- name: Open node_exporter port in UFW (saconsole WireGuard IP only)
+- name: Open node_exporter port in UFW (hub WireGuard IP only)
   ufw:
     rule: allow
     port: "9100"
     proto: tcp
-    from_ip: "10.10.0.1"
-    comment: "node_exporter — saconsole WireGuard only"
+    from_ip: "{{ hub_wg_ip }}"
+    comment: "node_exporter — hub WireGuard only"
 
 - name: Enable and start node_exporter
   systemd:

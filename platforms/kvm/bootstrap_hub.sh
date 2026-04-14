@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# bootstrap_saconsole.sh — Idempotent bootstrap of saconsole on a remote KVM hypervisor
+# bootstrap_hub.sh — Idempotent bootstrap of the hub VM on a remote KVM hypervisor
 #
 # Phases:
 #   1. Preflight checks
-#   2. Build saconsole seed ISO (local, cloud-localds)
+#   2. Build hub seed ISO (local, cloud-localds)
 #   3. Upload seed ISO to hypervisor
-#   4. Create saconsole VM on hypervisor (virt-install via SSH)
+#   4. Create hub VM on hypervisor (virt-install via SSH)
 #   5. Wait for autoinstall → first boot → SSH ready
 #   6. Snapshot "Fresh Install"
-#   7. Ansible provision saconsole (via ProxyJump through hypervisor)
+#   7. Ansible provision hub (via ProxyJump through hypervisor)
 #   8. Snapshot "Stage 2.2 Baseline"
-#   9. Handoff: install saconsole's SSH pubkey on hypervisor
+#   9. Handoff: install hub's SSH pubkey on hypervisor
 #
 # Usage (from project root):
-#   bash platforms/kvm/bootstrap_saconsole.sh
+#   bash platforms/kvm/bootstrap_hub.sh
 #
 # Prerequisites:
 #   - cloud-image-utils (cloud-localds) installed on this controller
@@ -22,7 +22,7 @@
 #   - SOPS age key at ~/.config/sops/age/keys.txt (for Ansible secrets)
 #
 # Idempotency: safe to re-run at any phase. Each step checks current state
-# before acting. Delete saconsole VM + seed ISO to start from scratch.
+# before acting. Delete hub VM + seed ISO to start from scratch.
 
 set -euo pipefail
 
@@ -51,11 +51,11 @@ remote() {
 }
 
 vm_exists() {
-    remote virsh --connect qemu:///system dominfo saconsole &>/dev/null
+    remote virsh --connect qemu:///system dominfo ${HUB_VM_NAME} &>/dev/null
 }
 
 vm_state() {
-    remote virsh --connect qemu:///system domstate saconsole 2>/dev/null \
+    remote virsh --connect qemu:///system domstate ${HUB_VM_NAME} 2>/dev/null \
         | tr -d '\n' \
         || echo "unknown"
 }
@@ -67,17 +67,17 @@ snapshot_exists() {
     # joins all argv[] with spaces before the remote shell parses them, so
     # `ssh host bash -c "cmd"` became `bash -c cmd` (cmd = first word only).
     ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-        "virsh --connect qemu:///system snapshot-list saconsole --name 2>/dev/null" \
+        "virsh --connect qemu:///system snapshot-list ${HUB_VM_NAME} --name 2>/dev/null" \
         | grep -qxF "$1"
 }
 
 # SSH options used for all direct connections FROM THIS CONTROLLER TO SACONSOLE.
-# UserKnownHostsFile=/dev/null: cloud-init regenerates saconsole's SSH host keys
+# UserKnownHostsFile=/dev/null: cloud-init regenerates the hub's SSH host keys
 # on first boot AFTER autoinstall completes. The key seen in Phase 5 (ssh_ready)
 # differs from the key seen in Phase 9 (handoff). StrictHostKeyChecking=no alone
 # is not enough — SSH still rejects a *changed* key even with that option set.
 # Using /dev/null bypasses known_hosts entirely for these bootstrap connections.
-SACONSOLE_SSH_OPTS=(
+HUB_SSH_OPTS=(
     -o StrictHostKeyChecking=no
     -o UserKnownHostsFile=/dev/null
     -o LogLevel=ERROR
@@ -89,8 +89,8 @@ SACONSOLE_SSH_OPTS=(
 
 ssh_ready() {
     ssh \
-        "${SACONSOLE_SSH_OPTS[@]}" \
-        "${SACONSOLE_USER}@${SACONSOLE_IP}" \
+        "${HUB_SSH_OPTS[@]}" \
+        "${HUB_USER}@${HUB_VIRBR0_IP}" \
         "echo ok" &>/dev/null
 }
 
@@ -102,7 +102,7 @@ take_snapshot() {
     fi
     log "  Creating snapshot '${name}' ..."
     ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-        "virsh --connect qemu:///system snapshot-create-as saconsole '${name}' --atomic"
+        "virsh --connect qemu:///system snapshot-create-as ${HUB_VM_NAME} '${name}' --atomic"
     log "  ✅  '${name}'"
 }
 
@@ -134,13 +134,13 @@ log "Hypervisor : ${HYPERVISOR_ALIAS} (${HYPERVISOR_USER}@${HYPERVISOR_LAN_IP})"
 log "Images dir : ${HYPERVISOR_ALIAS}:${REMOTE_IMAGES_DIR}"
 log "✅  Preflight OK"
 
-# ── Phase 2: Build saconsole seed ISO ─────────────────────────────────────────
+# ── Phase 2: Build hub seed ISO ─────────────────────────────────────────
 
-step "Phase 2: Build saconsole seed ISO"
+step "Phase 2: Build hub seed ISO"
 
-SEED_ISO="${SCRIPT_DIR}/saconsole-seed.iso"
-USER_DATA="${SCRIPT_DIR}/cloud-init/saconsole/user-data"
-META_DATA="${SCRIPT_DIR}/cloud-init/saconsole/meta-data"
+SEED_ISO="${SCRIPT_DIR}/${HUB_KEY}-seed.iso"
+USER_DATA="${SCRIPT_DIR}/cloud-init/${HUB_KEY}/user-data"
+META_DATA="${SCRIPT_DIR}/cloud-init/${HUB_KEY}/meta-data"
 
 [[ -f "${USER_DATA}" ]] || die "Missing: ${USER_DATA}"
 [[ -f "${META_DATA}" ]] || die "Missing: ${META_DATA}"
@@ -158,7 +158,7 @@ fi
 
 step "Phase 3: Upload seed ISO to ${HYPERVISOR_ALIAS}"
 
-REMOTE_SEED="${REMOTE_IMAGES_DIR}/saconsole-seed.iso"
+REMOTE_SEED="${REMOTE_IMAGES_DIR}/${HUB_KEY}-seed.iso"
 LOCAL_MTIME=$(stat -c %Y "${SEED_ISO}")
 REMOTE_MTIME=$(remote "stat -c %Y '${REMOTE_SEED}' 2>/dev/null || echo 0")
 
@@ -172,12 +172,12 @@ fi
 
 # ── Phase 4: Create VM on hypervisor ──────────────────────────────────────────
 
-step "Phase 4: Create saconsole VM on ${HYPERVISOR_ALIAS}"
+step "Phase 4: Create hub VM on ${HYPERVISOR_ALIAS}"
 
 REMOTE_ISO="${REMOTE_IMAGES_DIR}/${UBUNTU_ISO_NAME}"
 
 if vm_exists; then
-    log "VM 'saconsole' already exists on ${HYPERVISOR_ALIAS} — skipping creation."
+    log "VM '${HUB_VM_NAME}' already exists on ${HYPERVISOR_ALIAS} — skipping creation."
 else
     remote "test -f '${REMOTE_ISO}'" \
         || die "Ubuntu ISO not found on ${HYPERVISOR_ALIAS}: ${REMOTE_ISO}"
@@ -189,13 +189,13 @@ else
     #
     # --os-variant ubuntu20.04: toshiba's osinfo-db (Ubuntu 20.04 stock) tops out at
     #   ubuntu20.04 — ubuntu22.04 and ubuntu24.04 are both absent.
-    # --disk pool=esacp: stores saconsole.qcow2 in the esacp pool
+    # --disk pool=esacp: stores ${HUB_VM_NAME}.qcow2 in the esacp pool
     #   (/mnt/esacp-disk/var/lib/libvirt/images) — system disk is 98% full.
     # --noautoconsole: returns immediately; autoinstall runs headlessly.
     ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" bash <<REMOTE
 virt-install \
     --connect qemu:///system \
-    --name saconsole \
+    --name ${HUB_VM_NAME} \
     --ram 4096 \
     --vcpus 2 \
     --disk pool=esacp,size=20,format=qcow2 \
@@ -213,7 +213,7 @@ fi
 
 # ── Phase 5: Wait for first boot + SSH ────────────────────────────────────────
 
-step "Phase 5: Wait for saconsole to be ready"
+step "Phase 5: Wait for hub to be ready"
 
 if ssh_ready; then
     log "SSH already available — VM is fully up."
@@ -227,8 +227,8 @@ else
         STATE=$(vm_state)
         case "${STATE}" in
             "shut off")
-                log "VM shut off — autoinstall complete. Starting saconsole ..."
-                remote virsh --connect qemu:///system start saconsole
+                log "VM shut off — autoinstall complete. Starting hub ..."
+                remote virsh --connect qemu:///system start ${HUB_VM_NAME}
                 sleep 5
                 break
                 ;;
@@ -239,7 +239,7 @@ else
                     break
                 fi
                 if [[ ${SECONDS} -ge ${DEADLINE} ]]; then
-                    die "Autoinstall timed out after ${AUTOINSTALL_TIMEOUT}s."$'\n'"  Debug: ssh ${HYPERVISOR_ALIAS} 'virt-viewer saconsole'"
+                    die "Autoinstall timed out after ${AUTOINSTALL_TIMEOUT}s."$'\n'"  Debug: ssh ${HYPERVISOR_ALIAS} 'virt-viewer ${HUB_VM_NAME}'"
                 fi
                 log "  VM running (autoinstall in progress) — waiting 30s ..."
                 sleep 30
@@ -256,7 +256,7 @@ else
     SSH_DEADLINE=$(( SECONDS + SSH_POLL_TIMEOUT ))
     until ssh_ready; do
         if [[ ${SECONDS} -ge ${SSH_DEADLINE} ]]; then
-            die "SSH not ready after ${SSH_POLL_TIMEOUT}s."$'\n'"  Try: ssh -J ${HYPERVISOR_ALIAS} -i ${SSH_KEY} ${SACONSOLE_USER}@${SACONSOLE_IP}"
+            die "SSH not ready after ${SSH_POLL_TIMEOUT}s."$'\n'"  Try: ssh -J ${HYPERVISOR_ALIAS} -i ${SSH_KEY} ${HUB_USER}@${HUB_VIRBR0_IP}"
         fi
         log "  Waiting for SSH ..."
         sleep 5
@@ -270,23 +270,23 @@ log "✅  SSH ready."
 step "Phase 6: Snapshot '${SNAPSHOT_FRESH}'"
 take_snapshot "${SNAPSHOT_FRESH}"
 
-# ── Phase 7: Ansible provision (saconsole only) ───────────────────────────────
+# ── Phase 7: Ansible provision (hub only) ───────────────────────────────
 
-step "Phase 7: Ansible provision saconsole"
+step "Phase 7: Ansible provision hub"
 log "ProxyJump : ${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}"
-log "Limit     : saconsole (Play 4 / controller WireGuard is a separate step)"
+log "Limit     : hub (Play 4 / controller WireGuard is a separate step)"
 
 export ANSIBLE_CONFIG="${ANSIBLE_DIR}/ansible.cfg"
 export ANSIBLE_PRIVATE_KEY_FILE="${SSH_KEY}"
 
 # ansible_ssh_common_args adds the ProxyJump to all SSH connections from Ansible.
 # It is appended to ssh_args in ansible.cfg — both apply simultaneously.
-# --limit saconsole skips Play 3 (target1) and Play 4 (localhost/controller).
+# --limit ${HUB_KEY} skips Play 3 (target1) and Play 4 (localhost/controller).
 cd "${ANSIBLE_DIR}"
 ansible-playbook \
     -i inventory/kvm.yml \
     site-kvm.yml \
-    --limit saconsole \
+    --limit ${HUB_KEY} \
     --extra-vars "ansible_ssh_common_args='-J ${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}'"
 
 log "✅  Ansible provision complete."
@@ -296,93 +296,93 @@ log "✅  Ansible provision complete."
 step "Phase 8: Snapshot '${SNAPSHOT_BASELINE}'"
 take_snapshot "${SNAPSHOT_BASELINE}"
 
-# ── Phase 9: Handoff — saconsole SSH pubkey → hypervisor ──────────────────────
+# ── Phase 9: Handoff — hub SSH pubkey → hypervisor ──────────────────────
 
 step "Phase 9: Handoff"
 
-# Generate a keypair on saconsole if one doesn't exist yet.
-log "Generating SSH keypair on saconsole (if absent) ..."
+# Generate a keypair on hub if one doesn't exist yet.
+log "Generating SSH keypair on hub (if absent) ..."
 ssh \
-    "${SACONSOLE_SSH_OPTS[@]}" \
-    "${SACONSOLE_USER}@${SACONSOLE_IP}" \
+    "${HUB_SSH_OPTS[@]}" \
+    "${HUB_USER}@${HUB_VIRBR0_IP}" \
     "test -f ~/.ssh/id_ed25519 \
-        || ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519 -C 'saconsole@esacp'"
+        || ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519 -C '${HUB_KEY}@esacp'"
 
-# Retrieve saconsole's public key.
-SACONSOLE_PUBKEY=$(ssh \
-    "${SACONSOLE_SSH_OPTS[@]}" \
-    "${SACONSOLE_USER}@${SACONSOLE_IP}" \
+# Retrieve hub's public key.
+HUB_PUBKEY=$(ssh \
+    "${HUB_SSH_OPTS[@]}" \
+    "${HUB_USER}@${HUB_VIRBR0_IP}" \
     "cat ~/.ssh/id_ed25519.pub")
 
 # Install pubkey on hypervisor (idempotent: grep before append).
 remote bash <<REMOTE
 mkdir -p ~/.ssh && chmod 700 ~/.ssh
-grep -qxF '${SACONSOLE_PUBKEY}' ~/.ssh/authorized_keys 2>/dev/null \
-    || echo '${SACONSOLE_PUBKEY}' >> ~/.ssh/authorized_keys
+grep -qxF '${HUB_PUBKEY}' ~/.ssh/authorized_keys 2>/dev/null \
+    || echo '${HUB_PUBKEY}' >> ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
 REMOTE
 
-log "✅  saconsole SSH pubkey installed on ${HYPERVISOR_ALIAS}."
-log "    saconsole can now connect: qemu+ssh://${HYPERVISOR_USER}@${ESACP_HYPERVISOR}/system"
+log "✅  Hub SSH pubkey installed on ${HYPERVISOR_ALIAS}."
+log "    Hub can now connect: qemu+ssh://${HYPERVISOR_USER}@${ESACP_HYPERVISOR}/system"
 
-# Add hypervisor to saconsole's /etc/hosts.
-# A fresh saconsole uses 8.8.8.8/1.1.1.1 (from cloud-init) and cannot
+# Add hypervisor to hub's /etc/hosts.
+# A fresh hub uses 8.8.8.8/1.1.1.1 (from cloud-init) and cannot
 # resolve the local hostname. bootstrap_targets.sh uses
 # HYPERVISOR_ALIAS throughout — without this, all its SSH and
 # virsh calls fail with "Temporary failure in name resolution".
-log "Adding ${ESACP_HYPERVISOR} → ${HYPERVISOR_LAN_IP} to saconsole /etc/hosts ..."
+log "Adding ${ESACP_HYPERVISOR} → ${HYPERVISOR_LAN_IP} to hub /etc/hosts ..."
 ssh \
-    "${SACONSOLE_SSH_OPTS[@]}" \
-    "${SACONSOLE_USER}@${SACONSOLE_IP}" \
+    "${HUB_SSH_OPTS[@]}" \
+    "${HUB_USER}@${HUB_VIRBR0_IP}" \
     "grep -qF '${ESACP_HYPERVISOR}' /etc/hosts 2>/dev/null \
          || echo '${HYPERVISOR_LAN_IP} ${ESACP_HYPERVISOR}' | sudo tee -a /etc/hosts > /dev/null"
-log "✅  ${ESACP_HYPERVISOR} in saconsole /etc/hosts."
+log "✅  ${ESACP_HYPERVISOR} in hub /etc/hosts."
 
-# Seed hypervisor's host key into saconsole's known_hosts.
-# bootstrap_targets.sh runs FROM saconsole and SSHes to the hypervisor with
-# BatchMode=yes — on a fresh saconsole the known_hosts is empty and
+# Seed hypervisor's host key into hub's known_hosts.
+# bootstrap_targets.sh runs FROM the hub and SSHes to the hypervisor with
+# BatchMode=yes — on a fresh hub the known_hosts is empty and
 # BatchMode refuses the unknown key instead of prompting.
 # Base64 transfer avoids quoting/newline issues with multi-line key content.
-log "Seeding ${HYPERVISOR_ALIAS} host key into saconsole known_hosts ..."
+log "Seeding ${HYPERVISOR_ALIAS} host key into hub known_hosts ..."
 HYPER_KEYS_B64=$(ssh-keyscan -H "${ESACP_HYPERVISOR}" "${HYPERVISOR_LAN_IP}" 2>/dev/null \
     | base64 -w0 || true)
 ssh \
-    "${SACONSOLE_SSH_OPTS[@]}" \
-    "${SACONSOLE_USER}@${SACONSOLE_IP}" \
+    "${HUB_SSH_OPTS[@]}" \
+    "${HUB_USER}@${HUB_VIRBR0_IP}" \
     "mkdir -p ~/.ssh
      echo '${HYPER_KEYS_B64}' | base64 -d >> ~/.ssh/known_hosts
      chmod 600 ~/.ssh/known_hosts"
-log "✅  toshiba host key seeded into saconsole known_hosts."
+log "✅  toshiba host key seeded into hub known_hosts."
 
-# Remove stale saconsole pubkeys from toshiba's authorized_keys.
+# Remove stale hub pubkeys from toshiba's authorized_keys.
 # Each rebuild generates a new keypair and appends the new pubkey.
-# Keep only the current saconsole's pubkey to avoid accumulation.
-log "Replacing stale saconsole pubkeys on ${HYPERVISOR_ALIAS} ..."
+# Keep only the current hub's pubkey to avoid accumulation.
+log "Replacing stale hub pubkeys on ${HYPERVISOR_ALIAS} ..."
 remote bash <<REMOTE
 mkdir -p ~/.ssh && chmod 700 ~/.ssh
-# Remove all lines from previous saconsole builds (comment = saconsole@esacp
-# or saconsole-control-plane), then append the current one.
-grep -v 'saconsole' ~/.ssh/authorized_keys > /tmp/ak_clean 2>/dev/null || true
-echo '${SACONSOLE_PUBKEY}' >> /tmp/ak_clean
+# Remove all lines from previous hub builds (comment = ${HUB_KEY}@esacp
+# or ${HUB_KEY}-control-plane), then append the current one.
+grep -v '${HUB_KEY}' ~/.ssh/authorized_keys > /tmp/ak_clean 2>/dev/null || true
+echo '${HUB_PUBKEY}' >> /tmp/ak_clean
 mv /tmp/ak_clean ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
 REMOTE
-log "✅  toshiba authorized_keys updated (current saconsole pubkey only)."
+log "✅  toshiba authorized_keys updated (current hub pubkey only)."
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 step "Done"
 cat <<SUMMARY
 
-  saconsole is provisioned and running on ${HYPERVISOR_ALIAS}.
+  Hub is provisioned and running on ${HYPERVISOR_ALIAS}.
 
   Snapshots : '${SNAPSHOT_FRESH}', '${SNAPSHOT_BASELINE}'
-  Handoff   : saconsole SSH pubkey → ${HYPERVISOR_ALIAS} authorized_keys
+  Handoff   : Hub SSH pubkey → ${HYPERVISOR_ALIAS} authorized_keys
 
   ── Next steps ──────────────────────────────────────────────────────────────
 
   1. Port-forward WireGuard on ${HYPERVISOR_ALIAS} so this controller's spoke
-     can reach saconsole hub at ${HYPERVISOR_LAN_IP}:51820:
+     can reach hub at ${HYPERVISOR_LAN_IP}:51820:
 
        sudo iptables -t nat -A PREROUTING -i <LAN-iface> -p udp --dport 51820 \\
            -j DNAT --to-destination ${SACONSOLE_IP}:51820

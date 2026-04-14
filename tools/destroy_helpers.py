@@ -46,7 +46,7 @@ def remove_wg_peer_live(
     hosts_map: Path,
     emit: Emit,
 ) -> None:
-    """Remove the WireGuard peer from saconsole hub live (wg set ... remove)."""
+    """Remove the WireGuard peer from the hub live (wg set ... remove)."""
     with open(hosts_map) as f:
         data = yaml.safe_load(f)
     kvm = data["groups"].get("kvm", {})

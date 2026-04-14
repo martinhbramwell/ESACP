@@ -4,7 +4,7 @@
 #
 # MariaDB port 3306 is NOT exposed to the host — mysqld_exporter reaches it via
 # the internal Docker network. Only port {{ mysqld_exporter_port }} (mysqld_exporter)
-# is bound to the host, restricted to saconsole via UFW.
+# is bound to the host, restricted to the hub via UFW.
 
 services:
   mariadb:

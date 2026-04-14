@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# create_seeds.sh — Build cloud-init seed ISOs for saconsole and target1
+# create_seeds.sh — Build cloud-init seed ISOs for hub and target1
 #
 # Each seed ISO is mounted as a second CDROM during virt-install.
 # The Ubuntu subiquity installer detects the CIDATA volume and reads
@@ -9,7 +9,7 @@
 #   bash platforms/kvm/create_seeds.sh
 #
 # Prerequisites: cloud-image-utils (cloud-localds)
-# Output: platforms/kvm/saconsole-seed.iso, platforms/kvm/target1-seed.iso
+# Output: platforms/kvm/<hub_key>-seed.iso, platforms/kvm/target1-seed.iso
 
 set -euo pipefail
 

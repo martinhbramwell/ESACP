@@ -1,4 +1,4 @@
-"""Stage 2: Network — saconsole WG hub, Cloudflare DNS, TLS cert, WG spoke.
+"""Stage 2: Network — hub WG config, Cloudflare DNS, TLS cert, WG spoke.
 
 Orchestrates Steps 8–9 of the provision pipeline.  Extracted from
 ``_run_provision_erpnext`` in api.py.
@@ -11,7 +11,7 @@ from tools.pipeline.stages.common.types import Config, Emit
 
 from .cloudflare_dns import upsert_cloudflare_dns
 from .verify import all_passed, verify_stage_2
-from .saconsole_wg_hub import update_saconsole_wg_hub
+from .saconsole_wg_hub import update_hub_wg
 from .tls_cert import ensure_tls_cert
 from .wireguard_spoke import configure_wireguard_spoke
 
@@ -44,9 +44,9 @@ def run_stage_2(config: Config, emit: Emit) -> None:
         emit("[OK] Stage 2 already satisfied — skipping")
         return
 
-    # ── Update saconsole WireGuard hub ──
-    emit(step_header("Update saconsole WireGuard (Ansible)"))
-    r = update_saconsole_wg_hub(config, emit)
+    # ── Update hub WireGuard ──
+    emit(step_header("Update hub WireGuard (Ansible)"))
+    r = update_hub_wg(config, emit)
     if not r.success:
         emit(f"  [WARN] {r.message}")
     else:
@@ -60,7 +60,7 @@ def run_stage_2(config: Config, emit: Emit) -> None:
     tag = "[CHANGED]" if r.changed else "[OK]"
     emit(f"  {tag} {r.message}")
 
-    # ── Distribute TLS cert from saconsole to VM ──
+    # ── Distribute TLS cert from hub to VM ──
     emit(step_header("Distribute TLS wildcard cert to VM"))
     r = ensure_tls_cert(config, emit)
     if not r.success:

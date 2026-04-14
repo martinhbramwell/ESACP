@@ -85,7 +85,7 @@ def find_obs_host(hosts_map: dict, name: Optional[str]) -> tuple[str, str]:
       Collect all ansible_managed wg_role=hub hosts from every group, then
       return the first one reachable on port 22 (SSH). This works correctly
       across platforms: on KVM the virbr0 IP is probed; on VBox the hostname
-      ('saconsole') resolves via /etc/hosts to the bridged LAN IP.
+      resolves via /etc/hosts to the bridged LAN IP.
       Falls back to the first candidate if none respond (stack may be down).
     """
     def ip_for(attrs: dict) -> str:
@@ -508,7 +508,7 @@ def main() -> int:
     metrics.append(check_metric(
         prom, "cAdvisor: container_cpu_usage_seconds_total present",
         'count(container_cpu_usage_seconds_total{name!=""})'))
-    # saconsole's node_exporter runs on host.docker.internal:9100 (network_mode: host)
+    # Hub's node_exporter runs on host.docker.internal:9100 (network_mode: host)
     metrics.append(check_metric(
         prom, f"wg0 visible on {obs_hostname}",
         f'node_network_info{{device="wg0",instance="host.docker.internal:9100"}}'))

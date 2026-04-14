@@ -102,4 +102,4 @@ Test files:
 
 - **Inspect**: 3-box service grid (nginx/frappe+supervisor/mariadb), status from `GET /api/health/{hostname}` via SSH checks
 - **Refresh**: `POST /api/refresh/{hostname}` — SCPs saved `{hostname}-differentiate.sh` artifact and runs `sudo bash`
-- **Destroy**: remove live WG peer → delete snapshots → virsh destroy+undefine → clean hosts_map.yml + group_vars/all.yml + keys.sops.yml + cloud-init dir → regen inventory → Ansible wireguard on saconsole
+- **Destroy**: remove live WG peer → delete snapshots → virsh destroy+undefine → clean hosts_map.yml + group_vars/all.yml + keys.sops.yml + cloud-init dir → regen inventory → Ansible wireguard on hub

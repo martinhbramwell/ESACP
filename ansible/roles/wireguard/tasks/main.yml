@@ -6,7 +6,7 @@
 #   wg_role  — "hub" or "spoke"
 #
 # Required group vars (group_vars/kvm.yml):
-#   wg_port, wg_pubkey_controller, wg_pubkey_saconsole, wg_pubkey_target1
+#   wg_port, wg_pubkey_controller, wg_pubkey_<hub_key>, wg_pubkey_dev01, ...
 #
 # Private keys / PSKs are read from config/wireguard/keys.sops.yml at play time.
 

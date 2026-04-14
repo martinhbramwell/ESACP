@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
 # bootstrap_targets.sh — Bootstrap target1 and target2 on the remote KVM hypervisor
 #
-# Runs FROM saconsole after the control_plane role has been applied.
-# saconsole reaches targets directly on toshiba's virbr0 (192.168.122.0/24) —
-# no ProxyJump required (saconsole and its sibling targets share the same virbr0).
+# Runs FROM the hub after the control_plane role has been applied.
+# The hub reaches targets directly on toshiba's virbr0 (192.168.122.0/24) —
+# no ProxyJump required (the hub and its sibling targets share the same virbr0).
 #
 # Phases:
 #   1. Preflight checks
-#   2. Read saconsole SSH pubkey
-#   3. Build seed ISOs (target1, target2) with saconsole's pubkey injected
+#   2. Read hub SSH pubkey
+#   3. Build seed ISOs (target1, target2) with the hub's pubkey injected
 #   4. Upload seed ISOs to hypervisor
 #   5. Create VMs on hypervisor
 #   6. Wait for autoinstall → first boot → SSH ready (both VMs)
 #   7. Snapshot "Fresh Install" (both VMs)
-#   8. Ansible provision targets (from saconsole — direct virbr0 connection)
+#   8. Ansible provision targets (from hub — direct virbr0 connection)
 #   9. Snapshot "Stage 2.2 Targets Baseline" (both VMs)
 #
-# Usage (from /opt/esacp on saconsole):
+# Usage (from /opt/esacp on the hub):
 #   bash platforms/kvm/bootstrap_targets.sh
 #
 # Prerequisites:
-#   - control_plane role applied to saconsole (provides: Ansible, repo, SSH keypair)
+#   - control_plane role applied to the hub (provides: Ansible, repo, SSH keypair)
 #   - cloud-image-utils installed: sudo apt install cloud-image-utils
-#   - SSH access from saconsole to hypervisor (via saconsole's ~/.ssh/id_ed25519)
+#   - SSH access from hub to hypervisor (via hub's ~/.ssh/id_ed25519)
 #   - SOPS age key at ~/.config/sops/age/keys.txt
 
 set -euo pipefail
@@ -33,7 +33,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=config.sh
 source "${SCRIPT_DIR}/config.sh"
 
-# Saconsole-specific overrides: SSH key is saconsole's own keypair, not controller's
+# Hub-specific overrides: SSH key is the hub's own keypair, not controller's
 SSH_KEY="${HOME}/.ssh/id_ed25519"
 
 UBUNTU_ISO_NAME="ubuntu-22.04.2-live-server-amd64.iso"
@@ -172,7 +172,7 @@ command -v ansible-playbook &>/dev/null \
 
 ssh -o ConnectTimeout=5 -o BatchMode=yes \
     "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" "echo ok" &>/dev/null \
-    || die "Cannot reach hypervisor '${HYPERVISOR_ALIAS}' — has the handoff step run in bootstrap_saconsole.sh?"
+    || die "Cannot reach hypervisor '${HYPERVISOR_ALIAS}' — has the handoff step run in bootstrap_hub.sh?"
 
 remote "test -d '${REMOTE_IMAGES_DIR}'" \
     || die "${HYPERVISOR_ALIAS}:${REMOTE_IMAGES_DIR} not found — is the LUKS disk mounted?"
@@ -185,9 +185,9 @@ remote "test -f '${REMOTE_IMAGES_DIR}/${UBUNTU_ISO_NAME}'" \
 
 log "Preflight OK"
 
-# ── Phase 2: Read saconsole SSH pubkey ─────────────────────────────────────────
+# ── Phase 2: Read hub SSH pubkey ─────────────────────────────────────────
 
-step "Phase 2: Read saconsole SSH pubkey"
+step "Phase 2: Read hub SSH pubkey"
 
 export CONTROLLER_PUBKEY
 CONTROLLER_PUBKEY=$(cat "${SSH_KEY}.pub")
@@ -210,7 +210,7 @@ for vm in "${TARGETS[@]}"; do
     [[ -f "${TEMPLATE_DIR}/meta-data" ]] \
         || die "Missing cloud-init template: ${TEMPLATE_DIR}/meta-data"
 
-    # Inject saconsole's SSH pubkey into the user-data template
+    # Inject the hub's SSH pubkey into the user-data template
     envsubst < "${TEMPLATE_DIR}/user-data" > "${RENDERED_USERDATA}"
 
     if [[ -f "${SEED_ISO}" \
@@ -298,7 +298,7 @@ done
 # ── Phase 8: Ansible provision targets ────────────────────────────────────────
 
 step "Phase 8: Ansible provision targets"
-log "Limit   : targets (Plays 1, 3, 4 — base config + saconsole pubkey + services)"
+log "Limit   : targets (Plays 1, 3, 4 — base config + hub pubkey + services)"
 log "SSH key : ${SSH_KEY}"
 
 export ANSIBLE_CONFIG="${ANSIBLE_DIR}/ansible.cfg"
@@ -312,12 +312,12 @@ for vm in "${TARGETS[@]}"; do
 done
 
 cd "${ANSIBLE_DIR}"
-# --limit targets runs: Play 1 (base config), Play 3 (authorise saconsole), Play 4 (services).
-# Play 2 (saconsole-only) and Play 5 (controller/localhost) are skipped automatically.
+# --limit targets runs: Play 1 (base config), Play 3 (authorise hub), Play 4 (services).
+# Play 2 (hub-only) and Play 5 (controller/localhost) are skipped automatically.
 #
-# Play 3 depends on hostvars['saconsole']['saconsole_ssh_pubkey']. Since we run
-# --limit targets, saconsole's play does not execute and the fact is not populated.
-# We pass the pubkey explicitly via saconsole_override_pubkey — Play 3 checks for
+# Play 3 depends on hostvars[hub_key]['hub_ssh_pubkey']. Since we run
+# --limit targets, the hub's play does not execute and the fact is not populated.
+# We pass the pubkey explicitly via hub_override_pubkey — Play 3 checks for
 # this var before falling back to hostvars. See site-kvm.yml Play 3 comment.
 #
 # Use a temp YAML vars file so the SSH public key (which contains spaces) is
@@ -325,7 +325,7 @@ cd "${ANSIBLE_DIR}"
 TMPVARS=$(mktemp /tmp/ansible-vars-XXXXXX.yml)
 trap "rm -f ${TMPVARS}" EXIT
 cat > "${TMPVARS}" << ENDVARS
-saconsole_override_pubkey: "$(cat ${SSH_KEY}.pub)"
+hub_override_pubkey: "$(cat ${SSH_KEY}.pub)"
 ansible_ssh_private_key_file: "${SSH_KEY}"
 ENDVARS
 

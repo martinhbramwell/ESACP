@@ -28,7 +28,12 @@ REMOTE_IMAGES_DIR="${ESACP_REMOTE_IMAGES_DIR:-/mnt/esacp-disk/var/lib/libvirt/im
 VM_USER="${ESACP_VM_USER:-you}"
 SSH_KEY="${ESACP_SSH_KEY:-${HOME}/.ssh/hasan_mighty}"
 
-# ── Convenience aliases ──────────────────────────────────────────────────────
-SACONSOLE_IP="${ESACP_SACONSOLE_VIRBR0_IP}"
-SACONSOLE_USER="${VM_USER}"
+# ── Hub identity (derived from wg_role=hub in hosts_map.yml) ─────────────────
+HUB_KEY="${ESACP_HUB_KEY}"
+HUB_VM_NAME="${ESACP_HUB_VM_NAME}"
+HUB_HOSTNAME="${ESACP_HUB_HOSTNAME}"
+HUB_DISPLAY_NAME="${ESACP_HUB_DISPLAY_NAME}"
+HUB_VIRBR0_IP="${ESACP_HUB_VIRBR0_IP}"
+HUB_WG_IP="${ESACP_HUB_WG_IP}"
+HUB_USER="${VM_USER}"
 ANSIBLE_DIR="${PROJ_ROOT}/ansible"

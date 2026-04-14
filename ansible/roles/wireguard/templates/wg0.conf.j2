@@ -12,17 +12,17 @@ ListenPort = {{ wg_port }}
 # ── Peer: {{ host }} ───────────────────────────────────────────────────────
 [Peer]
 PublicKey           = {{ wg_keys[_key].public_key }}
-PresharedKey        = {{ wg_keys.preshared_keys[_key + '_saconsole'] }}
+PresharedKey        = {{ wg_keys.preshared_keys[_key + '_' + hub_key] }}
 AllowedIPs          = {{ hostvars[host]['wg_ip'] }}/32
 # No Endpoint — {{ host }} initiates the connection to the hub.
 
 {% endfor %}
 {% else %}
 {% set _key = 'controller' if inventory_hostname in ['controller', 'localhost'] else inventory_hostname %}
-# ── Peer: saconsole hub ────────────────────────────────────────────────────
+# ── Peer: {{ hub_display_name }} (hub) ────────────────────────────────────
 [Peer]
-PublicKey           = {{ wg_keys.saconsole.public_key }}
-PresharedKey        = {{ wg_keys.preshared_keys[_key + '_saconsole'] }}
+PublicKey           = {{ wg_keys[hub_key].public_key }}
+PresharedKey        = {{ wg_keys.preshared_keys[_key + '_' + hub_key] }}
 AllowedIPs          = 10.10.0.0/24
 Endpoint            = {{ wg_hub_endpoint }}:{{ wg_port }}
 PersistentKeepalive = 25

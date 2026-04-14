@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# rebuild_lab.sh — Full KVM lab rebuild: destroy → saconsole → targets.
+# rebuild_lab.sh — Full KVM lab rebuild: destroy → hub → targets.
 #
 # Chains three phases:
 #   1. destroy_vms.sh         — tear down all 3 VMs on toshiba, clear artifacts
-#   2. bootstrap_saconsole.sh — 9-phase saconsole bootstrap (from this controller)
-#   3. bootstrap_targets.sh   — 9-phase targets bootstrap (from saconsole via SSH)
+#   2. bootstrap_hub.sh — 9-phase hub bootstrap (from this controller)
+#   3. bootstrap_targets.sh   — 9-phase targets bootstrap (from hub via SSH)
 #
-# bootstrap_targets.sh runs FROM saconsole because:
-#   - Ansible uses saconsole's ~/.ssh/id_ed25519 to reach targets
+# bootstrap_targets.sh runs FROM the hub because:
+#   - Ansible uses the hub's ~/.ssh/id_ed25519 to reach targets
 #     (the only SSH key injected into targets via cloud-init)
-#   - saconsole SSHes to toshiba as hasan@toshiba using that same key
-#     (installed on toshiba in Phase 9 of bootstrap_saconsole.sh)
+#   - the hub SSHes to toshiba as hasan@toshiba using that same key
+#     (installed on toshiba in Phase 9 of bootstrap_hub.sh)
 #
 # Sends a Telegram notification on success or failure.
 #
@@ -63,18 +63,18 @@ _PHASE="destroy_vms"
 hdr "Phase 1 — Destroy VMs"
 bash "${SCRIPT_DIR}/destroy_vms.sh"
 
-# ── Phase 2: Bootstrap saconsole (from this controller) ───────────────────────
+# ── Phase 2: Bootstrap hub (from this controller) ───────────────────────
 
-_PHASE="bootstrap_saconsole"
-hdr "Phase 2 — Bootstrap saconsole"
-bash "${SCRIPT_DIR}/bootstrap_saconsole.sh"
+_PHASE="bootstrap_hub"
+hdr "Phase 2 — Bootstrap hub"
+bash "${SCRIPT_DIR}/bootstrap_hub.sh"
 
-# ── Phase 3: Bootstrap targets (from saconsole) ────────────────────────────────
+# ── Phase 3: Bootstrap targets (from hub) ────────────────────────────────
 #
 # ServerAliveInterval keeps the connection live during the ~60-minute provision.
 
 _PHASE="bootstrap_targets"
-hdr "Phase 3 — Bootstrap targets (from saconsole)"
+hdr "Phase 3 — Bootstrap targets (from hub)"
 ssh \
     -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \

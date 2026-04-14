@@ -2,11 +2,11 @@
 # site-bootstrap.yml — Minimal WSL-side bootstrap.
 #
 # Installs WireGuard (and nothing else) on all three VMs.
-# Called by build_lab.sh before handing control to saconsole.
+# Called by build_lab.sh before handing control to the hub.
 #
 # What this does:
 #   - Waits for dpkg lock (unattended-upgrades runs at first boot)
-#   - Grants passwordless sudo (saconsole will Ansible targets without a password)
+#   - Grants passwordless sudo (hub will Ansible targets without a password)
 #   - Installs + configures WireGuard (wg0 up, keys from keys.sops.yml)
 #
 # What this deliberately does NOT do:
