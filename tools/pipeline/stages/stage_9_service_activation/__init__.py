@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.ssh import scp_to_vm, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit
 
@@ -38,7 +39,7 @@ def run_stage_9(config: Config, emit: Emit) -> None:
         emit("[OK] Stage 9 already satisfied — skipping")
         return
 
-    emit("── Stage 9: Service activation (sections H4a-sl, L0, L) ──")
+    emit(step_header("Service activation (sections H4a-sl, L0, L)"))
 
     r = scp_to_vm(config, [str(_SCRIPT)], "/tmp/", timeout=15)
     if r.returncode != 0:

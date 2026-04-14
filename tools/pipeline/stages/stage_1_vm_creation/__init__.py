@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.types import Emit
 from tools.pipeline.stages.env_kvm import KvmEnv
 
@@ -65,34 +66,34 @@ def run_stage_1(
 
     # ── Step 0: Clean up residue from a previous build ──
     if cleanup_cfg:
-        emit("── Step 0: Cleaning up residue from previous build ──")
+        emit(step_header("Clean up residue from previous build"))
         cleanup_residue(hostname, cleanup_cfg, env.hypervisor_alias, emit)
         emit("  [OK] Old VM residue removed — starting fresh")
 
     # ── Step 1: WireGuard peer ──
-    emit("── Step 1: Add WireGuard peer ──")
+    emit(step_header("Add WireGuard peer"))
     add_wireguard_peer(hostname, env, emit)
 
-    # ── Step 2: Build seed ISO ──
-    emit("── Step 2: Build cloud-config seed ISO ──")
+    # ── Build seed ISO ──
+    emit(step_header("Build cloud-config seed ISO"))
     seed_local = build_seed_iso(hostname, virbr0_ip, env.platforms_kvm, emit)
 
-    # ── Step 3: Upload seed ISO to hypervisor ──
-    emit("── Step 3: Upload seed ISO to hypervisor ──")
+    # ── Upload seed ISO to hypervisor ──
+    emit(step_header("Upload seed ISO to hypervisor"))
     remote_seed = upload_seed_iso(hostname, seed_local, env, emit)
 
-    # ── Step 4: Clone template qcow2 ──
-    emit("── Step 4: Clone template qcow2 ──")
+    # ── Clone template qcow2 ──
+    emit(step_header("Clone template qcow2"))
     clone_template(hostname, env, emit)
 
-    # ── Step 5: virt-install --import ──
-    emit("── Step 5: virt-install --import ──")
+    # ── virt-install --import ──
+    emit(step_header("virt-install --import"))
     virt_install_import(hostname, remote_seed, env, emit)
 
-    # ── Step 6: Wait for SSH ──
-    emit("── Step 6: Wait for SSH ──")
+    # ── Wait for SSH ──
+    emit(step_header("Wait for SSH"))
     wait_for_ssh(hostname, virbr0_ip, env.hypervisor_alias, ssh_key, emit)
 
-    # ── Step 7: Take Baseline snapshot ──
-    emit("── Step 7: Take Baseline snapshot ──")
+    # ── Take Baseline snapshot ──
+    emit(step_header("Take Baseline snapshot"))
     take_baseline_snapshot(hostname, env.hypervisor_alias, emit)

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.ssh import scp_to_vm, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit
 
@@ -41,7 +42,7 @@ def run_stage_6(config: Config, emit: Emit) -> None:
         emit("[OK] Stage 6 already satisfied — skipping")
         return
 
-    emit("── Stage 6: Base platform (sections A–C + B2b) ──")
+    emit(step_header("Base platform (sections A\u2013C + B2b)"))
 
     # SCP both scripts
     r = scp_to_vm(config, [str(_PLATFORM_SETUP), str(_CLONE_AND_SERVICES)],

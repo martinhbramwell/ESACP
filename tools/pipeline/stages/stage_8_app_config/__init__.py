@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.ssh import scp_to_vm, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit
 
@@ -48,7 +49,7 @@ def run_stage_8(config: Config, emit: Emit) -> None:
         emit("[OK] Stage 8 already satisfied — skipping")
         return
 
-    emit("── Stage 8: App config (sections H–H4g) ──")
+    emit(step_header("App config (sections H\u2013H4g)"))
 
     # Ensure poll_gunicorn.py is on the VM (may be absent if Stage 4 ran
     # before this file was added to tools/vm_scripts/)

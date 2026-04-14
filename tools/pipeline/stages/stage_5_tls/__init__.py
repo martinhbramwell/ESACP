@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.ssh import scp_to_vm, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit
 
@@ -46,7 +47,7 @@ def run_stage_5(config: Config, emit: Emit) -> None:
         return
 
     # ── SCP tls_setup.sh + shared dhparam.pem to VM ──
-    emit("── Stage 5: TLS setup (sections I, J, K) ──")
+    emit(step_header("TLS setup (sections I, J, K)"))
     r = scp_to_vm(config, [str(_SCRIPT), str(_DHPARAM)], "/tmp/", timeout=15)
     if r.returncode != 0:
         raise RuntimeError(f"SCP tls_setup.sh failed: {r.stderr.strip()}")

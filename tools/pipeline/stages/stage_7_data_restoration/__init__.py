@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.ssh import scp_to_vm, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit
 
@@ -37,7 +38,7 @@ def run_stage_7(config: Config, emit: Emit) -> None:
         emit("[OK] Stage 7 already satisfied — skipping")
         return
 
-    emit("── Stage 7: Data restoration (sections D–G2) ──")
+    emit(step_header("Data restoration (sections D\u2013G2)"))
 
     # SCP script
     r = scp_to_vm(config, [str(_DATA_RESTORE)], "/tmp/", timeout=15)

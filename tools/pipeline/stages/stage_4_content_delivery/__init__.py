@@ -6,6 +6,7 @@ Orchestrates Step 12 of the provision pipeline.  Extracted from
 
 from __future__ import annotations
 
+from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.types import Config, Emit
 
 from .config_bundle import render_and_deploy_config
@@ -37,8 +38,8 @@ def run_stage_4(config: Config, emit: Emit) -> None:
         emit("[OK] Stage 4 already satisfied — skipping")
         return
 
-    # ── Step 12: Render config artifacts + deploy bundle ──
-    emit("── Step 12: Render config + deploy bundle ──")
+    # ── Render config artifacts + deploy bundle ──
+    emit(step_header("Render config + deploy bundle"))
     r = render_and_deploy_config(config, emit)
     if not r.success:
         raise RuntimeError(r.message)
