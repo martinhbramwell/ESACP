@@ -6,13 +6,9 @@ from pathlib import Path
 
 import yaml
 
+from tools.host_identity import DEFAULT_HYPERVISOR, ZONE_DOMAINS
 from tools.pipeline.stages.common.types import Config
-
-ZONE_DOMAINS: dict[str, str] = {
-    "development": "iridium.blue",
-    "staging":     "iridium.blue",
-    "production":  "logichem.solutions",
-}
+from tools.secrets import load_build_secrets
 
 
 def _derive_zone(ansible_groups: list[str]) -> str:
@@ -32,7 +28,7 @@ def _ssh_transport(
             "-o", "StrictHostKeyChecking=no",
             "-o", "ConnectTimeout=10",
         ]
-    hyp = host_cfg.get("hypervisor") or "toshiba"
+    hyp = host_cfg.get("hypervisor") or DEFAULT_HYPERVISOR
     return host_cfg.get("virbr0_ip", ""), [
         "-o", f"ProxyJump={hyp}",
         "-o", "StrictHostKeyChecking=no",
@@ -59,10 +55,11 @@ def build_config(
     """
     groups = host_cfg.get("ansible_groups", [])
     zone = _derive_zone(groups)
-    domain = ZONE_DOMAINS.get(zone, "iridium.blue")
+    domain = ZONE_DOMAINS[zone]
     nickname = host_cfg.get("nickname", hostname[:4])
     erp_user = _read_erp_user(project_root)
     target_ip, ssh_opts = _ssh_transport(host_cfg, use_wg)
+    secrets = load_build_secrets(project_root)
 
     return Config(
         hostname=hostname,
@@ -75,8 +72,8 @@ def build_config(
         site_url=f"{hostname}.{domain}",
         domain=domain,
         erp_user=erp_user,
-        erp_user_pwd="sasa",
-        db_root_pwd="erpnext_build",
+        erp_user_pwd=secrets["erp_user_pwd"],
+        db_root_pwd=secrets["db_root_pwd"],
         bench_dir=f"/home/{erp_user}/frappe-bench-{nickname}",
         bench_dir_orig=f"/home/{erp_user}/frappe-bench",
         hypervisor=host_cfg.get("hypervisor"),

@@ -60,9 +60,12 @@ def check_hub_wg_peer(
     return False, f"Hub missing peer for {hostname}"
 
 
-def check_cloudflare_dns(hostname: str, wg_ip: str) -> tuple[bool, str]:
+def check_cloudflare_dns(hostname: str, wg_ip: str, domain: str = "") -> tuple[bool, str]:
     """DNS A record resolves to expected WG IP."""
-    fqdn = f"{hostname}.iridium.blue"
+    if not domain:
+        from tools.host_identity import ZONE_DOMAINS
+        domain = ZONE_DOMAINS["development"]
+    fqdn = f"{hostname}.{domain}"
     r = subprocess.run(
         ["dig", "+short", fqdn, "A", "@1.1.1.1"],
         capture_output=True, text=True, timeout=10,
@@ -77,11 +80,15 @@ def check_cloudflare_dns(hostname: str, wg_ip: str) -> tuple[bool, str]:
 
 def check_tls_cert_on_vm(
     virbr0_ip: str, hypervisor: str, ssh_key: str,
+    domain: str = "",
 ) -> tuple[bool, str]:
     """TLS cert files present on VM (final location or staging in /tmp/)."""
+    if not domain:
+        from tools.host_identity import ZONE_DOMAINS
+        domain = ZONE_DOMAINS["development"]
     # Check final location first
     r = _ssh_vm(virbr0_ip, hypervisor, ssh_key,
-                "test -f /etc/nginx/certs/iridium.blue/fullchain.pem && echo final")
+                f"test -f /etc/nginx/certs/{domain}/fullchain.pem && echo final")
     if r.returncode == 0 and "final" in r.stdout:
         return True, "TLS cert installed at /etc/nginx/certs/"
     # Fall back to staging location
@@ -123,14 +130,15 @@ def verify_stage_2(
     hypervisor: str,
     project_root: str,
     ssh_key: str | None = None,
+    domain: str = "",
 ) -> list[tuple[bool, str]]:
     """Run all Stage 2 postcondition checks.  Returns list of (pass, msg)."""
     if ssh_key is None:
         ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
     return [
         check_hub_wg_peer(hostname, project_root, hypervisor, ssh_key),
-        check_cloudflare_dns(hostname, wg_ip),
-        check_tls_cert_on_vm(virbr0_ip, hypervisor, ssh_key),
+        check_cloudflare_dns(hostname, wg_ip, domain=domain),
+        check_tls_cert_on_vm(virbr0_ip, hypervisor, ssh_key, domain=domain),
         check_vm_wg_interface(virbr0_ip, hypervisor, ssh_key),
         check_wg_mesh_ping(wg_ip),
     ]

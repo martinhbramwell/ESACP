@@ -17,6 +17,11 @@ hub_display_name: "Hub Console"
 hub_virbr0_ip: "192.168.122.10"
 hub_wg_ip: "10.10.0.1"
 
+# Controller WireGuard hub endpoint — the hypervisor's LAN hostname.
+# Used by Play 5 (controller WireGuard) which runs on localhost and does
+# NOT inherit group_vars/kvm.yml.
+controller_wg_hub_endpoint: "toshy.iridium.blue"
+
 wg_pubkey_controller: "j94APdOpRArs3J78vcnRVJC5ALIFy/W9qLFacKbwGzk="
 wg_pubkey_saconsole:  "nn916J0YAufbwZNOKvWs2VX6sV4BKuTqE//985lIiRw="
 wg_pubkey_dev01: "LUOR6yrc7mymKuMyXGKmSluGyNu03iedCWe2RHoVK0k="

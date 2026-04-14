@@ -36,13 +36,15 @@ KEYS_SOPS = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
 CLOUD_INIT_DIR = PROJECT_ROOT / "platforms" / "kvm" / "cloud-init"
 PLATFORMS_PACKER = PROJECT_ROOT / "platforms" / "packer"
 
-from tools.host_identity import HUB_KEY, HUB_VIRBR0_IP
+from tools.host_identity import (
+    DEFAULT_HYPERVISOR, HUB_KEY, HUB_VIRBR0_IP, ZONE_DOMAINS,
+)
 
-TOSHIBA_ALIAS = "toshiba"
-TOSHIBA_HYPERVISOR_USER = "hasan"
+HYPERVISOR_ALIAS = DEFAULT_HYPERVISOR
+HYPERVISOR_USER = "hasan"
 HUB_IP = HUB_VIRBR0_IP
 HUB_SSH = [
-    "ssh", "-o", f"ProxyJump={TOSHIBA_ALIAS}",
+    "ssh", "-o", f"ProxyJump={HYPERVISOR_ALIAS}",
     "-o", "StrictHostKeyChecking=no",
     "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
     f"you@{HUB_IP}",
@@ -95,7 +97,8 @@ def run_provision(args: dict) -> None:
         emit=emit,
         cleanup_cfg=args.get("cleanup_cfg"),
     )
-    emit(f"── Provision complete — ERPNext at https://{args['hostname']}.iridium.blue ──")
+    domain = ZONE_DOMAINS.get(args.get("zone", "development"), "iridium.blue")
+    emit(f"── Provision complete — ERPNext at https://{args['hostname']}.{domain} ──")
 
 
 def run_refresh(args: dict) -> None:
@@ -189,7 +192,7 @@ def run_destroy(args: dict) -> None:
 
 def run_build_template(args: dict) -> None:
     ssh_opts = [
-        "-o", f"ProxyJump={TOSHIBA_ALIAS}",
+        "-o", f"ProxyJump={HYPERVISOR_ALIAS}",
         "-o", "StrictHostKeyChecking=no",
         "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
     ]
@@ -222,7 +225,7 @@ def run_build_template(args: dict) -> None:
     if rsync.returncode != 0:
         raise RuntimeError(f"rsync to hub failed: {rsync.stderr.strip()}")
 
-    emit(f"Connecting to hub ({HUB_IP} via {TOSHIBA_ALIAS}) ...")
+    emit(f"Connecting to hub ({HUB_IP} via {HYPERVISOR_ALIAS}) ...")
 
     REMOTE_LOG = "/tmp/packer-build-output.log"
     REMOTE_EXIT = "/tmp/packer-build-output.log.exit"

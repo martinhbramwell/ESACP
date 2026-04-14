@@ -45,6 +45,8 @@ except ImportError as exc:
     print(f"Missing dependency: {exc}\nInstall with: pip3 install rich pyyaml")
     sys.exit(1)
 
+from tools.host_identity import DEFAULT_HYPERVISOR
+
 console = Console()
 
 PROJECT_ROOT  = Path(__file__).parent.parent
@@ -507,49 +509,49 @@ def cmd_destroy_vm(args, config: dict) -> int:
 
 # ── 5. buildVM ────────────────────────────────────────────────────────────────
 
-# Toshiba remote hypervisor constants (see CLAUDE.md — Stage 2.2)
-TOSHIBA_SSH_ALIAS  = "toshiba"
-TOSHIBA_USER       = "hasan"
-TOSHIBA_IMAGES_DIR = "/mnt/esacp-disk/var/lib/libvirt/images"
-TOSHIBA_UBUNTU_ISO = f"{TOSHIBA_IMAGES_DIR}/ubuntu-24.04.4-live-server-amd64.iso"
-TOSHIBA_POOL       = "esacp"
+# Remote hypervisor constants (see CLAUDE.md — Stage 2.2)
+HYPERVISOR_SSH_ALIAS = DEFAULT_HYPERVISOR
+HYPERVISOR_USER      = "hasan"
+HYPERVISOR_IMAGES_DIR = "/mnt/esacp-disk/var/lib/libvirt/images"
+HYPERVISOR_UBUNTU_ISO = f"{HYPERVISOR_IMAGES_DIR}/ubuntu-24.04.4-live-server-amd64.iso"
+HYPERVISOR_POOL       = "esacp"
 
 
-def _toshiba_vm_exists(vm: str) -> bool:
+def _hypervisor_vm_exists(vm: str) -> bool:
     return subprocess.run(
-        ["ssh", TOSHIBA_SSH_ALIAS, "virsh", "--connect", "qemu:///system", "dominfo", vm],
+        ["ssh", HYPERVISOR_SSH_ALIAS, "virsh", "--connect", "qemu:///system", "dominfo", vm],
         capture_output=True,
     ).returncode == 0
 
 
-def _toshiba_vm_state(vm: str) -> Optional[str]:
+def _hypervisor_vm_state(vm: str) -> Optional[str]:
     r = subprocess.run(
-        ["ssh", TOSHIBA_SSH_ALIAS, "virsh", "--connect", "qemu:///system", "domstate", vm],
+        ["ssh", HYPERVISOR_SSH_ALIAS, "virsh", "--connect", "qemu:///system", "domstate", vm],
         capture_output=True, text=True,
     )
     return r.stdout.strip().lower() if r.returncode == 0 else None
 
 
-def _toshiba_tcp_probe(virbr0_ip: str) -> bool:
-    """Probe TCP port 22 on a toshiba-internal IP via ProxyJump — no known_hosts check."""
+def _hypervisor_tcp_probe(virbr0_ip: str) -> bool:
+    """Probe TCP port 22 on a hypervisor-internal IP via ProxyJump — no known_hosts check."""
     r = subprocess.run(
         ["ssh",
          "-o", "ConnectTimeout=5",
          "-o", "StrictHostKeyChecking=no",
          "-o", "BatchMode=yes",
-         "-J", f"{TOSHIBA_USER}@{TOSHIBA_SSH_ALIAS}",
+         "-J", f"{HYPERVISOR_USER}@{HYPERVISOR_SSH_ALIAS}",
          f"you@{virbr0_ip}", "true"],
         capture_output=True,
     )
     return r.returncode == 0
 
 
-def _toshiba_add_known_hosts(virbr0_ip: str) -> None:
-    """Collect the host key via toshiba and append it to local known_hosts."""
+def _hypervisor_add_known_hosts(virbr0_ip: str) -> None:
+    """Collect the host key via hypervisor and append it to local known_hosts."""
     known_hosts = Path.home() / ".ssh" / "known_hosts"
-    # ssh-keyscan via ProxyJump: run keyscan from toshiba, capture output locally
+    # ssh-keyscan via ProxyJump: run keyscan from hypervisor, capture output locally
     r = subprocess.run(
-        ["ssh", TOSHIBA_SSH_ALIAS, "ssh-keyscan", "-H", "-T", "5", virbr0_ip],
+        ["ssh", HYPERVISOR_SSH_ALIAS, "ssh-keyscan", "-H", "-T", "5", virbr0_ip],
         capture_output=True, text=True,
     )
     if r.stdout.strip():
@@ -558,20 +560,20 @@ def _toshiba_add_known_hosts(virbr0_ip: str) -> None:
         console.print(f"  [dim]Host key for {virbr0_ip} added to known_hosts[/dim]")
 
 
-def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
-    """Build a VM on the toshiba remote hypervisor."""
+def _build_vm_remote(vm: str, vm_info: dict, config: dict) -> int:
+    """Build a VM on a remote hypervisor."""
     virbr0_ip   = vm_info.get("virbr0_ip", "")
     ram         = 4096 if vm == hub_vm(config) else 2048
-    remote_seed = f"{TOSHIBA_IMAGES_DIR}/{vm}-seed.iso"
+    remote_seed = f"{HYPERVISOR_IMAGES_DIR}/{vm}-seed.iso"
 
-    vm_exists = _toshiba_vm_exists(vm)
+    vm_exists = _hypervisor_vm_exists(vm)
 
     # ── Steps 1 & 2: Seed ISO + VM creation ──────────────────────────────────
     if vm_exists:
         console.print(f"[bold]Steps 1–2:[/bold] Seed ISO + VM creation")
-        console.print(f"  [green]✓[/green] VM already exists on toshiba — skipping")
+        console.print(f"  [green]✓[/green] VM already exists on {HYPERVISOR_SSH_ALIAS} — skipping")
     else:
-        # Step 1 — Seed ISO (build locally if needed, then scp to toshiba)
+        # Step 1 — Seed ISO (build locally if needed, then scp to hypervisor)
         console.print("[bold]Step 1/4:[/bold] Seed ISO")
         seed_local = PLATFORMS_KVM / f"{vm}-seed.iso"
         if seed_local.exists():
@@ -580,9 +582,9 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
             if not _build_seed_iso_local(vm):
                 return 1
 
-        console.print(f"  Uploading seed ISO to toshiba:{TOSHIBA_IMAGES_DIR}/...")
+        console.print(f"  Uploading seed ISO to {HYPERVISOR_SSH_ALIAS}:{HYPERVISOR_IMAGES_DIR}/...")
         r = subprocess.run(
-            ["scp", str(seed_local), f"{TOSHIBA_USER}@{TOSHIBA_SSH_ALIAS}:{remote_seed}"],
+            ["scp", str(seed_local), f"{HYPERVISOR_USER}@{HYPERVISOR_SSH_ALIAS}:{remote_seed}"],
             capture_output=True, text=True,
         )
         if r.returncode != 0:
@@ -590,16 +592,16 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
             return 1
         console.print(f"  [green]✓[/green] Seed ISO uploaded")
 
-        # Step 2 — Create VM on toshiba via SSH
+        # Step 2 — Create VM on hypervisor via SSH
         console.print()
-        console.print("[bold]Step 2/4:[/bold] Create VM on toshiba")
+        console.print(f"[bold]Step 2/4:[/bold] Create VM on {HYPERVISOR_SSH_ALIAS}")
         virt_cmd = (
             f"virt-install --connect qemu:///system"
             f" --name {vm}"
             f" --ram {ram}"
             f" --vcpus 2"
-            f" --disk pool={TOSHIBA_POOL},size=20,format=qcow2"
-            f" --location '{TOSHIBA_UBUNTU_ISO},kernel=casper/vmlinuz,initrd=casper/initrd'"
+            f" --disk pool={HYPERVISOR_POOL},size=20,format=qcow2"
+            f" --location '{HYPERVISOR_UBUNTU_ISO},kernel=casper/vmlinuz,initrd=casper/initrd'"
             f" --disk path={remote_seed},device=cdrom,readonly=on"
             f" --network network=default"
             f" --os-variant ubuntu20.04"
@@ -608,13 +610,13 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
             f" --noautoconsole"
         )
         r = subprocess.run(
-            ["ssh", TOSHIBA_SSH_ALIAS, virt_cmd],
+            ["ssh", HYPERVISOR_SSH_ALIAS, virt_cmd],
             capture_output=True, text=True,
         )
         if r.returncode != 0:
-            console.print(f"[red]❌  virt-install on toshiba failed:\n{r.stderr.strip()}[/red]")
+            console.print(f"[red]❌  virt-install on {HYPERVISOR_SSH_ALIAS} failed:\n{r.stderr.strip()}[/red]")
             return 1
-        console.print(f"  [green]✓[/green] {vm} created on toshiba, autoinstall in progress")
+        console.print(f"  [green]✓[/green] {vm} created on {HYPERVISOR_SSH_ALIAS}, autoinstall in progress")
 
     # ── Step 3: Clear stale known_hosts ──────────────────────────────────────
     console.print()
@@ -634,23 +636,23 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
         console.print("[red]❌  No virbr0_ip in host config — cannot poll[/red]")
         return 1
 
-    state = _toshiba_vm_state(vm)
+    state = _hypervisor_vm_state(vm)
     console.print(f"  Current state: [cyan]{state or 'unknown'}[/cyan]")
     if not state:
-        console.print(f"[red]❌  Could not determine VM state on toshiba[/red]")
+        console.print(f"[red]❌  Could not determine VM state on {HYPERVISOR_SSH_ALIAS}[/red]")
         return 1
     if state not in ("running", "shut off"):
         console.print(f"[red]❌  Unexpected VM state: {state!r}[/red]")
         return 1
     if state == "shut off":
-        console.print(f"  Starting {vm} on toshiba...")
+        console.print(f"  Starting {vm} on {HYPERVISOR_SSH_ALIAS}...")
         subprocess.run(
-            ["ssh", TOSHIBA_SSH_ALIAS,
+            ["ssh", HYPERVISOR_SSH_ALIAS,
              "virsh", "--connect", "qemu:///system", "start", vm],
             check=True,
         )
 
-    console.print(f"  [dim]Polling {virbr0_ip} via ProxyJump through toshiba...[/dim]")
+    console.print(f"  [dim]Polling {virbr0_ip} via ProxyJump through {HYPERVISOR_SSH_ALIAS}...[/dim]")
     poll_start   = time.time()
     poll_timeout = 1800
     powered_off  = False
@@ -662,10 +664,10 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
     ) as progress:
         task = progress.add_task("wait", elapsed=0)
         while time.time() - poll_start < poll_timeout:
-            if _toshiba_vm_state(vm) == "shut off":
+            if _hypervisor_vm_state(vm) == "shut off":
                 powered_off = True
                 break
-            if _toshiba_tcp_probe(virbr0_ip):
+            if _hypervisor_tcp_probe(virbr0_ip):
                 break
             progress.update(task, elapsed=int(time.time() - poll_start))
             time.sleep(10)
@@ -678,7 +680,7 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
     if powered_off:
         console.print(f"  [green]✓[/green] Autoinstall complete ({elapsed}s) — starting {vm}")
         subprocess.run(
-            ["ssh", TOSHIBA_SSH_ALIAS,
+            ["ssh", HYPERVISOR_SSH_ALIAS,
              "virsh", "--connect", "qemu:///system", "start", vm],
             check=True,
         )
@@ -691,7 +693,7 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
         ) as progress:
             task = progress.add_task("ssh", elapsed=0)
             while time.time() - reboot_start < 300:
-                if _toshiba_tcp_probe(virbr0_ip):
+                if _hypervisor_tcp_probe(virbr0_ip):
                     break
                 progress.update(task, elapsed=int(time.time() - reboot_start))
                 time.sleep(5)
@@ -702,8 +704,8 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
         console.print(f"  [green]✓[/green] TCP port 22 open ({elapsed}s)")
 
     # Populate known_hosts so Ansible can connect
-    console.print(f"  Updating known_hosts via toshiba keyscan...")
-    _toshiba_add_known_hosts(virbr0_ip)
+    console.print(f"  Updating known_hosts via {HYPERVISOR_SSH_ALIAS} keyscan...")
+    _hypervisor_add_known_hosts(virbr0_ip)
 
     # Ansible ping to confirm
     console.print(f"  Confirming Ansible connectivity...")
@@ -717,7 +719,7 @@ def _build_vm_toshiba(vm: str, vm_info: dict, config: dict) -> int:
         return 1
 
     console.print()
-    console.print(f"[green]✅  {vm} is built on toshiba and SSH-ready.[/green]")
+    console.print(f"[green]✅  {vm} is built on {HYPERVISOR_SSH_ALIAS} and SSH-ready.[/green]")
     console.print(f"    Next: [cyan]python tools/esacp.py provisionVM {vm}[/cyan]")
     return 0
 
@@ -865,9 +867,9 @@ def cmd_build_vm(args, config: dict) -> int:
     vm_info = kvm_hosts(config).get(vm, {})
     banner(f"Build VM: {vm}")
 
-    hypervisor = vm_info.get("hypervisor", "local")
-    if hypervisor == "toshiba":
-        return _build_vm_toshiba(vm, vm_info, config)
+    hypervisor = vm_info.get("hypervisor")
+    if hypervisor:
+        return _build_vm_remote(vm, vm_info, config)
 
     vm_exists = subprocess.run(["virsh", "dominfo", vm], capture_output=True).returncode == 0
 
@@ -1061,8 +1063,8 @@ def _filter_ansible_line(line: str, state: dict) -> Optional[str]:
 
 def _virsh_snapshot_list(vm: str, hypervisor: str) -> list[str]:
     """Return snapshot names for a VM, routing to the correct hypervisor."""
-    if hypervisor == "toshiba":
-        cmd = ["ssh", TOSHIBA_SSH_ALIAS,
+    if hypervisor:
+        cmd = ["ssh", hypervisor,
                f"virsh --connect qemu:///system snapshot-list {vm} --name"]
     else:
         cmd = ["virsh", "snapshot-list", vm, "--name"]
@@ -1072,8 +1074,8 @@ def _virsh_snapshot_list(vm: str, hypervisor: str) -> list[str]:
 
 def _virsh_snapshot_create(vm: str, name: str, hypervisor: str) -> bool:
     """Take a snapshot, routing to the correct hypervisor. Returns True on success."""
-    if hypervisor == "toshiba":
-        cmd = ["ssh", TOSHIBA_SSH_ALIAS,
+    if hypervisor:
+        cmd = ["ssh", hypervisor,
                f"virsh --connect qemu:///system snapshot-create-as {vm} '{name}' --atomic"]
     else:
         cmd = ["virsh", "snapshot-create-as", vm, name, "--atomic"]

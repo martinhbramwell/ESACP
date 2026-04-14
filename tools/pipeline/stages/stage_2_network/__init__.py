@@ -6,6 +6,7 @@ Orchestrates Steps 8–9 of the provision pipeline.  Extracted from
 
 from __future__ import annotations
 
+from tools.host_identity import DEFAULT_HYPERVISOR
 from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.types import Config, Emit
 
@@ -36,7 +37,7 @@ def run_stage_2(config: Config, emit: Emit) -> None:
         hostname=config.hostname,
         wg_ip=config.wg_ip,
         virbr0_ip=config.virbr0_ip,
-        hypervisor=config.hypervisor or "toshiba",
+        hypervisor=config.hypervisor or DEFAULT_HYPERVISOR,
         project_root=config.project_root,
         ssh_key=config.ssh_key,
     )

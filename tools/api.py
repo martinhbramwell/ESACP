@@ -36,26 +36,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 
+from tools.host_identity import (
+    DEFAULT_HYPERVISOR, ZONE_DOMAINS, virbr0_subnet_prefix,
+)
+from tools.secrets import load_build_secrets
+
 PROJECT_ROOT        = Path(__file__).parent.parent
 PLATFORMS_KVM       = PROJECT_ROOT / "platforms" / "kvm"
 HOSTS_MAP           = PROJECT_ROOT / "hosts_map.yml"
 GROUP_VARS_ALL      = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
 KEYS_SOPS           = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
 
-# Zone → canonical domain mapping
-ZONE_DOMAINS: dict[str, str] = {
-    "development": "iridium.blue",
-    "staging":     "iridium.blue",
-    "production":  "logichem.solutions",
-}
 
-
-# Toshiba paths (accessed over SSH)
-TOSHIBA_ALIAS        = "toshiba"
-TOSHIBA_HYPERVISOR_USER = "hasan"
+# Hypervisor paths (accessed over SSH)
+HYPERVISOR_ALIAS     = DEFAULT_HYPERVISOR
+HYPERVISOR_USER      = "hasan"
 # Template qcow2 lives in the esacp libvirt pool (vol-clone, no sudo needed).
 # Metadata JSON lives in hasan's home dir (writable without sudo).
-TOSHIBA_METADATA_DIR = f"/home/{TOSHIBA_HYPERVISOR_USER}/esacp-packer-output"
+HYPERVISOR_METADATA_DIR = f"/home/{HYPERVISOR_USER}/esacp-packer-output"
 
 app = FastAPI(title="ESACP Control Plane API")
 
@@ -246,7 +244,7 @@ def get_hosts():
             zone_key = "development"
         hostname = h.get("hostname", name)
         wg_role  = h.get("wg_role", "spoke")
-        domain   = ZONE_DOMAINS.get(zone_key, "iridium.blue")
+        domain   = ZONE_DOMAINS[zone_key]
         erp_url  = f"https://{hostname}.{domain}" if wg_role == "spoke" else ""
 
         hosts.append({
@@ -277,13 +275,13 @@ def get_hosts():
 
     # Default hypervisor for new hosts: match the most common one in the current fleet
     hypervisors = [h.get("hypervisor") for h in kvm.values() if h.get("hypervisor")]
-    default_hv  = max(set(hypervisors), key=hypervisors.count) if hypervisors else "toshiba"
+    default_hv  = max(set(hypervisors), key=hypervisors.count) if hypervisors else DEFAULT_HYPERVISOR
 
     return {
         "hosts": hosts,
         "suggestions": {
             "wg_ip":      f"10.10.0.{next_wg}",
-            "virbr0_ip":  f"192.168.122.{next_vbr}",
+            "virbr0_ip":  f"{virbr0_subnet_prefix()}.{next_vbr}",
             "hypervisor": default_hv,
         },
     }
@@ -304,7 +302,7 @@ class NewHost(BaseModel):
     virbr0_ip:  str
     wg_ip:      str
     backend:    str = "kvm"
-    hypervisor: str = "toshiba"
+    hypervisor: str = DEFAULT_HYPERVISOR
     zone:       str = "development"   # development | staging | production
     vm_role:    str = "dev"           # dev | master | slave
 
@@ -379,8 +377,8 @@ def get_template_status():
     """
     try:
         r = subprocess.run(
-            ["ssh", TOSHIBA_ALIAS,
-             f"cat {TOSHIBA_METADATA_DIR}/erpnext-v13-latest.json 2>/dev/null"],
+            ["ssh", HYPERVISOR_ALIAS,
+             f"cat {HYPERVISOR_METADATA_DIR}/erpnext-v13-latest.json 2>/dev/null"],
             capture_output=True, text=True, timeout=10,
         )
         if r.returncode == 0 and r.stdout.strip():
@@ -402,8 +400,8 @@ def delete_template():
     try:
         # Read metadata to find the volume name, then delete from esacp pool
         meta_r = subprocess.run(
-            ["ssh", TOSHIBA_ALIAS,
-             f"cat {TOSHIBA_METADATA_DIR}/erpnext-v13-latest.json 2>/dev/null"],
+            ["ssh", HYPERVISOR_ALIAS,
+             f"cat {HYPERVISOR_METADATA_DIR}/erpnext-v13-latest.json 2>/dev/null"],
             capture_output=True, text=True, timeout=10,
         )
         if meta_r.returncode == 0 and meta_r.stdout.strip():
@@ -411,14 +409,14 @@ def delete_template():
             image = meta.get("image")
             if image:
                 subprocess.run(
-                    ["ssh", TOSHIBA_ALIAS,
+                    ["ssh", HYPERVISOR_ALIAS,
                      f"virsh --connect qemu:///system vol-delete --pool esacp '{image}' 2>/dev/null || true"],
                     capture_output=True, text=True, timeout=30,
                 )
         # Remove metadata regardless
         r = subprocess.run(
-            ["ssh", TOSHIBA_ALIAS,
-             f"rm -f {TOSHIBA_METADATA_DIR}/erpnext-v13-latest.json"],
+            ["ssh", HYPERVISOR_ALIAS,
+             f"rm -f {HYPERVISOR_METADATA_DIR}/erpnext-v13-latest.json"],
             capture_output=True, text=True, timeout=10,
         )
         if r.returncode != 0:
@@ -474,7 +472,7 @@ class NewErpnextVM(BaseModel):
     nickname:   str  = ""   # Frappe bench suffix: frappe-bench-{nickname}
     virbr0_ip:  str
     wg_ip:      str
-    hypervisor: str  = "toshiba"
+    hypervisor: str  = DEFAULT_HYPERVISOR
     zone:       str  = "development"
     vm_role:    str  = "dev:unspecified"
 
@@ -645,7 +643,9 @@ def get_health(hostname: str):
         app = "amber"
 
     # DB: MariaDB responding?
-    db_out = run("sudo mysql -u root -perpnext_build -e 'SELECT 1' 2>/dev/null && echo ok")
+    secrets = load_build_secrets(str(PROJECT_ROOT))
+    db_pwd = secrets["db_root_pwd"]
+    db_out = run(f"sudo mysql -u root -p{db_pwd} -e 'SELECT 1' 2>/dev/null && echo ok")
     db = "green" if "ok" in db_out else ("amber" if not db_out else "red")
 
     return {"web": web, "app": app, "db": db}

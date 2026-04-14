@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from tools.host_identity import virbr0_gateway
 from tools.pipeline.stages.common.types import Emit
 
 
@@ -50,7 +51,7 @@ ethernets:
       - {virbr0_ip}/24
     routes:
       - to: default
-        via: 192.168.122.1
+        via: {virbr0_gateway(virbr0_ip)}
     nameservers:
       addresses: [8.8.8.8, 1.1.1.1]
 """

@@ -54,8 +54,8 @@ def remove_wg_peer_live(
     if not hub:
         emit("  [WARN] Cannot find hub in hosts_map.yml — skipping live WG removal")
         return
-    hub_ip = hub.get("virbr0_ip", "192.168.122.10")
-    hub_hv = hub.get("hypervisor", "toshiba")
+    hub_ip = hub["virbr0_ip"]
+    hub_hv = hub["hypervisor"]
     r = subprocess.run(
         ["ssh", "-o", f"ProxyJump={hub_hv}", "-o", "StrictHostKeyChecking=no",
          f"you@{hub_ip}", f"sudo wg set wg0 peer {pubkey} remove"],

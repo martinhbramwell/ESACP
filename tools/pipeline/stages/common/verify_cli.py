@@ -13,6 +13,7 @@ from pathlib import Path
 
 import yaml
 
+from tools.host_identity import DEFAULT_HYPERVISOR, ZONE_DOMAINS
 from tools.pipeline.stages.common.config import _ssh_transport
 
 
@@ -59,7 +60,7 @@ def parse_verify_args() -> VerifyContext:
     host_cfg = data["groups"]["kvm"][hostname]
 
     target_ip, ssh_opts = _ssh_transport(host_cfg, use_wg)
-    hypervisor = host_cfg.get("hypervisor") or "toshiba"
+    hypervisor = host_cfg.get("hypervisor") or DEFAULT_HYPERVISOR
     ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
 
     gv = Path(proj) / "ansible" / "group_vars" / "all.yml"
@@ -69,10 +70,8 @@ def parse_verify_args() -> VerifyContext:
 
     nickname = host_cfg.get("nickname", hostname[:4])
     groups = host_cfg.get("ansible_groups", [])
-    if "production" in groups:
-        domain = "logichem.solutions"
-    else:
-        domain = "iridium.blue"
+    zone = next((z for z in ("production", "staging", "development") if z in groups), "development")
+    domain = ZONE_DOMAINS[zone]
     site_url = f"{hostname}.{domain}"
 
     return VerifyContext(

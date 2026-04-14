@@ -13,8 +13,7 @@ from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 def _build_render_params(config: Config) -> dict:
     domain = config.domain
-    tls_domain = "iridium.blue"
-    cert_dir = f"/etc/nginx/certs/{tls_domain}"
+    cert_dir = f"/etc/nginx/certs/{domain}"
     return {
         "erp_user": config.erp_user,
         "erp_user_pwd": config.erp_user_pwd,

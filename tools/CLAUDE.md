@@ -76,13 +76,20 @@ Subcommands:
 
 All functions are importable (`from tools.diagnose import hung_procs, site_health, ...`) for use in other scripts or `api.py` health endpoints.
 
-## host_identity.py — Hub Identity Constants
+## host_identity.py — Host Identity Constants
 
 Resolves host identities from `hosts_map.yml` at import time. Provides:
-- `HUB_KEY`, `HUB_VM_NAME`, `HUB_HOSTNAME`, `HUB_DISPLAY_NAME`, `HUB_VIRBR0_IP`, `HUB_WG_IP`
-- `hub_vm(config)`, `kvm_hosts(config)`, `host_field(key, field)`
+- Hub: `HUB_KEY`, `HUB_VM_NAME`, `HUB_HOSTNAME`, `HUB_DISPLAY_NAME`, `HUB_VIRBR0_IP`, `HUB_WG_IP`, `HUB_HYPERVISOR`
+- Domains: `ZONE_DOMAINS` (dict), `domain_for_zone(zone)`
+- Hypervisor: `DEFAULT_HYPERVISOR`
+- IP helpers: `virbr0_gateway(ip)`, `virbr0_subnet_prefix()`
+- Lookups: `hub_vm(config)`, `kvm_hosts(config)`, `host_field(key, field)`
 
-All Python code that previously hardcoded "saconsole" imports from here instead.
+All Python code that previously hardcoded host-specific values imports from here instead.
+
+## secrets.py — Build Secrets Loader
+
+Loads `erp_user_pwd` and `db_root_pwd` from env vars (`ESACP_ERP_USER_PWD`, `ESACP_DB_ROOT_PWD`) or from `config/build_secrets.sops.yml` (sops-encrypted). No hardcoded password defaults in code.
 
 ## install_specific.py — VM Differentiation (standalone, SCP'd to VM)
 

@@ -33,7 +33,7 @@ TARGET1_NAT_HOST  = "127.0.0.1"
 TARGET1_NAT_PORT  = 2222
 from tools.host_identity import HUB_WG_IP
 
-HUB_LAN_IP       = "192.168.40.50"   # VBox bridged LAN IP — update for KVM
+HUB_LAN_IP       = "192.168.40.50"   # TODO: VBox retired — derive from hosts_map or remove
 HUB_WG           = HUB_WG_IP
 TARGET1_WG_IP     = "10.10.0.3"
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from tools.host_identity import HUB_VIRBR0_IP
+from tools.host_identity import DEFAULT_HYPERVISOR, HUB_VIRBR0_IP
 from tools.pipeline.stages.common.types import Config
 
 
@@ -67,7 +67,7 @@ def hub_ssh_run(
     config: Config, cmd: str, *, timeout: int = 15,
 ) -> subprocess.CompletedProcess[str]:
     """Run *cmd* on the hub VM via ProxyJump through the hypervisor."""
-    hyp = config.hypervisor or "toshiba"
+    hyp = config.hypervisor or DEFAULT_HYPERVISOR
     return subprocess.run(
         ["ssh",
          "-o", f"ProxyJump={hyp}",

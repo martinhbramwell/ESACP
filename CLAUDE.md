@@ -60,9 +60,11 @@ Controllers are bootstrap-only. saconsole manages all sibling VMs after handoff.
 
 ```
 hosts_map.yml              # Authoritative host directory — single source of truth
-tools/host_identity.py     # Python constants resolved from hosts_map.yml (HUB_KEY, HUB_VM_NAME, etc.)
+tools/host_identity.py     # Python constants resolved from hosts_map.yml (HUB_KEY, ZONE_DOMAINS, DEFAULT_HYPERVISOR, etc.)
+tools/secrets.py           # Build secrets from env vars or config/build_secrets.sops.yml
 tools/generate_inventory.py # Derives ansible/inventory/kvm.yml
 config/wireguard/          # SOPS/age-encrypted WireGuard keys
+config/build_secrets.sops.yml # SOPS-encrypted build passwords (erp_user_pwd, db_root_pwd)
 platforms/kvm/             # Bootstrap + differentiation scripts + cloud-init templates
 ansible/                   # site-kvm.yml (5 plays), roles, group_vars
 docker/observability/      # Compose stack: Prometheus, Grafana, Loki, Alertmanager, etc.

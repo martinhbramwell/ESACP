@@ -12,6 +12,11 @@
 wireguard_subnet: "10.10.0.0/24"
 wireguard_port: 51820
 
+zone_domains:
+  development: "iridium.blue"
+  staging: "iridium.blue"
+  production: "logichem.solutions"
+
 # backend values: kvm | vbox | cloudstack | vps
 # wg_hub_endpoint: the physical address spokes use to reach the hub.
 #   KVM:   virbr0 IP (192.168.122.10) — stable, internal to the host.

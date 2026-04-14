@@ -64,10 +64,11 @@ def build_inventory(data: dict) -> dict:
             }
             if attrs.get("ansible_connection"):
                 hv["ansible_connection"] = attrs["ansible_connection"]
-            # Toshiba-hosted VMs are on a remote virbr0; Mighty cannot route there
-            # directly — ProxyJump through toshiba is required for all SSH/Ansible.
-            if attrs.get("hypervisor") == "toshiba":
-                hv["ansible_ssh_common_args"] = "-o ProxyJump=hasan@toshiba"
+            # Remote-hosted VMs are on a hypervisor virbr0; controller cannot
+            # route there directly — ProxyJump through the hypervisor is required.
+            hypervisor = attrs.get("hypervisor")
+            if hypervisor:
+                hv["ansible_ssh_common_args"] = f"-o ProxyJump=hasan@{hypervisor}"
             host_vars[hostname] = hv
 
             for grp in attrs.get("ansible_groups", []):
