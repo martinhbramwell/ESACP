@@ -297,6 +297,28 @@ test.describe('Full lifecycle', () => {
     await page.goto(BASE_URL)
     await waitForGraph(page)
 
+    // Pre-flight: if VM already exists and is provisioned, destroy it first
+    const preflight = await page.request.get(`${API_URL}/api/hosts`)
+    const pfData = await preflight.json()
+    const existing = pfData.hosts.find(h => h.hostname === hostname)
+    if (existing && existing.provisioned) {
+      await selectNode(page, hostname)
+      await clickInfoButton(page, 'Destroy')
+      await page.waitForSelector('#confirm-overlay:not(.hidden)', { timeout: 5_000 })
+      await page.click('#confirm-submit')
+      await page.waitForSelector('#confirm-overlay', { state: 'hidden', timeout: 10_000 })
+
+      await page.waitForTimeout(3_000)
+      const djResp = await page.request.get(`${API_URL}/api/jobs`)
+      const djJobs = await djResp.json()
+      const [djId] = Object.entries(djJobs).find(
+        ([, j]) => j.hostname === hostname && j.status === 'running'
+      ) || []
+      if (djId) await waitForJob(page, djId, 180_000)
+
+      await page.waitForTimeout(2_000)
+    }
+
     // Deploy
     await deployFromTemplate(page, config)
     const resp = await page.request.get(`${API_URL}/api/jobs`)
@@ -306,8 +328,8 @@ test.describe('Full lifecycle', () => {
     ) || []
     expect(jobId).toBeTruthy()
 
-    // Wait for provisioning to complete (up to 25 min)
-    await waitForJob(page, jobId, 1_500_000)
+    // Wait for provisioning to complete (up to 35 min — allows for pre-flight destroy overhead)
+    await waitForJob(page, jobId, 2_100_000)
 
     // Inspect — verify all green
     await selectNode(page, hostname)
