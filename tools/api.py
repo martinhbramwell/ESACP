@@ -26,11 +26,7 @@ Endpoints:
 from datetime import datetime, timezone
 import json
 import re
-import shutil
 import subprocess
-import tempfile
-import threading
-import time
 import uuid
 from pathlib import Path
 
@@ -42,8 +38,6 @@ from pydantic import BaseModel
 
 PROJECT_ROOT        = Path(__file__).parent.parent
 PLATFORMS_KVM       = PROJECT_ROOT / "platforms" / "kvm"
-PLATFORMS_PACKER    = PROJECT_ROOT / "platforms" / "packer"
-CLOUD_INIT_DIR      = PLATFORMS_KVM / "cloud-init"
 HOSTS_MAP           = PROJECT_ROOT / "hosts_map.yml"
 GROUP_VARS_ALL      = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
 KEYS_SOPS           = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
@@ -63,16 +57,6 @@ TOSHIBA_HYPERVISOR_USER = "hasan"
 # Metadata JSON lives in hasan's home dir (writable without sudo).
 TOSHIBA_METADATA_DIR = f"/home/{TOSHIBA_HYPERVISOR_USER}/esacp-packer-output"
 
-
-# saconsole access from controller (ProxyJump through hypervisor)
-SACONSOLE_IP        = "192.168.122.10"
-SACONSOLE_SSH       = [
-    "ssh", "-o", f"ProxyJump={TOSHIBA_ALIAS}",
-    "-o", "StrictHostKeyChecking=no",
-    "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
-    f"you@{SACONSOLE_IP}",
-]
-
 app = FastAPI(title="ESACP Control Plane API")
 
 app.add_middleware(
@@ -82,44 +66,75 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory job store — sufficient for prototype (single process, dev use only)
-jobs: dict[str, dict] = {}
+# ── Job tracking (file-based, survives uvicorn restarts — GH #37) ────────────
+
+JOB_DIR = Path("/tmp")
+
+
+def _job_meta_path(job_id: str) -> Path:
+    return JOB_DIR / f"esacp-job-{job_id}.meta"
+
+
+def _job_log_path(job_id: str) -> Path:
+    return JOB_DIR / f"esacp-job-{job_id}.log"
+
+
+def _job_status_path(job_id: str) -> Path:
+    return JOB_DIR / f"esacp-job-{job_id}.status"
+
+
+def _spawn_job(job_type: str, job_id: str, args: dict, hostname: str, job_type_label: str | None = None) -> None:
+    """Spawn an independent worker process for a job.
+
+    The child process writes to /tmp/esacp-job-{id}.log (stdout) and
+    /tmp/esacp-job-{id}.status (on completion). It survives uvicorn restarts.
+    """
+    meta = {
+        "hostname": hostname,
+        "type": job_type_label or job_type,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _job_meta_path(job_id).write_text(json.dumps(meta))
+
+    log_file = open(_job_log_path(job_id), "w")
+    subprocess.Popen(
+        [
+            "python3", "tools/job_worker.py",
+            job_type, job_id, json.dumps(args),
+        ],
+        cwd=PROJECT_ROOT,
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,  # fully detached from uvicorn
+    )
+
+
+def _read_job(job_id: str) -> dict | None:
+    """Read job state from disk. Returns None if job doesn't exist."""
+    meta_path = _job_meta_path(job_id)
+    if not meta_path.exists():
+        return None
+
+    meta = json.loads(meta_path.read_text())
+
+    log_path = _job_log_path(job_id)
+    log_lines = log_path.read_text().splitlines() if log_path.exists() else []
+
+    status_path = _job_status_path(job_id)
+    if status_path.exists():
+        status = status_path.read_text().strip()
+    else:
+        status = "running"
+
+    return {
+        "status": status,
+        "log": log_lines,
+        "hostname": meta.get("hostname", ""),
+        "type": meta.get("type", ""),
+    }
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
-
-def _stream_lines(pipe):
-    """Yield lines from a binary pipe, handling \\r (carriage return) correctly.
-
-    Terminal progress bars overwrite lines using \\r. In a plain text iterator
-    these appear as embedded \\r bytes inside a \\n-terminated line, producing
-    hundreds of intermediate states in the log panel. This reader treats \\r as
-    'overwrite current line' — only the final value before each \\n is yielded.
-    """
-    buf = b""
-    current = b""
-    while True:
-        chunk = pipe.read(256)
-        if not chunk:
-            break
-        buf += chunk
-        while buf:
-            nl = buf.find(b"\n")
-            cr = buf.find(b"\r")
-            if nl == -1 and cr == -1:
-                current += buf
-                buf = b""
-            elif nl != -1 and (cr == -1 or nl < cr):
-                current += buf[:nl]
-                yield current.decode("utf-8", errors="replace")
-                current = b""
-                buf = buf[nl + 1:]
-            else:  # cr comes first — overwrite current line
-                current = buf[cr + 1:]
-                buf = b""
-    if current:
-        yield current.decode("utf-8", errors="replace")
-
 
 def load_hosts_map() -> dict:
     with open(HOSTS_MAP) as f:
@@ -426,126 +441,16 @@ def start_build_template():
     exports the qcow2, then destroys the build VM.
     Only one build may run at a time.
     """
-    running = [j for j in jobs.values()
-               if j.get("type") == "build_template" and j["status"] == "running"]
-    if running:
-        raise HTTPException(409, "A template build is already in progress")
+    # Check for already-running build by scanning active job files
+    for meta_file in JOB_DIR.glob("esacp-job-*.meta"):
+        jid = meta_file.stem.replace("esacp-job-", "")
+        j = _read_job(jid)
+        if j and j.get("type") == "build_template" and j["status"] == "running":
+            raise HTTPException(409, "A template build is already in progress")
 
-    job_id       = str(uuid.uuid4())[:8]
-    jobs[job_id] = {"status": "running", "log": [], "hostname": "template", "type": "build_template"}
-
-    threading.Thread(
-        target=_run_build_template,
-        args=(job_id,),
-        daemon=True,
-    ).start()
-
+    job_id = str(uuid.uuid4())[:8]
+    _spawn_job("build_template", job_id, {}, hostname="template")
     return {"job_id": job_id}
-
-
-def _run_build_template(job_id: str):
-    job = jobs[job_id]
-    ssh_opts = [
-        "-o", f"ProxyJump={TOSHIBA_ALIAS}",
-        "-o", "StrictHostKeyChecking=no",
-        "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
-    ]
-
-    # Patterns where consecutive identical-suffix lines should replace rather than append
-    _COMPACT_SUFFIXES = ("— waiting 30s ...",)
-
-    def _ts():
-        return datetime.now(timezone.utc).strftime("%H:%M:%S")
-
-    def emit(line: str):
-        stamped = f"[{_ts()}] {line}"
-        if job["log"] and any(line.endswith(s) for s in _COMPACT_SUFFIXES):
-            if any(job["log"][-1].endswith(s) for s in _COMPACT_SUFFIXES):
-                job["log"][-1] = stamped
-                print(f"[job {job_id}] {stamped}", flush=True)
-                return
-        job["log"].append(stamped)
-        print(f"[job {job_id}] {stamped}", flush=True)
-
-    try:
-        emit("── ERPNext v13 template build ──")
-
-        # Sync packer directory to saconsole (repo lives on controller, not saconsole)
-        emit("Syncing platforms/packer/ to saconsole ...")
-        rsync = subprocess.run(
-            ["rsync", "-az", "--delete",
-             "-e", "ssh " + " ".join(ssh_opts),
-             str(PLATFORMS_PACKER) + "/",
-             f"you@{SACONSOLE_IP}:/opt/esacp/platforms/packer/"],
-            capture_output=True, text=True,
-        )
-        if rsync.returncode != 0:
-            raise RuntimeError(f"rsync to saconsole failed: {rsync.stderr.strip()}")
-
-        emit(f"Connecting to saconsole ({SACONSOLE_IP} via {TOSHIBA_ALIAS}) ...")
-
-        # Run build.sh detached from the SSH session so it survives any uvicorn
-        # reload or connection loss.  Exit code is written to REMOTE_EXIT when done.
-        # Log output is streamed by polling REMOTE_LOG.  (fixes GH #61)
-        REMOTE_LOG  = "/tmp/packer-build-output.log"
-        REMOTE_EXIT = "/tmp/packer-build-output.log.exit"
-
-        subprocess.run(SACONSOLE_SSH + [f"rm -f {REMOTE_LOG} {REMOTE_EXIT}"],
-                       capture_output=True)
-
-        start_cmd = (
-            f"nohup bash -c 'bash /opt/esacp/platforms/packer/build.sh"
-            f" > {REMOTE_LOG} 2>&1; echo $? > {REMOTE_EXIT}'"
-            f" > /dev/null 2>&1 & echo $!"
-        )
-        r = subprocess.run(SACONSOLE_SSH + [start_cmd], capture_output=True, text=True)
-        if r.returncode != 0:
-            raise RuntimeError(f"Failed to start build on saconsole: {r.stderr.strip()}")
-        emit(f"Build detached on saconsole (PID {r.stdout.strip()}) — polling log ...")
-
-        import time
-        offset = 0
-        while True:
-            time.sleep(5)
-            # Read any new output appended since last poll
-            r = subprocess.run(
-                SACONSOLE_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
-                capture_output=True, text=True,
-            )
-            if r.stdout:
-                for raw_line in r.stdout.splitlines():
-                    if raw_line.strip():
-                        emit(raw_line)
-                offset += len(r.stdout.encode("utf-8"))
-
-            # Check for exit code file — signals build finished
-            r = subprocess.run(
-                SACONSOLE_SSH + [f"cat {REMOTE_EXIT} 2>/dev/null || echo -1"],
-                capture_output=True, text=True,
-            )
-            exit_str = r.stdout.strip()
-            if exit_str != "-1":
-                # Drain any final output
-                r = subprocess.run(
-                    SACONSOLE_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
-                    capture_output=True, text=True,
-                )
-                for raw_line in r.stdout.splitlines():
-                    if raw_line.strip():
-                        emit(raw_line)
-                exit_code = int(exit_str) if exit_str.isdigit() else 1
-                if exit_code != 0:
-                    emit(f"[ERROR] build.sh exited with code {exit_code}")
-                    job["status"] = "error"
-                    return
-                break
-
-        job["status"] = "done"
-        emit("── Build complete — new image ready on toshiba ──")
-
-    except Exception as exc:
-        emit(f"[ERROR] {exc}")
-        job["status"] = "error"
 
 
 # ── POST /api/promote ────────────────────────────────────────────────────────
@@ -665,52 +570,15 @@ def start_provision_erpnext(vm: NewErpnextVM):
             raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
 
     job_id = str(uuid.uuid4())[:8]
-    jobs[job_id] = {
-        "status":   "running",
-        "log":      [],
-        "hostname": vm.hostname,
-        "type":     "provision_erpnext",
-    }
-
     cleanup_cfg = kvm.get(vm.hostname) if needs_cleanup else None
 
-    threading.Thread(
-        target=_run_provision_erpnext,
-        args=(job_id, vm, cleanup_cfg),
-        daemon=True,
-    ).start()
+    _spawn_job("provision", job_id, {
+        "hostname": vm.hostname,
+        "virbr0_ip": vm.virbr0_ip,
+        "cleanup_cfg": cleanup_cfg,
+    }, hostname=vm.hostname, job_type_label="provision_erpnext")
 
     return {"job_id": job_id, "hostname": vm.hostname}
-
-
-
-
-def _run_provision_erpnext(job_id: str, vm: NewErpnextVM, cleanup_cfg: dict | None = None):
-    job = jobs[job_id]
-
-    def _ts():
-        return datetime.now(timezone.utc).strftime("%H:%M:%S")
-
-    def emit(line: str):
-        stamped = f"[{_ts()}] {line}"
-        job["log"].append(stamped)
-        print(f"[job {job_id}] {stamped}", flush=True)
-
-    try:
-        from tools.pipeline.macro.provision import run as run_provision
-        run_provision(
-            hostname=vm.hostname,
-            virbr0_ip=vm.virbr0_ip,
-            project_root=str(PROJECT_ROOT),
-            emit=emit,
-            cleanup_cfg=cleanup_cfg,
-        )
-        job["status"] = "done"
-        emit(f"── Provision complete — ERPNext at https://{vm.hostname}.iridium.blue ──")
-
-    except Exception as exc:
-        emit(f"[ERROR] {exc}")
-        job["status"] = "error"
 
 
 # ── POST /api/refresh/{hostname} ─────────────────────────────────────────────
@@ -727,41 +595,12 @@ def start_refresh(hostname: str):
     if not wg_ip:
         raise HTTPException(400, f"No WireGuard IP configured for '{hostname}'")
 
-    job_id       = str(uuid.uuid4())[:8]
-    jobs[job_id] = {"status": "running", "log": [], "hostname": hostname}
-    threading.Thread(
-        target=_run_refresh,
-        args=(job_id, hostname, host_cfg),
-        daemon=True,
-    ).start()
+    job_id = str(uuid.uuid4())[:8]
+    _spawn_job("refresh", job_id, {
+        "hostname": hostname,
+        "host_cfg": host_cfg,
+    }, hostname=hostname)
     return {"job_id": job_id}
-
-
-def _run_refresh(job_id: str, hostname: str, host_cfg: dict):
-    job = jobs[job_id]
-
-    def _ts():
-        return datetime.now(timezone.utc).strftime("%H:%M:%S")
-
-    def emit(line: str):
-        stamped = f"[{_ts()}] {line}"
-        job["log"].append(stamped)
-        print(f"[job {job_id}] {stamped}", flush=True)
-
-    try:
-        from tools.pipeline.macro.refresh import run as run_refresh
-        run_refresh(
-            hostname=hostname,
-            host_cfg=host_cfg,
-            project_root=str(PROJECT_ROOT),
-            emit=emit,
-        )
-        job["status"] = "done"
-        emit("── Refresh complete ──")
-
-    except Exception as exc:
-        emit(f"[ERROR] {exc}")
-        job["status"] = "error"
 
 
 # ── GET /api/health/{hostname} ────────────────────────────────────────────────
@@ -826,269 +665,12 @@ def start_destroy(hostname: str):
     if host_cfg.get("wg_role") == "hub":
         raise HTTPException(400, f"Cannot destroy hub node '{hostname}' — this would break the entire mesh")
 
-    job_id       = str(uuid.uuid4())[:8]
-    jobs[job_id] = {"status": "running", "log": [], "hostname": hostname, "type": "destroy"}
-
-    threading.Thread(
-        target=_run_destroy,
-        args=(job_id, hostname, host_cfg),
-        daemon=True,
-    ).start()
-
+    job_id = str(uuid.uuid4())[:8]
+    _spawn_job("destroy", job_id, {
+        "hostname": hostname,
+        "host_cfg": host_cfg,
+    }, hostname=hostname)
     return {"job_id": job_id}
-
-
-def _run_destroy(job_id: str, hostname: str, host_cfg: dict):
-    job = jobs[job_id]
-
-    def _ts():
-        return datetime.now(timezone.utc).strftime("%H:%M:%S")
-
-    def emit(line: str):
-        stamped = f"[{_ts()}] {line}"
-        job["log"].append(stamped)
-        print(f"[job {job_id}] {stamped}", flush=True)
-
-    try:
-        # ── Step 1: Get public key + remove live WireGuard peer ──────────────
-        emit("── Remove live WireGuard peer ──")
-        pubkey = _get_wg_pubkey(hostname)
-        if pubkey:
-            _remove_wg_peer_live(hostname, pubkey, emit)
-        else:
-            emit(f"  [WARN] No pubkey found for {hostname} — skipping live WG removal")
-
-        # ── Step 2: Destroy VM on hypervisor ─────────────────────────────────
-        emit("── Destroy VM ──")
-        _destroy_vm(hostname, host_cfg, emit)
-
-        # ── Step 3: Remove from hosts_map.yml ────────────────────────────────
-        emit("── Update hosts_map.yml ──")
-        _remove_from_hosts_map(hostname, emit)
-
-        # ── Step 4: Remove pubkey from group_vars/all.yml ────────────────────
-        emit("── Update group_vars/all.yml ──")
-        _remove_from_group_vars_all(hostname, emit)
-
-        # ── Step 5: Regenerate inventory ─────────────────────────────────────
-        emit("── Regenerate inventory ──")
-        result = subprocess.run(
-            ["python3", "tools/generate_inventory.py"],
-            cwd=PROJECT_ROOT, capture_output=True, text=True,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(f"generate_inventory.py failed:\n{result.stderr}")
-        emit("  [OK] inventory regenerated")
-
-        # ── Step 6: Update saconsole wg0.conf via Ansible wireguard role ─────
-        emit("── Update saconsole WireGuard config (Ansible) ──")
-        proc = subprocess.Popen(
-            [
-                "ansible-playbook",
-                "-i", "inventory/kvm.yml",
-                "site-kvm.yml",
-                "--limit", "saconsole",
-                "--tags", "wireguard",
-            ],
-            cwd=str(PROJECT_ROOT / "ansible"),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-
-        )
-        for line in _stream_lines(proc.stdout):
-            emit(line)
-        proc.wait()
-        if proc.returncode != 0:
-            emit(f"  [WARN] Ansible wireguard update failed (exit {proc.returncode}) — wg0.conf may still list old peer")
-        else:
-            emit("  [OK] saconsole wg0.conf updated")
-
-        # ── Step 7: Remove keys from keys.sops.yml ───────────────────────────
-        emit("── Remove WireGuard keys ──")
-        _remove_keys_from_sops(hostname, emit)
-
-        # ── Step 8: Remove cloud-init dir if present ─────────────────────────
-        ci_dir = CLOUD_INIT_DIR / hostname
-        if ci_dir.exists():
-            shutil.rmtree(ci_dir)
-            emit(f"  [OK] Removed cloud-init dir {ci_dir}")
-
-        job["status"] = "done"
-        emit("── Destroy complete ──")
-
-    except Exception as exc:
-        emit(f"[ERROR] {exc}")
-        job["status"] = "error"
-
-
-def _get_wg_pubkey(hostname: str) -> str | None:
-    """Decrypt keys.sops.yml and return the WireGuard public key for hostname, or None."""
-    if not KEYS_SOPS.exists():
-        return None
-    dec = subprocess.run(
-        ["sops", "-d", str(KEYS_SOPS)],
-        cwd=PROJECT_ROOT, capture_output=True, text=True,
-    )
-    if dec.returncode != 0:
-        return None
-    keys_data = yaml.safe_load(dec.stdout)
-    peer = keys_data.get(hostname, {})
-    return peer.get("public_key") if isinstance(peer, dict) else None
-
-
-def _remove_wg_peer_live(hostname: str, pubkey: str, emit):
-    """Remove the WireGuard peer from saconsole hub live (wg set ... remove)."""
-    data = load_hosts_map()
-    kvm  = data["groups"].get("kvm", {})
-    hub  = next((h for h in kvm.values() if h.get("wg_role") == "hub"), None)
-    if not hub:
-        emit("  [WARN] Cannot find hub in hosts_map.yml — skipping live WG removal")
-        return
-    hub_ip  = hub.get("virbr0_ip", "192.168.122.10")
-    hub_hv  = hub.get("hypervisor", "toshiba")
-    r = subprocess.run(
-        ["ssh", "-o", f"ProxyJump={hub_hv}", "-o", "StrictHostKeyChecking=no",
-         f"you@{hub_ip}", f"sudo wg set wg0 peer {pubkey} remove"],
-        capture_output=True, text=True, timeout=30,
-    )
-    if r.returncode != 0:
-        emit(f"  [WARN] wg set peer remove failed: {r.stderr.strip()}")
-    else:
-        emit(f"  [OK] Live WireGuard peer for {hostname} removed from hub")
-
-
-def _destroy_vm(hostname: str, host_cfg: dict, emit):
-    """Destroy (stop) then undefine (delete + storage) the VM on its hypervisor."""
-    hypervisor = host_cfg.get("hypervisor")
-    if not hypervisor:
-        raise RuntimeError(f"No hypervisor configured for '{hostname}'")
-
-    # Delete all snapshots first — libvirt 6.0.0 refuses to undefine a domain
-    # that has snapshots. Loop until snapshot-list returns empty (handles
-    # hierarchical snapshot trees where a parent can't be deleted before children).
-    for _attempt in range(20):
-        snap_r = subprocess.run(
-            ["ssh", hypervisor,
-             f"virsh --connect qemu:///system snapshot-list {hostname} --name"],
-            capture_output=True, text=True, timeout=30,
-        )
-        snapshots = [s.strip() for s in snap_r.stdout.strip().splitlines() if s.strip()]
-        if not snapshots:
-            break
-        for snap_name in snapshots:
-            # Single-string SSH command so the remote shell handles quoting.
-            # ["ssh", host, "bash", "-c", "cmd"] is WRONG in subprocess — SSH
-            # joins args with spaces → bash -c only sees the first word as its
-            # script and hangs reading stdin. Pass one string; the remote shell
-            # then parses the single-quotes around the snapshot name correctly.
-            del_r = subprocess.run(
-                ["ssh", hypervisor,
-                 f"virsh --connect qemu:///system snapshot-delete {hostname} '{snap_name}'"],
-                capture_output=True, text=True, timeout=60,
-            )
-            if del_r.returncode == 0:
-                emit(f"  [OK] Deleted snapshot: {snap_name}")
-            else:
-                emit(f"  [WARN] snapshot-delete {snap_name}: {del_r.stderr.strip()}")
-
-    for virsh_cmd in (
-        f"virsh --connect qemu:///system destroy {hostname}",
-        f"virsh --connect qemu:///system undefine {hostname} --remove-all-storage",
-    ):
-        r = subprocess.run(
-            ["ssh", hypervisor, virsh_cmd],
-            capture_output=True, text=True, timeout=60,
-        )
-        combined = (r.stdout + r.stderr).lower()
-        if r.returncode != 0:
-            if "domain is not running" in combined or "failed to get domain" in combined:
-                emit(f"  [OK] {virsh_cmd} — VM was already stopped or absent, continuing")
-            else:
-                raise RuntimeError(f"'{virsh_cmd}' failed: {r.stderr.strip()}")
-        else:
-            emit(f"  [OK] {virsh_cmd}")
-
-
-def _remove_from_hosts_map(hostname: str, emit):
-    """Remove the host YAML block from hosts_map.yml using regex."""
-    text    = HOSTS_MAP.read_text()
-    pattern = rf'\n    {re.escape(hostname)}:\n(?:[ ]{{6}}[^\n]*\n)+'
-    new_text = re.sub(pattern, "\n", text)
-    # Collapse any triple+ newlines left by the removal
-    new_text = re.sub(r'\n{3,}', "\n\n", new_text)
-    if new_text == text:
-        emit(f"  [WARN] '{hostname}' block not found in hosts_map.yml — nothing removed")
-    else:
-        HOSTS_MAP.write_text(new_text)
-        emit(f"  [OK] Removed '{hostname}' from hosts_map.yml")
-
-
-def _remove_from_group_vars_all(hostname: str, emit):
-    """Remove the wg_pubkey_<hostname> line from group_vars/all.yml."""
-    key_name = f"wg_pubkey_{hostname}"
-    content  = GROUP_VARS_ALL.read_text()
-    if key_name not in content:
-        emit(f"  [OK] {key_name} not in group_vars/all.yml — nothing to remove")
-        return
-    lines    = [l for l in content.splitlines(keepends=True) if not l.startswith(f"{key_name}")]
-    GROUP_VARS_ALL.write_text("".join(lines))
-    emit(f"  [OK] Removed {key_name} from group_vars/all.yml")
-
-
-def _remove_keys_from_sops(hostname: str, emit):
-    """Decrypt keys.sops.yml, remove hostname entries, re-encrypt in place."""
-    if not KEYS_SOPS.exists():
-        emit("  [WARN] keys.sops.yml not found — skipping")
-        return
-
-    # Read age recipient from .sops.yaml
-    sops_conf = PROJECT_ROOT / ".sops.yaml"
-    match     = re.search(r'age1[a-z0-9]+', sops_conf.read_text())
-    if not match:
-        raise RuntimeError(f"Cannot find age recipient in {sops_conf}")
-    age_recipient = match.group(0)
-
-    dec = subprocess.run(
-        ["sops", "-d", str(KEYS_SOPS)],
-        cwd=PROJECT_ROOT, capture_output=True, text=True,
-    )
-    if dec.returncode != 0:
-        raise RuntimeError(f"sops decrypt failed: {dec.stderr.strip()}")
-
-    keys_data = yaml.safe_load(dec.stdout)
-    removed   = []
-
-    if hostname in keys_data:
-        del keys_data[hostname]
-        removed.append(hostname)
-
-    psks = keys_data.get("preshared_keys", {})
-    for k in [k for k in psks if hostname in k]:
-        del psks[k]
-        removed.append(f"preshared_keys.{k}")
-
-    if not removed:
-        emit(f"  [WARN] No keys for '{hostname}' found in keys.sops.yml")
-        return
-
-    work_dir = Path(tempfile.mkdtemp())
-    try:
-        plain = work_dir / "keys.sops.yml"
-        plain.write_text(yaml.dump(keys_data, default_flow_style=False, sort_keys=False))
-
-        enc = subprocess.run(
-            ["sops", "--encrypt", "--age", age_recipient,
-             "--input-type", "yaml", "--output-type", "yaml", str(plain)],
-            capture_output=True, text=True,
-        )
-        if enc.returncode != 0:
-            raise RuntimeError(f"sops encrypt failed: {enc.stderr.strip()}")
-        KEYS_SOPS.write_text(enc.stdout)
-        emit(f"  [OK] Removed from keys.sops.yml: {', '.join(removed)}")
-    finally:
-        for f in work_dir.iterdir():
-            subprocess.run(["shred", "-u", str(f)], capture_output=True)
-        work_dir.rmdir()
 
 
 # ── VM power control ─────────────────────────────────────────────────────────
@@ -1243,19 +825,28 @@ def vm_reboot(hostname: str):
 
 @app.get("/api/jobs")
 def list_jobs():
-    """Return all jobs — allows the frontend to reconnect after a page refresh."""
-    return {
-        jid: {"status": j["status"], "hostname": j["hostname"]}
-        for jid, j in jobs.items()
-    }
+    """Return all jobs — reads from /tmp/esacp-job-*.meta files.
+
+    Survives uvicorn restarts (GH #37).
+    """
+    result = {}
+    for meta_file in JOB_DIR.glob("esacp-job-*.meta"):
+        jid = meta_file.stem.replace("esacp-job-", "")
+        j = _read_job(jid)
+        if j:
+            result[jid] = {"status": j["status"], "hostname": j["hostname"]}
+    return result
 
 
 # ── GET /api/jobs/{job_id} ────────────────────────────────────────────────────
 
 @app.get("/api/jobs/{job_id}")
 def get_job(job_id: str):
-    """Poll a provisioning job's status and accumulated log."""
-    if job_id not in jobs:
+    """Poll a job's status and accumulated log — reads from disk.
+
+    Survives uvicorn restarts (GH #37).
+    """
+    j = _read_job(job_id)
+    if j is None:
         raise HTTPException(404, "job not found")
-    j = jobs[job_id]
     return {"status": j["status"], "log": j["log"], "hostname": j["hostname"]}

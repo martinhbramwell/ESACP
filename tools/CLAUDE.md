@@ -29,11 +29,30 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 - `provisioned` = VM has a snapshot containing "Baseline" (not just VM exists)
 - `vm_state` = libvirt domain state string (`running`, `shut off`, or `null` if hypervisor unreachable); polled by UI every 30s
 - VM power actions (`/api/vm/{host}/start|stop|reboot`) are synchronous — no job/polling. `start` runs a memory guard check first (`_check_memory()`: virsh nodeinfo + dominfo sums vs 2 GiB host reserve). HTTP 409 on insufficient RAM
-- Template build uses `nohup` on saconsole — survives uvicorn reload; log polled via SSH tail every 5s; exit code written to `/tmp/packer-build-output.log.exit`
+- **Jobs run as independent OS processes** (GH #37) — `api.py` spawns `tools/job_worker.py` via `subprocess.Popen` with `start_new_session=True`. Child process survives uvicorn restart. Log → `/tmp/esacp-job-{id}.log`, status → `/tmp/esacp-job-{id}.status`, metadata → `/tmp/esacp-job-{id}.meta`. API endpoints read from these files (fully stateless)
 - `POST /api/provision/erpnext` delegates to `macro/provision.py` which runs stages 1–9 sequentially. Each stage has a verify-based idempotency gate — if all postconditions are already met, the stage is skipped. The final snapshot step runs unconditionally
 - `POST /api/refresh/{host}` delegates to `macro/refresh.py` which runs stages 3–9 (skipping VM creation and network). Same idempotency gates apply
 - ce_sri secrets deployment, deploy keys, Cloudflare DNS, TLS certs, and all differentiation steps are now handled by pipeline stage units, not by api.py helpers
 - `erp_user` sourced from `ansible/group_vars/all.yml` (single source of truth)
+
+## job_worker.py — Standalone Job Runner (GH #37)
+
+Spawned by `api.py` as an independent OS process. Survives uvicorn restarts.
+
+Usage: `python3 tools/job_worker.py <job_type> <job_id> '<json_args>'`
+
+Job types: `provision`, `refresh`, `destroy`, `build_template`
+
+- Writes timestamped lines to stdout (redirected to `/tmp/esacp-job-{id}.log` by api.py)
+- Writes `done` or `error` to `/tmp/esacp-job-{id}.status` on completion
+- `api.py` writes `/tmp/esacp-job-{id}.meta` (JSON: hostname, type, started_at) at spawn time
+
+## destroy_helpers.py — Destroy Pipeline Functions
+
+Extracted from api.py so both api.py and job_worker.py can use them. Contains:
+`get_wg_pubkey`, `remove_wg_peer_live`, `destroy_vm`, `remove_from_hosts_map`,
+`remove_from_group_vars_all`, `remove_keys_from_sops`. All accept explicit Path args
+(no module-level globals).
 
 ## esacp.py — Unified Lab CLI
 
