@@ -47,6 +47,9 @@ logs/
 Thumbs.db
 .directory
 
+# Claude Code
+.claude/
+
 # Editor
 .vscode/
 .idea/
