@@ -10,9 +10,17 @@
 - **virsh**: plain `virsh` = user session. Always use `virsh --connect qemu:///system` or `sudo virsh`
 - **saconsole manages siblings** via `qemu+ssh://<hypervisor-alias>/system`
 
+## Shared Configuration — config.sh
+
+All KVM platform scripts source `platforms/kvm/config.sh` which:
+1. Runs `parse_hosts_map.py` to derive VM names, IPs, and hypervisor identity from `hosts_map.yml`
+2. Layers env-overridable defaults for values not in the YAML (SSH alias, username, image paths)
+
+Override any value via `ESACP_*` env vars (e.g. `ESACP_HYPERVISOR_ALIAS=toshy`).
+
 ## Bootstrap Scripts
 
-- `rebuild_lab.sh` — one-command full rebuild: destroy → bootstrap_saconsole → bootstrap_targets (Phase 3 SSHes to saconsole via ProxyJump toshy)
+- `rebuild_lab.sh` — one-command full rebuild: destroy → bootstrap_saconsole → bootstrap_targets (Phase 3 SSHes to saconsole via ProxyJump)
 - `bootstrap_saconsole.sh` — idempotent 9-phase: seed ISO → upload → VM create → autoinstall wait → "Fresh Install" snapshot → Ansible → "Stage 2.2 Baseline" snapshot → handoff
   - Play 5 (controller WireGuard spoke) requires toshiba UDP 51820 port-forward first
 - `bootstrap_targets.sh` — runs FROM saconsole after `control_plane` role applied; injects saconsole pubkey via envsubst; direct virbr0 SSH (no ProxyJump)

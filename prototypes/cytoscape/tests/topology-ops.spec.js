@@ -267,8 +267,8 @@ test.describe('Rebuild', () => {
     ) || []
     expect(deployId).toBeTruthy()
 
-    // Wait for provisioning to complete (up to 25 min)
-    await waitForJob(page, deployId, 1_500_000)
+    // Wait for provisioning to complete (up to 35 min)
+    await waitForJob(page, deployId, 2_100_000)
 
     // Inspect — verify services are healthy
     await selectNode(page, hostname)

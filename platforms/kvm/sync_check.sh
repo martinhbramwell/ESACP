@@ -35,20 +35,18 @@ warn() { echo "  ⚠️   $*"; WARN=$((WARN+1)); }
 hdr()  { echo ""; echo "── $* ──────────────────────────────────────────"; }
 fix()  { echo "      Fix: $*"; }
 
-PROJ_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ANSIBLE_DIR="${PROJ_ROOT}/ansible"
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-HYPERVISOR_ALIAS="toshiba"
-HYPERVISOR_USER="hasan"
-
-SACONSOLE_IP="192.168.122.10"
+# ── Configuration (from hosts_map.yml + env overrides) ────────────────────────
+# shellcheck source=config.sh
+source "${_SCRIPT_DIR}/config.sh"
 
 remote_toshiba() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
     "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" "$@"; }
 
 remote_saconsole() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
     -o ProxyJump="${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-    you@"${SACONSOLE_IP}" "$@"; }
+    "${SACONSOLE_USER}@${SACONSOLE_IP}" "$@"; }
 
 echo ""
 echo "ESACP KVM Platform (Mighty → toshiba) — Sync Check"
@@ -110,15 +108,15 @@ grep -q "community.sops.sops" "${ANSIBLE_DIR}/ansible.cfg" 2>/dev/null \
 # ── 3. SSH keys ───────────────────────────────────────────────────────────────
 hdr "3. SSH keys"
 
-[[ -f "${HOME}/.ssh/hasan_mighty" ]] \
-    && ok "~/.ssh/hasan_mighty present (KVM Ansible key)" \
-    || fail "~/.ssh/hasan_mighty missing — Ansible KVM plays will fail"
+[[ -f "${SSH_KEY}" ]] \
+    && ok "${SSH_KEY} present (KVM Ansible key)" \
+    || fail "${SSH_KEY} missing — Ansible KVM plays will fail"
 
-# Check toshy SSH alias is configured
+# Check hypervisor SSH alias is configured
 ssh -o ConnectTimeout=1 -o BatchMode=yes -o StrictHostKeyChecking=no \
     "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" true 2>/dev/null \
-    && ok "SSH alias 'toshiba' resolves and key auth works" \
-    || fail "Cannot reach toshiba via SSH alias — check ~/.ssh/config and authorized_keys"
+    && ok "SSH alias '${HYPERVISOR_ALIAS}' resolves and key auth works" \
+    || fail "Cannot reach ${HYPERVISOR_ALIAS} via SSH — check ~/.ssh/config and authorized_keys"
 
 # ── 4. SOPS decryption ────────────────────────────────────────────────────────
 hdr "4. SOPS / age"
@@ -166,14 +164,8 @@ fi
 hdr "7. VMs on toshiba"
 
 if [[ "${TOSHIBA_UP}" == true ]]; then
-    TOSHIBA_VMS=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
-import yaml, sys
-d = yaml.safe_load(open(sys.argv[1]))
-for name, h in d.get('groups', {}).get('kvm', {}).items():
-    if h.get('hypervisor') == 'toshiba':
-        print(name)
-PYEOF
-)
+    # ESACP_KVM_VMS already derived from hosts_map.yml via config.sh
+    TOSHIBA_VMS="${ESACP_KVM_VMS}"
     for vm in ${TOSHIBA_VMS}; do
         STATE=$(remote_toshiba "virsh --connect qemu:///system domstate ${vm} 2>/dev/null" \
             | tr -d '\n' || echo "unknown")
@@ -380,7 +372,7 @@ done
 # ── 13. GitHub MCP server ─────────────────────────────────────────────────────
 hdr "13. GitHub MCP server"
 
-GITHUB_MCP_BIN="/usr/local/bin/github-mcp-server"
+GITHUB_MCP_BIN="${ESACP_GITHUB_MCP_BIN:-/usr/local/bin/github-mcp-server}"
 if [[ -x "${GITHUB_MCP_BIN}" ]]; then
     _ghver=$("${GITHUB_MCP_BIN}" --version 2>/dev/null | awk '/Version:/{print $2}')
     ok "github-mcp-server ${_ghver} present"
