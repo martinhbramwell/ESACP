@@ -34,10 +34,10 @@ def _get_cf_token(project_root: str) -> str:
 
 
 def upsert_cloudflare_dns(config: Config, emit: Emit) -> TaskResult:
-    """Create or update the DNS A record ``{hostname}.iridium.blue → wg_ip``."""
+    """Create or update the DNS A record for hostname → wg_ip."""
     hostname = config.hostname
     ip = config.wg_ip
-    fqdn = f"{hostname}.iridium.blue"
+    fqdn = f"{hostname}.{config.domain}"
 
     token = _get_cf_token(config.project_root)
     headers = {

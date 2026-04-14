@@ -1,4 +1,4 @@
-"""Environment context: KVM (toshiba hypervisor).
+"""Environment context: KVM hypervisor.
 
 Holds constants and paths specific to the KVM/libvirt environment
 that are not per-VM (those go in Config).
@@ -9,12 +9,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from tools.host_identity import DEFAULT_HYPERVISOR
+
 
 @dataclass(frozen=True)
 class KvmEnv:
     """Immutable KVM environment context."""
 
-    hypervisor_alias: str = "toshiba"
+    hypervisor_alias: str = DEFAULT_HYPERVISOR
     hypervisor_user: str = "hasan"
     images_dir: str = "/mnt/esacp-disk/var/lib/libvirt/images"
     pool: str = "esacp"

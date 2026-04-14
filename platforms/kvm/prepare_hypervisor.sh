@@ -23,11 +23,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJ_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 ANSIBLE_DIR="${PROJ_ROOT}/ansible"
 
-# ── Configuration (must match bootstrap_hub.sh) ─────────────────────────
+# ── Configuration (derived from hosts_map.yml via config.sh) ─────────────
+# shellcheck source=config.sh
+source "${SCRIPT_DIR}/config.sh"
 
 HYPERVISOR_ALIAS="toshy"
 HYPERVISOR_USER="hasan"
-HYPERVISOR_LAN_IP="toshy.iridium.blue"
+HYPERVISOR_LAN_IP="${ESACP_HYPERVISOR_LAN_IP:-toshy.iridium.blue}"
 REMOTE_MOUNT_POINT="/mnt/esacp-disk"
 REMOTE_IMAGES_DIR="${REMOTE_MOUNT_POINT}/var/lib/libvirt/images"
 UBUNTU_ISO_NAME="ubuntu-24.04.4-live-server-amd64.iso"
@@ -233,7 +235,7 @@ hdr "3a. Hypervisor — hostname"
 _hv_hostname=$(remote hostname 2>/dev/null || echo "")
 if [[ -n "${_hv_hostname}" ]]; then
     ok "Hostname: ${_hv_hostname}"
-    [[ "${_hv_hostname}" == "toshiba" ]] || warn "Hostname is '${_hv_hostname}' — expected 'toshiba'"
+    [[ "${_hv_hostname}" == "${ESACP_HYPERVISOR}" ]] || warn "Hostname is '${_hv_hostname}' — expected '${ESACP_HYPERVISOR}'"
 else
     fail "Could not retrieve hostname"
 fi
@@ -339,9 +341,9 @@ echo "  Run these two iptables rules on the hypervisor (replace wlp2s0 with"
 echo "  the actual LAN interface: \`ip route get 1 | awk '{print \$5; exit}'\`):"
 echo ""
 echo "    sudo iptables -t nat -A PREROUTING -i wlp2s0 -p udp --dport 51820 \\"
-echo "        -j DNAT --to-destination 192.168.122.10:51820"
+echo "        -j DNAT --to-destination ${HUB_VIRBR0_IP}:51820"
 echo "    sudo iptables -I FORWARD 1 -i wlp2s0 -o virbr0 -p udp \\"
-echo "        -d 192.168.122.10 --dport 51820 -j ACCEPT"
+echo "        -d ${HUB_VIRBR0_IP} --dport 51820 -j ACCEPT"
 echo ""
 echo "  Then persist them by running platforms/kvm/persist_iptables_toshiba.sh on the hypervisor:"
 echo "    scp platforms/kvm/persist_iptables_toshiba.sh <hypervisor>:/tmp/"

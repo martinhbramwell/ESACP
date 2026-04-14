@@ -6,8 +6,6 @@ from tools.pipeline.stages.common.ssh import hub_ssh_run, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 ACME_CERT_HOME = "/opt/acme-certs"
-DOMAIN = "iridium.blue"
-CERT_DIR = f"{ACME_CERT_HOME}/{DOMAIN}"
 
 PEM_MAP = [
     ("fullchain.pem", "fullchain.pem"),
@@ -16,21 +14,27 @@ PEM_MAP = [
 ]
 
 
+def _cert_dir_on_hub(config: Config) -> str:
+    return f"{ACME_CERT_HOME}/{config.domain}"
+
+
 def _cert_exists_on_vm(config: Config) -> bool:
     r = ssh_run(config,
-                "test -f /etc/nginx/certs/iridium.blue/fullchain.pem && echo y",
+                f"test -f /etc/nginx/certs/{config.domain}/fullchain.pem && echo y",
                 timeout=10)
     return r.returncode == 0 and "y" in r.stdout
 
 
 def _cert_exists_on_hub(config: Config) -> bool:
+    cert_dir = _cert_dir_on_hub(config)
     r = hub_ssh_run(config,
-                    f"test -f {CERT_DIR}/fullchain.pem && echo found")
+                    f"test -f {cert_dir}/fullchain.pem && echo found")
     return "found" in r.stdout
 
 
 def _push_pem(config: Config, pem_name: str, tmp_name: str) -> None:
-    read = hub_ssh_run(config, f"cat {CERT_DIR}/{pem_name}")
+    cert_dir = _cert_dir_on_hub(config)
+    read = hub_ssh_run(config, f"cat {cert_dir}/{pem_name}")
     if read.returncode != 0:
         raise RuntimeError(f"Failed to read {pem_name} from hub")
     import subprocess

@@ -17,6 +17,7 @@ Outputs variables consumed by platforms/kvm/config.sh:
     ESACP_VM_VIRBR0_IP_<KEY>  — per-VM virbr0 IP  (KEY uppercased)
     ESACP_VM_WG_IP_<KEY>      — per-VM WireGuard IP (KEY uppercased)
     ESACP_VM_NAME_<KEY>       — per-VM libvirt domain name (KEY uppercased)
+    ESACP_DOMAIN_<ZONE>       — domain for each zone (ZONE uppercased)
 
 Optional field lookup mode:
     platforms/kvm/parse_hosts_map.py hosts_map.yml --field vm_name --role hub
@@ -94,6 +95,12 @@ def main() -> None:
     print(f'ESACP_HYPERVISOR="{hypervisor}"')
     print(f'ESACP_KVM_VMS="{" ".join(all_vms)}"')
     print(f'ESACP_KVM_TARGETS="{" ".join(targets)}"')
+
+    # Zone → domain mapping
+    zone_domains = hosts_map.get("zone_domains", {})
+    for zone_name, domain in zone_domains.items():
+        tag = zone_name.upper()
+        print(f'ESACP_DOMAIN_{tag}="{domain}"')
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@
 2. `hub` — docker + observability + desktop + control_plane + mcp_grafana
 3. Authorise hub pubkey on targets
 4. `targets` — node_exporter + docker + mariadb + nginx_ui
-5. `controller WireGuard` — runs on `hosts: localhost`, `connection: local`; does NOT inherit `group_vars/kvm.yml`; hub endpoint hardcoded in Play 5 vars: `wg_hub_endpoint: "toshy.iridium.blue"`
+5. `controller WireGuard` — runs on `hosts: localhost`, `connection: local`; does NOT inherit `group_vars/kvm.yml`; hub endpoint from `{{ controller_wg_hub_endpoint }}` (set in `group_vars/all.yml`)
 
 ## Inventory
 

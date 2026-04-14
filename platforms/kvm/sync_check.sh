@@ -307,12 +307,14 @@ hdr "11. ERPNext sites"
 ERP_SITES=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
 import yaml, sys
 d = yaml.safe_load(open(sys.argv[1]))
+zone_domains = d.get('zone_domains', {})
 for name, h in d.get('groups', {}).get('kvm', {}).items():
     role = h.get('vm_role', '')
     if not role:
         continue
-    zone = role.split(':')[0] if ':' in role else 'development'
-    domain = 'logichem.solutions' if zone == 'production' else 'iridium.blue'
+    groups = h.get('ansible_groups', [])
+    zone = next((z for z in ('production', 'staging', 'development') if z in groups), 'development')
+    domain = zone_domains.get(zone, zone_domains.get('development', 'iridium.blue'))
     print(f'{name}:https://{name}.{domain}')
 PYEOF
 )
@@ -514,12 +516,14 @@ hdr "17. Claude in Chrome"
 ERP_HOSTS=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
 import yaml, sys
 d = yaml.safe_load(open(sys.argv[1]))
+zone_domains = d.get('zone_domains', {})
 for name, h in d.get('groups', {}).get('kvm', {}).items():
     role = h.get('vm_role', '')
     if not role:
         continue
-    zone = role.split(':')[0] if ':' in role else 'development'
-    domain = 'logichem.solutions' if zone == 'production' else 'iridium.blue'
+    groups = h.get('ansible_groups', [])
+    zone = next((z for z in ('production', 'staging', 'development') if z in groups), 'development')
+    domain = zone_domains.get(zone, zone_domains.get('development', 'iridium.blue'))
     print(f'{name}.{domain}')
 PYEOF
 )

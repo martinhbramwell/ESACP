@@ -84,7 +84,7 @@
     # Controller reaches the hub via toshiba's LAN IP (port-forwarded to
     # hub virbr0 {{ hub_virbr0_ip }}:51820). Mighty's own virbr0 owns
     # 192.168.122.0/24 so it cannot reach that IP directly.
-    wg_hub_endpoint: "toshy.iridium.blue"
+    wg_hub_endpoint: "{{ controller_wg_hub_endpoint }}"
   roles:
     - role: wireguard
       tags: [wireguard]

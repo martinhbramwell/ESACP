@@ -10,8 +10,12 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=hub_identity.sh
+source "${SCRIPT_DIR}/hub_identity.sh"
+
 WAN_IF="wlp2s0"
-SACONSOLE_IP="192.168.122.10"
+SACONSOLE_IP="${HUB_VIRBR0_IP}"
 WG_PORT="51820"
 
 echo "==> Checking interface ${WAN_IF}..."

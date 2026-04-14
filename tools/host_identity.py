@@ -21,10 +21,13 @@ PROJECT_ROOT = Path(__file__).parent.parent
 HOSTS_MAP_PATH = PROJECT_ROOT / "hosts_map.yml"
 
 
-def _load_kvm() -> dict:
+def _load_hosts_map() -> dict:
     with open(HOSTS_MAP_PATH) as f:
-        data = yaml.safe_load(f)
-    return data.get("groups", {}).get("kvm", {})
+        return yaml.safe_load(f)
+
+
+def _load_kvm() -> dict:
+    return _hosts_map.get("groups", {}).get("kvm", {})
 
 
 def _find_hub(kvm: dict) -> tuple[str, dict]:
@@ -34,6 +37,7 @@ def _find_hub(kvm: dict) -> tuple[str, dict]:
     return "", {}
 
 
+_hosts_map = _load_hosts_map()
 _kvm = _load_kvm()
 _hub_key, _hub_attrs = _find_hub(_kvm)
 
@@ -44,6 +48,16 @@ HUB_DISPLAY_NAME: str = _hub_attrs.get("display_name", _hub_key)
 HUB_VIRBR0_IP: str = _hub_attrs.get("virbr0_ip", "")
 HUB_WG_IP: str = _hub_attrs.get("wg_ip", "")
 HUB_NICKNAME: str = _hub_attrs.get("nickname", "")
+HUB_HYPERVISOR: str = _hub_attrs.get("hypervisor", "")
+
+# Zone → domain mapping (single source of truth)
+ZONE_DOMAINS: dict[str, str] = _hosts_map.get("zone_domains", {})
+
+# Default hypervisor — most common value across KVM hosts
+_hypervisors = [h.get("hypervisor") for h in _kvm.values() if h.get("hypervisor")]
+DEFAULT_HYPERVISOR: str = (
+    max(set(_hypervisors), key=_hypervisors.count) if _hypervisors else ""
+)
 
 
 def hub_vm(config: dict | None = None) -> str:
@@ -72,3 +86,19 @@ def kvm_hosts(config: dict | None = None) -> dict:
 def host_field(key: str, field: str, default: str = "") -> str:
     """Look up a single field for a KVM host by its hosts_map key."""
     return _kvm.get(key, {}).get(field, default)
+
+
+def domain_for_zone(zone: str) -> str:
+    """Return the canonical domain for a zone.  KeyError on unknown zone."""
+    return ZONE_DOMAINS[zone]
+
+
+def virbr0_gateway(virbr0_ip: str) -> str:
+    """Derive the virbr0 gateway (.1) from any virbr0 IP address."""
+    prefix = virbr0_ip.rsplit(".", 1)[0]
+    return f"{prefix}.1"
+
+
+def virbr0_subnet_prefix() -> str:
+    """Return the virbr0 subnet prefix from the hub's virbr0_ip (e.g. '192.168.122')."""
+    return HUB_VIRBR0_IP.rsplit(".", 1)[0]
