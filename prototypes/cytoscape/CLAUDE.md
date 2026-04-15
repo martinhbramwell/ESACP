@@ -30,7 +30,7 @@ Nodes reflect libvirt power state (`vm_state` from `/api/hosts`):
 - **Shut off** (provisioned): grey dotted border (`#556677`), faded icon (`background-opacity: 0.15`), muted label (`#8899aa`), `[shut off]` suffix
 - **Unprovisioned**: amber dashed border (`#f0a020`), warm amber label (`#e8c060`), full icon, `[unprovisioned]` suffix — takes precedence over shut-off styling
 - Shut-off selector requires `[?provisioned]` so it never overrides unprovisioned nodes
-- `_refreshVmState()` polls `/api/hosts` every 30s and patches node data in-place (no re-layout)
+- `_refreshVmState()` polls `/api/hosts` every 30s: patches existing nodes, adds new nodes for hosts that appeared, and removes nodes for hosts that disappeared (full topology sync, no re-layout)
 - **Provisioning/Refreshing/Destroying** (active job): blue dashed border (`#4488dd`), cyan label (`#66aaff`), `[provisioning...]`/`[refreshing...]`/`[destroying...]` suffix — overrides unprovisioned amber. Driven by `job_status` node data set by `_attachJobPoller()`.
 - **Clicking a provisioning node** shows live job log in the info panel via `_showNodeJobLog()` — fetches full log snapshot from `/api/jobs/{id}`, primary poller continues to append new lines. Clicking away and back re-fetches the snapshot.
 - `_refreshVmState()` skips label rebuild for nodes with `job_status === 'running'`

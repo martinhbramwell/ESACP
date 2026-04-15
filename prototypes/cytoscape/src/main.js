@@ -530,26 +530,86 @@ async function init() {
 async function _refreshVmState() {
   try {
     const data = await fetchHosts()
+    const apiIds = new Set()
+
     for (const h of data.hosts) {
-      const node = cy.$(`#${h.id ?? h.hostname}`)
-      if (node.empty()) continue
+      const hostId = h.id ?? h.hostname
+      apiIds.add(hostId)
+      const node = cy.$(`#${hostId}`)
+
+      if (node.empty()) {
+        // Host appeared in API but has no graph node — add it
+        const zone    = h.wg_role === 'hub' ? 'console' : (h.ansible_groups ?? []).includes('production') ? 'production' : (h.ansible_groups ?? []).includes('staging') ? 'staging' : 'development'
+        const zoneId  = _zoneIdFor(zone)
+        const vmRole  = normalizeVmRole(h.vm_role, zoneId)
+        const pos     = INITIAL_POSITIONS[hostId] ?? nextPositionForZone(cy, zoneId)
+        const vmState = h.vm_state ?? null
+        let label     = h.hostname
+        if (h.provisioned === false)       label = `${h.hostname}\n[unprovisioned]`
+        else if (h.provisioned === null)   label = `${h.hostname}\n[unknown]`
+        else if (vmState === 'shut off')   label = `${h.hostname}\n[shut off]`
+
+        cy.add({
+          group: 'nodes',
+          data: {
+            id:             hostId,
+            label,
+            role:           h.wg_role ?? 'spoke',
+            vm_role:        vmRole,
+            platform:       h.backend ?? 'kvm',
+            wg_ip:          h.wg_ip      ?? '',
+            virbr0_ip:      h.virbr0_ip  ?? '',
+            provisioned:    !!h.provisioned,
+            vm_state:       vmState,
+            ansible_groups: h.ansible_groups ?? [],
+            zone_id:        zoneId,
+            nickname:       h.nickname   ?? '',
+            erp_user:       h.erp_user   ?? '',
+            erp_url:        h.erp_url    ?? '',
+            hypervisor:     h.hypervisor ?? '',
+          },
+          position: pos,
+        })
+
+        const hub = cy.nodes('[role = "hub"]').first()
+        if (hub.length && h.wg_role !== 'hub') {
+          cy.add({
+            group: 'edges',
+            data: { id: `wg-${hostId}`, source: hub.id(), target: hostId, label: 'WireGuard', type: 'wireguard' },
+          })
+        }
+        continue
+      }
+
       const prev = node.data('vm_state')
       const next = h.vm_state ?? null
-      if (prev === next) continue
+      const prevProv = node.data('provisioned')
+      const nextProv = !!h.provisioned
+      if (prev === next && prevProv === nextProv) continue
 
       node.data('vm_state', next)
+      node.data('provisioned', nextProv)
 
       // Rebuild label to reflect new state — but never overwrite a provisioning label
       if (node.data('job_status') === 'running') continue
-      const hostname = h.hostname ?? h.id
-      const provisioned = h.provisioned
+      const hostname = h.hostname ?? hostId
       let label = hostname
-      if (provisioned === false)       label = `${hostname}\n[unprovisioned]`
-      else if (provisioned === null)   label = `${hostname}\n[unknown]`
-      else if (next === 'shut off')    label = `${hostname}\n[shut off]`
+      if (h.provisioned === false)       label = `${hostname}\n[unprovisioned]`
+      else if (h.provisioned === null)   label = `${hostname}\n[unknown]`
+      else if (next === 'shut off')      label = `${hostname}\n[shut off]`
       node.data('label', label)
-      node.data('provisioned', !!provisioned)
     }
+
+    // Remove graph nodes for hosts no longer in the API
+    cy.nodes().not('.phantom').not('.template-node').forEach(node => {
+      if (node.id() === 'controller') return
+      if (!apiIds.has(node.id())) {
+        cy.remove(node.connectedEdges())
+        cy.remove(node)
+      }
+    })
+
+    _updatePromoteButton()
   } catch {
     // API unreachable — leave current state unchanged
   }
