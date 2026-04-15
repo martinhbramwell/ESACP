@@ -98,6 +98,28 @@ Test files:
 
 **Long-term direction**: Playwright regression suites covering ERPNext business use cases (invoicing, inventory, HR workflows). Tests run against dev/staging instances only — never production. All dev/staging VMs must use `AMBIENTE=1` (Pruebas/test SRI endpoint).
 
+## Stockroom Templates
+
+Two template tiles in the Console quadrant:
+- **Restored Logichem ERPNext** (`tpl-erpnext-restored`) — provisions a VM and restores a production Logichem database clone (stages 1-9, `provision_mode="restored"`)
+- **Generic ERPNext** (`tpl-erpnext-generic`) — provisions a blank ERPNext with setup wizard ready (stages 1-9, `provision_mode="generic"`, skips ce_sri/backup/Social Login)
+
+Both share the same Packer base image. `_syncTemplateState()` applies `tpl-ready`/`tpl-none`/`tpl-building` to both tiles simultaneously.
+
+Generic template dialog includes a **Wizard Completion** section with three modes:
+1. **Record** — Playwright codegen records wizard input, saves to `recordings/wizard/`
+2. **Replay** — runs a previously recorded wizard script
+3. **Use existing** — restores from a golden backup (`platforms/kvm/golden_backups/*.tgz`)
+
+After wizard completion (Record/Replay), a golden backup is captured via `handleBackup.sh` and saved to the controller.
+
+### Playwright Recorder Infrastructure
+
+- `recordings/record_wizard.js` — wraps `npx playwright codegen` for headed recording
+- `recordings/replay_wizard.js` — replays a saved recording via `@playwright/test`
+- Recordings stored in `prototypes/cytoscape/recordings/wizard/*.spec.js`
+- This is the training ground for the broader goal: capturing production user workflows for v13-v16 upgrade regression testing
+
 ## Inspect / Refresh / Destroy Pipeline
 
 - **Inspect**: 3-box service grid (nginx/frappe+supervisor/mariadb), status from `GET /api/health/{hostname}` via SSH checks

@@ -47,6 +47,7 @@ def build_config(
     project_root: str,
     *,
     use_wg: bool = False,
+    provision_mode: str = "restored",
 ) -> Config:
     """Construct an immutable Config for a pipeline run.
 
@@ -76,6 +77,7 @@ def build_config(
         db_root_pwd=secrets["db_root_pwd"],
         bench_dir=f"/home/{erp_user}/frappe-bench-{nickname}",
         bench_dir_orig=f"/home/{erp_user}/frappe-bench",
+        provision_mode=provision_mode,
         hypervisor=host_cfg.get("hypervisor"),
         ssh_key=str(Path.home() / ".ssh" / "hasan_mighty"),
         ssh_opts=ssh_opts,

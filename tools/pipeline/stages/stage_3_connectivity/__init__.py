@@ -60,6 +60,12 @@ def run_stage_3(config: Config, emit: Emit) -> None:
     tag = "[CHANGED]" if r.changed else "[OK]"
     emit(f"  {tag} {r.message}")
 
+    if config.provision_mode == "generic":
+        emit("  [SKIP] ce_sri secrets — generic mode")
+        emit("  [SKIP] database backup — generic mode")
+        emit("  [SKIP] ddlViews.sql — generic mode")
+        return
+
     # ── ce_sri secrets ──
     emit(step_header("ce_sri secrets (SOPS decrypt + patch + SCP)"))
     r = ensure_cesri_secrets(config, emit)

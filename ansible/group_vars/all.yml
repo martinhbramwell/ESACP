@@ -27,6 +27,7 @@ wg_pubkey_saconsole:  "nn916J0YAufbwZNOKvWs2VX6sV4BKuTqE//985lIiRw="
 wg_pubkey_dev01: "LUOR6yrc7mymKuMyXGKmSluGyNu03iedCWe2RHoVK0k="
 wg_pubkey_dev02: "kFwCkcIWduXP7Ho6r0W9HYygPPBXbTYWFg8grEw99g8="
 wg_pubkey_dev03: "9joY/mn1ZrvczXKnF+L6qvP5M3cYFKgRTIOR0RDHHiA="
+wg_pubkey_target5: "8AFeP+XoqOyPTRNq6dINJxICREcixQ/wz7B1gZpdFRA="
 
 # ── System configuration ───────────────────────────────────────────────────
 system_timezone: "America/New_York"

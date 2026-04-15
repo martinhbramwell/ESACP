@@ -16,6 +16,7 @@ from .verify import all_passed, verify_stage_7
 
 _DIR = Path(__file__).parent
 _DATA_RESTORE = _DIR / "data_restore.sh"
+_DATA_INIT = _DIR / "data_init.sh"
 
 
 def run_stage_7(config: Config, emit: Emit) -> None:
@@ -38,14 +39,44 @@ def run_stage_7(config: Config, emit: Emit) -> None:
         emit("[OK] Stage 7 already satisfied — skipping")
         return
 
+    if config.provision_mode == "generic":
+        _run_data_init(config, emit)
+    else:
+        _run_data_restore(config, emit)
+
+
+def _run_data_init(config: Config, emit: Emit) -> None:
+    """Generic mode: create a blank ERPNext site (no DB restore)."""
+    emit(step_header("Data init (generic — blank site)"))
+
+    r = scp_to_vm(config, [str(_DATA_INIT)], "/tmp/", timeout=15)
+    if r.returncode != 0:
+        raise RuntimeError(f"SCP data_init.sh failed: {r.stderr.strip()}")
+
+    emit("  Running data_init.sh ...")
+    cmd = (
+        f"sudo bash /tmp/data_init.sh"
+        f" {config.bench_dir} {config.site_url} {config.erp_user}"
+        f" {config.db_root_pwd} {config.erp_user_pwd}"
+    )
+    r = ssh_run(config, cmd, timeout=600)
+    if r.returncode != 0:
+        raise RuntimeError(
+            f"data_init.sh failed (exit {r.returncode}): "
+            f"{r.stderr.strip() or r.stdout.strip()}"
+        )
+    for line in r.stdout.strip().splitlines():
+        emit(f"  {line}")
+
+
+def _run_data_restore(config: Config, emit: Emit) -> None:
+    """Restored mode: full data restoration from production backup."""
     emit(step_header("Data restoration (sections D\u2013G2)"))
 
-    # SCP script
     r = scp_to_vm(config, [str(_DATA_RESTORE)], "/tmp/", timeout=15)
     if r.returncode != 0:
         raise RuntimeError(f"SCP stage 7 script failed: {r.stderr.strip()}")
 
-    # Run data_restore.sh
     emit("  Running data_restore.sh ...")
     cmd = (
         f"sudo bash /tmp/data_restore.sh"

@@ -52,6 +52,25 @@ export async function startProvisionErpnext({ hostname, nickname, virbr0_ip, wg_
   return post('/api/provision/erpnext', { hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role })
 }
 
+// Returns { job_id, hostname } — generic ERPNext (no prod data) + wizard completion
+export async function startProvisionErpnextGeneric({ hostname, nickname, virbr0_ip, wg_ip, hypervisor = 'toshiba', zone = 'development', vm_role = 'dev:unspecified', wizard_mode = 'record', wizard_arg = '' }) {
+  return post('/api/provision/erpnext-generic', { hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role, wizard_mode, wizard_arg })
+}
+
+// Returns { recordings: [{ name, size_kb, created_at }] }
+export async function fetchWizardRecordings() {
+  const res = await fetch('/api/wizard/recordings', { signal: signal() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+// Returns { backups: [{ filename, size_mb, created_at }] }
+export async function fetchWizardBackups() {
+  const res = await fetch('/api/wizard/backups', { signal: signal() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 // Returns { image, built_at, frappe_branch, erpnext_branch, state }
 export async function fetchTemplateStatus() {
   const res = await fetch('/api/template/status', { signal: signal() })

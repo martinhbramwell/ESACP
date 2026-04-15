@@ -44,8 +44,8 @@ async function deployFromTemplate(page, config) {
   await page.evaluate(() => {
     const cy = document.querySelector('#cy')?._cyreg?.cy
     if (!cy) throw new Error('Cytoscape instance not found')
-    const tpl = cy.$('#tpl-erpnext')
-    if (tpl.empty()) throw new Error('ERPNext template tile not found')
+    const tpl = cy.$('#tpl-erpnext-restored')
+    if (tpl.empty()) throw new Error('Restored Logichem ERPNext template tile not found')
     // Move tile into Development zone (right half, top — x > splitX, y < splitY)
     tpl.position({ x: 600, y: 200 })
     tpl.emit('dragfree')

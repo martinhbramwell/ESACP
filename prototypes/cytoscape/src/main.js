@@ -2,7 +2,7 @@ import './style.css'
 import cytoscape from 'cytoscape'
 import { openPopup } from './popup.js'
 import { registry } from './registry.js'
-import { fetchHosts, fetchJobs, addHost, startProvisionErpnext, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate, startRefresh, startVm, stopVm, rebootVm } from './api.js'
+import { fetchHosts, fetchJobs, addHost, startProvisionErpnext, startProvisionErpnextGeneric, startDestroy, pollJob, fetchTemplateStatus, startBuildTemplate, deleteTemplate, startRefresh, startVm, stopVm, rebootVm, fetchWizardRecordings, fetchWizardBackups } from './api.js'
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 // base64-encoded SVGs used as Cytoscape background-image per node type.
@@ -85,9 +85,11 @@ const ZONE_GROUPS = {
   production:  ['kvm', 'targets', 'production'],
 }
 
-// Stockroom: ERPNext tile only. Visibility controlled by tpl-none/tpl-building/tpl-ready class.
+// Stockroom: template tiles. Visibility controlled by tpl-none/tpl-building/tpl-ready class.
+// Both share the same Packer base image — _syncTemplateState applies to all.
 const STOCKROOM_TEMPLATES = [
-  { id: 'tpl-erpnext', label: 'ERPNext\n4C / 8G / 60G', defaultZone: 'staging', defaultRole: 'master' },
+  { id: 'tpl-erpnext-restored', label: 'Restored Logichem\nERPNext\n4C / 8G / 60G', defaultZone: 'staging', defaultRole: 'master' },
+  { id: 'tpl-erpnext-generic',  label: 'Generic ERPNext\n4C / 8G / 60G', defaultZone: 'development', defaultRole: 'dev' },
 ]
 
 // Outer boundary of the 4-zone area in graph coordinates.
@@ -122,8 +124,9 @@ const ZONE_ANCHORS = [
 // All positions are chosen to fall within their zone's quadrant boundary.
 const INITIAL_POSITIONS = {
   // Console quadrant (TL): x 60-390, y 50-380
-  // Stockroom (single ERPNext tile) on the left; controller + hub on the right
-  'tpl-erpnext': { x: 160, y: 220 },
+  // Stockroom tiles on the left; controller + hub on the right
+  'tpl-erpnext-restored': { x: 160, y: 170 },
+  'tpl-erpnext-generic':  { x: 160, y: 280 },
   controller:     { x: 330, y: 150 },
   saconsole:      { x: 330, y: 280 },
   // Development quadrant (TR): x 460-870, y 50-380
@@ -502,7 +505,7 @@ async function init() {
   // ERPNext tile starts invisible; _syncTemplateState fetches actual state.
   // _reconnectActiveJob must run AFTER _syncTemplateState to win the race —
   // if sync returns last it would reset tpl-building back to tpl-none.
-  cy.$('#tpl-erpnext').addClass('tpl-none')
+  STOCKROOM_TEMPLATES.forEach(t => cy.$('#' + t.id).addClass('tpl-none'))
   await _syncTemplateState()
 
   _repositionUnknownNodes()  // place API-loaded nodes not in INITIAL_POSITIONS
@@ -947,8 +950,8 @@ async function renderTemplateInfo(data) {
     `<p class="hint"><strong>${title}</strong></p>` +
     `<p class="hint" style="margin-top:6px">Click <em>Deploy from Template</em> to add a VM pre-configured for this role.</p>`
 
-  // ERPNext tile: show current template version + date
-  if (data.id === 'tpl-erpnext') {
+  // ERPNext tiles: show current template version + date (both share same image)
+  if (data.id.startsWith('tpl-erpnext')) {
     const statusEl = document.createElement('p')
     statusEl.className = 'hint'
     statusEl.style.marginTop = '6px'
@@ -978,8 +981,8 @@ async function renderTemplateInfo(data) {
   deployBtn.onclick     = () => openDialogFromTemplate(data)
   actions.appendChild(deployBtn)
 
-  // ERPNext tile only: update + destroy buttons
-  if (data.id === 'tpl-erpnext') {
+  // ERPNext tiles: update + destroy buttons (both share same image)
+  if (data.id.startsWith('tpl-erpnext')) {
     const buildBtn = document.createElement('button')
     buildBtn.className   = 'action-btn action-btn--secondary'
     buildBtn.textContent = 'Update Template'
@@ -1007,10 +1010,12 @@ async function renderTemplateInfo(data) {
 // ── Template tile lifecycle state ─────────────────────────────────────────────
 
 function _setTemplateState(state) {
-  const node = cy.$('#tpl-erpnext')
-  if (!node.length) return
-  node.removeClass('tpl-none tpl-building tpl-ready')
-  node.addClass(`tpl-${state}`)
+  STOCKROOM_TEMPLATES.forEach(t => {
+    const node = cy.$('#' + t.id)
+    if (!node.length) return
+    node.removeClass('tpl-none tpl-building tpl-ready')
+    node.addClass(`tpl-${state}`)
+  })
   cy.style().update()
 }
 
@@ -1429,7 +1434,7 @@ function attachHandlers() {
     } else if (dropZoneId && dropZoneId !== 'zone-console') {
       // Dropped in wrong zone — snap back immediately and show hint
       setTimeout(() => node.position(home), 50)
-      setStatus('Drag the ERPNext tile into the Development zone to deploy a new VM.')
+      setStatus('Drag a template tile into the Development zone to deploy a new VM.')
     } else {
       // Dropped in Console or outside — snap back
       setTimeout(() => node.position(home), 50)
@@ -1607,7 +1612,7 @@ function _refreshRoleOptions() {
     fVmRole.value = 'dev'
     dialogError.classList.add('hidden')
     submitBtn.disabled    = false
-    submitBtn.textContent = 'Add'
+    submitBtn.textContent = _dialogTemplateId ? 'Deploy' : 'Add'
     return
   }
 
@@ -1626,11 +1631,11 @@ function _refreshRoleOptions() {
     dialogError.textContent = `${zone.charAt(0).toUpperCase() + zone.slice(1)} zone is full (1 Master + 1 Slave). Destroy a VM first.`
     dialogError.classList.remove('hidden')
     submitBtn.disabled    = true
-    submitBtn.textContent = 'Add'
+    submitBtn.textContent = _dialogTemplateId ? 'Deploy' : 'Add'
   } else {
     dialogError.classList.add('hidden')
     submitBtn.disabled    = false
-    submitBtn.textContent = 'Add'
+    submitBtn.textContent = _dialogTemplateId ? 'Deploy' : 'Add'
     if (fVmRole.value === 'dev' || (fVmRole.value === 'master' && masterOpt.disabled)) {
       fVmRole.value = !masterOpt.disabled ? 'master' : 'slave'
     }
@@ -1642,8 +1647,11 @@ fZone.addEventListener('change', _refreshRoleOptions)
 function openDialog(opts = {}) {
   _dialogTemplateId = opts.templateId ?? null
   const isTemplate = !!_dialogTemplateId
+  const isGeneric  = _dialogTemplateId === 'tpl-erpnext-generic'
   if (dialogTitle) {
-    dialogTitle.textContent = isTemplate ? 'Deploy from Template' : 'Add Target'
+    dialogTitle.textContent = isGeneric ? 'Deploy Generic ERPNext'
+                            : isTemplate ? 'Deploy from Template'
+                            : 'Add Target'
   }
   fHostname.value   = opts.hostname   ?? ''
   fNickname.value   = ''
@@ -1660,6 +1668,18 @@ function openDialog(opts = {}) {
   dialogError.textContent = ''
   submitBtn.disabled    = false
   submitBtn.textContent = isTemplate ? 'Deploy' : 'Add'
+
+  // Wizard options — visible only for Generic ERPNext
+  const wizardOpts = document.getElementById('wizard-options')
+  if (wizardOpts) {
+    wizardOpts.style.display = isGeneric ? '' : 'none'
+    if (isGeneric) {
+      document.querySelector('input[name="wizard_mode"][value="record"]').checked = true
+      _onWizardModeChange()
+      _loadWizardDropdowns()
+    }
+  }
+
   _refreshRoleOptions()
   _updateSiteUrlPreview()
   dialogOverlay.classList.remove('hidden')
@@ -1692,8 +1712,8 @@ function openDialogFromTemplate(tplData) {
 function openDialogForZone(zone, sourceHostname, sourceVmRole) {
   const roleType = sourceVmRole?.split(':')[1]  // 'master', 'slave', or 'unspecified'
   const vm_role  = roleType && roleType !== 'unspecified' ? roleType : undefined
-  openDialog({ zone, vm_role })
-  if (sourceHostname) fHostname.value = `${sourceHostname}-staging`
+  const hostname = sourceHostname ? `${sourceHostname}-staging` : ''
+  openDialog({ zone, vm_role, hostname })
 }
 
 document.getElementById('dialog-cancel').addEventListener('click', closeDialog)
@@ -1701,6 +1721,36 @@ document.getElementById('dialog-cancel').addEventListener('click', closeDialog)
 dialogOverlay.addEventListener('click', e => {
   if (e.target === dialogOverlay) closeDialog()
 })
+
+// ── Wizard mode radio toggle ──
+function _onWizardModeChange() {
+  const mode = document.querySelector('input[name="wizard_mode"]:checked')?.value
+  const replayDiv   = document.getElementById('wizard-replay-select')
+  const existingDiv = document.getElementById('wizard-existing-select')
+  if (replayDiv)   replayDiv.style.display   = mode === 'replay'   ? '' : 'none'
+  if (existingDiv) existingDiv.style.display  = mode === 'existing' ? '' : 'none'
+}
+
+document.querySelectorAll('input[name="wizard_mode"]').forEach(r =>
+  r.addEventListener('change', _onWizardModeChange)
+)
+
+async function _loadWizardDropdowns() {
+  try {
+    const { recordings } = await fetchWizardRecordings()
+    const sel = document.getElementById('f-wizard-recording')
+    sel.innerHTML = recordings.length
+      ? recordings.map(r => `<option value="${r.name}">${r.name}</option>`).join('')
+      : '<option value="">No recordings yet</option>'
+  } catch { /* ignore */ }
+  try {
+    const { backups } = await fetchWizardBackups()
+    const sel = document.getElementById('f-wizard-backup')
+    sel.innerHTML = backups.length
+      ? backups.map(b => `<option value="${b.filename}">${b.filename} (${b.size_mb} MB)</option>`).join('')
+      : '<option value="">No backups available</option>'
+  } catch { /* ignore */ }
+}
 
 document.getElementById('add-target-form').addEventListener('submit', async e => {
   e.preventDefault()
@@ -1721,19 +1771,41 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
     if (_dialogTemplateId) {
       if (!nickname) throw new Error('Nickname is required for template deployments')
       if (!/^[A-Za-z0-9]+$/.test(nickname)) throw new Error('Nickname must be alphanumeric (no spaces or hyphens)')
-      // Template-based: single atomic endpoint — registers host AND starts vol-clone job
-      const { job_id } = await startProvisionErpnext({
-        hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role,
-      })
+
+      const isGeneric = _dialogTemplateId === 'tpl-erpnext-generic'
+      let job_id, jobType
+
+      if (isGeneric) {
+        // Generic ERPNext: provision + wizard completion
+        const wizard_mode = document.querySelector('input[name="wizard_mode"]:checked')?.value ?? 'record'
+        let wizard_arg = ''
+        if (wizard_mode === 'replay') wizard_arg = document.getElementById('f-wizard-recording')?.value ?? ''
+        if (wizard_mode === 'existing') wizard_arg = document.getElementById('f-wizard-backup')?.value ?? ''
+        if (wizard_mode === 'replay' && !wizard_arg) throw new Error('Select a recording to replay')
+        if (wizard_mode === 'existing' && !wizard_arg) throw new Error('Select a backup to restore')
+
+        const r = await startProvisionErpnextGeneric({
+          hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role, wizard_mode, wizard_arg,
+        })
+        job_id = r.job_id
+        jobType = 'provision_generic'
+      } else {
+        // Restored Logichem ERPNext: single atomic endpoint
+        const r = await startProvisionErpnext({
+          hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role,
+        })
+        job_id = r.job_id
+        jobType = 'provision_erpnext'
+      }
+
       // Node appears immediately (unprovisioned); tile snaps back; job runs in background
       closeDialog()
-      // If node already on graph (re-provision of existing unprovisioned host), skip adding
       if (cy.$(`#${hostname}`).empty()) {
         _addNodeToGraph({ hostname, wg_ip, virbr0_ip, backend, zone, vm_role })
       }
       infoPanel.innerHTML = `<pre class="job-log">Deploying ${hostname} from template...\n</pre>`
-      localStorage.setItem(JOB_KEY, JSON.stringify({ job_id, hostname, type: 'provision_erpnext' }))
-      _attachJobPoller(job_id, hostname, 'provision_erpnext')
+      localStorage.setItem(JOB_KEY, JSON.stringify({ job_id, hostname, type: jobType }))
+      _attachJobPoller(job_id, hostname, jobType)
     } else {
       // Regular add: just register the host — user clicks Provision separately
       await addHost({ hostname, nickname, virbr0_ip, wg_ip, backend, hypervisor, zone, vm_role })
