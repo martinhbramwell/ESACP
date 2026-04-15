@@ -74,6 +74,11 @@ def build_inventory(data: dict) -> dict:
             for grp in attrs.get("ansible_groups", []):
                 group_members.setdefault(grp, []).append(hostname)
 
+            # Auto-group: hosts with wg_role=hub go into the 'hub' group
+            # so site-kvm.yml can use 'hosts: hub' (parsed before group_vars).
+            if attrs.get("wg_role") == "hub":
+                group_members.setdefault("hub", []).append(hostname)
+
     # Build inventory structure
     inventory: dict = {"all": {"children": {}}}
 

@@ -3,7 +3,7 @@
 #
 # Play order:
 #   1. All KVM VMs:    common, ssh, firewall, fail2ban, wireguard
-#   2. Hub ({{ hub_key }}): docker, observability, desktop, control_plane, mcp_grafana
+#   2. Hub (hub group): docker, observability, desktop, control_plane, mcp_grafana
 #   3. targets:        authorise hub SSH pubkey (set by control_plane in Play 2)
 #   4. targets:        node_exporter, docker, mariadb, nginx_ui
 #   5. Controller:     wireguard spoke config (connection: local)
@@ -28,7 +28,7 @@
 
 # ── Play 2: Hub — observability + desktop + control plane + MCP ───────────
 - name: Observability + control plane — hub
-  hosts: "{{ hub_key }}"
+  hosts: hub
   become: yes
   roles:
     - docker
