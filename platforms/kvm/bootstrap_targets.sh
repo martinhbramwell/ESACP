@@ -339,7 +339,7 @@ ENDVARS
 ansible-playbook \
     -i inventory/kvm.yml \
     site-kvm.yml \
-    --limit targets \
+    --limit "$(IFS=,; echo "${TARGETS[*]}")" \
     --extra-vars "@${TMPVARS}"
 
 log "Ansible provision complete."
