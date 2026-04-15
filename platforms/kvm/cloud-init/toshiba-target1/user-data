@@ -5,7 +5,7 @@ autoinstall:
   identity:
     hostname: target1
     username: you
-    # Password login disabled — SSH key injected by bootstrap_targets.sh via envsubst.
+    # Password login disabled — SSH key injected via cloud-init.
     password: "!"
 
   ssh:

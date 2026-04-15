@@ -327,9 +327,9 @@ log "    Hub can now connect: qemu+ssh://${HYPERVISOR_USER}@${ESACP_HYPERVISOR}/
 
 # Add hypervisor to hub's /etc/hosts.
 # A fresh hub uses 8.8.8.8/1.1.1.1 (from cloud-init) and cannot
-# resolve the local hostname. bootstrap_targets.sh uses
-# HYPERVISOR_ALIAS throughout — without this, all its SSH and
-# virsh calls fail with "Temporary failure in name resolution".
+# resolve the local hostname. Hub manages sibling VMs via
+# qemu+ssh — without this, virsh calls fail with
+# "Temporary failure in name resolution".
 log "Adding ${ESACP_HYPERVISOR} → ${HYPERVISOR_LAN_IP} to hub /etc/hosts ..."
 ssh \
     "${HUB_SSH_OPTS[@]}" \
@@ -339,7 +339,7 @@ ssh \
 log "✅  ${ESACP_HYPERVISOR} in hub /etc/hosts."
 
 # Seed hypervisor's host key into hub's known_hosts.
-# bootstrap_targets.sh runs FROM the hub and SSHes to the hypervisor with
+# Hub manages sibling VMs via qemu+ssh to the hypervisor with
 # BatchMode=yes — on a fresh hub the known_hosts is empty and
 # BatchMode refuses the unknown key instead of prompting.
 # Base64 transfer avoids quoting/newline issues with multi-line key content.

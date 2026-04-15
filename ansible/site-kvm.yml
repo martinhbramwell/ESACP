@@ -44,8 +44,8 @@
 # hub_ssh_pubkey as a host fact. This play pushes it to targets so
 # the hub can Ansible-provision and manage them directly.
 #
-# When running --limit targets (e.g. from bootstrap_targets.sh), the hub's
-# play does not execute and the fact is not in memory. Pass the pubkey via
+# When running --limit targets, the hub's play does not execute and the
+# fact is not in memory. Pass the pubkey via
 # --extra-vars "hub_override_pubkey=..." to satisfy this task.
 # Safe to skip when running --limit <hub_key> alone.
 - name: Authorise hub on targets

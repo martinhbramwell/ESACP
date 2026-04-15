@@ -20,15 +20,21 @@ Override any value via `ESACP_*` env vars (e.g. `ESACP_HYPERVISOR_ALIAS=toshy`).
 
 ## Bootstrap Scripts
 
-- `rebuild_lab.sh` — one-command full rebuild: destroy → bootstrap_hub → bootstrap_targets (Phase 3 SSHes to hub via ProxyJump)
+- `rebuild_lab.sh` — hub-only rebuild: destroy all VMs → bootstrap hub (2 phases). Target VMs are provisioned separately via `esacp.py provision <hostname>` or the API
 - `bootstrap_hub.sh` — idempotent 9-phase: seed ISO → upload → VM create → autoinstall wait → "Fresh Install" snapshot → Ansible → "Stage 2.2 Baseline" snapshot → handoff
   - Play 5 (controller WireGuard spoke) requires toshiba UDP 51820 port-forward first
-- `bootstrap_targets.sh` — runs FROM hub after `control_plane` role applied; injects hub pubkey via envsubst; direct virbr0 SSH (no ProxyJump)
-  - hub's `~/.ssh/id_ed25519` is the only key authorised in targets' cloud-init — controller key has no access
-  - Requires `cloud-image-utils` on hub (in hub/user-data packages)
 - `destroy_vms.sh` — tear down VMs on toshiba; also removes seed ISOs + clears known_hosts
 - `prepare_hypervisor.sh` — pre-bootstrap: check + apply controller prereqs; check hypervisor state
 - **Disk pool collision**: pre-existing `.qcow2` files with same name will be REUSED by virt-install, not created fresh. Always destroy VMs with `--remove-all-storage` before rebuilding. Confirm with `virsh --connect qemu:///system vol-list esacp | grep target`.
+
+## Target VM Provisioning
+
+Target VMs (dev01, dev02, etc.) are provisioned via the pipeline (`macro/provision.py`, stages 1–9). Three equivalent entry points, all calling the same code:
+- **CLI**: `python tools/esacp.py provision <hostname>` (synchronous, live output)
+- **API**: `POST /api/provision/erpnext` (async background job)
+- **UI**: Cytoscape drag-to-provision (calls the API)
+
+Full teardown: `python tools/esacp.py destroy <hostname>` or `POST /api/destroy/{hostname}`
 
 ## ERPNext Terminology — avoid "production" ambiguity
 
@@ -91,7 +97,7 @@ Step 10 SCPs deploy keys + passphrase + ce_sri secrets (P12 cert, generated `ce_
 
 - **known_hosts must be cleared at script START** (before any SSH attempt) on VM rebuild — not reactively after the error. Clear by hostname AND IP.
 - **virsh snapshot names with spaces via SSH**: pass as single double-quoted string directly — do NOT use `bash -c` wrapper. `ssh host "virsh ... 'Name With Spaces' --atomic"` (not `ssh host bash -c "..."`).
-- **Remote-hosted VMs SSH key split**: target1/target2 use hub's pubkey; ERPNext VMs (dev01, dev02, target3+) use hasan_mighty pubkey via cloud-init template.
+- **SSH key**: All VMs use the controller's `hasan_mighty` pubkey, injected via `seed_iso.py` (pipeline stage 1). The legacy hub-key path (`bootstrap_targets.sh`) was removed in #185.
 - **`hypervisor` field in hosts_map.yml**: optional per-host field routing `esacp.py buildVM` to the remote KVM host via SSH. `generate_inventory.py` injects `ansible_ssh_common_args: "-o ProxyJump=..."` for all remote-hosted hosts.
 - **Secrets**: `ansible/group_vars/all.sops.yml` holds Telegram bot token, Grafana admin password. Requires SOPS + age key (`~/.config/sops/age/keys.txt`). See `SETUP_GUIDE.md`.
 
