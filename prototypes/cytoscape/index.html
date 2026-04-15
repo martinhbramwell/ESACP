@@ -132,6 +132,33 @@
               <option value="slave">Slave</option>
             </select>
           </div>
+          <!-- Wizard completion options — visible only for Generic ERPNext template -->
+          <fieldset id="wizard-options" class="field" style="display:none">
+            <legend>Wizard Completion</legend>
+            <label class="radio-label">
+              <input type="radio" name="wizard_mode" value="record" checked />
+              Record — Playwright records your wizard input, saves for replay
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="wizard_mode" value="replay" />
+              Replay — run a previously recorded wizard script
+            </label>
+            <div id="wizard-replay-select" style="display:none;margin-left:24px;margin-top:4px">
+              <select id="f-wizard-recording">
+                <option value="">No recordings yet</option>
+              </select>
+            </div>
+            <label class="radio-label">
+              <input type="radio" name="wizard_mode" value="existing" />
+              Use existing — restore from a named virgin backup
+            </label>
+            <div id="wizard-existing-select" style="display:none;margin-left:24px;margin-top:4px">
+              <select id="f-wizard-backup">
+                <option value="">No backups available</option>
+              </select>
+            </div>
+          </fieldset>
+
           <p id="dialog-error" class="dialog-error hidden"></p>
           <div class="dialog-actions">
             <button type="button" id="dialog-cancel">Cancel</button>

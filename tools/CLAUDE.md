@@ -11,6 +11,9 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 | GET | `/api/hosts` | KVM hosts + IP suggestions + default hypervisor; includes `vm_role`, `vm_state`, `erp_user`, `erp_url`, `hypervisor` |
 | POST | `/api/hosts/add` | Append to `hosts_map.yml`, regen inventory; accepts `zone`, `vm_role` |
 | POST | `/api/provision/erpnext` | Template-based deploy via `macro/provision.py`: stages 1–9 + final snapshot |
+| POST | `/api/provision/erpnext-generic` | Generic deploy (no prod data) + wizard completion (record/replay/existing) |
+| GET | `/api/wizard/recordings` | List available Playwright wizard recordings (`recordings/wizard/*.spec.js`) |
+| GET | `/api/wizard/backups` | List golden backup files (`platforms/kvm/golden_backups/*.tgz`) |
 | POST | `/api/refresh/{host}` | Re-run stages 3–9 via `macro/refresh.py` (idempotent, over WireGuard) |
 | GET | `/api/health/{host}` | SSH checks: nginx (`systemctl is-active`), app (supervisorctl RUNNING count), db (mysql SELECT 1) |
 | GET | `/api/template/status` | Metadata for latest undifferentiated ERPNext image on toshiba |
@@ -41,7 +44,7 @@ Spawned by `api.py` as an independent OS process. Survives uvicorn restarts.
 
 Usage: `python3 tools/job_worker.py <job_type> <job_id> '<json_args>'`
 
-Job types: `provision`, `refresh`, `destroy`, `build_template`
+Job types: `provision`, `provision_generic`, `refresh`, `destroy`, `build_template`
 
 - Writes timestamped lines to stdout (redirected to `/tmp/esacp-job-{id}.log` by api.py)
 - Writes `done` or `error` to `/tmp/esacp-job-{id}.status` on completion

@@ -663,6 +663,28 @@ pre.job-log {
   border-color: #4fc3f7;
 }
 
+#wizard-options {
+  border: 1px solid #334;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+#wizard-options legend {
+  font-size: 0.82rem;
+  color: #aac;
+  padding: 0 6px;
+}
+.radio-label {
+  display: block;
+  font-size: 0.78rem;
+  color: #ccd;
+  margin: 6px 0;
+  cursor: pointer;
+}
+.radio-label input[type="radio"] {
+  margin-right: 6px;
+}
+
 .dialog-error {
   font-size: 0.78rem;
   color: #f06050;

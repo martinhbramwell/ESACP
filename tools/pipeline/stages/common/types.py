@@ -44,6 +44,8 @@ class Config:
     bench_dir: str
     bench_dir_orig: str
 
+    provision_mode: str  # "restored" or "generic"
+
     hypervisor: str | None
     ssh_key: str
     ssh_opts: list[str]

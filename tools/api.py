@@ -9,6 +9,9 @@ Endpoints:
     GET  /api/hosts                  → current KVM hosts + IP suggestions + erp_user/erp_url
     POST /api/hosts/add              → add host to hosts_map.yml, regen inventory
     POST /api/provision/erpnext      → template-based deploy via macro/provision.py (stages 1–9)
+    POST /api/provision/erpnext-generic → generic deploy (no prod data) + wizard completion
+    GET  /api/wizard/recordings      → list available Playwright wizard recordings
+    GET  /api/wizard/backups         → list available golden backup files
     POST /api/refresh/{hostname}     → re-run stages 3–9 via macro/refresh.py (idempotent)
     POST /api/destroy/{hostname}     → full teardown: WG + VM + hosts_map + keys + inventory
     GET  /api/health/{hostname}      → quick SSH check: { web, app, db } each green/amber/red
@@ -577,6 +580,150 @@ def start_provision_erpnext(vm: NewErpnextVM):
     }, hostname=vm.hostname, job_type_label="provision_erpnext")
 
     return {"job_id": job_id, "hostname": vm.hostname}
+
+
+# ── POST /api/provision/erpnext-generic ─────────────────────────────────────
+
+
+class NewGenericErpnextVM(BaseModel):
+    hostname:    str
+    nickname:    str  = ""
+    virbr0_ip:   str
+    wg_ip:       str
+    hypervisor:  str  = DEFAULT_HYPERVISOR
+    zone:        str  = "development"
+    vm_role:     str  = "dev:unspecified"
+    wizard_mode: str  = "record"   # "record" | "replay" | "existing"
+    wizard_arg:  str  = ""         # recording script name or backup filename
+
+
+@app.post("/api/provision/erpnext-generic")
+def start_provision_erpnext_generic(vm: NewGenericErpnextVM):
+    """Register a new VM and provision a generic ERPNext (no production data).
+
+    Same host registration as /api/provision/erpnext, but uses the generic
+    pipeline (provision_mode="generic"). After stages 1-9, the wizard_mode
+    determines how the setup wizard is completed.
+    """
+    if not re.match(r'^[a-z][a-z0-9-]*$', vm.hostname):
+        raise HTTPException(400, "hostname: lowercase letters/digits/hyphens, must start with a letter")
+    if vm.wizard_mode not in ("record", "replay", "existing"):
+        raise HTTPException(400, f"wizard_mode must be record, replay, or existing (got '{vm.wizard_mode}')")
+    if vm.wizard_mode == "replay" and not vm.wizard_arg:
+        raise HTTPException(400, "wizard_mode=replay requires wizard_arg (recording script name)")
+    if vm.wizard_mode == "existing" and not vm.wizard_arg:
+        raise HTTPException(400, "wizard_mode=existing requires wizard_arg (backup filename)")
+
+    data = load_hosts_map()
+    kvm  = data["groups"].get("kvm", {})
+
+    already_registered = vm.hostname in kvm
+    needs_cleanup = False
+    if already_registered:
+        host_cfg   = kvm[vm.hostname]
+        hypervisor = host_cfg.get("hypervisor")
+        vm_map     = _query_provisioned(hypervisor)
+        vm_info    = vm_map.get(vm.hostname, {}) if vm_map else {}
+        if vm_info.get("provisioned") is True:
+            raise HTTPException(409, f"'{vm.hostname}' is already provisioned — Destroy it first")
+        if vm_map is not None and vm.hostname in vm_map and not vm_info.get("provisioned"):
+            needs_cleanup = True
+    else:
+        for name, h in kvm.items():
+            if h.get("wg_ip") == vm.wg_ip:
+                raise HTTPException(409, f"WireGuard IP {vm.wg_ip} already used by '{name}'")
+            if h.get("virbr0_ip") == vm.virbr0_ip:
+                raise HTTPException(409, f"virbr0 IP {vm.virbr0_ip} already used by '{name}'")
+
+        nickname  = vm.nickname or vm.hostname[:4]
+        groups    = _ZONE_GROUPS.get(vm.zone, _ZONE_GROUPS["development"])
+        role_line = f"      vm_role: {vm.vm_role}\n" if vm.vm_role and vm.vm_role != "dev" else ""
+        block = (
+            f"\n    {vm.hostname}:\n"
+            f"      hostname: {vm.hostname}\n"
+            f"      nickname: {nickname}\n"
+            f'      virbr0_ip: "{vm.virbr0_ip}"\n'
+            f'      wg_ip: "{vm.wg_ip}"\n'
+            f"      wg_role: spoke\n"
+            f"      ansible_managed: true\n"
+            f"      backend: kvm\n"
+            f"      hypervisor: {vm.hypervisor}\n"
+            f"{role_line}"
+            f"      ansible_groups:\n"
+            + "\n".join(f"        - {g}" for g in groups) + "\n"
+        )
+        text   = HOSTS_MAP.read_text()
+        marker = "  # ── VirtualBox guests"
+        if marker not in text:
+            raise HTTPException(500, "Cannot find insertion point in hosts_map.yml")
+        HOSTS_MAP.write_text(text.replace(marker, block + marker))
+
+        result = subprocess.run(
+            ["python3", "tools/generate_inventory.py"],
+            cwd=PROJECT_ROOT, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
+
+    job_id = str(uuid.uuid4())[:8]
+    cleanup_cfg = kvm.get(vm.hostname) if needs_cleanup else None
+
+    _spawn_job("provision_generic", job_id, {
+        "hostname": vm.hostname,
+        "virbr0_ip": vm.virbr0_ip,
+        "zone": vm.zone,
+        "cleanup_cfg": cleanup_cfg,
+        "wizard_mode": vm.wizard_mode,
+        "wizard_arg": vm.wizard_arg,
+    }, hostname=vm.hostname, job_type_label="provision_generic")
+
+    return {"job_id": job_id, "hostname": vm.hostname}
+
+
+# ── GET /api/wizard/recordings ─────────────────────────────────────────────
+
+RECORDINGS_DIR = PROJECT_ROOT / "prototypes" / "cytoscape" / "recordings" / "wizard"
+
+
+@app.get("/api/wizard/recordings")
+def list_wizard_recordings():
+    """List available Playwright wizard recordings."""
+    if not RECORDINGS_DIR.exists():
+        return {"recordings": []}
+    recordings = []
+    for f in sorted(RECORDINGS_DIR.glob("*.spec.js"), reverse=True):
+        stat = f.stat()
+        recordings.append({
+            "name": f.name,
+            "size_kb": round(stat.st_size / 1024, 1),
+            "created_at": datetime.fromtimestamp(
+                stat.st_ctime, tz=timezone.utc,
+            ).isoformat(),
+        })
+    return {"recordings": recordings}
+
+
+# ── GET /api/wizard/backups ────────────────────────────────────────────────
+
+GOLDEN_BACKUPS_DIR = PROJECT_ROOT / "platforms" / "kvm" / "golden_backups"
+
+
+@app.get("/api/wizard/backups")
+def list_wizard_backups():
+    """List available golden backup files."""
+    if not GOLDEN_BACKUPS_DIR.exists():
+        return {"backups": []}
+    backups = []
+    for f in sorted(GOLDEN_BACKUPS_DIR.glob("*.tgz"), reverse=True):
+        stat = f.stat()
+        backups.append({
+            "filename": f.name,
+            "size_mb": round(stat.st_size / (1024 * 1024), 1),
+            "created_at": datetime.fromtimestamp(
+                stat.st_ctime, tz=timezone.utc,
+            ).isoformat(),
+        })
+    return {"backups": backups}
 
 
 # ── POST /api/refresh/{hostname} ─────────────────────────────────────────────

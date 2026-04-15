@@ -101,6 +101,88 @@ def run_provision(args: dict) -> None:
     emit(f"── Provision complete — ERPNext at https://{args['hostname']}.{domain} ──")
 
 
+def run_provision_generic(args: dict) -> None:
+    from tools.pipeline.macro.provision_generic import run
+    run(
+        hostname=args["hostname"],
+        virbr0_ip=args["virbr0_ip"],
+        project_root=str(PROJECT_ROOT),
+        emit=emit,
+        cleanup_cfg=args.get("cleanup_cfg"),
+    )
+    domain = ZONE_DOMAINS.get(args.get("zone", "development"), "iridium.blue")
+    site_url = f"https://{args['hostname']}.{domain}"
+
+    wizard_mode = args.get("wizard_mode", "record")
+    if wizard_mode == "record":
+        _wizard_record(args["hostname"], site_url)
+    elif wizard_mode == "replay":
+        _wizard_replay(args["hostname"], site_url, args.get("wizard_arg", ""))
+    elif wizard_mode == "existing":
+        _wizard_existing(args["hostname"], args.get("wizard_arg", ""))
+    else:
+        emit(f"  [WARN] Unknown wizard_mode '{wizard_mode}' — skipping wizard")
+
+    emit(f"── Generic provision complete — {site_url} ──")
+
+
+def _wizard_record(hostname: str, site_url: str) -> None:
+    """Launch Playwright codegen to record the setup wizard."""
+    emit(f"── Wizard ready — recording browser at {site_url} ──")
+    emit("  Close the browser when wizard is complete.")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    output = PROJECT_ROOT / "prototypes" / "cytoscape" / "recordings" / "wizard" / f"{hostname}-{ts}.spec.js"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    r = subprocess.run(
+        ["node", str(PROJECT_ROOT / "prototypes" / "cytoscape" / "recordings" / "record_wizard.js"),
+         "--url", site_url, "--output", str(output)],
+        cwd=str(PROJECT_ROOT / "prototypes" / "cytoscape"),
+        timeout=2400,
+    )
+    if r.returncode != 0:
+        emit(f"  [WARN] Recorder exited with code {r.returncode}")
+    else:
+        emit(f"  [OK] Recording saved: {output.name}")
+    _capture_golden_backup(hostname)
+
+
+def _wizard_replay(hostname: str, site_url: str, script_name: str) -> None:
+    """Replay a previously recorded wizard script."""
+    emit(f"── Replaying wizard recording: {script_name} ──")
+    script = PROJECT_ROOT / "prototypes" / "cytoscape" / "recordings" / "wizard" / script_name
+    if not script.exists():
+        raise RuntimeError(f"Recording not found: {script}")
+    r = subprocess.run(
+        ["node", str(PROJECT_ROOT / "prototypes" / "cytoscape" / "recordings" / "replay_wizard.js"),
+         "--script", str(script), "--url", site_url],
+        cwd=str(PROJECT_ROOT / "prototypes" / "cytoscape"),
+        timeout=600,
+    )
+    if r.returncode != 0:
+        raise RuntimeError(f"Replay failed (exit {r.returncode})")
+    emit("  [OK] Wizard replay complete")
+    _capture_golden_backup(hostname)
+
+
+def _wizard_existing(hostname: str, backup_name: str) -> None:
+    """Restore from an existing golden backup."""
+    emit(f"── Restoring from golden backup: {backup_name} ──")
+    from tools.pipeline.stages.wizard_completion.restore_backup import (
+        restore_golden_backup,
+    )
+    restore_golden_backup(hostname, backup_name, str(PROJECT_ROOT), emit)
+    emit("  [OK] Golden backup restored")
+
+
+def _capture_golden_backup(hostname: str) -> None:
+    """Capture a golden backup after wizard completion."""
+    emit("── Capturing golden backup ──")
+    from tools.pipeline.stages.wizard_completion.capture_backup import (
+        capture_golden_backup,
+    )
+    capture_golden_backup(hostname, str(PROJECT_ROOT), emit)
+
+
 def run_refresh(args: dict) -> None:
     from tools.pipeline.macro.refresh import run
     run(
@@ -281,6 +363,7 @@ def run_build_template(args: dict) -> None:
 
 RUNNERS = {
     "provision": run_provision,
+    "provision_generic": run_provision_generic,
     "refresh": run_refresh,
     "destroy": run_destroy,
     "build_template": run_build_template,
