@@ -86,12 +86,14 @@
           <div class="field">
             <label for="f-hostname">Hostname</label>
             <input id="f-hostname" type="text" placeholder="target3" required
-                   pattern="[a-z][a-z0-9-]*" title="lowercase letters, digits, hyphens" />
+                   pattern="[a-z][a-z0-9-]*" title="lowercase letters, digits, hyphens"
+                   autocomplete="off" />
           </div>
           <div class="field">
             <label for="f-nickname">Nickname</label>
             <input id="f-nickname" type="text" placeholder="D1IRBL"
-                   pattern="[A-Za-z0-9]+" title="alphanumeric, no spaces" />
+                   pattern="[A-Za-z0-9]+" title="alphanumeric, no spaces"
+                   autocomplete="off" />
             <span class="opt" id="f-nickname-hint">Frappe bench suffix — e.g. D1IRBL → frappe-bench-D1IRBL</span>
           </div>
           <div class="field" id="field-site-url-preview" style="display:none">

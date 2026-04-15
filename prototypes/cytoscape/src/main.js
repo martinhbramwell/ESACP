@@ -1712,8 +1712,8 @@ function openDialogFromTemplate(tplData) {
 function openDialogForZone(zone, sourceHostname, sourceVmRole) {
   const roleType = sourceVmRole?.split(':')[1]  // 'master', 'slave', or 'unspecified'
   const vm_role  = roleType && roleType !== 'unspecified' ? roleType : undefined
-  openDialog({ zone, vm_role })
-  if (sourceHostname) fHostname.value = `${sourceHostname}-staging`
+  const hostname = sourceHostname ? `${sourceHostname}-staging` : ''
+  openDialog({ zone, vm_role, hostname })
 }
 
 document.getElementById('dialog-cancel').addEventListener('click', closeDialog)

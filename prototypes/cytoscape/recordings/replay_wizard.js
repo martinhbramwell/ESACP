@@ -5,16 +5,15 @@
  * Usage:
  *   node recordings/replay_wizard.js --script recordings/wizard/dev01-20260414.spec.js --url https://dev02.iridium.blue
  *
- * Runs the recorded Playwright script against a different target URL.
- * The script is executed via npx playwright test with the --config
- * pointed at a minimal inline config that overrides baseURL.
+ * Reads the raw Playwright codegen recording, rewrites any hardcoded URLs
+ * to the target URL, writes a temporary .cjs copy, and executes it via node.
  *
  * Exit code 0 on success, non-zero on failure.
  */
 
-import { writeFileSync, unlinkSync, existsSync } from 'fs'
+import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs'
 import { spawn } from 'child_process'
-import { resolve, dirname } from 'path'
+import { resolve } from 'path'
 import { parseArgs } from 'util'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -38,41 +37,39 @@ if (!existsSync(scriptPath)) {
   process.exit(1)
 }
 
-// Create a temporary Playwright config that overrides baseURL
-// and points testDir at the recording's directory.
-const tmpConfig = join(tmpdir(), `pw-replay-${Date.now()}.config.js`)
-const configContent = `
-import { defineConfig } from '@playwright/test';
-export default defineConfig({
-  testDir: '${dirname(scriptPath)}',
-  testMatch: '${scriptPath.split('/').pop()}',
-  timeout: 600_000,
-  use: {
-    baseURL: '${values.url}',
-    headless: false,
-    ignoreHTTPSErrors: true,
-  },
-  retries: 0,
-  workers: 1,
-});
-`
-writeFileSync(tmpConfig, configContent)
+const targetUrl = values.url.replace(/\/+$/, '')
+
+// Read the recording and rewrite URLs to point at the target
+let code = readFileSync(scriptPath, 'utf-8')
+
+// Extract the original base URL from the first goto() call
+const gotoMatch = code.match(/page\.goto\(['"]([^'"]+)['"]\)/)
+if (gotoMatch) {
+  const originalUrl = new URL(gotoMatch[1])
+  const originalBase = `${originalUrl.protocol}//${originalUrl.host}`
+  code = code.replaceAll(originalBase, targetUrl)
+}
+
+// Force headless mode for automated replay
+code = code.replace(/headless:\s*false/, 'headless: true')
+
+// Write as .cjs inside the project tree so Node resolves playwright from node_modules.
+const projectDir = resolve(scriptPath, '..', '..', '..')
+const tmpScript = join(projectDir, `pw-replay-${Date.now()}.cjs`)
+writeFileSync(tmpScript, code)
 
 console.log(`Replaying: ${scriptPath}`)
-console.log(`Against:   ${values.url}`)
+console.log(`Against:   ${targetUrl}`)
 
-const child = spawn('npx', [
-  'playwright', 'test',
-  '--config', tmpConfig,
-], {
+const msPlaywrightPath = join(process.env.HOME || '', '.cache', 'ms-playwright')
+const child = spawn('node', [tmpScript], {
   stdio: 'inherit',
-  shell: true,
-  cwd: resolve(dirname(scriptPath), '..', '..'),
+  cwd: projectDir,
+  env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: msPlaywrightPath },
 })
 
 child.on('close', (code) => {
-  // Clean up temp config
-  try { unlinkSync(tmpConfig) } catch { /* ignore */ }
+  try { unlinkSync(tmpScript) } catch { /* ignore */ }
 
   if (code === 0) {
     console.log('\nReplay completed successfully.')
