@@ -77,7 +77,7 @@ def _take_final_snapshot(
     hostname: str, hypervisor: str, emit: Emit,
 ) -> None:
     """Take the post-provision snapshot on the hypervisor."""
-    snap_name = "ERPNext v13 Generic — Wizard Ready"
+    snap_name = "ERPNext v13 Generic Baseline"
     r = subprocess.run(
         [
             "ssh", hypervisor,
