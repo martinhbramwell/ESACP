@@ -29,9 +29,16 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Save caller overrides before config.sh overwrites them
+_CALLER_KVM_TARGETS="${ESACP_KVM_TARGETS:-}"
+
 # ── Configuration (from hosts_map.yml + env overrides) ────────────────────────
 # shellcheck source=config.sh
 source "${SCRIPT_DIR}/config.sh"
+
+# Restore caller override (config.sh unconditionally sets ESACP_KVM_TARGETS)
+[[ -n "${_CALLER_KVM_TARGETS}" ]] && ESACP_KVM_TARGETS="${_CALLER_KVM_TARGETS}"
+unset _CALLER_KVM_TARGETS
 
 # Hub-specific overrides: SSH key is the hub's own keypair, not controller's
 SSH_KEY="${HOME}/.ssh/id_ed25519"
