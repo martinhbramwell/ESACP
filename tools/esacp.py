@@ -2,7 +2,7 @@
 """
 esacp — ESACP unified lab management CLI
 
-10 subcommands for building, provisioning, and validating the ESACP KVM lab.
+12 subcommands for building, provisioning, and validating the ESACP KVM lab.
 All defaults are derived from project config files (hosts_map.yml, group_vars/).
 
 Usage:
@@ -15,6 +15,8 @@ Subcommands:
     destroyVM <vm>                 Destroy a KVM VM and all its storage
     buildVM <vm>                   Build seed ISO, create VM, wait for autoinstall
     provisionVM <vm>               Run Ansible provisioning (task names and errors only)
+    provision <vm>                 Full pipeline: create VM + provision + differentiate (stages 1–9)
+    destroy <vm>                   Full teardown: VM + WireGuard + hosts_map + SOPS keys
     verifyVPN                      Test WireGuard connectivity and inter-VM routing
     validateObservability          Run the 27-check observability validation suite
     snapShotVM <vm> [name]         Create or list snapshots for a VM
@@ -1165,6 +1167,160 @@ def cmd_provision_vm(args, config: dict) -> int:
     return 0
 
 
+# ── 6b. provision (full pipeline) ─────────────────────────────────────────────
+
+def cmd_provision(args, config: dict) -> int:
+    """Full provision pipeline: create VM + configure + differentiate (stages 1–9).
+
+    Same pipeline as POST /api/provision/erpnext, run synchronously from CLI.
+    """
+    hostname = args.vm
+    banner(f"Provision (full pipeline): {hostname}")
+
+    vm_info = kvm_hosts(config).get(hostname, {})
+    virbr0_ip = vm_info.get("virbr0_ip")
+    if not virbr0_ip:
+        console.print(f"[red]No virbr0_ip for '{hostname}' in hosts_map.yml[/red]")
+        return 1
+
+    if vm_info.get("wg_role") == "hub":
+        console.print(f"[red]Cannot provision hub node '{hostname}' — use rebuild_lab.sh[/red]")
+        return 1
+
+    from tools.pipeline.macro.provision import run
+    from tools.host_identity import ZONE_DOMAINS
+
+    def emit(msg: str) -> None:
+        console.print(msg)
+
+    try:
+        run(
+            hostname=hostname,
+            virbr0_ip=virbr0_ip,
+            project_root=str(PROJECT_ROOT),
+            emit=emit,
+        )
+    except (RuntimeError, subprocess.CalledProcessError) as exc:
+        console.print(f"[red]Pipeline failed: {exc}[/red]")
+        return 1
+
+    zone = next(
+        (g for g in vm_info.get("ansible_groups", [])
+         if g in ("production", "staging", "development")),
+        "development",
+    )
+    domain = ZONE_DOMAINS.get(zone, "iridium.blue")
+    console.print()
+    console.print(f"[green]Provision complete — ERPNext at https://{hostname}.{domain}[/green]")
+    return 0
+
+
+# ── 6c. destroy (full teardown) ──────────────────────────────────────────────
+
+def cmd_destroy(args, config: dict) -> int:
+    """Full teardown: WG peer → VM → hosts_map → group_vars → inventory → SOPS.
+
+    Same pipeline as POST /api/destroy/{hostname}, run synchronously from CLI.
+    """
+    hostname = args.vm
+    banner(f"Destroy (full teardown): {hostname}")
+
+    vm_info = kvm_hosts(config).get(hostname, {})
+    if not vm_info:
+        console.print(f"[red]'{hostname}' not found in hosts_map.yml[/red]")
+        return 1
+
+    if vm_info.get("wg_role") == "hub":
+        console.print(f"[red]Cannot destroy hub node '{hostname}' — this would break the entire mesh[/red]")
+        return 1
+
+    console.print("[bold red]This permanently destroys the VM, all snapshots, WireGuard keys,[/bold red]")
+    console.print("[bold red]and removes the host from all configuration files.[/bold red]")
+    if not confirm(f"Destroy {hostname}?"):
+        console.print("[yellow]Cancelled.[/yellow]")
+        return 0
+
+    from tools.destroy_helpers import (
+        destroy_vm, get_wg_pubkey, remove_from_group_vars_all,
+        remove_from_hosts_map, remove_keys_from_sops,
+        remove_wg_peer_live,
+    )
+    from tools.host_identity import HUB_KEY
+
+    hosts_map_path = PROJECT_ROOT / "hosts_map.yml"
+    group_vars_all = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
+    keys_sops = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
+    cloud_init_dir = PROJECT_ROOT / "platforms" / "kvm" / "cloud-init"
+
+    def emit(msg: str) -> None:
+        console.print(msg)
+
+    try:
+        # Step 1: Remove live WireGuard peer
+        emit("── Remove live WireGuard peer ──")
+        pubkey = get_wg_pubkey(hostname, keys_sops, PROJECT_ROOT)
+        if pubkey:
+            remove_wg_peer_live(hostname, pubkey, hosts_map_path, emit)
+        else:
+            emit(f"  [WARN] No pubkey found for {hostname} — skipping live WG removal")
+
+        # Step 2: Destroy VM on hypervisor
+        emit("── Destroy VM ──")
+        destroy_vm(hostname, vm_info, emit)
+
+        # Step 3: Remove from hosts_map.yml
+        emit("── Update hosts_map.yml ──")
+        remove_from_hosts_map(hostname, hosts_map_path, emit)
+
+        # Step 4: Remove pubkey from group_vars/all.yml
+        emit("── Update group_vars/all.yml ──")
+        remove_from_group_vars_all(hostname, group_vars_all, emit)
+
+        # Step 5: Regenerate inventory
+        emit("── Regenerate inventory ──")
+        result = subprocess.run(
+            ["python3", "tools/generate_inventory.py"],
+            cwd=PROJECT_ROOT, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"generate_inventory.py failed:\n{result.stderr}")
+        emit("  [OK] inventory regenerated")
+
+        # Step 6: Update hub WireGuard config via Ansible
+        emit("── Update hub WireGuard config (Ansible) ──")
+        proc = subprocess.Popen(
+            ["ansible-playbook", "-i", "inventory/kvm.yml",
+             "site-kvm.yml", "--limit", HUB_KEY, "--tags", "wireguard"],
+            cwd=str(PROJECT_ROOT / "ansible"),
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        )
+        for line in proc.stdout:
+            pass  # consume output silently
+        proc.wait()
+        if proc.returncode != 0:
+            emit(f"  [WARN] Ansible wireguard update failed (exit {proc.returncode})")
+        else:
+            emit("  [OK] hub wg0.conf updated")
+
+        # Step 7: Remove keys from keys.sops.yml
+        emit("── Remove WireGuard keys ──")
+        remove_keys_from_sops(hostname, keys_sops, PROJECT_ROOT, emit)
+
+        # Step 8: Remove cloud-init dir
+        ci_dir = cloud_init_dir / hostname
+        if ci_dir.exists():
+            shutil.rmtree(ci_dir)
+            emit(f"  [OK] Removed cloud-init dir {ci_dir}")
+
+    except (RuntimeError, subprocess.CalledProcessError) as exc:
+        console.print(f"[red]Destroy failed: {exc}[/red]")
+        return 1
+
+    console.print()
+    console.print(f"[green]Destroy complete — {hostname} fully removed.[/green]")
+    return 0
+
+
 # ── 7. verifyVPN ──────────────────────────────────────────────────────────────
 
 def cmd_verify_vpn(args, config: dict) -> int:
@@ -1459,6 +1615,14 @@ def main() -> int:
     p.add_argument("--skip-fresh-snapshot", action="store_true",
                    help="Skip the 'Fresh Install' snapshot step")
 
+    p = sub.add_parser("provision",
+                       help="Full pipeline: create VM + provision + differentiate (stages 1–9)")
+    p.add_argument("vm", help="VM name (e.g. dev01)")
+
+    p = sub.add_parser("destroy",
+                       help="Full teardown: VM + WireGuard + hosts_map + SOPS keys")
+    p.add_argument("vm", help="VM name (e.g. dev01)")
+
     sub.add_parser("verifyVPN",
                    help="Test WireGuard connectivity and inter-VM routing")
 
@@ -1484,7 +1648,7 @@ def main() -> int:
         return 1
 
     # Validate VM arg for commands that require one
-    vm_commands = {"destroyVM", "buildVM", "provisionVM", "snapShotVM"}
+    vm_commands = {"destroyVM", "buildVM", "provisionVM", "provision", "destroy", "snapShotVM"}
     if args.command in vm_commands and hasattr(args, "vm"):
         valid = all_vm_names(config)
         if args.vm not in valid:
@@ -1498,6 +1662,8 @@ def main() -> int:
         "destroyVM":             cmd_destroy_vm,
         "buildVM":               cmd_build_vm,
         "provisionVM":           cmd_provision_vm,
+        "provision":             cmd_provision,
+        "destroy":               cmd_destroy,
         "verifyVPN":             cmd_verify_vpn,
         "validateObservability": cmd_validate_observability,
         "snapShotVM":            cmd_snapshot_vm,
