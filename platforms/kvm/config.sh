@@ -23,7 +23,7 @@ eval "$("${_CONFIG_DIR}/parse_hosts_map.py" "${PROJ_ROOT}/hosts_map.yml")"
 # ── Env-overridable defaults (not in hosts_map.yml) ──────────────────────────
 HYPERVISOR_ALIAS="${ESACP_HYPERVISOR_ALIAS:-${ESACP_HYPERVISOR}}"
 HYPERVISOR_USER="${ESACP_HYPERVISOR_USER:-hasan}"
-HYPERVISOR_LAN_IP="${ESACP_HYPERVISOR_LAN_IP:-toshy.iridium.blue}"
+HYPERVISOR_LAN_IP="${ESACP_HYPERVISOR_LAN_IP:-192.168.1.79}"
 REMOTE_IMAGES_DIR="${ESACP_REMOTE_IMAGES_DIR:-/mnt/esacp-disk/var/lib/libvirt/images}"
 VM_USER="${ESACP_VM_USER:-you}"
 SSH_KEY="${ESACP_SSH_KEY:-${HOME}/.ssh/hasan_mighty}"
