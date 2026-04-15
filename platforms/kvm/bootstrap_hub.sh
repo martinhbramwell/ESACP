@@ -252,7 +252,7 @@ else
     done
 
     # Poll until SSH responds (VM may still be booting after start).
-    log "Polling SSH on ${SACONSOLE_IP} via ${HYPERVISOR_ALIAS} ..."
+    log "Polling SSH on ${HUB_VIRBR0_IP} via ${HYPERVISOR_ALIAS} ..."
     SSH_DEADLINE=$(( SECONDS + SSH_POLL_TIMEOUT ))
     until ssh_ready; do
         if [[ ${SECONDS} -ge ${SSH_DEADLINE} ]]; then
@@ -385,8 +385,8 @@ cat <<SUMMARY
      can reach hub at ${HYPERVISOR_LAN_IP}:51820:
 
        sudo iptables -t nat -A PREROUTING -i <LAN-iface> -p udp --dport 51820 \\
-           -j DNAT --to-destination ${SACONSOLE_IP}:51820
-       sudo iptables -A FORWARD -p udp -d ${SACONSOLE_IP} --dport 51820 -j ACCEPT
+           -j DNAT --to-destination ${HUB_VIRBR0_IP}:51820
+       sudo iptables -A FORWARD -p udp -d ${HUB_VIRBR0_IP} --dport 51820 -j ACCEPT
 
      Verify: wg show (from this controller after step 2)
 

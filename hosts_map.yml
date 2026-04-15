@@ -100,8 +100,9 @@ groups:
 
 
     target5:
+      vm_name: target5
       hostname: target5
-      nickname: D1IRBL
+      nickname: T5IRBL
       virbr0_ip: "192.168.122.25"
       wg_ip: "10.10.0.15"
       wg_role: spoke
