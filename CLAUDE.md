@@ -35,7 +35,7 @@ Do this at the moment of discovery — not at session end.
 | Stage 1 / 1.5 | ✅ Complete | VBox/WSL — **permanently retired**, hardware failure 2026-03-17 |
 | Stage 2.1 | ✅ Complete | KVM path, WireGuard mesh, observability 27/27 validated |
 | Stage 2.2 | ✅ Complete | toshiba hypervisor: saconsole + targets, all MCP servers live |
-| Stage 2.2 rebuild | ✅ Verified | `bash platforms/kvm/rebuild_lab.sh` end-to-end proven |
+| Stage 2.2 rebuild | ⚠️ Partial | Hub rebuild proven; Phase 3 (targets) misaligned with pipeline (#185) |
 | Stage 2.3 | 🔧 In progress | Cytoscape 4-quadrant control plane + FastAPI backend |
 | Stage 2.x | 🔜 Next | CloudStack backend, chaos on KVM, version watchdog |
 
