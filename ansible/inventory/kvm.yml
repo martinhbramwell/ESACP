@@ -55,6 +55,9 @@ all:
         dev02: *id003
         dev03: *id004
         target5: *id005
+    hub:
+      hosts:
+        saconsole: *id001
     targets:
       hosts:
         dev01: *id002
