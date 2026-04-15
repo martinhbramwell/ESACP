@@ -83,7 +83,7 @@ ssh \
     -o ServerAliveCountMax=20 \
     -J "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
     -i "${SSH_KEY}" \
-    "${SACONSOLE_USER}@${SACONSOLE_IP}" \
+    "${HUB_USER}@${HUB_VIRBR0_IP}" \
     'bash /opt/esacp/platforms/kvm/bootstrap_targets.sh'
 
 # ── Done ──────────────────────────────────────────────────────────────────────
@@ -91,9 +91,9 @@ ssh \
 hdr "Done"
 echo "  All KVM VMs (${ESACP_KVM_VMS}) are provisioned."
 echo ""
-echo "  Grafana:       http://${ESACP_SACONSOLE_WG_IP}:3000"
-echo "  Prometheus:    http://${ESACP_SACONSOLE_WG_IP}:9090"
-echo "  mcp-grafana:   http://${ESACP_SACONSOLE_WG_IP}:8000/sse"
+echo "  Grafana:       http://${HUB_WG_IP}:3000"
+echo "  Prometheus:    http://${HUB_WG_IP}:9090"
+echo "  mcp-grafana:   http://${HUB_WG_IP}:8000/sse"
 echo ""
 echo "  Next: bash platforms/kvm/sync_check.sh"
 echo ""

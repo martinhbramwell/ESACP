@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # utils.sh — Shared helpers for KVM platform scripts.
 #
-# Source this file AFTER PROJECT_ROOT is set:
+# Source this file AFTER config.sh (which sets PROJ_ROOT):
 #   source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 #
 # Provides:
@@ -11,7 +11,7 @@ tg_notify() {
     [[ "${NO_TELEGRAM:-}" == "1" ]] && return 0
     local msg="$1"
     local secrets bot_token chat_id
-    secrets=$(sops -d "${PROJECT_ROOT}/ansible/group_vars/all.sops.yml" 2>/dev/null) || return 0
+    secrets=$(sops -d "${PROJ_ROOT}/ansible/group_vars/all.sops.yml" 2>/dev/null) || return 0
     bot_token=$(awk '/telegram_bot_token:/ {print $2}' <<<"${secrets}")
     chat_id=$(awk '/telegram_chat_id:/ {print $2}' <<<"${secrets}")
     [[ -z "${bot_token}" || -z "${chat_id}" ]] && return 0

@@ -46,7 +46,7 @@ remote_toshiba() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
 
 remote_hub() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
     -o ProxyJump="${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
-    "${SACONSOLE_USER}@${SACONSOLE_IP}" "$@"; }
+    "${HUB_USER}@${HUB_VIRBR0_IP}" "$@"; }
 
 echo ""
 echo "ESACP KVM Platform (Mighty → toshiba) — Sync Check"
