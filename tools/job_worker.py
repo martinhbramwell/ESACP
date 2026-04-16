@@ -34,21 +34,8 @@ HOSTS_MAP = PROJECT_ROOT / "hosts_map.yml"
 GROUP_VARS_ALL = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
 KEYS_SOPS = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
 CLOUD_INIT_DIR = PROJECT_ROOT / "platforms" / "kvm" / "cloud-init"
-PLATFORMS_PACKER = PROJECT_ROOT / "platforms" / "packer"
 
-from tools.host_identity import (
-    DEFAULT_HYPERVISOR, HUB_KEY, HUB_VIRBR0_IP, ZONE_DOMAINS,
-)
-
-HYPERVISOR_ALIAS = DEFAULT_HYPERVISOR
-HYPERVISOR_USER = "hasan"
-HUB_IP = HUB_VIRBR0_IP
-HUB_SSH = [
-    "ssh", "-o", f"ProxyJump={HYPERVISOR_ALIAS}",
-    "-o", "StrictHostKeyChecking=no",
-    "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
-    f"you@{HUB_IP}",
-]
+from tools.host_identity import HUB_KEY, ZONE_DOMAINS
 
 
 def _ts():
@@ -273,90 +260,8 @@ def run_destroy(args: dict) -> None:
 
 
 def run_build_template(args: dict) -> None:
-    ssh_opts = [
-        "-o", f"ProxyJump={HYPERVISOR_ALIAS}",
-        "-o", "StrictHostKeyChecking=no",
-        "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
-    ]
-
-    _COMPACT_SUFFIXES = ("— waiting 30s ...",)
-    _last_line = [None]  # mutable ref for compaction
-
-    def emit_compact(line: str):
-        stamped = f"[{_ts()}] {line}"
-        if _last_line[0] and any(line.endswith(s) for s in _COMPACT_SUFFIXES):
-            if any(_last_line[0].endswith(s) for s in _COMPACT_SUFFIXES):
-                # Overwrite last line — write \r to signal compaction in log
-                print(f"\r{stamped}", end="", flush=True)
-                _last_line[0] = stamped
-                return
-        print(stamped, flush=True)
-        _last_line[0] = stamped
-
-    emit("── ERPNext v13 template build ──")
-
-    # Sync packer directory to hub
-    emit("Syncing platforms/packer/ to hub ...")
-    rsync = subprocess.run(
-        ["rsync", "-az", "--delete",
-         "-e", "ssh " + " ".join(ssh_opts),
-         str(PLATFORMS_PACKER) + "/",
-         f"you@{HUB_IP}:/opt/esacp/platforms/packer/"],
-        capture_output=True, text=True,
-    )
-    if rsync.returncode != 0:
-        raise RuntimeError(f"rsync to hub failed: {rsync.stderr.strip()}")
-
-    emit(f"Connecting to hub ({HUB_IP} via {HYPERVISOR_ALIAS}) ...")
-
-    REMOTE_LOG = "/tmp/packer-build-output.log"
-    REMOTE_EXIT = "/tmp/packer-build-output.log.exit"
-
-    subprocess.run(HUB_SSH + [f"rm -f {REMOTE_LOG} {REMOTE_EXIT}"],
-                   capture_output=True)
-
-    start_cmd = (
-        f"nohup bash -c 'bash /opt/esacp/platforms/packer/build.sh"
-        f" > {REMOTE_LOG} 2>&1; echo $? > {REMOTE_EXIT}'"
-        f" > /dev/null 2>&1 & echo $!"
-    )
-    r = subprocess.run(HUB_SSH + [start_cmd], capture_output=True, text=True)
-    if r.returncode != 0:
-        raise RuntimeError(f"Failed to start build on hub: {r.stderr.strip()}")
-    emit(f"Build detached on hub (PID {r.stdout.strip()}) — polling log ...")
-
-    offset = 0
-    while True:
-        time.sleep(5)
-        r = subprocess.run(
-            HUB_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
-            capture_output=True, text=True,
-        )
-        if r.stdout:
-            for raw_line in r.stdout.splitlines():
-                if raw_line.strip():
-                    emit_compact(raw_line)
-            offset += len(r.stdout.encode("utf-8"))
-
-        r = subprocess.run(
-            HUB_SSH + [f"cat {REMOTE_EXIT} 2>/dev/null || echo -1"],
-            capture_output=True, text=True,
-        )
-        exit_str = r.stdout.strip()
-        if exit_str != "-1":
-            r = subprocess.run(
-                HUB_SSH + [f"tail -c +{offset + 1} {REMOTE_LOG} 2>/dev/null || true"],
-                capture_output=True, text=True,
-            )
-            for raw_line in r.stdout.splitlines():
-                if raw_line.strip():
-                    emit_compact(raw_line)
-            exit_code = int(exit_str) if exit_str.isdigit() else 1
-            if exit_code != 0:
-                raise RuntimeError(f"build.sh exited with code {exit_code}")
-            break
-
-    emit("── Build complete — new image ready on toshiba ──")
+    from tools.pipeline.orchestration.build_template import build_template
+    build_template(emit)
 
 
 # ── Dispatch ─────────────────────────────────────────────────────────────────

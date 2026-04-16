@@ -31,7 +31,7 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 
 - `provisioned` = VM has a snapshot containing "Baseline" (not just VM exists)
 - `vm_state` = libvirt domain state string (`running`, `shut off`, or `null` if hypervisor unreachable); polled by UI every 30s
-- VM power actions (`/api/vm/{host}/start|stop|reboot`) are synchronous — no job/polling. `start` runs a memory guard check first (`_check_memory()`: virsh nodeinfo + dominfo sums vs 2 GiB host reserve). HTTP 409 on insufficient RAM
+- VM power actions (`/api/vm/{host}/start|stop|reboot`) are synchronous — no job/polling. Each dispatches to `tools/pipeline/orchestration/vm_power.py`; `start` first calls `memory_guard.check_memory()` (virsh nodeinfo + dominfo sums vs 2 GiB host reserve). HTTP 409 on insufficient RAM; HTTP 400 when a hub stop is rejected
 - **Jobs run as independent OS processes** (GH #37) — `api.py` spawns `tools/job_worker.py` via `subprocess.Popen` with `start_new_session=True`. Child process survives uvicorn restart. Log → `/tmp/esacp-job-{id}.log`, status → `/tmp/esacp-job-{id}.status`, metadata → `/tmp/esacp-job-{id}.meta`. API endpoints read from these files (fully stateless)
 - `POST /api/provision/erpnext` delegates to `macro/provision.py` which runs stages 1–9 sequentially. Each stage has a verify-based idempotency gate — if all postconditions are already met, the stage is skipped. The final snapshot step runs unconditionally
 - `POST /api/refresh/{host}` delegates to `macro/refresh.py` which runs stages 3–9 (skipping VM creation and network). Same idempotency gates apply
