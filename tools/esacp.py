@@ -26,7 +26,6 @@ Subcommands:
 import argparse
 import getpass
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -345,58 +344,6 @@ def cmd_build_vm(args, config: dict) -> int:
 
 # ── 6. provisionVM ────────────────────────────────────────────────────────────
 
-def _strip_ansi(text: str) -> str:
-    return re.sub(r"\x1b\[[0-9;]*m", "", text)
-
-
-def _filter_ansible_line(line: str, state: dict) -> Optional[str]:
-    """
-    Given a raw ansible-playbook output line, return a formatted string to
-    display or None to suppress it. `state` carries context between calls.
-    """
-    clean = _strip_ansi(line)
-
-    if clean.startswith("PLAY RECAP"):
-        state["in_recap"] = True
-        return f"\n[bold cyan]{clean}[/bold cyan]"
-
-    if state.get("in_recap"):
-        # PLAY RECAP summary line: "hostname : ok=77  changed=11 ..."
-        if re.match(r"\w[\w.\-]+\s*:", clean):
-            return f"  [dim]{clean}[/dim]"
-        return None
-
-    if clean.startswith("PLAY ["):
-        state["current_task"] = ""
-        return f"\n[bold cyan]{clean}[/bold cyan]"
-
-    if clean.startswith("TASK ["):
-        m = re.match(r"TASK \[(.+?)\]", clean)
-        state["current_task"] = m.group(1).strip() if m else clean
-        state["task_printed"] = False
-        return None  # hold until we see the result
-
-    if clean.startswith("ok:"):
-        task = state.get("current_task", "")
-        return f"  [green]✓[/green] {task}"
-
-    if clean.startswith("changed:"):
-        task = state.get("current_task", "")
-        return f"  [yellow]★[/yellow] {task} [yellow](changed)[/yellow]"
-
-    if clean.startswith("skipping:"):
-        return None
-
-    if "fatal:" in clean or "FAILED!" in clean or clean.startswith("UNREACHABLE!"):
-        return f"[red]❌  {clean}[/red]"
-
-    # Detail lines after a fatal (indented msg/stderr/stdout)
-    if state.get("current_task") and re.match(r"\s+(msg|stderr|stdout|reason):", clean):
-        return f"[red]{clean}[/red]"
-
-    return None
-
-
 def _virsh_snapshot_list(vm: str, hypervisor: str) -> list[str]:
     """Return snapshot names for a VM, routing to the correct hypervisor."""
     if hypervisor:
@@ -462,6 +409,7 @@ def cmd_provision_vm(args, config: dict) -> int:
         cmd.append("--check")
         console.print("[cyan]ℹ️  Check mode — no changes will be made[/cyan]")
 
+    from tools.pipeline.stages.common.ansible_output import filter_ansible_line
     filter_state: dict = {"current_task": "", "in_recap": False}
     proc = subprocess.Popen(
         cmd,
@@ -473,7 +421,7 @@ def cmd_provision_vm(args, config: dict) -> int:
         bufsize=1,
     )
     for raw_line in proc.stdout:
-        formatted = _filter_ansible_line(raw_line.rstrip(), filter_state)
+        formatted = filter_ansible_line(raw_line.rstrip(), filter_state)
         if formatted is not None:
             console.print(formatted)
     proc.wait()
@@ -658,67 +606,15 @@ def cmd_destroy(args, config: dict) -> int:
 # ── 7. verifyVPN ──────────────────────────────────────────────────────────────
 
 def cmd_verify_vpn(args, config: dict) -> int:
+    from tools.pipeline.orchestration.verify_vpn import verify_vpn
+
     banner("Verify WireGuard VPN")
-
-    hosts = kvm_hosts(config)
-    user  = vm_user(config)
-    key   = ssh_key_path(config)
-    all_ok = True
-
-    # 1. Controller → each VM's WireGuard IP
-    console.print("[bold]Controller → VM (ping):[/bold]")
-    for name, info in hosts.items():
-        wg_ip = info.get("wg_ip")
-        if not wg_ip:
-            continue
-        result = subprocess.run(
-            ["ping", "-c", "3", "-W", "2", wg_ip],
-            capture_output=True, text=True,
-        )
-        ok   = result.returncode == 0
-        icon = "[green]✓[/green]" if ok else "[red]✗[/red]"
-        console.print(f"  {icon} ping {name} ({wg_ip})")
-        if ok:
-            # Extract RTT from last line
-            for line in result.stdout.splitlines():
-                if "rtt" in line or "round-trip" in line:
-                    console.print(f"    [dim]{line.strip()}[/dim]")
-        all_ok = all_ok and ok
-
-    # 2. WireGuard status on hub
-    console.print()
-    hub = hub_vm(config)
-    if hub:
-        hub_ip = hosts[hub].get("wg_ip")
-        console.print(f"[bold]WireGuard peers on {hub} (sudo wg show):[/bold]")
-        result = ssh_run(hub_ip, user, key, "sudo wg show")
-        if result.returncode == 0:
-            for line in result.stdout.strip().splitlines():
-                console.print(f"  [dim]{line}[/dim]")
-        else:
-            console.print(f"  [red]SSH failed: {result.stderr.strip()}[/red]")
-            all_ok = False
-
-    # 3. Cross-VM pings (each VM → each other VM)
-    console.print()
-    console.print("[bold]Cross-VM ping (via WireGuard):[/bold]")
-    vm_list = list(hosts.items())
-    for src_name, src_info in vm_list:
-        src_ip = src_info.get("wg_ip")
-        if not src_ip:
-            continue
-        for dst_name, dst_info in vm_list:
-            if src_name == dst_name:
-                continue
-            dst_ip = dst_info.get("wg_ip")
-            if not dst_ip:
-                continue
-            result = ssh_run(src_ip, user, key, f"ping -c 1 -W 2 {dst_ip}")
-            ok   = result.returncode == 0
-            icon = "[green]✓[/green]" if ok else "[red]✗[/red]"
-            console.print(f"  {icon} {src_name} → {dst_name} ({dst_ip})")
-            all_ok = all_ok and ok
-
+    all_ok = verify_vpn(
+        hosts=kvm_hosts(config),
+        vm_user=vm_user(config),
+        ssh_key=ssh_key_path(config),
+        emit=console.print,
+    )
     console.print()
     if all_ok:
         console.print("[green]✅  All WireGuard connectivity checks passed.[/green]")
@@ -729,33 +625,12 @@ def cmd_verify_vpn(args, config: dict) -> int:
 
 # ── 8. validateObservability ──────────────────────────────────────────────────
 
-def _get_grafana_creds(config: dict) -> tuple:
-    user     = os.environ.get("GRAFANA_ADMIN_USER", "admin")
-    password = os.environ.get("GRAFANA_ADMIN_PASSWORD", "")
-
-    if password:
-        console.print("  [dim]Grafana credentials from environment[/dim]")
-        return user, password
-
-    # Try reading from the hub's .env file
-    hub = hub_vm(config)
-    if hub:
-        hub_ip = kvm_hosts(config)[hub].get("wg_ip")
-        result = ssh_run(hub_ip, vm_user(config), ssh_key_path(config),
-                         "sudo grep GRAFANA_ADMIN_PASSWORD /opt/observability/.env 2>/dev/null")
-        if result.returncode == 0:
-            for line in result.stdout.splitlines():
-                if "GRAFANA_ADMIN_PASSWORD=" in line:
-                    password = line.split("=", 1)[1].strip()
-                    console.print(f"  [dim]Grafana credentials retrieved from {hub}[/dim]")
-                    return user, password
-
-    console.print("[yellow]Grafana password not found in env or on hub.[/yellow]")
-    password = getpass.getpass("Grafana admin password: ")
-    return user, password
-
-
 def cmd_validate_observability(args, config: dict) -> int:
+    from tools.pipeline.orchestration.observability_creds import (
+        source_grafana_creds,
+        validate_observability,
+    )
+
     banner("Validate Observability")
 
     script = PROJECT_ROOT / "orchestration" / "validate_observability.py"
@@ -764,18 +639,15 @@ def cmd_validate_observability(args, config: dict) -> int:
         return 1
 
     console.print("Retrieving Grafana credentials...")
-    user, password = _get_grafana_creds(config)
+    user, password = source_grafana_creds(
+        vm_user=vm_user(config),
+        ssh_key=ssh_key_path(config),
+        emit=console.print,
+    )
+    if password is None:
+        password = getpass.getpass("Grafana admin password: ")
 
-    env = os.environ.copy()
-    env["GRAFANA_ADMIN_USER"]     = user
-    env["GRAFANA_ADMIN_PASSWORD"] = password
-
-    cmd = ["python3", str(script)]
-    if args.verbose:
-        cmd.append("--verbose")
-
-    result = subprocess.run(cmd, env=env)
-    return result.returncode
+    return validate_observability(user, password, str(script), verbose=args.verbose)
 
 
 # ── 9. snapShotVM ─────────────────────────────────────────────────────────────
