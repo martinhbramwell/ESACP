@@ -1,6 +1,32 @@
 # Tools — Claude Code Context
 
-## api.py — FastAPI Control Plane (port 8088)
+## Dispatcher layer — CLI + API thin shells (#195, Phase 7)
+
+Per CLAUDE.md anti-spiral rules, `tools/esacp.py`, `tools/api/`, and
+`tools/job_worker.py` are dispatchers only — they parse input, call one
+pipeline primitive, format output. Business logic lives in
+`tools/pipeline/**`.
+
+- **`tools/esacp.py`** (~100 lines, cap 150): argparse + dispatch dict.
+  Per-subcommand entry points live in `tools/cli/*.py` (each ≤80). Shared
+  presentation helpers in `tools/cli/_common.py`. `displayConfiguration`
+  tree builders in `tools/cli/display/`.
+- **`tools/api/`** (package): `__init__.py` wires the FastAPI app + middleware
+  + exception handlers; endpoint handlers live in `tools/api/routes/*.py`
+  (each ≤80). Shared helpers: `tools/api/helpers.py` (hosts_map, 404),
+  `tools/api/jobs.py` (`spawn_job` / `read_job`). Pydantic request models
+  in `tools/api_models.py`.
+- **`tools/job_worker.py`** (~90 lines, cap 100): argv parsing + 5-entry
+  RUNNERS dict. Each runner delegates to a macro in `tools/pipeline/macro/`
+  or a primitive in `tools/pipeline/orchestration/`.
+
+Subprocess is banned in dispatchers except:
+1. `tools/api/jobs.py` — `subprocess.Popen` to spawn `tools/job_worker.py`
+2. `tools/cli/snapshot_vm.py` — documented #206 deferral
+
+The pre-commit ratchet (`tools/pre_commit_size_check.py`) enforces the caps.
+
+## api/ — FastAPI Control Plane (port 8088)
 
 Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move to hub when promoted from prototype.
 
@@ -32,7 +58,7 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 - `provisioned` = VM has a snapshot containing "Baseline" (not just VM exists)
 - `vm_state` = libvirt domain state string (`running`, `shut off`, or `null` if hypervisor unreachable); polled by UI every 30s
 - VM power actions (`/api/vm/{host}/start|stop|reboot`) are synchronous — no job/polling. Each dispatches to `tools/pipeline/orchestration/vm_power.py`; `start` first calls `memory_guard.check_memory()` (virsh nodeinfo + dominfo sums vs 2 GiB host reserve). HTTP 409 on insufficient RAM; HTTP 400 when a hub stop is rejected
-- **Jobs run as independent OS processes** (GH #37) — `api.py` spawns `tools/job_worker.py` via `subprocess.Popen` with `start_new_session=True`. Child process survives uvicorn restart. Log → `/tmp/esacp-job-{id}.log`, status → `/tmp/esacp-job-{id}.status`, metadata → `/tmp/esacp-job-{id}.meta`. API endpoints read from these files (fully stateless)
+- **Jobs run as independent OS processes** (GH #37) — `tools/api/jobs.py` spawns `tools/job_worker.py` via `subprocess.Popen` with `start_new_session=True`. Child process survives uvicorn restart. Log → `/tmp/esacp-job-{id}.log`, status → `/tmp/esacp-job-{id}.status`, metadata → `/tmp/esacp-job-{id}.meta`. API endpoints read from these files (fully stateless)
 - `POST /api/provision/erpnext` delegates to `macro/provision.py` which runs stages 1–9 sequentially. Each stage has a verify-based idempotency gate — if all postconditions are already met, the stage is skipped. The final snapshot step runs unconditionally
 - `POST /api/refresh/{host}` delegates to `macro/refresh.py` which runs stages 3–9 (skipping VM creation and network). Same idempotency gates apply
 - ce_sri secrets deployment, deploy keys, Cloudflare DNS, TLS certs, and all differentiation steps are now handled by pipeline stage units, not by api.py helpers
@@ -40,25 +66,27 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 
 ## job_worker.py — Standalone Job Runner (GH #37)
 
-Spawned by `api.py` as an independent OS process. Survives uvicorn restarts.
+Spawned by `tools/api/jobs.py` as an independent OS process. Survives uvicorn restarts.
 
 Usage: `python3 tools/job_worker.py <job_type> <job_id> '<json_args>'`
 
 Job types: `provision`, `provision_generic`, `refresh`, `destroy`, `build_template`
 
-- Writes timestamped lines to stdout (redirected to `/tmp/esacp-job-{id}.log` by api.py)
+- Writes timestamped lines to stdout (redirected to `/tmp/esacp-job-{id}.log` by the spawner)
 - Writes `done` or `error` to `/tmp/esacp-job-{id}.status` on completion
-- `api.py` writes `/tmp/esacp-job-{id}.meta` (JSON: hostname, type, started_at) at spawn time
+- `tools/api/jobs.py` writes `/tmp/esacp-job-{id}.meta` (JSON: hostname, type, started_at) at spawn time
+- `provision_generic` delegates wizard completion (record/replay/existing) to `tools/pipeline/orchestration/wizard_run.py`
 
 ## esacp.py — Unified Lab CLI
 
-`python tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands.
+`./tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands. 12 subcommands routed through `tools/cli/*.py` per-command dispatchers.
 
 Non-obvious behaviours:
-- `provisionVM` Ansible output filter: shows PLAY headers, ✓ ok, ★ changed, ❌ fatal, RECAP only
+- `provisionVM` Ansible output filter: shows PLAY headers, ✓ ok, ★ changed, ❌ fatal, RECAP only (filter lives in `tools/pipeline/stages/common/ansible_output.py`; orchestrator is `tools/pipeline/orchestration/ansible_provision.py`)
 - `validateObservability` credential order: `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` env vars → SSH hub `/opt/observability/.env` → interactive prompt
 - `buildVM`: uses `virsh vol-create-as` + `virsh vol-upload` for seed ISO — not `sudo cp` (hangs in uvicorn threads)
-- `snapShotVM`: KVM-only, hardwired to `platforms/kvm/snapshot.py` → `virsh`
+- `snapShotVM`: KVM-only, hardwired to `platforms/kvm/snapshot.py` → `virsh` (#206 — pending extraction to a snapshot primitive)
+- `destroyVM` (legacy, local libvirt only): uses `tools/pipeline/orchestration/local_vm_teardown.py` for inspect + teardown; not to be confused with `destroy` which runs the full `macro/destroy.py`
 
 ## diagnose.py — Remote VM Process Diagnostics
 
@@ -141,11 +169,27 @@ Each is a single-task atomic script — no duplicated logic:
 | `sops_key_remove.py` | Remove host keys from SOPS-encrypted keyring |
 | `cloud_init_cleanup.py` | Remove cloud-init directory |
 
+### Dispatcher-extracted primitives (Phase 7, #195)
+
+Added when `esacp.py`, `api.py`, and `job_worker.py` were thinned. Each keeps
+subprocess out of dispatchers and funnels through `emit`:
+
+| File | Used by | Responsibility |
+|---|---|---|
+| `snapshot_ops.py` | `ansible_provision`, CLI | list + create virsh snapshots (local + SSH) |
+| `local_vm_teardown.py` | `cli/destroy_vm.py` | inspect + destroy a local libvirt VM |
+| `ansible_provision.py` | `cli/provision_vm.py` | full provisionVM orchestration |
+| `ansible_playbook_run.py` | `ansible_provision` | filtered `ansible-playbook` streamer |
+| `template_metadata.py` | API `/api/template/*` | read/delete Packer template JSON via SSH |
+| `host_health.py` | API `/api/health/{host}` | nginx/supervisor/mysql SSH probes |
+| `wizard_run.py` | `job_worker` | Playwright record/replay/existing dispatch |
+| `stages/preflight/apt_install.py` | `cli/confirm_prerequisites.py` | `sudo apt install -y` wrapper |
+
 ### Host-registration primitives (in `orchestration/`)
 
 Shared across `/api/hosts/add`, `/api/provision/erpnext`,
 `/api/provision/erpnext-generic`. Exceptions raised by the primitives are
-mapped to HTTP status codes by FastAPI exception handlers in `api.py`:
+mapped to HTTP status codes by FastAPI exception handlers in `tools/api/__init__.py`:
 
 | File | Single responsibility | Errors raised |
 |---|---|---|
