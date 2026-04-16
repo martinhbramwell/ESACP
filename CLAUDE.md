@@ -197,9 +197,9 @@ When a primitive is extracted from a monolith, the monolith code it replaces MUS
 
 | File | Current lines | Target | Tracking issue |
 |---|---|---|---|
-| `tools/esacp.py` | 1693 | ≤150 | #189, #191, #192, #194, #195 |
+| `tools/esacp.py` | 1677 | ≤150 | #189, #191, #192, #194, #195 |
 | `tools/api.py` | 999 | ≤300 | #190, #193, #195 |
-| `tools/job_worker.py` | 339 | ≤100 | #192, #193 |
+| `tools/job_worker.py` | 400 | ≤100 | #192, #193 |
 | `tools/install_specific.py` | 721 | ≤50 | #197 |
 
 ---
