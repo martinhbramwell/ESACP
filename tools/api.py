@@ -28,14 +28,14 @@ Endpoints:
 
 from datetime import datetime, timezone
 import json
-import re
 import subprocess
 import uuid
 from pathlib import Path
 
 import yaml
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 
@@ -43,6 +43,13 @@ from tools.host_identity import (
     DEFAULT_HYPERVISOR, ZONE_DOMAINS, virbr0_subnet_prefix,
 )
 from tools.pipeline.orchestration import memory_guard, vm_power
+from tools.pipeline.orchestration.host_cleanup_check import (
+    HostAlreadyProvisionedError, check_cleanup_needed,
+)
+from tools.pipeline.orchestration.host_registration import (
+    HostConflictError, HostRegistrationError, register_host,
+)
+from tools.pipeline.orchestration.vm_state_query import query_provisioned
 from tools.secrets import load_build_secrets
 
 PROJECT_ROOT        = Path(__file__).parent.parent
@@ -67,6 +74,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(HostRegistrationError)
+async def _handle_host_registration_error(_: Request, exc: HostRegistrationError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
+@app.exception_handler(HostConflictError)
+async def _handle_host_conflict_error(_: Request, exc: HostConflictError):
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+@app.exception_handler(HostAlreadyProvisionedError)
+async def _handle_host_provisioned_error(_: Request, exc: HostAlreadyProvisionedError):
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
 
 # ── Job tracking (file-based, survives uvicorn restarts — GH #37) ────────────
 
@@ -152,49 +175,6 @@ def _last_octet(ip: str) -> int:
 
 # ── GET /api/hosts ────────────────────────────────────────────────────────────
 
-def _query_provisioned(hypervisor: str | None) -> dict[str, dict] | None:
-    """Return a dict mapping VM name → {provisioned, vm_state}, or None if unreachable.
-
-    provisioned=True  → VM has a 'Baseline' snapshot (Ansible completed)
-    provisioned=False → VM exists but has no 'Baseline' snapshot (in-flight or partial)
-    vm_state          → libvirt domain state string (e.g. 'running', 'shut off')
-
-    One SSH call per hypervisor; the remote shell loops over all VMs.
-    """
-    script = (
-        "for vm in $(virsh --connect qemu:///system list --all --name | grep -v '^$'); do "
-        "  state=$(virsh --connect qemu:///system domstate $vm 2>/dev/null | head -1); "
-        "  if virsh --connect qemu:///system snapshot-list $vm --name 2>/dev/null "
-        "     | grep -qi 'baseline'; then "
-        "    echo \"provisioned:$state:$vm\"; "
-        "  else "
-        "    echo \"exists:$state:$vm\"; "
-        "  fi; "
-        "done"
-    )
-    try:
-        if hypervisor:
-            cmd = ["ssh", hypervisor, script]
-        else:
-            cmd = ["bash", "-c", script]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
-        if r.returncode == 0:
-            result = {}
-            for line in r.stdout.splitlines():
-                line = line.strip()
-                if line.startswith("provisioned:"):
-                    rest = line[len("provisioned:"):]
-                    state, name = rest.split(":", 1)
-                    result[name] = {"provisioned": True, "vm_state": state}
-                elif line.startswith("exists:"):
-                    rest = line[len("exists:"):]
-                    state, name = rest.split(":", 1)
-                    result[name] = {"provisioned": False, "vm_state": state}
-            return result
-    except Exception:
-        pass
-    return None
-
 
 @app.get("/api/hosts")
 def get_hosts():
@@ -219,7 +199,7 @@ def get_hosts():
     for h in kvm.values():
         hv = h.get("hypervisor") or None
         if hv not in vm_cache:
-            vm_cache[hv] = _query_provisioned(hv)
+            vm_cache[hv] = query_provisioned(hv)
 
     hosts            = []
     wg_octets        = []
@@ -293,12 +273,6 @@ def get_hosts():
 
 # ── POST /api/hosts/add ───────────────────────────────────────────────────────
 
-_ZONE_GROUPS: dict[str, list[str]] = {
-    "development": ["kvm", "targets", "development", "lab"],
-    "staging":     ["kvm", "targets", "staging",     "lab"],
-    "production":  ["kvm", "targets", "production"],
-}
-
 
 class NewHost(BaseModel):
     hostname:   str
@@ -314,58 +288,12 @@ class NewHost(BaseModel):
 @app.post("/api/hosts/add")
 def add_host(host: NewHost):
     """Append a new KVM host to hosts_map.yml and regenerate Ansible inventory."""
-    if not re.match(r'^[a-z][a-z0-9-]*$', host.hostname):
-        raise HTTPException(400, "hostname: lowercase letters/digits/hyphens, must start with a letter")
-
-    data = load_hosts_map()
-    kvm  = data["groups"].get("kvm", {})
-
-    if host.hostname in kvm:
-        raise HTTPException(409, f"'{host.hostname}' already exists in the kvm group")
-
-    for name, h in kvm.items():
-        if h.get("wg_ip") == host.wg_ip:
-            raise HTTPException(409, f"WireGuard IP {host.wg_ip} already used by '{name}'")
-        if h.get("virbr0_ip") == host.virbr0_ip:
-            raise HTTPException(409, f"virbr0 IP {host.virbr0_ip} already used by '{name}'")
-
-    nickname = host.nickname or host.hostname[:4]
-    groups   = _ZONE_GROUPS.get(host.zone, _ZONE_GROUPS["development"])
-    groups_yaml = "\n".join(f"        - {g}" for g in groups)
-    role_line = f"      vm_role: {host.vm_role}\n" if host.vm_role and host.vm_role != "dev" else ""
-
-    # Build the YAML block, matching existing file indentation (4-space host key, 6-space fields)
-    block = (
-        f"\n    {host.hostname}:\n"
-        f"      hostname: {host.hostname}\n"
-        f"      nickname: {nickname}\n"
-        f'      virbr0_ip: "{host.virbr0_ip}"\n'
-        f'      wg_ip: "{host.wg_ip}"\n'
-        f"      wg_role: spoke\n"
-        f"      ansible_managed: true\n"
-        f"      backend: {host.backend}\n"
-        f"      hypervisor: {host.hypervisor}\n"
-        f"{role_line}"
-        f"      ansible_groups:\n"
-        f"{groups_yaml}\n"
+    register_host(
+        hostname=host.hostname, nickname=host.nickname,
+        virbr0_ip=host.virbr0_ip, wg_ip=host.wg_ip,
+        hypervisor=host.hypervisor, zone=host.zone, vm_role=host.vm_role,
+        backend=host.backend, project_root=str(PROJECT_ROOT), emit=lambda _m: None,
     )
-
-    text   = HOSTS_MAP.read_text()
-    marker = "  # ── VirtualBox guests"
-    if marker not in text:
-        raise HTTPException(500, "Cannot find insertion point in hosts_map.yml — expected '  # ── VirtualBox guests' section")
-
-    HOSTS_MAP.write_text(text.replace(marker, block + marker))
-
-    result = subprocess.run(
-        ["python3", "tools/generate_inventory.py"],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
-
     return {"ok": True, "hostname": host.hostname}
 
 
@@ -511,69 +439,19 @@ def start_provision_erpnext(vm: NewErpnextVM):
       18. Snapshot "ERPNext v13 Logichem DB Restored"
       8. Ansible wireguard role on hub (add new spoke)
     """
-    if not re.match(r'^[a-z][a-z0-9-]*$', vm.hostname):
-        raise HTTPException(400, "hostname: lowercase letters/digits/hyphens, must start with a letter")
-
-    data = load_hosts_map()
-    kvm  = data["groups"].get("kvm", {})
-
-    already_registered = vm.hostname in kvm
-    needs_cleanup = False
-    if already_registered:
-        # Host is in hosts_map — check whether it's actually provisioned on the hypervisor.
-        # If provisioned (Baseline snapshot exists), reject. Otherwise clean up residue and rebuild.
-        host_cfg   = kvm[vm.hostname]
-        hypervisor = host_cfg.get("hypervisor")
-        vm_map     = _query_provisioned(hypervisor)
-        vm_info    = vm_map.get(vm.hostname, {}) if vm_map else {}
-        if vm_info.get("provisioned") is True:
-            raise HTTPException(409, f"'{vm.hostname}' is already provisioned — Destroy it first")
-        # Flag cleanup for the job thread — any leftover VM/storage will be
-        # removed before vol-clone so we don't hit disk pool collisions.
-        if vm_map is not None and vm.hostname in vm_map and not vm_info.get("provisioned"):
-            needs_cleanup = True
-    else:
-        # New host — check for IP collisions
-        for name, h in kvm.items():
-            if h.get("wg_ip") == vm.wg_ip:
-                raise HTTPException(409, f"WireGuard IP {vm.wg_ip} already used by '{name}'")
-            if h.get("virbr0_ip") == vm.virbr0_ip:
-                raise HTTPException(409, f"virbr0 IP {vm.virbr0_ip} already used by '{name}'")
-
-        # Register in hosts_map.yml so the UI can add the node
-        nickname  = vm.nickname or vm.hostname[:4]
-        groups    = _ZONE_GROUPS.get(vm.zone, _ZONE_GROUPS["development"])
-        role_line = f"      vm_role: {vm.vm_role}\n" if vm.vm_role and vm.vm_role != "dev" else ""
-        block = (
-            f"\n    {vm.hostname}:\n"
-            f"      hostname: {vm.hostname}\n"
-            f"      nickname: {nickname}\n"
-            f'      virbr0_ip: "{vm.virbr0_ip}"\n'
-            f'      wg_ip: "{vm.wg_ip}"\n'
-            f"      wg_role: spoke\n"
-            f"      ansible_managed: true\n"
-            f"      backend: {vm.hypervisor and 'kvm' or 'kvm'}\n"
-            f"      hypervisor: {vm.hypervisor}\n"
-            f"{role_line}"
-            f"      ansible_groups:\n"
-            + "\n".join(f"        - {g}" for g in groups) + "\n"
+    kvm = load_hosts_map()["groups"].get("kvm", {})
+    already_registered, cleanup_cfg = check_cleanup_needed(
+        hostname=vm.hostname, kvm_hosts=kvm, emit=lambda _m: None,
+    )
+    if not already_registered:
+        register_host(
+            hostname=vm.hostname, nickname=vm.nickname,
+            virbr0_ip=vm.virbr0_ip, wg_ip=vm.wg_ip,
+            hypervisor=vm.hypervisor, zone=vm.zone, vm_role=vm.vm_role,
+            backend="kvm", project_root=str(PROJECT_ROOT), emit=lambda _m: None,
         )
-        text   = HOSTS_MAP.read_text()
-        marker = "  # ── VirtualBox guests"
-        if marker not in text:
-            raise HTTPException(500, "Cannot find insertion point in hosts_map.yml")
-        HOSTS_MAP.write_text(text.replace(marker, block + marker))
-
-        result = subprocess.run(
-            ["python3", "tools/generate_inventory.py"],
-            cwd=PROJECT_ROOT, capture_output=True, text=True,
-        )
-        if result.returncode != 0:
-            raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
 
     job_id = str(uuid.uuid4())[:8]
-    cleanup_cfg = kvm.get(vm.hostname) if needs_cleanup else None
-
     _spawn_job("provision", job_id, {
         "hostname": vm.hostname,
         "virbr0_ip": vm.virbr0_ip,
@@ -606,8 +484,6 @@ def start_provision_erpnext_generic(vm: NewGenericErpnextVM):
     pipeline (provision_mode="generic"). After stages 1-9, the wizard_mode
     determines how the setup wizard is completed.
     """
-    if not re.match(r'^[a-z][a-z0-9-]*$', vm.hostname):
-        raise HTTPException(400, "hostname: lowercase letters/digits/hyphens, must start with a letter")
     if vm.wizard_mode not in ("record", "replay", "existing"):
         raise HTTPException(400, f"wizard_mode must be record, replay, or existing (got '{vm.wizard_mode}')")
     if vm.wizard_mode == "replay" and not vm.wizard_arg:
@@ -615,60 +491,19 @@ def start_provision_erpnext_generic(vm: NewGenericErpnextVM):
     if vm.wizard_mode == "existing" and not vm.wizard_arg:
         raise HTTPException(400, "wizard_mode=existing requires wizard_arg (backup filename)")
 
-    data = load_hosts_map()
-    kvm  = data["groups"].get("kvm", {})
-
-    already_registered = vm.hostname in kvm
-    needs_cleanup = False
-    if already_registered:
-        host_cfg   = kvm[vm.hostname]
-        hypervisor = host_cfg.get("hypervisor")
-        vm_map     = _query_provisioned(hypervisor)
-        vm_info    = vm_map.get(vm.hostname, {}) if vm_map else {}
-        if vm_info.get("provisioned") is True:
-            raise HTTPException(409, f"'{vm.hostname}' is already provisioned — Destroy it first")
-        if vm_map is not None and vm.hostname in vm_map and not vm_info.get("provisioned"):
-            needs_cleanup = True
-    else:
-        for name, h in kvm.items():
-            if h.get("wg_ip") == vm.wg_ip:
-                raise HTTPException(409, f"WireGuard IP {vm.wg_ip} already used by '{name}'")
-            if h.get("virbr0_ip") == vm.virbr0_ip:
-                raise HTTPException(409, f"virbr0 IP {vm.virbr0_ip} already used by '{name}'")
-
-        nickname  = vm.nickname or vm.hostname[:4]
-        groups    = _ZONE_GROUPS.get(vm.zone, _ZONE_GROUPS["development"])
-        role_line = f"      vm_role: {vm.vm_role}\n" if vm.vm_role and vm.vm_role != "dev" else ""
-        block = (
-            f"\n    {vm.hostname}:\n"
-            f"      hostname: {vm.hostname}\n"
-            f"      nickname: {nickname}\n"
-            f'      virbr0_ip: "{vm.virbr0_ip}"\n'
-            f'      wg_ip: "{vm.wg_ip}"\n'
-            f"      wg_role: spoke\n"
-            f"      ansible_managed: true\n"
-            f"      backend: kvm\n"
-            f"      hypervisor: {vm.hypervisor}\n"
-            f"{role_line}"
-            f"      ansible_groups:\n"
-            + "\n".join(f"        - {g}" for g in groups) + "\n"
+    kvm = load_hosts_map()["groups"].get("kvm", {})
+    already_registered, cleanup_cfg = check_cleanup_needed(
+        hostname=vm.hostname, kvm_hosts=kvm, emit=lambda _m: None,
+    )
+    if not already_registered:
+        register_host(
+            hostname=vm.hostname, nickname=vm.nickname,
+            virbr0_ip=vm.virbr0_ip, wg_ip=vm.wg_ip,
+            hypervisor=vm.hypervisor, zone=vm.zone, vm_role=vm.vm_role,
+            backend="kvm", project_root=str(PROJECT_ROOT), emit=lambda _m: None,
         )
-        text   = HOSTS_MAP.read_text()
-        marker = "  # ── VirtualBox guests"
-        if marker not in text:
-            raise HTTPException(500, "Cannot find insertion point in hosts_map.yml")
-        HOSTS_MAP.write_text(text.replace(marker, block + marker))
-
-        result = subprocess.run(
-            ["python3", "tools/generate_inventory.py"],
-            cwd=PROJECT_ROOT, capture_output=True, text=True,
-        )
-        if result.returncode != 0:
-            raise HTTPException(500, f"generate_inventory.py failed:\n{result.stderr}")
 
     job_id = str(uuid.uuid4())[:8]
-    cleanup_cfg = kvm.get(vm.hostname) if needs_cleanup else None
-
     _spawn_job("provision_generic", job_id, {
         "hostname": vm.hostname,
         "virbr0_ip": vm.virbr0_ip,
