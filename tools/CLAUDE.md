@@ -141,6 +141,19 @@ Each is a single-task atomic script — no duplicated logic:
 | `sops_key_remove.py` | Remove host keys from SOPS-encrypted keyring |
 | `cloud_init_cleanup.py` | Remove cloud-init directory |
 
+### Host-registration primitives (in `orchestration/`)
+
+Shared across `/api/hosts/add`, `/api/provision/erpnext`,
+`/api/provision/erpnext-generic`. Exceptions raised by the primitives are
+mapped to HTTP status codes by FastAPI exception handlers in `api.py`:
+
+| File | Single responsibility | Errors raised |
+|---|---|---|
+| `host_registration.py` | Validate hostname/IPs, insert YAML block at marker, regen inventory | `HostRegistrationError` (400), `HostConflictError` (409), `RuntimeError` (500) |
+| `host_registration_block.py` | Build the YAML block string + `ZONE_GROUPS` mapping | — |
+| `vm_state_query.py` | SSH to hypervisor, return `{vm: {provisioned, vm_state}}` or `None` | — |
+| `host_cleanup_check.py` | Decide whether an already-registered host needs pre-provision cleanup | `HostAlreadyProvisionedError` (409) |
+
 ### Stages (all 9 extracted)
 
 | Stage | Package | Orchestrator | Units |
