@@ -114,3 +114,6 @@ test-results/
 
 # Obsolete/superseded guides
 old_*.md
+
+# Scratch ideas (not for repo)
+docs/Ideas/
