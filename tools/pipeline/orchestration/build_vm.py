@@ -15,7 +15,8 @@ from tools.pipeline.stages.env_kvm import KvmEnv
 
 from .build_vm_create import create_vm_local, create_vm_remote
 from .build_vm_poll import ensure_running_and_ssh
-from .build_vm_seed import build_seed_iso, upload_seed_to_hypervisor, upload_seed_to_pool
+from tools.pipeline.stages.stage_1_vm_creation.seed_iso import build_seed_iso
+from .build_vm_seed import upload_seed_to_hypervisor, upload_seed_to_pool
 from .hypervisor_helpers import ansible_ping, vm_exists
 
 
@@ -32,7 +33,7 @@ def build_vm(
     if vm_exists(vm, hypervisor):
         emit("  VM already exists — skipping seed ISO + creation")
     else:
-        seed = build_seed_iso(vm, env.platforms_kvm, emit)
+        seed = build_seed_iso(vm, virbr0_ip, env.platforms_kvm, emit)
         if hypervisor:
             remote_seed = upload_seed_to_hypervisor(seed, vm, env, emit)
             create_vm_remote(vm, ram, env, remote_seed, emit)
