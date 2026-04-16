@@ -20,7 +20,6 @@ BASELINES_FILE = REPO_ROOT / "tools" / "size_baselines.json"
 # Target limits from CLAUDE.md — what files must eventually reach.
 TARGET_LIMITS = {
     "tools/esacp.py": 150,
-    "tools/api.py": 300,
     "tools/job_worker.py": 100,
     "tools/install_specific.py": 50,
 }
@@ -29,6 +28,7 @@ TARGET_LIMITS = {
 CATEGORY_LIMITS = {
     "tools/cli/": 80,
     "tools/pipeline/": 80,
+    "tools/api/": 80,
 }
 
 
