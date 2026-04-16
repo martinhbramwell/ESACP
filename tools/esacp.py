@@ -223,92 +223,31 @@ def wait_for_ssh(vm: str, config: dict, timeout: int = 120) -> bool:
 
 # ── 1. confirmPrerequisites ────────────────────────────────────────────────────
 
-# (tool, apt-package, install-method: "apt" | "manual")
-REQUIRED_TOOLS = [
-    ("virsh",            "libvirt-clients",   "apt"),
-    ("virt-install",     "virtinst",          "apt"),
-    ("cloud-localds",    "cloud-image-utils", "apt"),
-    ("ansible",          "ansible",           "apt"),
-    ("ansible-playbook", "ansible",           "apt"),
-    ("wg",               "wireguard-tools",   "apt"),
-    ("python3",          "python3",           "apt"),
-    ("ssh-keygen",       "openssh-client",    "apt"),
-    ("sops",             "sops",              "manual"),
-    ("age",              "age",               "manual"),
-    ("age-keygen",       "age",               "manual"),
-]
-
-MANUAL_INSTALL_HINTS = {
-    "sops": (
-        "https://github.com/getsops/sops/releases\n"
-        "  sudo mv sops-v*.linux.amd64 /usr/local/bin/sops && sudo chmod +x /usr/local/bin/sops"
-    ),
-    "age": (
-        "https://github.com/FiloSottile/age/releases\n"
-        "  sudo tar xf age-v*.tar.gz -C /tmp && sudo cp /tmp/age/age /tmp/age/age-keygen /usr/local/bin/"
-    ),
-}
-
-
 def cmd_confirm_prerequisites(args, config: dict) -> int:
+    from tools.pipeline.stages.preflight.check_tools import (
+        check_tools, MANUAL_INSTALL_HINTS,
+    )
+    from tools.pipeline.stages.preflight.check_files import check_files
+
     banner("Confirm Prerequisites")
-
-    table = Table(show_header=True, header_style="bold cyan", box=box.SIMPLE)
-    table.add_column("Tool",    style="cyan",  min_width=18)
-    table.add_column("Package", min_width=18)
-    table.add_column("Status",  min_width=12)
-
-    missing_apt: set = set()
-    missing_manual: list = []
-    seen_packages: set = set()
-
-    for tool, pkg, method in REQUIRED_TOOLS:
-        found = shutil.which(tool) is not None
-        status = "[green]✓ found[/green]" if found else "[red]✗ missing[/red]"
-        table.add_row(tool, pkg, status)
-        if not found:
-            if method == "apt" and pkg not in seen_packages:
-                missing_apt.add(pkg)
-                seen_packages.add(pkg)
-            elif method == "manual" and pkg not in seen_packages:
-                missing_manual.append((tool, pkg))
-                seen_packages.add(pkg)
-
-    console.print(table)
-
-    # Required files
-    console.print()
-    age_key    = Path(os.path.expanduser("~/.config/sops/age/keys.txt"))
-    sops_yaml  = PROJECT_ROOT / ".sops.yaml"
-    ssh_key    = Path(ssh_key_path(config))
-    ssh_pub    = Path(str(ssh_key) + ".pub")
-
-    file_checks = [
-        (age_key,   "age decryption key"),
-        (sops_yaml, "SOPS config (.sops.yaml)"),
-        (ssh_key,   f"SSH private key ({ssh_key.name})"),
-        (ssh_pub,   f"SSH public key ({ssh_key.name}.pub)"),
-    ]
-    file_issues = []
-    for path, desc in file_checks:
-        exists = path.exists()
-        icon   = "[green]✓[/green]" if exists else "[red]✗[/red]"
-        console.print(f"  {icon} {desc}: [dim]{path}[/dim]")
-        if not exists:
-            file_issues.append((path, desc))
+    console.print("[bold cyan]Tool checks[/bold cyan]")
+    tool_status = check_tools(emit=console.print)
 
     console.print()
+    console.print("[bold cyan]File checks[/bold cyan]")
+    file_results = check_files(str(PROJECT_ROOT), ssh_key_path(config), emit=console.print)
+    file_issues = [(p, d) for p, d, exists in file_results if not exists]
 
-    if not missing_apt and not missing_manual and not file_issues:
+    console.print()
+    if not tool_status.missing_apt and not tool_status.missing_manual and not file_issues:
         console.print("[green]✅  All prerequisites satisfied.[/green]")
         return 0
 
-    # Offer apt install
-    if missing_apt:
-        pkgs = " ".join(sorted(missing_apt))
+    if tool_status.missing_apt:
+        pkgs = " ".join(sorted(tool_status.missing_apt))
         console.print(f"[yellow]Missing apt packages:[/yellow] {pkgs}")
         if confirm("Install now via apt?"):
-            result = subprocess.run(["sudo", "apt", "install", "-y"] + sorted(missing_apt))
+            result = subprocess.run(["sudo", "apt", "install", "-y"] + sorted(tool_status.missing_apt))
             if result.returncode != 0:
                 console.print("[red]❌  apt install failed.[/red]")
                 return 1
@@ -316,21 +255,20 @@ def cmd_confirm_prerequisites(args, config: dict) -> int:
         else:
             console.print(f"[dim]Re-run after: sudo apt install -y {pkgs}[/dim]")
 
-    # Manual installs
-    if missing_manual:
+    if tool_status.missing_manual:
         console.print()
         console.print("[yellow]Manual installs required:[/yellow]")
         reported = set()
-        for tool, pkg in missing_manual:
+        for tool, pkg in tool_status.missing_manual:
             if pkg not in reported:
                 hint = MANUAL_INSTALL_HINTS.get(tool, MANUAL_INSTALL_HINTS.get(pkg, ""))
                 console.print(f"  [cyan]{pkg}[/cyan]: {hint}")
                 reported.add(pkg)
 
-    # File issues
     if file_issues:
         console.print()
         console.print("[yellow]Missing files:[/yellow]")
+        ssh_key = Path(ssh_key_path(config))
         for path, desc in file_issues:
             if "age/keys.txt" in str(path):
                 console.print(f"  age key: age-keygen -o {path}")
@@ -342,74 +280,28 @@ def cmd_confirm_prerequisites(args, config: dict) -> int:
             else:
                 console.print(f"  {desc}: {path} — see SETUP_GUIDE.md")
 
-    return 1 if (missing_manual or file_issues) else 0
+    return 1 if (tool_status.missing_manual or file_issues) else 0
 
 
 # ── 2. validateKeys ────────────────────────────────────────────────────────────
 
 def cmd_validate_keys(args, config: dict) -> int:
+    from tools.pipeline.stages.preflight.check_keys import check_keys
+
     banner("Validate Keys")
-
-    age_key  = Path(os.path.expanduser("~/.config/sops/age/keys.txt"))
-    sops_yml = PROJECT_ROOT / ".sops.yaml"
-    keys_enc = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
-
-    errors = []
-
-    for path, label in [(age_key, "age key"), (sops_yml, ".sops.yaml"), (keys_enc, "keys.sops.yml")]:
-        if path.exists():
-            console.print(f"  [green]✓[/green] {label}: [dim]{path}[/dim]")
-        else:
-            console.print(f"  [red]✗[/red] {label}: [dim]{path}[/dim]")
-            errors.append(f"Missing: {path}")
-
-    if errors:
-        for e in errors:
-            console.print(f"[red]❌  {e}[/red]")
-        return 1
-
+    expected = list(kvm_hosts(config).keys()) + ["controller"]
+    result = check_keys(
+        project_root=str(PROJECT_ROOT),
+        expected_hosts=expected,
+        hub_name=hub_vm(config),
+        emit=console.print,
+    )
     console.print()
-    console.print("[cyan]Attempting SOPS decryption...[/cyan]")
-    result = subprocess.run(["sops", "-d", str(keys_enc)], capture_output=True, text=True)
-
-    if result.returncode != 0:
-        console.print(f"[red]❌  SOPS decryption failed:[/red]")
-        console.print(f"[red]   {result.stderr.strip()}[/red]")
-        return 1
-
-    try:
-        decrypted = yaml.safe_load(result.stdout)
-    except yaml.YAMLError as exc:
-        console.print(f"[red]❌  YAML parse error: {exc}[/red]")
-        return 1
-
-    expected_hosts = list(kvm_hosts(config).keys()) + ["controller"]
-    ok = True
-    for host in expected_hosts:
-        block = decrypted.get(host, {})
-        has_priv = "private_key" in block
-        has_pub  = "public_key"  in block
-        icon = "[green]✓[/green]" if (has_priv and has_pub) else "[red]✗[/red]"
-        console.print(f"  {icon} {host}: private_key + public_key")
-        if not (has_priv and has_pub):
-            ok = False
-
-    psks = decrypted.get("preshared_keys", {})
-    hub = hub_vm(config)
-    for spoke in [h for h in expected_hosts if h != hub]:
-        psk_key = f"{spoke}_{hub}"
-        icon = "[green]✓[/green]" if psk_key in psks else "[red]✗[/red]"
-        console.print(f"  {icon} preshared_key: {psk_key}")
-        if psk_key not in psks:
-            ok = False
-
-    console.print()
-    if ok:
+    if result.success:
         console.print("[green]✅  All WireGuard keys present and decryptable.[/green]")
         return 0
-    else:
-        console.print("[red]❌  Key structure incomplete — re-run config/wireguard/generate_keys.sh[/red]")
-        return 1
+    console.print(f"[red]❌  {result.message} — re-run config/wireguard/generate_keys.sh[/red]")
+    return 1
 
 
 # ── 3. clearKnownHosts ────────────────────────────────────────────────────────
