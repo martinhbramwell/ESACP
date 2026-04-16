@@ -134,6 +134,76 @@ Any function or standalone script over **50 lines** needs decomposition. This is
 
 ---
 
+## Architecture Rules — Anti-Spiral Enforcement
+
+These rules prevent the recurring death spiral: fix → patch monolith → monolith grows → refactor → repeat. They are mechanically enforceable. See issues #189–#198 for the Gen 3 pipeline completion plan.
+
+### Where business logic lives
+
+**Business logic lives ONLY in `tools/pipeline/`.** All infrastructure operations (SSH, virsh, subprocess, config mutation, multi-step workflows) must live under `tools/pipeline/`. Specifically:
+- Unit functions: `tools/pipeline/stages/*/` — IoC: takes `(Config, Emit) -> TaskResult`
+- Stage orchestrators: `tools/pipeline/stages/stage_N_*/` — `__init__.py` composes units
+- Macros: `tools/pipeline/macro/` — composes stages
+- Orchestration helpers: `tools/pipeline/orchestration/` — non-stage operations (host registration, VM build, destroy)
+
+**Forbidden locations for business logic**: `tools/esacp.py`, `tools/api.py`, `tools/job_worker.py`, `tools/cli/*.py`. These are dispatchers only.
+
+### Dispatcher rules
+
+A dispatcher may ONLY:
+1. Parse input (argparse, Pydantic, JSON)
+2. Call ONE pipeline primitive or macro
+3. Format output for its transport (Rich console, JSON response, log line)
+4. Handle transport-specific concerns (HTTP status codes, exit codes, job spawning)
+
+If a dispatcher needs an `if` about VM state, WireGuard config, or any infrastructure concept, that logic belongs in a primitive.
+
+### New operations
+
+1. Write the primitive in `tools/pipeline/` first, with IoC signature
+2. Write a colocated test for it
+3. Add the thin dispatcher entry that calls the primitive
+4. Never write logic in a dispatcher "temporarily"
+
+### No duplication across transports
+
+CLI + API + job_worker calling the same operation MUST call the SAME primitive. They differ only in input parsing, output formatting, and error handling.
+
+### `emit` is the only output mechanism
+
+Pipeline primitives use `emit: Emit` exclusively. Never import Rich, FastAPI, or print in pipeline code.
+
+### Dispatcher file size hard limits
+
+| File | Max lines | Action if exceeded |
+|---|---|---|
+| `tools/esacp.py` | 150 | Split into `tools/cli/` per-command files |
+| `tools/api.py` | 300 | Extract endpoint groups into route modules |
+| `tools/job_worker.py` | 100 | Logic has leaked — extract to macro |
+| Any `tools/cli/*.py` | 80 | Logic has leaked — extract to primitive |
+| Any `tools/pipeline/**/*.py` | 80 | Decompose into smaller units |
+
+A pre-commit hook enforces these limits mechanically (see #198).
+
+### No subprocess calls in dispatchers
+
+Any code calling `subprocess.run` with SSH, virsh, ansible-playbook, sops, or any infrastructure tool MUST live in `tools/pipeline/`. The only exception: `api.py` spawning `job_worker.py`.
+
+### Dead code deletion is mandatory
+
+When a primitive is extracted from a monolith, the monolith code it replaces MUST be deleted in the same PR. No commented-out code. No flags. The primitive is the single source of truth.
+
+### Known violations (being resolved by #189–#197)
+
+| File | Current lines | Target | Tracking issue |
+|---|---|---|---|
+| `tools/esacp.py` | 1693 | ≤150 | #189, #191, #192, #194, #195 |
+| `tools/api.py` | 999 | ≤300 | #190, #193, #195 |
+| `tools/job_worker.py` | 339 | ≤100 | #192, #193 |
+| `tools/install_specific.py` | 721 | ≤50 | #197 |
+
+---
+
 ## Global Conduct Rules (enforced — see `~/.claude/CLAUDE.md`)
 
 Confirm before acting · Root cause over symptoms · GitHub Issues as institutional memory · No real names in docs · No masking of errors · No modification of third-party code
