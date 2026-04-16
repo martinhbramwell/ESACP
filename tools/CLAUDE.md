@@ -50,13 +50,6 @@ Job types: `provision`, `provision_generic`, `refresh`, `destroy`, `build_templa
 - Writes `done` or `error` to `/tmp/esacp-job-{id}.status` on completion
 - `api.py` writes `/tmp/esacp-job-{id}.meta` (JSON: hostname, type, started_at) at spawn time
 
-## destroy_helpers.py — Destroy Pipeline Functions
-
-Extracted from api.py so both api.py and job_worker.py can use them. Contains:
-`get_wg_pubkey`, `remove_wg_peer_live`, `destroy_vm`, `remove_from_hosts_map`,
-`remove_from_group_vars_all`, `remove_keys_from_sops`. All accept explicit Path args
-(no module-level globals).
-
 ## esacp.py — Unified Lab CLI
 
 `python tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands.
@@ -122,6 +115,31 @@ Config comes from environment variables (envars.sh sourced by differentiate.sh) 
 - **runner.py** — generic task executor: iterates `(Config, Emit) → TaskResult` functions, stops on first failure
 - **stages/common/** — `Config` (frozen dataclass), `Emit`, `TaskResult`, SSH/SCP/rsync helpers
 - **env_kvm.py** — `KvmEnv` dataclass (hypervisor alias, pool, image paths)
+
+### Macros
+
+| Macro | What | Called by |
+|---|---|---|
+| `macro/provision.py` | Stages 1–9 sequentially | `job_worker.py` (provision job) |
+| `macro/provision_generic.py` | Stages 1–9 + wizard completion | `job_worker.py` (provision_generic job) |
+| `macro/refresh.py` | Stages 3–9 (WG transport) | `job_worker.py` (refresh job) |
+| `macro/destroy.py` | 8-step teardown: WG peer → VM → hosts_map → group_vars → inventory → Ansible WG → SOPS keys → cloud-init | `job_worker.py` (destroy job), `esacp.py` (destroy cmd) |
+
+### Destroy orchestration primitives (in `orchestration/`)
+
+Each is a single-task atomic script — no duplicated logic:
+
+| File | Single responsibility |
+|---|---|
+| `destroy_vm.py` | Delete snapshots + virsh destroy + undefine on hypervisor |
+| `wg_pubkey.py` | Decrypt SOPS keyring, return a host's WG public key |
+| `wg_peer_remove.py` | Remove a live WG peer from the hub |
+| `hosts_map_remove.py` | Remove a host block from hosts_map.yml |
+| `group_vars_remove.py` | Remove wg_pubkey line from group_vars/all.yml |
+| `inventory_regen.py` | Run generate_inventory.py |
+| `ansible_wg_update.py` | Run Ansible to update hub WG config |
+| `sops_key_remove.py` | Remove host keys from SOPS-encrypted keyring |
+| `cloud_init_cleanup.py` | Remove cloud-init directory |
 
 ### Stages (all 9 extracted)
 

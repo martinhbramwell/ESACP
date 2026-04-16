@@ -16,7 +16,6 @@ This is the fix for GH #37.
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 import sys
 import time
@@ -30,12 +29,8 @@ PROJECT_ROOT = Path(__file__).parent.parent
 # when this script is spawned as an independent subprocess.
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-HOSTS_MAP = PROJECT_ROOT / "hosts_map.yml"
-GROUP_VARS_ALL = PROJECT_ROOT / "ansible" / "group_vars" / "all.yml"
-KEYS_SOPS = PROJECT_ROOT / "config" / "wireguard" / "keys.sops.yml"
-CLOUD_INIT_DIR = PROJECT_ROOT / "platforms" / "kvm" / "cloud-init"
 
-from tools.host_identity import HUB_KEY, ZONE_DOMAINS
+from tools.host_identity import ZONE_DOMAINS
 
 
 def _ts():
@@ -182,81 +177,8 @@ def run_refresh(args: dict) -> None:
 
 
 def run_destroy(args: dict) -> None:
-    from tools.destroy_helpers import (
-        destroy_vm,
-        get_wg_pubkey,
-        remove_from_group_vars_all,
-        remove_from_hosts_map,
-        remove_keys_from_sops,
-        remove_wg_peer_live,
-    )
-
-    hostname = args["hostname"]
-    host_cfg = args["host_cfg"]
-
-    # Step 1: Remove live WireGuard peer
-    emit("── Remove live WireGuard peer ──")
-    pubkey = get_wg_pubkey(hostname, KEYS_SOPS, PROJECT_ROOT)
-    if pubkey:
-        remove_wg_peer_live(hostname, pubkey, HOSTS_MAP, emit)
-    else:
-        emit(f"  [WARN] No pubkey found for {hostname} — skipping live WG removal")
-
-    # Step 2: Destroy VM on hypervisor
-    emit("── Destroy VM ──")
-    destroy_vm(hostname, host_cfg, emit)
-
-    # Step 3: Remove from hosts_map.yml
-    emit("── Update hosts_map.yml ──")
-    remove_from_hosts_map(hostname, HOSTS_MAP, emit)
-
-    # Step 4: Remove pubkey from group_vars/all.yml
-    emit("── Update group_vars/all.yml ──")
-    remove_from_group_vars_all(hostname, GROUP_VARS_ALL, emit)
-
-    # Step 5: Regenerate inventory
-    emit("── Regenerate inventory ──")
-    result = subprocess.run(
-        ["python3", "tools/generate_inventory.py"],
-        cwd=PROJECT_ROOT, capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"generate_inventory.py failed:\n{result.stderr}")
-    emit("  [OK] inventory regenerated")
-
-    # Step 6: Update hub WireGuard config via Ansible
-    emit("── Update hub WireGuard config (Ansible) ──")
-    proc = subprocess.Popen(
-        [
-            "ansible-playbook",
-            "-i", "inventory/kvm.yml",
-            "site-kvm.yml",
-            "--limit", HUB_KEY,
-            "--tags", "wireguard",
-        ],
-        cwd=str(PROJECT_ROOT / "ansible"),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    for line in _stream_lines(proc.stdout):
-        emit(line)
-    proc.wait()
-    if proc.returncode != 0:
-        emit(f"  [WARN] Ansible wireguard update failed (exit {proc.returncode})")
-    else:
-        emit("  [OK] hub wg0.conf updated")
-
-    # Step 7: Remove keys from keys.sops.yml
-    emit("── Remove WireGuard keys ──")
-    remove_keys_from_sops(hostname, KEYS_SOPS, PROJECT_ROOT, emit)
-
-    # Step 8: Remove cloud-init dir if present
-    ci_dir = CLOUD_INIT_DIR / hostname
-    if ci_dir.exists():
-        shutil.rmtree(ci_dir)
-        emit(f"  [OK] Removed cloud-init dir {ci_dir}")
-
-    emit("── Destroy complete ──")
+    from tools.pipeline.macro.destroy import run
+    run(args["hostname"], args["host_cfg"], str(PROJECT_ROOT), emit)
 
 
 def run_build_template(args: dict) -> None:
