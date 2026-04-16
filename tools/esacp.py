@@ -25,29 +25,28 @@ Subcommands:
 
 import argparse
 import getpass
-import socket
 import os
 import re
 import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path
 from typing import Optional
+
+# Ensure project root is importable (needed for `from tools.pipeline...` imports)
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 try:
     import yaml
     from rich import box
     from rich.console import Console
     from rich.panel import Panel
-    from rich.progress import Progress, SpinnerColumn, TextColumn
     from rich.table import Table
     from rich.tree import Tree
 except ImportError as exc:
     print(f"Missing dependency: {exc}\nInstall with: pip3 install rich pyyaml")
     sys.exit(1)
 
-from tools.host_identity import DEFAULT_HYPERVISOR
 
 console = Console()
 
@@ -157,70 +156,6 @@ def ssh_run(host_ip: str, user: str, key: str, cmd: str) -> subprocess.Completed
     )
 
 
-def _tcp_port_open(host: str, port: int = 22, timeout: int = 5) -> bool:
-    """Return True if a TCP connection to host:port succeeds. No SSH, no known_hosts."""
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except (socket.timeout, ConnectionRefusedError, OSError):
-        return False
-
-
-def _populate_known_hosts(entries: list) -> None:
-    """
-    Run ssh-keyscan for each entry and append the results to ~/.ssh/known_hosts.
-    Entries that time out (host not yet reachable) are silently skipped.
-    Called after _remove_known_hosts so we always write the current key.
-    """
-    known_hosts = Path.home() / ".ssh" / "known_hosts"
-    for entry in entries:
-        result = subprocess.run(
-            ["ssh-keyscan", "-H", "-T", "5", entry],
-            capture_output=True, text=True,
-        )
-        if result.stdout.strip():
-            with open(known_hosts, "a") as fh:
-                fh.write(result.stdout)
-            console.print(f"  [dim]ssh-keyscan: key added for {entry}[/dim]")
-
-
-def wait_for_poweroff(vm: str, timeout: int = 1800) -> bool:
-    console.print("  [dim]VM powers off automatically when installation finishes (~10–20 min)[/dim]")
-    start = time.time()
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[cyan]Autoinstall running... ({task.fields[elapsed]}s)[/cyan]"),
-        transient=True,
-    ) as progress:
-        task = progress.add_task("wait", elapsed=0)
-        while time.time() - start < timeout:
-            if vm_state(vm) == "shut off":
-                console.print(f"[green]✅  Autoinstall complete ({int(time.time()-start)}s)[/green]")
-                return True
-            progress.update(task, elapsed=int(time.time() - start))
-            time.sleep(10)
-    console.print(f"[red]❌  Autoinstall did not complete within {timeout // 60} min[/red]")
-    return False
-
-
-def wait_for_ssh(vm: str, config: dict, timeout: int = 120) -> bool:
-    start = time.time()
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[cyan]Polling SSH... ({task.fields[elapsed]}s / {task.fields[timeout]}s)[/cyan]"),
-        transient=True,
-    ) as progress:
-        task = progress.add_task("ssh", elapsed=0, timeout=timeout)
-        while time.time() - start < timeout:
-            if ansible_ping(vm, config):
-                console.print("[green]✅  SSH available[/green]")
-                return True
-            progress.update(task, elapsed=int(time.time() - start))
-            time.sleep(5)
-    console.print(f"[red]❌  SSH timeout after {timeout}s[/red]")
-    return False
-
-
 # ── 1. confirmPrerequisites ────────────────────────────────────────────────────
 
 def cmd_confirm_prerequisites(args, config: dict) -> int:
@@ -306,32 +241,14 @@ def cmd_validate_keys(args, config: dict) -> int:
 
 # ── 3. clearKnownHosts ────────────────────────────────────────────────────────
 
-def _known_hosts_entries(info: dict) -> list:
-    """All SSH known_hosts identifiers for one host (hostname, nickname, IPs)."""
-    seen = []
-    for field in ("hostname", "nickname", "virbr0_ip", "wg_ip"):
-        val = info.get(field)
-        if val and val not in seen:
-            seen.append(val)
-    return seen
-
-
-def _remove_known_hosts(entries: list) -> int:
-    """Remove a list of entries from ~/.ssh/known_hosts. Returns count removed."""
-    removed = 0
-    for entry in entries:
-        result = subprocess.run(["ssh-keygen", "-R", entry], capture_output=True, text=True)
-        if result.returncode == 0 and "not found" not in result.stderr:
-            removed += 1
-    return removed
-
-
 def cmd_clear_known_hosts(args, config: dict) -> int:
+    from tools.pipeline.stages.common.known_hosts import known_hosts_entries, remove_known_hosts
+
     banner("Clear Known Hosts")
 
     all_entries = []
     for name, info in kvm_hosts(config).items():
-        for e in _known_hosts_entries(info):
+        for e in known_hosts_entries(info):
             if e not in all_entries:
                 all_entries.append(e)
 
@@ -340,7 +257,8 @@ def cmd_clear_known_hosts(args, config: dict) -> int:
         console.print(f"  [dim]{entry}[/dim]")
     console.print()
 
-    removed = _remove_known_hosts(all_entries)
+    noop_emit = lambda msg: None
+    removed = remove_known_hosts(all_entries, noop_emit)
     console.print(f"[green]✅  Done ({removed} removed, rest were not present).[/green]")
     return 0
 
@@ -403,501 +321,25 @@ def cmd_destroy_vm(args, config: dict) -> int:
 
 # ── 5. buildVM ────────────────────────────────────────────────────────────────
 
-# Remote hypervisor constants (see CLAUDE.md — Stage 2.2)
-HYPERVISOR_SSH_ALIAS = DEFAULT_HYPERVISOR
-HYPERVISOR_USER      = "hasan"
-HYPERVISOR_IMAGES_DIR = "/mnt/esacp-disk/var/lib/libvirt/images"
-HYPERVISOR_UBUNTU_ISO = f"{HYPERVISOR_IMAGES_DIR}/ubuntu-24.04.4-live-server-amd64.iso"
-HYPERVISOR_POOL       = "esacp"
-
-
-def _hypervisor_vm_exists(vm: str) -> bool:
-    return subprocess.run(
-        ["ssh", HYPERVISOR_SSH_ALIAS, "virsh", "--connect", "qemu:///system", "dominfo", vm],
-        capture_output=True,
-    ).returncode == 0
-
-
-def _hypervisor_vm_state(vm: str) -> Optional[str]:
-    r = subprocess.run(
-        ["ssh", HYPERVISOR_SSH_ALIAS, "virsh", "--connect", "qemu:///system", "domstate", vm],
-        capture_output=True, text=True,
-    )
-    return r.stdout.strip().lower() if r.returncode == 0 else None
-
-
-def _hypervisor_tcp_probe(virbr0_ip: str) -> bool:
-    """Probe TCP port 22 on a hypervisor-internal IP via ProxyJump — no known_hosts check."""
-    r = subprocess.run(
-        ["ssh",
-         "-o", "ConnectTimeout=5",
-         "-o", "StrictHostKeyChecking=no",
-         "-o", "BatchMode=yes",
-         "-J", f"{HYPERVISOR_USER}@{HYPERVISOR_SSH_ALIAS}",
-         f"you@{virbr0_ip}", "true"],
-        capture_output=True,
-    )
-    return r.returncode == 0
-
-
-def _hypervisor_add_known_hosts(virbr0_ip: str) -> None:
-    """Collect the host key via hypervisor and append it to local known_hosts."""
-    known_hosts = Path.home() / ".ssh" / "known_hosts"
-    # ssh-keyscan via ProxyJump: run keyscan from hypervisor, capture output locally
-    r = subprocess.run(
-        ["ssh", HYPERVISOR_SSH_ALIAS, "ssh-keyscan", "-H", "-T", "5", virbr0_ip],
-        capture_output=True, text=True,
-    )
-    if r.stdout.strip():
-        with open(known_hosts, "a") as fh:
-            fh.write(r.stdout)
-        console.print(f"  [dim]Host key for {virbr0_ip} added to known_hosts[/dim]")
-
-
-def _build_vm_remote(vm: str, vm_info: dict, config: dict) -> int:
-    """Build a VM on a remote hypervisor."""
-    virbr0_ip   = vm_info.get("virbr0_ip", "")
-    ram         = 4096 if vm == hub_vm(config) else 2048
-    remote_seed = f"{HYPERVISOR_IMAGES_DIR}/{vm}-seed.iso"
-
-    vm_exists = _hypervisor_vm_exists(vm)
-
-    # ── Steps 1 & 2: Seed ISO + VM creation ──────────────────────────────────
-    if vm_exists:
-        console.print(f"[bold]Steps 1–2:[/bold] Seed ISO + VM creation")
-        console.print(f"  [green]✓[/green] VM already exists on {HYPERVISOR_SSH_ALIAS} — skipping")
-    else:
-        # Step 1 — Seed ISO (build locally if needed, then scp to hypervisor)
-        console.print("[bold]Step 1/4:[/bold] Seed ISO")
-        seed_local = PLATFORMS_KVM / f"{vm}-seed.iso"
-        if seed_local.exists():
-            console.print(f"  [green]✓[/green] {seed_local.name} already built locally")
-        else:
-            if not _build_seed_iso_local(vm):
-                return 1
-
-        console.print(f"  Uploading seed ISO to {HYPERVISOR_SSH_ALIAS}:{HYPERVISOR_IMAGES_DIR}/...")
-        r = subprocess.run(
-            ["scp", str(seed_local), f"{HYPERVISOR_USER}@{HYPERVISOR_SSH_ALIAS}:{remote_seed}"],
-            capture_output=True, text=True,
-        )
-        if r.returncode != 0:
-            console.print(f"[red]❌  scp failed: {r.stderr.strip()}[/red]")
-            return 1
-        console.print(f"  [green]✓[/green] Seed ISO uploaded")
-
-        # Step 2 — Create VM on hypervisor via SSH
-        console.print()
-        console.print(f"[bold]Step 2/4:[/bold] Create VM on {HYPERVISOR_SSH_ALIAS}")
-        virt_cmd = (
-            f"virt-install --connect qemu:///system"
-            f" --name {vm}"
-            f" --ram {ram}"
-            f" --vcpus 2"
-            f" --disk pool={HYPERVISOR_POOL},size=20,format=qcow2"
-            f" --location '{HYPERVISOR_UBUNTU_ISO},kernel=casper/vmlinuz,initrd=casper/initrd'"
-            f" --disk path={remote_seed},device=cdrom,readonly=on"
-            f" --network network=default"
-            f" --os-variant ubuntu20.04"
-            f" --extra-args 'autoinstall ds=nocloud'"
-            f" --graphics vnc"
-            f" --noautoconsole"
-        )
-        r = subprocess.run(
-            ["ssh", HYPERVISOR_SSH_ALIAS, virt_cmd],
-            capture_output=True, text=True,
-        )
-        if r.returncode != 0:
-            console.print(f"[red]❌  virt-install on {HYPERVISOR_SSH_ALIAS} failed:\n{r.stderr.strip()}[/red]")
-            return 1
-        console.print(f"  [green]✓[/green] {vm} created on {HYPERVISOR_SSH_ALIAS}, autoinstall in progress")
-
-    # ── Step 3: Clear stale known_hosts ──────────────────────────────────────
-    console.print()
-    console.print("[bold]Step 3/4:[/bold] Clear stale known_hosts entries")
-    entries = _known_hosts_entries(vm_info)
-    removed = _remove_known_hosts(entries)
-    if removed:
-        console.print(f"  [green]✓[/green] Cleared {removed} stale entry/entries")
-    else:
-        console.print(f"  [dim]No stale entries found[/dim]")
-
-    # ── Step 4: Wait for SSH via ProxyJump ───────────────────────────────────
-    console.print()
-    console.print("[bold]Step 4/4:[/bold] Ensure VM is running and SSH-ready (via ProxyJump)")
-
-    if not virbr0_ip:
-        console.print("[red]❌  No virbr0_ip in host config — cannot poll[/red]")
-        return 1
-
-    state = _hypervisor_vm_state(vm)
-    console.print(f"  Current state: [cyan]{state or 'unknown'}[/cyan]")
-    if not state:
-        console.print(f"[red]❌  Could not determine VM state on {HYPERVISOR_SSH_ALIAS}[/red]")
-        return 1
-    if state not in ("running", "shut off"):
-        console.print(f"[red]❌  Unexpected VM state: {state!r}[/red]")
-        return 1
-    if state == "shut off":
-        console.print(f"  Starting {vm} on {HYPERVISOR_SSH_ALIAS}...")
-        subprocess.run(
-            ["ssh", HYPERVISOR_SSH_ALIAS,
-             "virsh", "--connect", "qemu:///system", "start", vm],
-            check=True,
-        )
-
-    console.print(f"  [dim]Polling {virbr0_ip} via ProxyJump through {HYPERVISOR_SSH_ALIAS}...[/dim]")
-    poll_start   = time.time()
-    poll_timeout = 1800
-    powered_off  = False
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[cyan]Waiting for SSH or autoinstall completion... ({task.fields[elapsed]}s)[/cyan]"),
-        transient=True,
-    ) as progress:
-        task = progress.add_task("wait", elapsed=0)
-        while time.time() - poll_start < poll_timeout:
-            if _hypervisor_vm_state(vm) == "shut off":
-                powered_off = True
-                break
-            if _hypervisor_tcp_probe(virbr0_ip):
-                break
-            progress.update(task, elapsed=int(time.time() - poll_start))
-            time.sleep(10)
-        else:
-            console.print(f"[red]❌  Timed out after {poll_timeout // 60} min[/red]")
-            return 1
-
-    elapsed = int(time.time() - poll_start)
-
-    if powered_off:
-        console.print(f"  [green]✓[/green] Autoinstall complete ({elapsed}s) — starting {vm}")
-        subprocess.run(
-            ["ssh", HYPERVISOR_SSH_ALIAS,
-             "virsh", "--connect", "qemu:///system", "start", vm],
-            check=True,
-        )
-        console.print(f"  [dim]Waiting for SSH after reboot...[/dim]")
-        reboot_start = time.time()
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[cyan]Waiting for SSH... ({task.fields[elapsed]}s)[/cyan]"),
-            transient=True,
-        ) as progress:
-            task = progress.add_task("ssh", elapsed=0)
-            while time.time() - reboot_start < 300:
-                if _hypervisor_tcp_probe(virbr0_ip):
-                    break
-                progress.update(task, elapsed=int(time.time() - reboot_start))
-                time.sleep(5)
-            else:
-                console.print("[red]❌  SSH did not come up within 5 min after reboot[/red]")
-                return 1
-    else:
-        console.print(f"  [green]✓[/green] TCP port 22 open ({elapsed}s)")
-
-    # Populate known_hosts so Ansible can connect
-    console.print(f"  Updating known_hosts via {HYPERVISOR_SSH_ALIAS} keyscan...")
-    _hypervisor_add_known_hosts(virbr0_ip)
-
-    # Ansible ping to confirm
-    console.print(f"  Confirming Ansible connectivity...")
-    for attempt in range(6):
-        if ansible_ping(vm, config):
-            break
-        time.sleep(5)
-    else:
-        console.print(f"[red]❌  Ansible cannot reach {vm}[/red]")
-        console.print(f"    Check: ansible user '{vm_user(config)}', key '{ssh_key_path(config)}'")
-        return 1
-
-    console.print()
-    console.print(f"[green]✅  {vm} is built on {HYPERVISOR_SSH_ALIAS} and SSH-ready.[/green]")
-    console.print(f"    Next: [cyan]python tools/esacp.py provisionVM {vm}[/cyan]")
-    return 0
-
-
-def _virsh_vol_upload(seed_local: Path, vm: str) -> bool:
-    """Upload seed ISO into the default libvirt pool via virsh — no sudo needed."""
-    iso_name = f"{vm}-seed.iso"
-    size     = seed_local.stat().st_size
-
-    # Remove stale volume if present (ignore failure)
-    subprocess.run(
-        ["virsh", "vol-delete", iso_name, "--pool", "default"],
-        capture_output=True,
-    )
-
-    result = subprocess.run(
-        ["virsh", "vol-create-as", "default", iso_name, str(size), "--format", "raw"],
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        console.print(f"[red]❌  vol-create-as failed: {result.stderr.strip()}[/red]")
-        return False
-
-    result = subprocess.run(
-        ["virsh", "vol-upload", "--pool", "default", iso_name, str(seed_local)],
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        console.print(f"[red]❌  vol-upload failed: {result.stderr.strip()}[/red]")
-        return False
-
-    console.print(f"  [green]✓[/green] {iso_name} uploaded to default pool")
-    return True
-
-
-def _build_seed_iso_local(vm: str) -> bool:
-    """Build the seed ISO locally (platforms/kvm/<vm>-seed.iso). No upload."""
-    cloud_init = PLATFORMS_KVM / "cloud-init" / vm
-    user_data  = cloud_init / "user-data"
-    meta_data  = cloud_init / "meta-data"
-    for f in (user_data, meta_data):
-        if not f.exists():
-            console.print(f"[red]❌  Missing cloud-init file: {f}[/red]")
-            return False
-
-    seed_local = PLATFORMS_KVM / f"{vm}-seed.iso"
-    console.print(f"  Building {vm}-seed.iso...")
-    result = subprocess.run(
-        ["cloud-localds", str(seed_local), str(user_data), str(meta_data)],
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        console.print(f"[red]❌  cloud-localds failed: {result.stderr.strip()}[/red]")
-        return False
-    console.print(f"  [green]✓[/green] {vm}-seed.iso built")
-    return True
-
-
-def _build_seed_iso(vm: str) -> bool:
-    """Build seed ISO and upload it into the local default libvirt pool."""
-    if not _build_seed_iso_local(vm):
-        return False
-    seed_local = PLATFORMS_KVM / f"{vm}-seed.iso"
-    console.print(f"  Uploading seed ISO to default libvirt pool...")
-    if not _virsh_vol_upload(seed_local, vm):
-        return False
-    console.print(f"  [green]✓[/green] {vm}-seed.iso ready at {IMAGES_DIR / (vm + '-seed.iso')}")
-    return True
-
-
-def _create_vm(vm: str, config: dict) -> bool:
-    if subprocess.run(["virsh", "dominfo", vm], capture_output=True).returncode == 0:
-        console.print(f"  [yellow]VM '{vm}' already exists — skipping virt-install.[/yellow]")
-        return True
-
-    iso_symlink = PROJECT_ROOT / "ubuntu-24.04.4-live-server-amd64.iso"
-    try:
-        iso_real = subprocess.run(
-            ["readlink", "-f", str(iso_symlink)], capture_output=True, text=True, check=True
-        ).stdout.strip()
-    except subprocess.CalledProcessError:
-        iso_real = str(iso_symlink)
-
-    if not Path(iso_real).exists():
-        console.print(f"[red]❌  ISO not found: {iso_real}[/red]")
-        return False
-
-    seed  = IMAGES_DIR / f"{vm}-seed.iso"
-    disk  = IMAGES_DIR / f"{vm}.qcow2"
-    ram   = 4096 if vm == hub_vm(config) else 2048
-    vcpus = 2
-
-    cmd = [
-        "virt-install",
-        "--name", vm,
-        "--ram",  str(ram),
-        "--vcpus", str(vcpus),
-        "--disk", f"path={disk},size=20,format=qcow2",
-        "--location", f"{iso_real},kernel=casper/vmlinuz,initrd=casper/initrd",
-        "--disk", f"path={seed},device=cdrom,readonly=on",
-        "--network", "network=default",
-        "--os-variant", "ubuntu24.04",
-        "--extra-args", "autoinstall ds=nocloud",
-        "--graphics", "vnc",
-        "--noautoconsole",
-    ]
-
-    console.print(f"  Running virt-install for {vm}...")
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        console.print(f"[red]❌  virt-install failed:\n{result.stderr.strip()}[/red]")
-        return False
-
-    console.print(f"  [green]✓[/green] {vm} created, autoinstall in progress")
-    return True
-
-
 def cmd_build_vm(args, config: dict) -> int:
-    """
-    Idempotent: interrogates actual KVM/VM state at every step and skips
-    what is already done.
+    """Build a VM from scratch via autoinstall — delegates to pipeline primitive."""
+    from tools.pipeline.orchestration.build_vm import build_vm
 
-    Decision tree
-    ─────────────
-    VM does not exist
-      └─ Seed ISO in /var/lib/libvirt/images/?  → skip cloud-localds + copy
-           Seed ISO built locally?              → skip cloud-localds, just copy
-           Neither                             → build and copy
-         then virt-install → autoinstall runs in background
-
-    VM exists
-      └─ skip seed ISO and virt-install entirely
-
-    Either path continues:
-      Clear known_hosts for this VM (fresh install always has a new host key)
-
-      running + SSH up within 30 s  → already done, exit 0
-      running + no SSH after 30 s   → autoinstall in progress
-                                      wait for poweroff → start
-      shut off                      → start
-      any other state               → error
-      then wait for SSH
-    """
-    vm      = args.vm
+    vm = args.vm
     vm_info = kvm_hosts(config).get(vm, {})
     banner(f"Build VM: {vm}")
 
-    hypervisor = vm_info.get("hypervisor")
-    if hypervisor:
-        return _build_vm_remote(vm, vm_info, config)
-
-    vm_exists = subprocess.run(["virsh", "dominfo", vm], capture_output=True).returncode == 0
-
-    # ── Steps 1 & 2: Seed ISO + VM creation ──────────────────────────────────
-    if vm_exists:
-        console.print(f"[bold]Steps 1–2:[/bold] Seed ISO + VM creation")
-        console.print(f"  [green]✓[/green] VM already exists — skipping")
-    else:
-        # Step 1 — Seed ISO
-        console.print("[bold]Step 1/4:[/bold] Seed ISO")
-        seed_dest  = IMAGES_DIR / f"{vm}-seed.iso"
-        seed_local = PLATFORMS_KVM / f"{vm}-seed.iso"
-
-        if seed_dest.exists():
-            console.print(f"  [green]✓[/green] {seed_dest} already present — skipping build")
-        elif seed_local.exists():
-            console.print(f"  Seed ISO built — uploading to default libvirt pool...")
-            if not _virsh_vol_upload(seed_local, vm):
-                return 1
-        else:
-            if not _build_seed_iso(vm):
-                return 1
-
-        # Step 2 — Create VM
-        console.print()
-        console.print("[bold]Step 2/4:[/bold] Create VM")
-        if not _create_vm(vm, config):
-            return 1
-
-    # ── Step 3: Clear stale known_hosts ──────────────────────────────────────
-    # A freshly installed or rebuilt VM always has a new host key.  Stale
-    # entries in known_hosts will prevent Ansible from connecting.
-    console.print()
-    console.print("[bold]Step 3/4:[/bold] Clear stale known_hosts entries")
-    entries = _known_hosts_entries(vm_info)
-    removed = _remove_known_hosts(entries)
-    if removed:
-        console.print(f"  [green]✓[/green] Cleared {removed} stale entry/entries: {', '.join(entries[:removed])}")
-    else:
-        console.print(f"  [dim]No stale entries found[/dim]")
-
-    # ── Step 4: Ensure VM is running, then wait for SSH ──────────────────────
-    console.print()
-    console.print("[bold]Step 4/4:[/bold] Ensure VM is running and SSH-ready")
-
-    virbr0_ip = vm_info.get("virbr0_ip", "")
-
-    state = vm_state(vm)
-    console.print(f"  Current state: [cyan]{state or 'unknown'}[/cyan]")
-
-    if not state:
-        console.print(f"[red]❌  Could not determine state of {vm} — is libvirt running?[/red]")
-        return 1
-
-    if state not in ("running", "shut off"):
-        console.print(f"[red]❌  Unexpected VM state: {state!r}[/red]")
-        return 1
-
-    if state == "shut off":
-        console.print(f"  Starting {vm}...")
-        subprocess.run(["virsh", "start", vm], check=True)
-
-    # Poll for TCP port 22 OR poweroff.  Using TCP (not Ansible) avoids known_hosts
-    # entirely and correctly handles both autoinstall (→ poweroff) and slow boot
-    # (→ SSH eventually comes up without powering off).
-    console.print(f"  [dim]Polling TCP port 22 on {virbr0_ip or vm} (or watching for poweroff)...[/dim]")
-    poll_start   = time.time()
-    poll_timeout = 1800  # 30 min max (covers full autoinstall)
-    powered_off  = False
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[cyan]Waiting for SSH or autoinstall completion... ({task.fields[elapsed]}s)[/cyan]"),
-        transient=True,
-    ) as progress:
-        task = progress.add_task("wait", elapsed=0)
-        while time.time() - poll_start < poll_timeout:
-            current_state = vm_state(vm)
-            if current_state == "shut off":
-                powered_off = True
-                break
-            if virbr0_ip and _tcp_port_open(virbr0_ip):
-                break
-            progress.update(task, elapsed=int(time.time() - poll_start))
-            time.sleep(10)
-        else:
-            console.print(f"[red]❌  Timed out after {poll_timeout // 60} min[/red]")
-            return 1
-
-    elapsed = int(time.time() - poll_start)
-
-    if powered_off:
-        console.print(f"  [green]✓[/green] Autoinstall complete ({elapsed}s) — starting {vm}")
-        subprocess.run(["virsh", "start", vm], check=True)
-        # Now poll again for TCP after the reboot
-        console.print(f"  [dim]Waiting for SSH after reboot...[/dim]")
-        reboot_start = time.time()
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[cyan]Waiting for SSH... ({task.fields[elapsed]}s)[/cyan]"),
-            transient=True,
-        ) as progress:
-            task = progress.add_task("ssh", elapsed=0)
-            while time.time() - reboot_start < 300:
-                if virbr0_ip and _tcp_port_open(virbr0_ip):
-                    break
-                progress.update(task, elapsed=int(time.time() - reboot_start))
-                time.sleep(5)
-            else:
-                console.print("[red]❌  SSH did not come up within 5 min after reboot[/red]")
-                return 1
-    else:
-        console.print(f"  [green]✓[/green] TCP port 22 open ({elapsed}s)")
-
-    # TCP is open — now fix known_hosts so Ansible can connect without prompts.
-    # Clear stale entries and replace with the current host key via ssh-keyscan.
-    console.print(f"  Updating known_hosts with current host key...")
-    _remove_known_hosts(_known_hosts_entries(vm_info))
-    _populate_known_hosts([virbr0_ip] if virbr0_ip else [vm])
-
-    # Final confirmation via Ansible ping
-    console.print(f"  Confirming Ansible connectivity...")
-    for attempt in range(6):
-        if ansible_ping(vm, config):
-            break
-        time.sleep(5)
-    else:
-        console.print(f"[red]❌  Ansible cannot reach {vm} even though TCP port 22 is open[/red]")
-        console.print(f"    Check: ansible user '{vm_user(config)}', key '{ssh_key_path(config)}'")
+    messages: list[str] = []
+    try:
+        build_vm(vm, vm_info, str(PROJECT_ROOT), ssh_key_path(config),
+                 lambda msg: (messages.append(msg), console.print(msg)))
+    except RuntimeError as exc:
+        console.print(f"[red]❌  {exc}[/red]")
         return 1
 
     console.print()
     console.print(f"[green]✅  {vm} is built and SSH-ready.[/green]")
-    console.print(f"    Next: [cyan]python tools/esacp.py provisionVM {vm}[/cyan]")
+    console.print(f"    Next: [cyan]./tools/esacp.py provisionVM {vm}[/cyan]")
     return 0
 
 
