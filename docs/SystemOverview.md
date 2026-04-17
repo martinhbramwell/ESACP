@@ -56,9 +56,8 @@ The entire lab — from blank virtual machine to fully running monitoring stack 
 is built by running three commands:
 
 ```
-bash platforms/kvm/create_seeds.sh     # prepare OS installer configuration
-bash platforms/kvm/create_vms.sh       # create the virtual machines
-python3 orchestration/provision_kvm.py # install, configure, verify everything
+bash platforms/kvm/rebuild_lab.sh      # hub-only rebuild (saconsole + WireGuard)
+./tools/esacp.py provision <hostname>  # provision a dev-quadrant VM through the pipeline
 ```
 
 The provisioner handles the rest automatically: it waits for the OS to install

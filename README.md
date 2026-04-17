@@ -103,8 +103,9 @@ ESACP is a multi-stage infrastructure modernization project designed to transfor
 
 6. **Run provisioning:**
    ```bash
-   python3 orchestration/provision.py --target dev
+   ./tools/esacp.py provision <hostname>
    ```
+   (or drag-to-provision from the Cytoscape control plane)
 
 ## Project Structure
 
@@ -128,10 +129,13 @@ esacp/
 │   │   ├── observability/    # Monitoring stack
 │   │   └── authelia/         # MFA authentication
 │   └── site.yml              # Main playbook
-├── orchestration/            # VM management
-│   ├── provision.py          # Main orchestrator
-│   ├── revertToBaseline.py   # Snapshot restore
-│   └── vm_utils.py           # VirtualBox helpers
+├── tools/                    # Unified CLI + pipeline primitives
+│   ├── esacp.py              # Dispatcher
+│   ├── cli/                  # Per-command entry points
+│   └── pipeline/             # Stages + macros (atomic primitives)
+├── orchestration/            # Legacy/standalone scripts
+│   ├── revertToBaseline.py   # Snapshot restore (VBox-era)
+│   └── validate_observability.py  # 27-check harness
 ├── docker/                   # Container configurations
 │   └── observability/
 │       ├── docker-compose.yml
@@ -160,8 +164,8 @@ esacp/
 python3 orchestration/revertToBaseline.py
 ansible-playbook -i ansible/inventory/dev.yml ansible/site.yml
 
-# Or use the all-in-one provisioner
-python3 orchestration/provision.py --target dev --revert
+# Or use the unified lab CLI
+./tools/esacp.py provision <hostname>
 ```
 
 ### Testing Changes
