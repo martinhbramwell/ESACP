@@ -131,26 +131,46 @@ All Python code that previously hardcoded host-specific values imports from here
 
 Loads `erp_user_pwd` and `db_root_pwd` from env vars (`ESACP_ERP_USER_PWD`, `ESACP_DB_ROOT_PWD`) or from `config/build_secrets.sops.yml` (sops-encrypted). No hardcoded password defaults in code.
 
-## install_specific.py — VM Differentiation (standalone, SCP'd to VM)
+## install_specific — VM Differentiation (SCP'd to VM, Phase 9 #197)
 
-Replaces the old monolithic `ce_sri/install.py`. Runs standalone as the bench user — NOT via `bench execute` (avoids #136 deadlock, closed by PR #137). SCP'd to `/tmp/install_specific.py` on the VM.
+Replaces the old monolithic `ce_sri/install.py`. Runs standalone as the
+bench user — NOT via `bench execute` (avoids #136 deadlock, closed by
+PR #137).
 
-**API URLs use `localhost`** (gunicorn binds 127.0.0.1); the site name is sent as `Host` header via `_HOST_SITE` module global for Frappe multi-tenant routing. All doc names in URLs are encoded via `urllib.parse.quote`.
+**Layout** (Phase 9, #197 — decomposed from a 721-line monolith):
+
+| Path | Role |
+|---|---|
+| `tools/install_specific.py` (≤50 lines) | Thin entry: argparse + dispatch. SCP'd to `/tmp/install_specific.py` |
+| `tools/vm_scripts/install_specific/` (package, each file ≤80) | Per-subcommand + helper modules. Rsynced to `/tmp/vm_scripts/install_specific/` by `stage_4/config_bundle.py` |
+
+The thin entry resolves `sys.path` to either `./vm_scripts`
+(controller) or `/tmp/vm_scripts` (VM), then
+`from install_specific import cmd_phase1, cmd_gate, ...`.
+
+**API URLs use `localhost`** (gunicorn binds 127.0.0.1); the site name is sent as `Host` header via `_HOST_SITE` (in `_http.py`) for Frappe multi-tenant routing. All doc names in URLs are encoded via `urllib.parse.quote`.
 
 ### Subcommands
 
-| Subcommand | When called | What it does |
+| Subcommand | Module | What it does |
 |---|---|---|
-| `phase1` | After envars deployed, before app clones | Clone BaRe, symlink envars.sh, render bash_aliases |
-| `gate` | After installApps + G-pre strip DEFINER | If no BKP/BACKUP.txt → handleBackup → exit; else → handleRestore |
-| `before-install` | After H4a/H3/H4b/H4c (secrets + nginx setup) | Write ce_sri.conf, patch site_config.json, nginx.conf, Procfile, supervisor.conf |
-| `after-restart` | After H4e/H4f/H4f-poll (gunicorn ready) | Confirm API, install Client Scripts, logo, naming series, test data |
+| `phase1` | `phase1.py` | Clone BaRe, symlink envars.sh, render bash_aliases |
+| `gate` | `gate.py` | If no BKP/BACKUP.txt → handleBackup → exit; else → handleRestore |
+| `before-install` | `before_install/` | Write ce_sri.conf, patch site_config.json, nginx.conf, Procfile, supervisor.conf |
+| `after-restart` | `after_restart/` | Confirm API, install Client Scripts, logo, naming series, test data |
 
-Config comes from environment variables (envars.sh sourced by differentiate.sh) + `ce_sri_parms.json` + `site_config.json`. HTTP via stdlib `urllib` — no `requests` dependency.
+Called from `stage_8_app_config/pre_restart_config.sh` (`before-install`)
+and `post_restart_config.sh` (`after-restart`). `phase1` and `gate` are
+defined subcommands without a current pipeline caller — intended for
+manual golden-backup operations.
+
+Config comes from environment variables (envars.sh sourced by the stage scripts) + `ce_sri_parms.json` + `site_config.json`. HTTP via stdlib `urllib` — no `requests` dependency.
 
 **First run** (no golden backup): `gate` runs handleBackup.sh and exits. The backup is copied to `platforms/kvm/golden_backups/` on the controller.
 
 **Subsequent runs**: `gate` runs handleRestore.sh, then `before-install` and `after-restart` complete the ce_sri customization.
+
+Acceptance test: `./tools/verify_phase9.py`.
 
 ## pipeline/ — Provision/Refresh Pipeline
 

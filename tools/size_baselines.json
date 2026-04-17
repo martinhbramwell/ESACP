@@ -32,7 +32,7 @@
   "tools/cli/validate_observability.py": 30,
   "tools/cli/verify_vpn.py": 22,
   "tools/esacp.py": 106,
-  "tools/install_specific.py": 721,
+  "tools/install_specific.py": 47,
   "tools/job_worker.py": 92,
   "tools/pipeline/__init__.py": 0,
   "tools/pipeline/macro/__init__.py": 0,
