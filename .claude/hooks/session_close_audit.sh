@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Session-close audit hook. Fires on UserPromptSubmit; if the user's
+# prompt contains a session-close signal (SCC?, session flip, wrap up,
+# close out, sign off, session close/end), injects an audit reminder
+# into the assistant's context BEFORE it responds.
+#
+# Motivation: Phase 8 post-mortem (2026-04-17). See
+# memory/feedback_narration_not_action.md for the rule this enforces.
+
+set -euo pipefail
+
+PROMPT="$(jq -r '.prompt // ""')"
+
+SIGNAL_RE='\bSCC\?|session[- ](flip|close|end)|\bwrap[- ]?up\b|\bclose[- ]out\b|sign(ing)?[- ]off|\bsession[- ]close[- ]audit\b'
+
+if ! printf '%s' "$PROMPT" | grep -iqE "$SIGNAL_RE"; then
+    exit 0
+fi
+
+cat <<'JSON'
+{
+  "hookSpecificOutput": {
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "SESSION-CLOSE AUDIT — run this BEFORE writing minutes or declaring anything DONE.\n\n1. Grep this session's own outputs for forward-tense phrases: \"I'll X\", \"I will X\", \"should X\", \"next we need to X\", \"noted for next session\". For each, show one of:\n   (a) the tool call in this session that executed it,\n   (b) the URL / file path where it was committed to a durable home (gh issue comment, code file, memory file), or\n   (c) an open task with in_progress status.\n   \"Noted in the minutes\" is NOT a valid resolution — minutes reference durable homes, they do not replace them.\n\n2. For every GH issue referenced this session: confirm any new findings about it have been posted as a comment on the issue itself (not just the minutes).\n\n3. For every PR opened this session: run `gh pr view <N> --json mergedAt` and confirm it is non-null before writing \"DONE\" anywhere.\n\nList each audit entry with its resolution BEFORE responding to the user's close-out request. Minutes describe what happened, not what you intended to happen."
+  }
+}
+JSON

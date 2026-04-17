@@ -47,8 +47,12 @@ logs/
 Thumbs.db
 .directory
 
-# Claude Code
-.claude/
+# Claude Code — ignore everything except the project-scoped settings + hooks
+# that should ship with the repo.
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+!.claude/hooks/**
 
 # Editor
 .vscode/
