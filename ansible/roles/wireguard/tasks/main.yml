@@ -94,6 +94,18 @@
     state: started
     daemon_reload: yes
 
+# Reconcile live kernel WG state against wg0.conf. The `template` task above
+# detects change by file content, so a destroy that removes peers from the live
+# interface via `wg set ... peer remove` (without mutating inventory) leaves the
+# file correct and the handler silent — drift persists across play reruns.
+# `wg syncconf` applies the diff to the kernel without interrupting traffic. (#210)
+- name: Reconcile wg0 runtime state with wg0.conf (hub only)
+  shell: "wg syncconf wg0 <(wg-quick strip wg0)"
+  args:
+    executable: /bin/bash
+  changed_when: false
+  when: wg_role == 'hub'
+
 - name: Verify WireGuard interface is up
   command: wg show wg0
   register: wg_status
