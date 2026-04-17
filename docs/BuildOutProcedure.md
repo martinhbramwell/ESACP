@@ -106,11 +106,13 @@ virt-viewer target1 &
 
 ## 5. Provision Both VMs
 
-Run the provisioner immediately — it detects mid-autoinstall automatically:
+Run the provisioner — the pipeline detects mid-autoinstall automatically:
 
 ```bash
-python3 orchestration/provision_kvm.py
+./tools/esacp.py provision <hostname>
 ```
+
+(Or drag-to-provision from the Cytoscape control plane.)
 
 The provisioner handles the full lifecycle for each VM in sequence:
 
@@ -222,5 +224,5 @@ To revert all the way to fresh install and re-run Ansible from scratch:
 ```bash
 python3 platforms/kvm/snapshot.py revert saconsole "Fresh Install"
 python3 platforms/kvm/snapshot.py revert target1   "Fresh Install"
-python3 orchestration/provision_kvm.py --skip-fresh-snapshot
+./tools/esacp.py provision <hostname>
 ```

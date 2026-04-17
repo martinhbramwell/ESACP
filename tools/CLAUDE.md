@@ -26,6 +26,22 @@ Subprocess is banned in dispatchers except:
 
 The pre-commit ratchet (`tools/pre_commit_size_check.py`) enforces the caps.
 
+## Standalone harnesses — subprocess bridges from pipeline
+
+Not everything that calls `subprocess` is a dispatcher leak. Some scripts are
+measurement/assertion harnesses that exist outside the provisioning CRUD flow
+and are intentionally kept as standalone files:
+
+| Harness | Invoked via | Why standalone |
+|---|---|---|
+| `orchestration/validate_observability.py` (27-check suite) | `tools/pipeline/orchestration/observability_creds.py:validate_observability()` runs `subprocess.run(["python3", script_path])` | Long-lived assertion harness with its own output format. Decomposing it into IoC primitives would not change the capability — each check is a single query + assert, and the script is already one-responsibility-per-function internally. Kept as an auditable single-file test harness, invoked through a pipeline primitive that sources credentials. |
+
+Rule: a standalone harness is acceptable when it is **measurement, not
+state-mutation**. If a script mutates VM/host/hub state, it belongs in the
+pipeline as atomic units. Pure assertion/measurement scripts can stay as
+single files invoked from a pipeline primitive, because decomposition adds
+no safety over "run the assertions, report pass/fail".
+
 ## api/ — FastAPI Control Plane (port 8088)
 
 Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move to hub when promoted from prototype.
