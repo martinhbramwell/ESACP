@@ -124,9 +124,17 @@ phase_b_teardown() {
   log B "teardown complete"
 }
 
+phase_c_bootstrap() {
+  log C "delegating to platforms/kvm/bootstrap_hub.sh"
+  log C "(expect 30–60 min: seed + autoinstall + ansible + snapshots + handoff)"
+  bash "$SCRIPT_DIR/bootstrap_hub.sh"
+  log C "bootstrap complete"
+}
+
 case "${1:-all}" in
-  backup|A)   phase_a_backup ;;
-  teardown|B) phase_b_teardown ;;
-  all)        phase_a_backup; phase_b_teardown ;;   # C/D added in later commits
-  *)          echo "usage: $0 [backup|teardown|all]"; exit 64 ;;
+  backup|A)    phase_a_backup ;;
+  teardown|B)  phase_b_teardown ;;
+  bootstrap|C) phase_c_bootstrap ;;
+  all)         phase_a_backup; phase_b_teardown; phase_c_bootstrap ;;   # D added next
+  *)           echo "usage: $0 [backup|teardown|bootstrap|all]"; exit 64 ;;
 esac
