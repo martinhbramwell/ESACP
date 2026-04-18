@@ -72,8 +72,61 @@ phase_a_backup() {
   log A "backup complete: $ARCH_BASE.{xml,qcow2,seed.iso}"
 }
 
+phase_b_teardown() {
+  log B "pre-teardown guard: verify no other domain shares saconsole's volumes"
+
+  sac_paths="$($VIRSH domblklist "$HUB_VM_NAME" | awk 'NR>2 && $2 != "-" {print $2}')"
+  [ -n "$sac_paths" ] || { log B "ERROR: saconsole has no volumes (unexpected)"; exit 2; }
+
+  log B "saconsole volumes to be removed:"
+  printf '    %s\n' $sac_paths
+
+  others="$($VIRSH list --all --name | awk 'NF' | grep -vx "$HUB_VM_NAME" || true)"
+  if [ -n "$others" ]; then
+    log B "other domains on $SSH_HOST (will NOT be touched):"
+    while IFS= read -r dom; do
+      [ -z "$dom" ] && continue
+      dstate="$($VIRSH domstate "$dom" | tr -d '[:space:]')"
+      printf '    %-32s %s\n' "$dom" "$dstate"
+    done <<< "$others"
+    while IFS= read -r dom; do
+      [ -z "$dom" ] && continue
+      dom_paths="$($VIRSH domblklist "$dom" | awk 'NR>2 && $2 != "-" {print $2}')"
+      for p in $sac_paths; do
+        if printf '%s\n' $dom_paths | grep -Fxq "$p"; then
+          log B "ERROR: domain '$dom' also references $p — aborting"
+          exit 2
+        fi
+      done
+    done <<< "$others"
+  fi
+  log B "guard passed — only saconsole will be touched"
+
+  state="$($VIRSH domstate "$HUB_VM_NAME" | tr -d '[:space:]')"
+  if [ "$state" = "running" ]; then
+    log B "saconsole is running — hard stop (virsh destroy)"
+    $VIRSH destroy "$HUB_VM_NAME"
+  fi
+
+  snaps="$($VIRSH snapshot-list "$HUB_VM_NAME" --name | awk 'NF')"
+  if [ -n "$snaps" ]; then
+    log B "deleting existing snapshots (preserved in archive qcow2)"
+    while IFS= read -r s; do
+      [ -z "$s" ] && continue
+      log B "  snapshot-delete $s"
+      $VIRSH snapshot-delete "$HUB_VM_NAME" "$s"
+    done <<< "$snaps"
+  fi
+
+  log B "virsh undefine --remove-all-storage $HUB_VM_NAME"
+  $VIRSH undefine --remove-all-storage "$HUB_VM_NAME"
+
+  log B "teardown complete"
+}
+
 case "${1:-all}" in
-  backup|A) phase_a_backup ;;
-  all)      phase_a_backup ;;   # B/C/D added in later commits
-  *)        echo "usage: $0 [backup|all]"; exit 64 ;;
+  backup|A)   phase_a_backup ;;
+  teardown|B) phase_b_teardown ;;
+  all)        phase_a_backup; phase_b_teardown ;;   # C/D added in later commits
+  *)          echo "usage: $0 [backup|teardown|all]"; exit 64 ;;
 esac
