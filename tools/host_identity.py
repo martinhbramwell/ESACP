@@ -102,3 +102,14 @@ def virbr0_gateway(virbr0_ip: str) -> str:
 def virbr0_subnet_prefix() -> str:
     """Return the virbr0 subnet prefix from the hub's virbr0_ip (e.g. '192.168.122')."""
     return HUB_VIRBR0_IP.rsplit(".", 1)[0]
+
+
+if __name__ == "__main__":
+    # Shell-eval emitter: `eval "$(./tools/host_identity.py)"` in bash.
+    print(f"HUB_KEY={HUB_KEY}")
+    print(f"HUB_VM_NAME={HUB_VM_NAME}")
+    print(f"HUB_HOSTNAME={HUB_HOSTNAME}")
+    print(f"HUB_VIRBR0_IP={HUB_VIRBR0_IP}")
+    print(f"HUB_WG_IP={HUB_WG_IP}")
+    print(f"HUB_HYPERVISOR={HUB_HYPERVISOR}")
+    print(f"DEFAULT_HYPERVISOR={DEFAULT_HYPERVISOR}")

@@ -127,6 +127,19 @@ Resolves host identities from `hosts_map.yml` at import time. Provides:
 
 All Python code that previously hardcoded host-specific values imports from here instead.
 
+**Shell-eval emitter.** Also callable directly as an executable
+(`#!/usr/bin/env python3`, `chmod +x`). Prints KEY=VALUE lines for
+bash consumption — use from shell scripts that need the hub identity
+without a `python -c` / `PYTHONPATH` layer:
+
+```bash
+eval "$(./tools/host_identity.py)"
+echo "$HUB_VM_NAME $HUB_HYPERVISOR"
+```
+
+Emits: `HUB_KEY`, `HUB_VM_NAME`, `HUB_HOSTNAME`, `HUB_VIRBR0_IP`,
+`HUB_WG_IP`, `HUB_HYPERVISOR`, `DEFAULT_HYPERVISOR`.
+
 ## secrets.py — Build Secrets Loader
 
 Loads `erp_user_pwd` and `db_root_pwd` from env vars (`ESACP_ERP_USER_PWD`, `ESACP_DB_ROOT_PWD`) or from `config/build_secrets.sops.yml` (sops-encrypted). No hardcoded password defaults in code.
