@@ -64,6 +64,10 @@ const REQUIRED_SYNC_ROWS = [
 ]
 
 test.describe('Acceptance Run 01 — CLI saconsole rebuild', () => {
+  // Headless by default — the 3–4h rebuild is machine-observed, not human-watched.
+  // Override with HEADED=1 when debugging locally.
+  test.use({ headless: process.env.HEADED !== '1' })
+
   // Per-test override of the global 40-min playwright.config timeout.
   // Budget: wait_budget_seconds (rebuild subprocess) + convergence + 10 min margin.
   test.setTimeout(
