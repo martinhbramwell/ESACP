@@ -71,7 +71,7 @@ def _take_final_snapshot(
     hostname: str, hypervisor: str, emit: Emit,
 ) -> None:
     """Take the post-differentiation snapshot on the hypervisor."""
-    snap_name = "ERPNext v13 Logichem DB Restored"
+    snap_name = "ERPNext v13 Restored Baseline"
     r = subprocess.run(
         [
             "ssh", hypervisor,

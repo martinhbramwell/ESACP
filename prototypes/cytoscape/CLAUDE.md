@@ -101,7 +101,7 @@ Test files:
 ## Stockroom Templates
 
 Two template tiles in the Console quadrant:
-- **Restored Logichem ERPNext** (`tpl-erpnext-restored`) — provisions a VM and restores a production Logichem database clone (stages 1-9, `provision_mode="restored"`)
+- **Restored ERPNext** (`tpl-erpnext-restored`) — provisions a VM and restores a production database clone (stages 1-9, `provision_mode="restored"`)
 - **Generic ERPNext** (`tpl-erpnext-generic`) — provisions a blank ERPNext with setup wizard ready (stages 1-9, `provision_mode="generic"`, skips ce_sri/backup/Social Login)
 
 Both share the same Packer base image. `_syncTemplateState()` applies `tpl-ready`/`tpl-none`/`tpl-building` to both tiles simultaneously.
