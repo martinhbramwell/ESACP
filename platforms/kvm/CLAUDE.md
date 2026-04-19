@@ -42,7 +42,7 @@ The word "production" has three unrelated meanings in this project. Use these te
 
 | Concept | Term to use | NOT |
 |---|---|---|
-| Live business ERP (erp.logichem.solutions) | **production** or **prod** | — |
+| Live business ERP (erp.yourpublic.work) | **production** or **prod** | — |
 | Frappe served via supervisor + gunicorn + nginx | **supervisor mode** | "production mode" |
 | Frappe served via `bench start` (honcho) | **development mode** | — |
 | `npm install` without devDependencies | `npm install --omit=dev` | "production install" |

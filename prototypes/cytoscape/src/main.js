@@ -88,7 +88,7 @@ const ZONE_GROUPS = {
 // Stockroom: template tiles. Visibility controlled by tpl-none/tpl-building/tpl-ready class.
 // Both share the same Packer base image — _syncTemplateState applies to all.
 const STOCKROOM_TEMPLATES = [
-  { id: 'tpl-erpnext-restored', label: 'Restored Logichem\nERPNext\n4C / 8G / 60G', defaultZone: 'staging', defaultRole: 'master' },
+  { id: 'tpl-erpnext-restored', label: 'Restored ERPNext\n4C / 8G / 60G', defaultZone: 'staging', defaultRole: 'master' },
   { id: 'tpl-erpnext-generic',  label: 'Generic ERPNext\n4C / 8G / 60G', defaultZone: 'development', defaultRole: 'dev' },
 ]
 
@@ -1650,7 +1650,7 @@ const dialogTitle   = document.getElementById('dialog-title')
 // Passed to addHost so the backend knows to use vol-clone + --import instead of ISO.
 let _dialogTemplateId = null
 
-const ZONE_DOMAINS = { development: 'iridium.blue', staging: 'iridium.blue', production: 'logichem.solutions' }
+const ZONE_DOMAINS = { development: 'iridium.blue', staging: 'iridium.blue', production: 'yourpublic.work' }
 const siteUrlPreview  = document.getElementById('site-url-preview')
 const fieldSiteUrl    = document.getElementById('field-site-url-preview')
 const fNicknameHint   = document.getElementById('f-nickname-hint')
@@ -1850,7 +1850,7 @@ document.getElementById('add-target-form').addEventListener('submit', async e =>
         job_id = r.job_id
         jobType = 'provision_generic'
       } else {
-        // Restored Logichem ERPNext: single atomic endpoint
+        // Restored ERPNext: single atomic endpoint
         const r = await startProvisionErpnext({
           hostname, nickname, virbr0_ip, wg_ip, hypervisor, zone, vm_role,
         })

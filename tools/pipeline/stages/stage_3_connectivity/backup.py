@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
+from tools.bespoke_root import BESPOKE_ROOT
 from tools.pipeline.stages.common.ssh import rsync_to_vm, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
-BKP_SRC = Path.home() / "projects" / "Logichem" / "ce_sri" / "BKP"
+BKP_SRC = BESPOKE_ROOT / "ce_sri" / "BKP"
 
 
 def _backup_present(config: Config) -> bool:

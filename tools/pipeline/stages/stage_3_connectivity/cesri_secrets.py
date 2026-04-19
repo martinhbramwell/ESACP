@@ -6,6 +6,7 @@ import json
 import subprocess
 from pathlib import Path
 
+from tools.bespoke_root import BESPOKE_ROOT
 from tools.pipeline.stages.common.ssh import scp_to_vm
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
@@ -13,10 +14,9 @@ CE_SRI_SECRETS_DIR = Path.home() / ".ssh" / "secrets"
 CE_SRI_P12_CERT = CE_SRI_SECRETS_DIR / (
     "PRESIDENTE_DANIEL_LEONARD_WILD_STAPEL_1709470171_171224162014.p12"
 )
-LOGICHEM_DIR = Path.home() / "projects" / "Logichem"
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
-CE_SRI_LOGO = PROJECT_ROOT / "config" / "branding" / "LogichemLogo.png"
-CE_SRI_SOCIALS = LOGICHEM_DIR / "ce_sri" / "example_srvr_files" / "socials_google.json"
+CE_SRI_LOGO = PROJECT_ROOT / "config" / "branding" / "CompanyLogo.png"
+CE_SRI_SOCIALS = BESPOKE_ROOT / "ce_sri" / "example_srvr_files" / "socials_google.json"
 
 
 def _collect_static_files(emit: Emit) -> list[str]:

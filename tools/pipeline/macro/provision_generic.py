@@ -30,7 +30,7 @@ def run(
 ) -> None:
     """Provision a generic ERPNext VM (stages 1-9, provision_mode=generic).
 
-    Stages 3/7/8/9 skip Logichem-specific units (backup restore,
+    Stages 3/7/8/9 skip restore-specific units (backup restore,
     ce_sri secrets, Social Login). The result is a blank ERPNext
     with the setup wizard ready on first browser visit.
 

@@ -14,8 +14,20 @@ import os
 import subprocess
 import json
 
-MEMORY_DIR = '/home/hasan/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory'
-SYNC_CHECK  = '/home/hasan/projects/Logichem/ESACP/platforms/kvm/sync_check.sh'
+# CC harness exposes $CLAUDE_PROJECT_DIR when started with a project directory.
+# When set, derive the encoded memory-dir path from it. When unset (current
+# behaviour in this environment — the var is not exported to child shells),
+# fall back to the hard-coded path. The encoded path is frozen to the
+# filesystem location at which the CC session first registered, so it does
+# not move even if the working directory changes; hence a literal carve-out.
+_proj_dir = os.environ.get('CLAUDE_PROJECT_DIR', '')
+if _proj_dir:
+    _encoded = _proj_dir.replace('/', '-')
+    MEMORY_DIR = os.path.expanduser(f'~/.claude/projects/{_encoded}/memory')
+else:
+    MEMORY_DIR = '/home/hasan/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory'
+
+SYNC_CHECK = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sync_check.sh')
 
 # ── Domain → file mapping ──────────────────────────────────────────────────
 DOMAINS = {

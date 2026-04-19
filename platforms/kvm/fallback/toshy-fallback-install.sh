@@ -6,7 +6,8 @@
 set -euo pipefail
 
 BUNDLE_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$HOME/projects/Logichem/ESACP"
+BESPOKE_ROOT="$HOME/projects/bespoke-apps"
+PROJECT_DIR="$HOME/projects/ESACP"
 
 echo "=== 1/7: Install nvm + Node.js 18 ==="
 if ! command -v node &>/dev/null; then
@@ -68,15 +69,18 @@ chmod 600 "$HOME/.ssh/hasan_mighty"
 echo "  [OK] SSH key hasan_mighty deployed"
 
 echo "=== 7/7: Clone ESACP repo + deploy project config ==="
-mkdir -p "$HOME/projects/Logichem"
-if [ -d "$PROJECT_DIR" ]; then
-    echo "  [SKIP] $PROJECT_DIR already exists — pulling latest"
-    cd "$PROJECT_DIR" && git pull
+mkdir -p "$BESPOKE_ROOT"
+if [ -d "$BESPOKE_ROOT/ESACP" ]; then
+    echo "  [SKIP] $BESPOKE_ROOT/ESACP already exists — pulling latest"
+    cd "$BESPOKE_ROOT/ESACP" && git pull
 else
-    cd "$HOME/projects/Logichem"
+    cd "$BESPOKE_ROOT"
     git clone git@github.com:martinhbramwell/ESACP.git
-    echo "  [OK] ESACP cloned"
+    echo "  [OK] ESACP cloned into $BESPOKE_ROOT/ESACP"
 fi
+# Canonical controller-convention entry path: $HOME/projects/ESACP → real checkout.
+ln -sfn "$BESPOKE_ROOT/ESACP" "$PROJECT_DIR"
+echo "  [OK] Symlink $PROJECT_DIR → $BESPOKE_ROOT/ESACP"
 # Deploy project-level .claude/
 cp -r "$BUNDLE_DIR/config/project-dot-claude" "$PROJECT_DIR/.claude"
 echo "  [OK] Project .claude/ deployed"
