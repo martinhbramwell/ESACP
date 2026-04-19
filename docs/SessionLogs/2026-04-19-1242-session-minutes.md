@@ -41,9 +41,9 @@ All within cap.
 - `sync_check` — no new failures vs pre-work baseline
 - Anti-spiral ratchet passed (after compaction of `esacp.py`)
 
-## Ratchet gotcha (for future sessions)
+## Ratchet gotcha — filed as #238
 
-The `tools/pre_commit_size_check.py` hook writes baselines for new files on the **first** commit attempt — even if that commit is blocked by a size violation elsewhere. If a later attempt legitimately grows a new file (e.g. via a helper extraction in the same session), it can trip the ratchet against its own initial recording. Fix: `git restore --staged tools/size_baselines.json && git checkout -- tools/size_baselines.json` before retry — the hook re-records at the corrected size.
+Diagnosed during this session: `tools/pre_commit_size_check.py` persists baselines on blocked commits, tripping the ratchet against its own recording if a new file legitimately grows later in the same session. Full repro + proposed fix in #238. Workaround: `git restore --staged tools/size_baselines.json && git checkout -- tools/size_baselines.json` before retry.
 
 ## Carry-forward to Matrix Run 02 (next session)
 
