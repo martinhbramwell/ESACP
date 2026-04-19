@@ -16,8 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools.cli import (
-    build_vm, clear_known_hosts, confirm_prerequisites, destroy, destroy_vm,
-    display_configuration, provision, provision_vm, snapshot_vm,
+    add_host, build_vm, clear_known_hosts, confirm_prerequisites, destroy,
+    destroy_vm, display_configuration, provision, provision_vm, snapshot_vm,
     validate_keys, validate_observability, verify_vpn,
 )
 from tools.cli._common import console, load_config, kvm_hosts
@@ -27,6 +27,7 @@ DISPATCH = {
     "confirmPrerequisites":  confirm_prerequisites.run,
     "validateKeys":          validate_keys.run,
     "clearKnownHosts":       clear_known_hosts.run,
+    "addHost":               add_host.run,
     "destroyVM":             destroy_vm.run,
     "buildVM":               build_vm.run,
     "provisionVM":           provision_vm.run,
@@ -54,6 +55,8 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("validateKeys",         help="Verify SOPS/age keys and WireGuard key structure")
     sub.add_parser("clearKnownHosts",      help="Remove stale SSH known_hosts entries for ESACP VMs")
 
+    add_host.add_subparser(sub)
+
     for name, help_text in (
         ("destroyVM",   "Destroy a KVM VM and all its storage"),
         ("buildVM",     "Build seed ISO, create VM, wait for autoinstall"),
@@ -65,18 +68,15 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("provisionVM", help="Run Ansible provisioning (task names and errors only)")
     p.add_argument("vm")
-    p.add_argument("--check",               action="store_true", help="Ansible dry run")
-    p.add_argument("--skip-fresh-snapshot", action="store_true",
-                   help="Skip the 'Fresh Install' snapshot step")
+    p.add_argument("--check", action="store_true", help="Ansible dry run")
+    p.add_argument("--skip-fresh-snapshot", action="store_true", help="Skip 'Fresh Install' snapshot step")
 
     sub.add_parser("verifyVPN", help="Test WireGuard connectivity and inter-VM routing")
 
-    p = sub.add_parser("validateObservability",
-                       help="Run the 27-check observability validation suite")
+    p = sub.add_parser("validateObservability", help="Run the 27-check observability validation suite")
     p.add_argument("--verbose", "-v", action="store_true", help="Show passing check details")
 
-    p = sub.add_parser("snapShotVM",
-                       help="Create a snapshot or list snapshots for a VM")
+    p = sub.add_parser("snapShotVM", help="Create a snapshot or list snapshots for a VM")
     p.add_argument("vm")
     p.add_argument("name", nargs="?", help="Snapshot name (omit to list existing)")
 
