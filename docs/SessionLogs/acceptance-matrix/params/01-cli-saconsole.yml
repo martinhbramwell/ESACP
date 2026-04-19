@@ -1,0 +1,8 @@
+run: "01"
+transport: cli
+target: saconsole
+wait_budget_seconds: 18000
+topology_convergence_budget_seconds: 300
+blast_radius: saconsole-only
+backup_mode: qcow2_full
+preserve_metrics_history: false

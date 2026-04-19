@@ -18,6 +18,18 @@
 - name: Base configuration — all KVM hosts
   hosts: kvm
   become: yes
+  # Defer fact-gathering until after cloud-init is confirmed done. On fresh
+  # VMs, sshd listens before cloud-init writes /etc/sudoers.d/<admin-user>,
+  # so the default implicit "Gathering Facts" task (which runs with become)
+  # races cloud-init and fails with "Missing sudo password" (GH #231).
+  gather_facts: false
+  pre_tasks:
+    - name: Wait for cloud-init to reach 'done' state (defense-in-depth vs #231)
+      ansible.builtin.command: cloud-init status --wait
+      become: no
+      changed_when: false
+    - name: Gather facts (now that cloud-init is finished)
+      ansible.builtin.setup:
   roles:
     - common
     - ssh
