@@ -70,3 +70,10 @@ Commit 1 timed out on `gpg: signing failed: Timeout` twice before the user reach
 Memory scrub — see `docs/SessionLogs/2026-04-19-1738-next-agenda.md`. Rewrite the real name inside `~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/**` (the CC auto-memory files), update `MEMORY.md` pointers, leave the encoded memory directory name alone (session-continuity carve-out, same reason as `session_start.py:17`).
 
 Once memory scrub lands, Matrix Run 02 unblocks.
+
+## Session-close audit — follow-up comments
+
+Audit surfaced that #240 and #241 had new findings (dependency on #239 is now resolved) that were present in the PR body + these minutes but not on the issues themselves. Posted during audit:
+
+- #240 unblock note: https://github.com/martinhbramwell/ESACP/issues/240#issuecomment-4276887441
+- #241 unblock note (status: unblocked but deferred pending #240): https://github.com/martinhbramwell/ESACP/issues/241#issuecomment-4276887459
