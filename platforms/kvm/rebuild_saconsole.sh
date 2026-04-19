@@ -16,13 +16,18 @@
 #                 idempotent: seed → autoinstall → Fresh Install snap →
 #                 Ansible → Stage 2.2 Baseline snap → handoff).
 #   D  verify   — clear stale known_hosts, ping hub over WG, SSH via
-#                 you@10.10.0.1, assert hub-critical sync_check rows ✅.
+#                 you@10.10.0.1, assert hub-critical sync_check rows ✅
+#                 INCLUDING all 8 observability containers (#226).
 #
-# PENDING (Phase E, not in this script yet):
-#   E-1 (#226) — start observability docker stack on fresh hub.
+# The observability stack itself is brought up by the existing
+# `ansible/roles/observability` role during Phase C bootstrap (it ends
+# with `docker-compose up -d --force-recreate` + Grafana/Prom/Loki
+# health waits). No separate "services-up" phase is needed.
+#
+# PENDING (Phase E-2, not in this script yet):
 #   E-2 (#227) — re-register pre-existing WG spokes on fresh hub.
-# Until Phase E lands, the rebuilt hub has empty WG peer table + no
-# observability containers — sync_check will show ~9 extra failures
+# Until Phase E-2 lands, the rebuilt hub has empty WG peer table —
+# sync_check will show 1 extra failure ("hub has 0 WG peers")
 # beyond the pre-Run-01 baseline.
 #
 # Archive: ~/archives/saconsole/  (not in git; keep last 3 generations).
@@ -184,25 +189,33 @@ phase_d_verify() {
     || { log D "ERROR: SSH to hub failed"; exit 2; }
   log D "  SSH OK"
 
-  log D "sync_check.sh — assert hub-critical ✅ rows"
+  log D "sync_check.sh — assert hub-critical ✅ rows (incl. 8 observability containers)"
   tmp="$(mktemp)"
   bash "$SCRIPT_DIR/sync_check.sh" > "$tmp" 2>&1 || true
   required=(
-    "MCP grafana"
-    "Telegram bot"
-    "github MCP entry present"
+    "✅  MCP grafana"
+    "✅  Telegram bot"
+    "✅  github MCP entry present"
+    "✅  hub: 'prometheus' — up"
+    "✅  hub: 'grafana' — up"
+    "✅  hub: 'loki' — up"
+    "✅  hub: 'promtail' — up"
+    "✅  hub: 'alertmanager' — up"
+    "✅  hub: 'node_exporter' — up"
+    "✅  hub: 'cadvisor' — up"
+    "✅  hub: 'mcp-grafana' — up"
   )
   for r in "${required[@]}"; do
-    if ! grep -q "✅.*$r" "$tmp"; then
-      log D "ERROR: sync_check missing ✅ for '$r'"
-      grep -n "$r" "$tmp" || true
+    if ! grep -qF -- "$r" "$tmp"; then
+      log D "ERROR: sync_check missing line: '$r'"
+      grep -nF -- "${r#*  }" "$tmp" || true
       rm -f "$tmp"
       exit 2
     fi
   done
   grep -E "Passed:|Warnings:|Failed:" "$tmp" | tail -1
   rm -f "$tmp"
-  log D "  sync_check hub-critical rows green"
+  log D "  sync_check hub-critical + observability rows green"
 
   log D "verify complete — saconsole rebuild healthy"
 }

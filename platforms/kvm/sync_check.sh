@@ -45,6 +45,7 @@ remote_toshiba() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
     "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" "$@"; }
 
 remote_hub() { ssh -o ConnectTimeout=5 -o BatchMode=yes \
+    -o StrictHostKeyChecking=accept-new \
     -o ProxyJump="${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" \
     "${HUB_USER}@${HUB_VIRBR0_IP}" "$@"; }
 
