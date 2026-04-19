@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
+from tools.bespoke_root import BESPOKE_ROOT
 from tools.pipeline.stages.common.ssh import scp_to_vm, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
-VIEWS_DDL_SRC = (
-    Path.home() / "projects" / "Logichem" / "ce_sri"
-    / "example_srvr_files" / "views.ddl"
-)
+VIEWS_DDL_SRC = BESPOKE_ROOT / "ce_sri" / "example_srvr_files" / "views.ddl"
 
 
 def _ddl_present_on_vm(config: Config) -> bool:

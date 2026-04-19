@@ -230,8 +230,8 @@ ansible-galaxy collection install -r ansible/requirements.yml
 ### 16. ESACP repo
 
 ```bash
-git clone https://github.com/martinhbramwell/ESACP.git ~/projects/Logichem/ESACP
-cd ~/projects/Logichem/ESACP
+git clone https://github.com/martinhbramwell/ESACP.git ~/projects/ESACP
+cd ~/projects/ESACP
 ```
 
 ---

@@ -207,7 +207,7 @@ if [[ -f "${PROJ_ROOT}/hosts_map.yml" ]]; then
     ok "ESACP repo present: ${PROJ_ROOT}"
 else
     fail "hosts_map.yml not found — repo may not be fully cloned"
-    fix "git clone https://github.com/martinhbramwell/ESACP.git ~/projects/Logichem/ESACP"
+    fix "git clone https://github.com/martinhbramwell/ESACP.git ~/projects/ESACP"
 fi
 
 # ── Part 2: Hypervisor SSH auth ────────────────────────────────────────────────

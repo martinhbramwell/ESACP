@@ -21,15 +21,21 @@ ERPNext instance carrying production data and all bespoke apps.
 
 All of the following must be in place on the controller machine before starting:
 
+**Sibling-repo convention.** Bespoke-app checkouts live under one root, referenced
+throughout this runbook as `${BESPOKE_ROOT}`. The default is `~/projects/bespoke-apps/`
+(override via the `BESPOKE_ROOT` env var). The checkouts can be a real directory or
+a symlink — on the reference controller `~/projects/bespoke-apps -> ~/projects/<your-layout>`
+so heterogeneous operator layouts are accommodated without editing code.
+
 | Item | Location | Notes |
 |---|---|---|
-| Bespoke app: ce_sri | `~/projects/Logichem/ce_sri_prod/ce_sri/` | Production checkout |
-| Bespoke app: returnable | `~/projects/Logichem/returnable_prod/returnable/` | Production checkout |
-| Bespoke app: route_planner | `~/projects/Logichem/route_planner_prod/route_planner/` | Production checkout |
-| BaRe scripts | `~/projects/Logichem/BaRe/` | handleRestore.sh, installApps.sh |
-| Backup archive | `~/projects/Logichem/ce_sri/BKP/<date>-erp_logichem_solutions.tgz` | Copied from production |
-| Backup name holder | `~/projects/Logichem/ce_sri/BKP/BACKUP.txt` | Contains archive filename |
-| envars.sh | `~/projects/Logichem/envars.sh` | Lab site config + restore flags |
+| Bespoke app: ce_sri | `${BESPOKE_ROOT}/ce_sri_prod/ce_sri/` | Production checkout |
+| Bespoke app: returnable | `${BESPOKE_ROOT}/returnable_prod/returnable/` | Production checkout |
+| Bespoke app: route_planner | `${BESPOKE_ROOT}/route_planner_prod/route_planner/` | Production checkout |
+| BaRe scripts | `${BESPOKE_ROOT}/BaRe/` | handleRestore.sh, installApps.sh |
+| Backup archive | `${BESPOKE_ROOT}/ce_sri/BKP/<date>-<production-site-name>.tgz` | Copied from production |
+| Backup name holder | `${BESPOKE_ROOT}/ce_sri/BKP/BACKUP.txt` | Contains archive filename |
+| envars.sh | `${BESPOKE_ROOT}/envars.sh` | Lab site config + restore flags |
 | WireGuard mesh | `you@10.10.0.3` reachable | `ping 10.10.0.3` to verify |
 
 ### envars.sh restore flags
@@ -47,7 +53,7 @@ with the one from the backup (needed to test encryption-dependent features like 
 ## One-command run (with snapshot revert)
 
 ```bash
-cd ~/projects/Logichem/ESACP
+cd ~/projects/ESACP
 bash platforms/kvm/provision_erpnext_restore.sh --fresh
 ```
 
@@ -70,21 +76,21 @@ ssh you@10.10.0.3 true   # should succeed without error
 ### Step 2 — Rsync bespoke apps (from controller)
 
 ```bash
-LOGICHEM=~/projects/Logichem
+BESPOKE_ROOT=${BESPOKE_ROOT:-~/projects/bespoke-apps}
 BENCH="you@10.10.0.3:/home/adm/frappe-bench-T1LAB"
 RSYNC="rsync -a --delete --rsync-path=sudo rsync"
 
-$RSYNC ${LOGICHEM}/ce_sri_prod/ce_sri/        ${BENCH}/apps/ce_sri/
-$RSYNC ${LOGICHEM}/returnable_prod/returnable/ ${BENCH}/apps/returnable/
-$RSYNC ${LOGICHEM}/route_planner_prod/route_planner/ ${BENCH}/apps/route_planner/
-rsync -a --rsync-path="sudo rsync" ${LOGICHEM}/BaRe/ ${BENCH}/BaRe/
-rsync -a --rsync-path="sudo rsync" ${LOGICHEM}/ce_sri/BKP/ ${BENCH}/BKP/
+$RSYNC ${BESPOKE_ROOT}/ce_sri_prod/ce_sri/        ${BENCH}/apps/ce_sri/
+$RSYNC ${BESPOKE_ROOT}/returnable_prod/returnable/ ${BENCH}/apps/returnable/
+$RSYNC ${BESPOKE_ROOT}/route_planner_prod/route_planner/ ${BENCH}/apps/route_planner/
+rsync -a --rsync-path="sudo rsync" ${BESPOKE_ROOT}/BaRe/ ${BENCH}/BaRe/
+rsync -a --rsync-path="sudo rsync" ${BESPOKE_ROOT}/ce_sri/BKP/ ${BENCH}/BKP/
 ```
 
 ### Step 3 — Push envars.sh (from controller)
 
 ```bash
-scp ~/projects/Logichem/envars.sh you@10.10.0.3:/tmp/envars_lab.sh
+scp ${BESPOKE_ROOT:-~/projects/bespoke-apps}/envars.sh you@10.10.0.3:/tmp/envars_lab.sh
 ssh you@10.10.0.3 "SUDO_ASKPASS=~/.ssh/.supwd.sh sudo -A cp /tmp/envars_lab.sh /opt/ce_sri/envars.sh"
 ```
 
@@ -108,7 +114,7 @@ ssh you@10.10.0.3 "sudo -u adm bash -c 'cd ~/frappe-bench-T1LAB && bash BaRe/han
 
 handleRestore.sh does:
 1. Reads `BKP/BACKUP.txt` to find the backup archive
-2. Detects site name mismatch (production `erp_logichem_solutions` ≠ lab `lab_target1_local`)
+2. Detects site name mismatch (production `<production-site-name>` ≠ lab `lab_target1_local`)
 3. Repackages the archive with the lab site name substituted throughout
 4. Decompresses to `/dev/shm/BKP` (requires 8 GB RAM on target1 — set in hypervisor)
 5. `bench --site lab.target1.local --force restore ...`
