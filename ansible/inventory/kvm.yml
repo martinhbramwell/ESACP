@@ -13,28 +13,21 @@ all:
           vm_name: saconsole
           display_name: Hub Console
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
-        dev01: &id002
-          ansible_host: 192.168.122.21
-          wg_ip: 10.10.0.13
-          wg_role: spoke
-          vm_name: dev01
-          display_name: Dev 01
-          ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
-        dev02: &id003
+        dev02: &id002
           ansible_host: 192.168.122.20
           wg_ip: 10.10.0.12
           wg_role: spoke
           vm_name: dev02
           display_name: Dev 02
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
-        dev03: &id004
+        dev03: &id003
           ansible_host: 192.168.122.22
           wg_ip: 10.10.0.14
           wg_role: spoke
           vm_name: dev03
           display_name: Dev 03
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
-        target5: &id005
+        target5: &id004
           ansible_host: 192.168.122.25
           wg_ip: 10.10.0.15
           wg_role: spoke
@@ -44,26 +37,23 @@ all:
     development:
       hosts:
         saconsole: *id001
-        dev01: *id002
-        dev02: *id003
-        dev03: *id004
-        target5: *id005
+        dev02: *id002
+        dev03: *id003
+        target5: *id004
     lab:
       hosts:
         saconsole: *id001
-        dev01: *id002
-        dev02: *id003
-        dev03: *id004
-        target5: *id005
+        dev02: *id002
+        dev03: *id003
+        target5: *id004
     hub:
       hosts:
         saconsole: *id001
     targets:
       hosts:
-        dev01: *id002
-        dev02: *id003
-        dev03: *id004
-        target5: *id005
+        dev02: *id002
+        dev03: *id003
+        target5: *id004
     controller:
       hosts:
         localhost:

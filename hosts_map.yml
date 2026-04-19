@@ -44,24 +44,6 @@ groups:
         - development
         - lab
 
-    dev01:
-      vm_name: dev01
-      hostname: dev01
-      display_name: "Dev 01"
-      nickname: D1IRBL
-      virbr0_ip: "192.168.122.21"
-      wg_ip: "10.10.0.13"
-      wg_role: spoke
-      ansible_managed: true
-      backend: kvm
-      hypervisor: toshiba
-      vm_role: dev:erpnext
-      ansible_groups:
-        - kvm
-        - targets
-        - development
-        - lab
-
     dev02:
       vm_name: dev02
       hostname: dev02
@@ -97,7 +79,6 @@ groups:
         - targets
         - development
         - lab
-
 
     target5:
       vm_name: target5
