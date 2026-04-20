@@ -140,6 +140,6 @@
   "tools/pipeline/stages/stage_9_service_activation/__init__.py": 63,
   "tools/pipeline/stages/stage_9_service_activation/verify.py": 127,
   "tools/pipeline/stages/wizard_completion/__init__.py": 1,
-  "tools/pipeline/stages/wizard_completion/capture_backup.py": 77,
+  "tools/pipeline/stages/wizard_completion/capture_backup.py": 74,
   "tools/pipeline/stages/wizard_completion/restore_backup.py": 76
 }

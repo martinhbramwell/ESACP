@@ -1,0 +1,33 @@
+# Matrix Run 03 parameters — CLI dev VM, skeletal ERPNext via setup wizard.
+#
+# Administrator credential: the accept-03 spec derives it automatically from
+# config/build_secrets.sops.yml (field erp_user_pwd). The wizard recording
+# logs in with that value. See memory/feedback_lab_admin_password.md.
+#
+# Wizard recording (reused by Run 06): prototypes/cytoscape/recordings/wizard/
+# pseudo-co-wizard.spec.js — replay_wizard.js rewrites base URL per target VM,
+# so the same recording drives both Run 03 (dev01) and Run 06.
+#
+# B03 artefact: captured automatically by capture_golden_backup() after the
+# wizard completes — lands at platforms/kvm/golden_backups/<ts>-generic_<zone>.tgz.
+# The agenda's prescribed path (docs/SessionLogs/acceptance-matrix/artefacts/
+# B03-wizard.sql.gz) predates the provisionGeneric/wizard_completion pipeline
+# delivered by PR #255 — current tooling writes a .tgz to golden_backups/, and
+# that .tgz IS the B03 artefact committed alongside the spec.
+run: "03"
+transport: cli
+target_vm: dev01
+variant: pseudo_wizard
+zone: development
+vm_role: "dev:pseudo_wizard"
+hypervisor: toshiba
+wizard_recording: "pseudo-co-wizard.spec.js"
+wait_budget_seconds: 3000
+topology_convergence_budget_seconds: 300
+company_name: "Pseudo-Co"
+company_abbr: "PSC"
+company_country: "Canada"
+company_currency: "CAD"
+admin_full_name: "Pseudo Admin"
+admin_email: "admin@pseudo-co.example"
+canary_company_url_path: "/app/company/Pseudo-Co"
