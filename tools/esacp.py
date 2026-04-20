@@ -2,7 +2,7 @@
 """
 esacp — ESACP unified lab management CLI
 
-12 subcommands for building, provisioning, and validating the ESACP KVM lab.
+13 subcommands for building, provisioning, and validating the ESACP KVM lab.
 Business logic lives in ``tools/cli/`` and ``tools/pipeline/``; this file is a
 thin argparse + dispatch layer (per CLAUDE.md anti-spiral rules).
 
@@ -17,8 +17,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools.cli import (
     add_host, build_vm, clear_known_hosts, confirm_prerequisites, destroy,
-    destroy_vm, display_configuration, provision, provision_vm, snapshot_vm,
-    validate_keys, validate_observability, verify_vpn,
+    destroy_vm, display_configuration, provision, provision_generic,
+    provision_vm, snapshot_vm, validate_keys, validate_observability, verify_vpn,
 )
 from tools.cli._common import console, load_config, kvm_hosts
 
@@ -32,6 +32,7 @@ DISPATCH = {
     "buildVM":               build_vm.run,
     "provisionVM":           provision_vm.run,
     "provision":             provision.run,
+    "provisionGeneric":      provision_generic.run,
     "destroy":               destroy.run,
     "verifyVPN":             verify_vpn.run,
     "validateObservability": validate_observability.run,
@@ -39,7 +40,7 @@ DISPATCH = {
     "displayConfiguration":  display_configuration.run,
 }
 
-VM_COMMANDS = {"destroyVM", "buildVM", "provisionVM", "provision", "destroy", "snapShotVM"}
+VM_COMMANDS = {"destroyVM", "buildVM", "provisionVM", "provision", "provisionGeneric", "destroy", "snapShotVM"}
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -48,14 +49,13 @@ def _build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    sub = parser.add_subparsers(dest="command", metavar="<subcommand>")
-    sub.required = True
-
+    sub = parser.add_subparsers(dest="command", metavar="<subcommand>", required=True)
     sub.add_parser("confirmPrerequisites", help="Check and install required host software")
     sub.add_parser("validateKeys",         help="Verify SOPS/age keys and WireGuard key structure")
     sub.add_parser("clearKnownHosts",      help="Remove stale SSH known_hosts entries for ESACP VMs")
 
     add_host.add_subparser(sub)
+    provision_generic.add_subparser(sub)
 
     for name, help_text in (
         ("destroyVM",   "Destroy a KVM VM and all its storage"),
