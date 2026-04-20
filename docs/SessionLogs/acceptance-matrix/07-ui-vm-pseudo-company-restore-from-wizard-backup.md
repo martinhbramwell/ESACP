@@ -41,7 +41,7 @@ The test:
 1. Destroys the run-06 dev VM.
 2. Builds the fresh dev VM with the pseudo-restore option using B06.
 3. Navigates to `https://<target_vm>.iridium.blue`.
-4. Asserts company = `Pseudo-Co`, wizard flag is set, admin email matches run 06's param file, and no Logichem records exist.
+4. Asserts company = `Pseudo-Co`, wizard flag is set, admin email matches run 06's param file, and no company-specific records exist.
 5. Compares canary facts against run 04's exit state (helper reuse) — confirms the UI restore path matches the CLI restore path.
 
 ## Acceptance
@@ -57,7 +57,7 @@ Saconsole + dev VM running restored skeletal ERPNext via UI transport. All 7 run
 
 With all 7 runs signed off, write a close-out note comparing:
 
-- Run 02 (CLI) vs Run 05 (UI) — full Logichem from golden backup.
+- Run 02 (CLI) vs Run 05 (UI) — full company-specific from golden backup.
 - Run 03 (CLI) vs Run 06 (UI) — wizard-driven skeletal (including B03 vs B06 content).
 - Run 04 (CLI) vs Run 07 (UI) — restore-from-wizard-backup.
 
