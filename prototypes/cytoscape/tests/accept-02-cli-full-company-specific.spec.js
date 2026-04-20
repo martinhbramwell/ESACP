@@ -148,6 +148,11 @@ test.describe('Acceptance Run 02 — CLI full company-specific ERPNext', () => {
       const afterDestroy = await afterDestroyResp.json()
       const stillThere = afterDestroy.hosts.find(h => h.hostname === params.target_vm)
       expect(stillThere, `${params.target_vm} must be ABSENT after destroy`).toBeFalsy()
+
+      // Rehydrate Cytoscape from post-destroy /api/hosts — the 30s poll tick
+      // may not have fired yet, so the in-memory graph is otherwise stale (#249).
+      await page.reload()
+      await waitForGraph(page)
     } else {
       console.log(`[accept-02] ${params.target_vm} absent at baseline — nothing to destroy`)
     }
