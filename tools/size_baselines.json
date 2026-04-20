@@ -69,6 +69,7 @@
   "tools/pipeline/orchestration/snapshot_ops.py": 39,
   "tools/pipeline/orchestration/sops_key_remove.py": 73,
   "tools/pipeline/orchestration/template_metadata.py": 46,
+  "tools/pipeline/orchestration/test_hosts_map_remove.py": 57,
   "tools/pipeline/orchestration/verify_build_vm.py": 80,
   "tools/pipeline/orchestration/verify_vpn.py": 77,
   "tools/pipeline/orchestration/virsh.py": 15,
