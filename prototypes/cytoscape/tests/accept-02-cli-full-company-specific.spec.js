@@ -19,6 +19,10 @@ import { BASE_URL, API_URL, waitForGraph } from './helpers.js'
  * Params:  docs/SessionLogs/acceptance-matrix/params/02-cli-full-company-specific.yml
  *
  * Parity partner: Run 05 (UI-driven full company-specific restore). Same canary asserted.
+ *
+ * Administrator password: derived automatically from config/build_secrets.sops.yml
+ * (field erp_user_pwd). The provisioning pipeline resets Administrator to that value
+ * post-restore — see memory/feedback_lab_admin_password.md for the why.
  */
 
 const __filename = fileURLToPath(import.meta.url)
@@ -28,6 +32,7 @@ const PARAM_PATH = path.join(
   PROJECT_ROOT,
   'docs/SessionLogs/acceptance-matrix/params/02-cli-full-company-specific.yml'
 )
+const BUILD_SECRETS_PATH = path.join(PROJECT_ROOT, 'config/build_secrets.sops.yml')
 
 function loadParams() {
   const raw = readFileSync(PARAM_PATH, 'utf8')
@@ -45,6 +50,33 @@ function loadParams() {
   return params
 }
 
+function decryptBuildSecret(key) {
+  const raw = execSync(`sops -d ${BUILD_SECRETS_PATH}`, {
+    cwd: PROJECT_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  for (const line of raw.split('\n')) {
+    const m = line.match(new RegExp(`^\\s*${key}\\s*:\\s*(.+?)\\s*$`))
+    if (!m) continue
+    const v = m[1].trim()
+    const quoted = v.match(/^["'](.*)["']$/)
+    return quoted ? quoted[1] : v
+  }
+  throw new Error(`${key} not found in decrypted ${BUILD_SECRETS_PATH}`)
+}
+
+function runSyncCheck() {
+  // sync_check.sh exits non-zero when ANY row fails — including pre-existing
+  // idle-VM ping failures that are unrelated to the host under test (#247).
+  // Swallow exit status; inspect stdout.
+  try {
+    return execSync('bash platforms/kvm/sync_check.sh', {
+      cwd: PROJECT_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    })
+  } catch (err) {
+    return err.stdout || ''
+  }
+}
+
 const params = loadParams()
 const TARGET_URL = `https://${params.target_vm}.iridium.blue`
 const CANARY_URL = `${TARGET_URL}${params.canary_app_url_path}`
@@ -52,30 +84,73 @@ const CANARY_URL = `${TARGET_URL}${params.canary_app_url_path}`
 test.use({ headless: process.env.HEADED !== '1' })
 
 test.describe('Acceptance Run 02 — CLI full company-specific ERPNext', () => {
-  // wait_budget (provision) + convergence + 10 min margin (login + canary + sync_check)
+  // wait_budget (provision) + convergence + 15 min margin (self-check + destroy + canary + sync_check)
   test.setTimeout(
-    (params.wait_budget_seconds + params.topology_convergence_budget_seconds + 600) * 1000
+    (params.wait_budget_seconds + params.topology_convergence_budget_seconds + 900) * 1000
   )
 
-  test('addHost + provision dev01 — exit 0, UI converges, ERPNext canary reachable', async ({ page, browser }) => {
-    const ADMIN_PWD = process.env.ERP_ADMIN_PWD
-    if (!ADMIN_PWD) {
+  test('self-check + destroy + addHost + provision dev01 — exit 0, UI converges, ERPNext canary reachable', async ({ page, browser }) => {
+    // ── Step 0: self-check — validate test-harness assumptions BEFORE any SUT spend ─
+    console.log('[accept-02] self-check: validating harness assumptions')
+
+    // 0a. sops decrypt of build_secrets → ERP_ADMIN_PWD derivable
+    let ADMIN_PWD
+    try {
+      ADMIN_PWD = decryptBuildSecret('erp_user_pwd')
+    } catch (err) {
       throw new Error(
-        'ERP_ADMIN_PWD env var is required. The Administrator password baked into the ' +
-        'golden production backup is not committed to the repo; set it on the command line:\n' +
-        '  ERP_ADMIN_PWD=... npx playwright test --grep "accept-02"'
+        `self-check 0a failed: cannot decrypt ${BUILD_SECRETS_PATH}. ` +
+        `Verify sops + age key. Underlying: ${err.message}`
       )
     }
+    expect(ADMIN_PWD, 'erp_user_pwd from build_secrets.sops.yml').toBeTruthy()
 
-    // ── Step 1: precondition + baseline ────────────────────────────────────
+    // 0b. sync_check.sh parseable via try/catch path (#247 regression guard)
+    const selfSync = runSyncCheck()
+    expect(
+      selfSync,
+      'self-check 0b: sync_check.sh output must contain row markers (✅/❌)'
+    ).toMatch(/[✅❌]/)
+
+    // 0c. Cytoscape API :8088 reachable
+    const apiResp = await page.request.get(`${API_URL}/api/hosts`)
+    expect(apiResp.ok(), 'self-check 0c: Cytoscape API /api/hosts').toBe(true)
+
+    // 0d. Vite :5173 reachable
+    const viteResp = await page.request.get(BASE_URL)
+    expect(viteResp.ok(), `self-check 0d: Vite ${BASE_URL}`).toBe(true)
+
+    // 0e. toshiba SSH reachable (destroy depends on it)
+    try {
+      execSync(`ssh -o BatchMode=yes -o ConnectTimeout=5 ${params.hypervisor} true`, {
+        cwd: PROJECT_ROOT, stdio: ['ignore', 'ignore', 'pipe'],
+      })
+    } catch (err) {
+      throw new Error(`self-check 0e failed: cannot SSH to ${params.hypervisor}: ${err.message}`)
+    }
+
+    console.log('[accept-02] self-check OK — proceeding to baseline/destroy')
+
+    // ── Step 1: baseline + destroy-as-precondition (idempotent clean slate) ─
     await page.goto(BASE_URL)
     await waitForGraph(page)
 
     const baselineResp = await page.request.get(`${API_URL}/api/hosts`)
-    expect(baselineResp.ok(), '/api/hosts baseline').toBe(true)
     const baseline = await baselineResp.json()
     const existing = baseline.hosts.find(h => h.hostname === params.target_vm)
-    expect(existing, `${params.target_vm} must be ABSENT at baseline`).toBeFalsy()
+    if (existing) {
+      console.log(`[accept-02] ${params.target_vm} present at baseline — destroying (attempt-restart safety)`)
+      execSync(`echo y | ./tools/esacp.py destroy ${params.target_vm}`, {
+        cwd: PROJECT_ROOT, stdio: ['ignore', 'inherit', 'inherit'],
+        shell: '/bin/bash',
+      })
+      const afterDestroyResp = await page.request.get(`${API_URL}/api/hosts`)
+      const afterDestroy = await afterDestroyResp.json()
+      const stillThere = afterDestroy.hosts.find(h => h.hostname === params.target_vm)
+      expect(stillThere, `${params.target_vm} must be ABSENT after destroy`).toBeFalsy()
+    } else {
+      console.log(`[accept-02] ${params.target_vm} absent at baseline — nothing to destroy`)
+    }
 
     const onGraphAtBaseline = await page.evaluate((h) => {
       const cy = document.querySelector('#cy')?._cyreg?.cy
@@ -178,10 +253,8 @@ test.describe('Acceptance Run 02 — CLI full company-specific ERPNext', () => {
       await erp.close()
     }
 
-    // ── Step 6: sync_check ─────────────────────────────────────────────────
-    const syncOut = execSync('bash platforms/kvm/sync_check.sh', {
-      cwd: PROJECT_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-    })
+    // ── Step 6: sync_check — assert specific dev01 row (#247) ──────────────
+    const syncOut = runSyncCheck()
     expect(
       syncOut,
       `sync_check ERPNext row for ${params.target_vm} must be ✅`
