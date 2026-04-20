@@ -14,8 +14,7 @@ import { BASE_URL, API_URL, waitForGraph } from './helpers.js'
  *   2. ./tools/esacp.py provision dev01     (Config.provision_mode defaults to "restored")
  *
  * Plan:    ~/.claude/plans/acceptance-matrix-transport-parity.md
- * Agenda:  docs/SessionLogs/acceptance-matrix/02-cli-vm-full-logichem-from-backup.md
- *          (filename frozen pending #246; new artifacts use company-specific token)
+ * Agenda:  docs/SessionLogs/acceptance-matrix/02-cli-vm-full-company-specific-from-backup.md
  * Params:  docs/SessionLogs/acceptance-matrix/params/02-cli-full-company-specific.yml
  *
  * Parity partner: Run 05 (UI-driven full company-specific restore). Same canary asserted.

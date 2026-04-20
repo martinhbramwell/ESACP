@@ -1,10 +1,10 @@
-# Agenda — Acceptance Run 05 (UI) — dev VM, full Logichem ERPNext from backup
+# Agenda — Acceptance Run 05 (UI) — dev VM, full company-specific ERPNext from backup
 
 Plan: `~/.claude/plans/acceptance-matrix-transport-parity.md`
 
 ## Objective
 
-Prove that a dev VM can be built through the Cytoscape UI and end up running full Logichem ERPNext, restored from the golden production backup, via a single destroy + single build action validated by Playwright. Parity partner: run 02 (CLI).
+Prove that a dev VM can be built through the Cytoscape UI and end up running full company-specific ERPNext, restored from the golden production backup, via a single destroy + single build action validated by Playwright. Parity partner: run 02 (CLI).
 
 ## Entry preconditions
 
@@ -15,13 +15,13 @@ Prove that a dev VM can be built through the Cytoscape UI and end up running ful
 
 ## Parameter file
 
-`docs/SessionLogs/acceptance-matrix/params/05-ui-full-logichem.yml`
+`docs/SessionLogs/acceptance-matrix/params/05-ui-full-company-specific.yml`
 
 ```yaml
 run: "05"
 transport: ui
 target_vm: dev01  # confirm at session start against hosts_map.yml
-variant: full_logichem
+variant: full_company_specific
 backup_source: golden_production
 wait_budget_seconds: 1800
 ```
@@ -29,19 +29,19 @@ wait_budget_seconds: 1800
 ## Commands (single destroy, single build)
 
 1. Destroy: Playwright right-clicks the dev VM from run 04 → Destroy → confirms.
-2. Build: Playwright drags saconsole → the target quadrant → selects "Full Logichem from backup" in the pre-provision wizard → confirms. The restore source path is read from the param file, not entered interactively.
+2. Build: Playwright drags saconsole → the target quadrant → selects "Full company-specific from backup" in the pre-provision wizard → confirms. The restore source path is read from the param file, not entered interactively.
 
 ## Playwright test
 
-`prototypes/cytoscape/tests/accept-05-ui-full-logichem.spec.js`
+`prototypes/cytoscape/tests/accept-05-ui-full-company-specific.spec.js`
 
 The test:
 
 1. Destroys the run-04 dev VM and waits for the topology to reflect it.
-2. Performs the drag-and-build path with the `full_logichem` option.
+2. Performs the drag-and-build path with the `full_company_specific` option.
 3. Waits (bounded by `wait_budget_seconds`) for the dev VM to appear and turn green.
-4. Asserts `https://<target_vm>.iridium.blue` responds with the Logichem ERPNext login page.
-5. Queries the same canary Logichem record defined in run 02's helper — parity check against CLI transport.
+4. Asserts `https://<target_vm>.iridium.blue` responds with the company-specific ERPNext login page.
+5. Queries the same canary company-specific record defined in run 02's helper — parity check against CLI transport.
 
 ## Acceptance
 
@@ -52,7 +52,7 @@ The test:
 
 ## Exit state (handed to run 06)
 
-Saconsole + dev VM running full Logichem ERPNext, restored from golden backup. Run 06 begins by destroying this dev VM.
+Saconsole + dev VM running full company-specific ERPNext, restored from golden backup. Run 06 begins by destroying this dev VM.
 
 ## Findings protocol
 
@@ -60,4 +60,4 @@ Halt + issue. Divergence from run 02's observable outcome is a parity finding �
 
 ## Sign-off
 
-Branch `accept/05-ui-full-logichem`; PR; merge.
+Branch `accept/05-ui-full-company-specific`; PR; merge.

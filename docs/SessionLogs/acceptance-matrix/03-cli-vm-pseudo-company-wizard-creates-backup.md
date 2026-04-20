@@ -53,7 +53,7 @@ The test:
 2. Spawns build; asserts UI shows dev VM as green within the convergence budget.
 3. Navigates to `https://<target_vm>.iridium.blue`, drives the ERPNext setup wizard with run-03 params (helper defined here, reused by run 06).
 4. Triggers backup; writes artefact to `backup_output_path`; verifies integrity.
-5. Asserts company = `Pseudo-Co`, no Logichem records.
+5. Asserts company = `Pseudo-Co`, no company-specific records.
 
 ## Acceptance
 

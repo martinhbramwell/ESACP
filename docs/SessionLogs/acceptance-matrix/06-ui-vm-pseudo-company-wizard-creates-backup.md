@@ -53,7 +53,7 @@ The test:
 3. Navigates to `https://<target_vm>.iridium.blue`, drives the ERPNext setup wizard with values from the param file (reuse helper from run 03).
 4. Triggers an ERPNext backup (via the wizard-completion hook or the admin UI, whichever the UI exposes as the "one build" endpoint).
 5. Fetches the backup artefact to `backup_output_path`, verifies integrity (file exists, gzip-valid, SQL header present).
-6. Asserts the ERPNext instance has company name = `Pseudo-Co` and no Logichem records.
+6. Asserts the ERPNext instance has company name = `Pseudo-Co` and no company-specific records.
 
 This is the one agenda whose Playwright test will be substantial. Test code is not length-limited; extract helpers shared with run 03 / run 07.
 
