@@ -315,10 +315,22 @@ test.describe('Acceptance Run 03 — CLI pseudo-wizard skeletal ERPNext', () => 
     const b03 = newBackups[0]
     console.log(`[accept-03] B03 artefact: ${b03.name}`)
     // Integrity: must be a valid gzip tarball with at least one .sql entry.
-    const tarList = execSync(`tar -tzf ${path.join(GOLDEN_BACKUPS_DIR, b03.name)}`, {
-      encoding: 'utf8',
-    })
+    const b03Path = path.join(GOLDEN_BACKUPS_DIR, b03.name)
+    const tarList = execSync(`tar -tzf "${b03Path}"`, { encoding: 'utf8' })
     expect(tarList, 'B03 tarball must contain a .sql entry').toMatch(/\.sql(\.gz)?$/m)
+    // Content: per #256 acceptance, the SQL stream must contain the Company
+    // INSERT — confirms the wizard-completion gate held the backup until
+    // Frappe finished writing Pseudo-Co (+ CoA seeding).
+    const sqlEntry = tarList.split('\n').find(l => l.match(/\.sql(\.gz)?$/))
+    const decompress = sqlEntry.endsWith('.gz') ? ' | zcat' : ''
+    const hits = execSync(
+      `tar -xzOf "${b03Path}" "${sqlEntry}"${decompress} | grep -c "${params.company_name}" || true`,
+      { encoding: 'utf8', shell: '/bin/bash' },
+    ).trim()
+    expect(
+      parseInt(hits, 10),
+      `B03 SQL must reference ${params.company_name} (got ${hits} hits)`,
+    ).toBeGreaterThan(0)
 
     // ── Step 7: sync_check — assert specific dev01 row (#247) ──────────────
     const syncOut = runSyncCheck()

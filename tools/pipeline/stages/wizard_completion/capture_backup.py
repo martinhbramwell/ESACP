@@ -24,7 +24,8 @@ def capture_golden_backup(
 ) -> str:
     """Run handleBackup.sh on the VM and copy the result to the controller.
 
-    Returns the backup filename (e.g. '20260414_120000-generic_iridium_blue.tgz').
+    Returns backup filename. Post-wizard seeding race (#256) is gated in the
+    wizard recording itself via page.waitForFunction(setup_complete == 1).
     """
     host_cfg = load_host_config(hostname, project_root)
     config = build_config(hostname, host_cfg, project_root, provision_mode="generic")
@@ -46,11 +47,7 @@ def capture_golden_backup(
         emit(f"  {line}")
 
     # Read BACKUP.txt to get the filename
-    r = ssh_run(
-        config,
-        f"cat {config.bench_dir_orig}/BKP/BACKUP.txt",
-        timeout=10,
-    )
+    r = ssh_run(config, f"cat {config.bench_dir_orig}/BKP/BACKUP.txt", timeout=10)
     if r.returncode != 0:
         raise RuntimeError("BACKUP.txt not found after handleBackup.sh")
     backup_name = r.stdout.strip()
