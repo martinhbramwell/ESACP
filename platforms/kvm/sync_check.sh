@@ -161,6 +161,26 @@ if [[ "${TOSHIBA_UP}" == true ]]; then
              fix "On toshiba: virsh --connect qemu:///system pool-start esacp"; }
 fi
 
+# Dormant VMs — expected_state=off in hosts_map.yml. Sections 7, 9, 11
+# downgrade ❌ to ⚠️ "dormant (expected off)" for these. Unsetting expected_state
+# (or setting it to "on") restores failure-on-unreachable semantics.
+DORMANT_VMS=$(python3 - "${PROJ_ROOT}/hosts_map.yml" <<'PYEOF'
+import yaml, sys
+d = yaml.safe_load(open(sys.argv[1]))
+for name, h in d.get('groups', {}).get('kvm', {}).items():
+    if str(h.get('expected_state', '')).lower() == 'off':
+        print(name)
+PYEOF
+)
+
+is_dormant() {
+    local vm="$1"
+    for d in ${DORMANT_VMS}; do
+        [[ "${d}" == "${vm}" ]] && return 0
+    done
+    return 1
+}
+
 # ── 7. VMs on toshiba ─────────────────────────────────────────────────────────
 hdr "7. VMs on toshiba"
 
@@ -170,7 +190,9 @@ if [[ "${TOSHIBA_UP}" == true ]]; then
     for vm in ${TOSHIBA_VMS}; do
         STATE=$(remote_toshiba "virsh --connect qemu:///system domstate ${vm} 2>/dev/null" \
             | tr -d '\n' || echo "unknown")
-        if [[ "${STATE}" == "running" ]]; then
+        if is_dormant "${vm}"; then
+            warn "VM '${vm}' — dormant (expected off), state: '${STATE}'"
+        elif [[ "${STATE}" == "running" ]]; then
             ok "VM '${vm}' — running"
         elif [[ "${STATE}" == "shut off" ]]; then
             fail "VM '${vm}' — shut off"
@@ -231,6 +253,8 @@ for label_ip in ${WG_PEERS}; do
     ip="${label_ip##*:}"
     if ping -c1 -W2 "${ip}" &>/dev/null; then
         ok "Ping ${label} (${ip}) — reachable"
+    elif is_dormant "${label}"; then
+        warn "Ping ${label} (${ip}) — dormant (expected off)"
     else
         fail "Ping ${label} (${ip}) — unreachable"
         fix "Check wg0 handshake and that ${label} VM is running on toshiba"
@@ -330,6 +354,8 @@ else
         [[ -z "${HTTP_CODE}" ]] && HTTP_CODE="000"
         if [[ "${HTTP_CODE}" =~ ^(200|301|302)$ ]]; then
             ok "ERPNext ${label} (${url}) — HTTP ${HTTP_CODE}"
+        elif [[ "${HTTP_CODE}" == "000" ]] && is_dormant "${label}"; then
+            warn "ERPNext ${label} (${url}) — dormant (expected off)"
         elif [[ "${HTTP_CODE}" == "000" ]]; then
             warn "ERPNext ${label} (${url}) — unreachable"
             fix "Check VM is running and nginx/bench are up on ${label}"
