@@ -1,0 +1,13 @@
+run: "02"
+transport: cli
+target_vm: dev01
+variant: full_company_specific
+backup_source: golden_production
+zone: development
+vm_role: "dev:full_company_specific"
+hypervisor: toshiba
+wait_budget_seconds: 3600
+topology_convergence_budget_seconds: 300
+canary_doctype: Item
+canary_name: "Test Item"
+canary_app_url_path: "/app/item/Test%20Item"
