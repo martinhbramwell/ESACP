@@ -33,7 +33,7 @@
 	},
 	"environment": {
 		"company_tax_id": "ENC[AES256_GCM,data:MljYPNN707y+uFLiYA==,iv:jphut9v69IrR1RDZN6BvCDN+tjobICXLi7A4yJc40EQ=,tag:sa1yd3lIRiSYQN7V7Znc1Q==,type:str]",
-		"company_logo": "ENC[AES256_GCM,data:vYSqjoFErLdDnMhQrUIcGA==,iv:Kha3r2v3M/p8kf+ypQwg9m6iLezNsP+1qZ3CwjLaQ5s=,tag:JJC96Nuw9gHW+QfsYgoNgA==,type:str]",
+		"company_logo": "ENC[AES256_GCM,data:DS75/arjpSO15flj6EwS,iv:m0MsCtMnGnRG3ln18MAlEAU7RpVmYDbac8RuOPApU2Y=,tag:Jl9u3eNkEwBDzoWUVxePTA==,type:str]",
 		"company_logo_location": "ENC[AES256_GCM,data:/4dHXKbclcHdSpG7BECBIMRoyvJsKg==,iv:BCcx9wFKxrgE7g0a2Tn4Gr7uVU3waNCRg3Jqw8T32zA=,tag:w+Zt6VdKYHL9vxeIJy7SzA==,type:str]",
 		"legal_company_name": "ENC[AES256_GCM,data:OpG4BehnykurQPF9eLNkPtJR2QAwPB3pnNo+vRR2ZdiGinM=,iv:VQY7A/Xt04Akr0uuuhNCdNq9LgeuaMaPSGiCNQ/fT9c=,tag:lVjCdgVks4mlPYoIsVEGkQ==,type:str]",
 		"legal_head_office_address": "ENC[AES256_GCM,data:/b8w8SBfPcA4UKg5jwKbUXvbj12cU6UQgftM/NVdxxDSzYF8HwGqJODsPDKr5wN72b4OeVP1KkLQ,iv:19Q6nP1yeBSMn2eLCgOJaW31I/RuqpfbufJlXYucDNk=,tag:NRRtiPN/ZDc5ZeaUiC0N4A==,type:str]",
@@ -66,8 +66,8 @@
 				"enc": "-----BEGIN AGE ENCRYPTED FILE-----\nYWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBkbWJrVUlhOE9FR0VkNnB4\nSWsvU3NYc3BlclBTKy92T1hKNWtNYjlBRVNNCm9QWVc1bWRHZmQxTjZCZ21Wa0ts\nR20yM09IODVKL0R5V0Raa1o1MTMvR0kKLS0tIHhRdkpwQkdiT1kzTzVmdWNpbzBl\nR0Y5REVEMnI4SU5nSzBrODZpS2NaK1EKLhwFfKlsBWwn8xrzz0xc4ADecgR9yXIq\nLScrsDqXk9F41XIAtAJTHK4PVsnCsxCAaYhsf1yJT1q3cXHk/MLGeQ==\n-----END AGE ENCRYPTED FILE-----\n"
 			}
 		],
-		"lastmodified": "2026-04-13T15:02:32Z",
-		"mac": "ENC[AES256_GCM,data:HyoLcs7KZ7NIVDfFBn41ZHb2qi6xm1Jv/80El1MzQ7hewqyTMqDOGnECqdrTeh3AW+d+TtKZZuaXq2fYNfQKIPsg8jgSe36Q+hCn8Eqf4I6kkhRllHFhnbQQxb3MX6xrdMyJj9sxlEmKkTcE1JzmVIZxKa5WdNOhGnh1mmri2R0=,iv:Jm+PQCqWWt/Qkh/Vwo3Bn/SrH+CGgX0cSpZhH9nwqbY=,tag:6z/cdjwGSqjGZ6K6mQ4XPg==,type:str]",
+		"lastmodified": "2026-04-20T12:23:26Z",
+		"mac": "ENC[AES256_GCM,data:3rKRaGm8VDysgzgtIoD/q54OtYx9M+hivGHfE63AUCXwF9fdBh6yr8+2CsUj5Dxe38T6labkL5wKmlbqaBekf4f9Nmd4+3analqySXhd+qNEKiooMFQvnATdVfNNcRW3Wk2u8L28ySp+2WoXuYcoIXev9hLdbqzT2ky27z3LmJ4=,iv:eIi7VAe9FLpAOnOPmKHyAv95vCi6iRXovCWWZNblAqo=,tag:3MAqbUxck8nExtLEqYSSmw==,type:str]",
 		"unencrypted_suffix": "_unencrypted",
 		"version": "3.12.1"
 	}

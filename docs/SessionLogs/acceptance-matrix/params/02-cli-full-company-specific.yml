@@ -1,0 +1,19 @@
+# Matrix Run 02 parameters — CLI full company-specific ERPNext from golden backup.
+#
+# Administrator credential: the accept-02 spec derives it automatically from
+# config/build_secrets.sops.yml (field erp_user_pwd). The provisioning pipeline
+# resets Administrator to that value post-restore — never supply a production
+# Administrator credential. See memory/feedback_lab_admin_password.md.
+run: "02"
+transport: cli
+target_vm: dev01
+variant: full_company_specific
+backup_source: golden_production
+zone: development
+vm_role: "dev:full_company_specific"
+hypervisor: toshiba
+wait_budget_seconds: 3000
+topology_convergence_budget_seconds: 300
+canary_doctype: Item
+canary_name: "Test Item"
+canary_app_url_path: "/app/item/Test%20Item"
