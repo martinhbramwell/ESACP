@@ -1,0 +1,37 @@
+# Matrix Run 04 parameters — CLI dev VM, skeletal ERPNext restored from B03.
+#
+# Parity partner: Run 07 (UI-driven restore from B06).
+#
+# B03 artefact: produced by Run 03 / PR #257 on 2026-04-20 —
+#   platforms/kvm/golden_backups/20260420_142102-dev01_iridium_blue.tgz
+# CLI `--wizard-arg` expects the backup's basename only, not a path.
+#
+# Agenda-vs-SUT note: the Run 04 agenda proposes
+#   `./tools/esacp.py provision --params <yml>`
+# but the current SUT (post PR #255) has no --params flag. The equivalent
+# capability is `provisionGeneric <vm> --wizard-mode existing --wizard-arg
+# <backup_tgz>` (per tools/CLAUDE.md: "existing = restore from golden
+# backup"). The matrix SUT-frozen rule forbids inline SUT changes during
+# an acceptance run; the spec invokes the existing CLI and reads target
+# identity + canary facts from this param file. Same precedent as
+# 03-cli-pseudo-wizard.yml.
+#
+# Administrator credential: the accept-04 spec derives it automatically
+# from config/build_secrets.sops.yml (field erp_user_pwd) — same value
+# baked into the wizard recording that produced B03, therefore present in
+# the restored Administrator account.
+run: "04"
+transport: cli
+target_vm: dev01
+variant: pseudo_restore
+zone: development
+vm_role: "dev:pseudo_restore"
+hypervisor: toshiba
+backup_source: "20260420_142102-dev01_iridium_blue.tgz"
+wait_budget_seconds: 1800
+topology_convergence_budget_seconds: 300
+company_name: "Pseudo-Co"
+company_abbr: "PSC"
+company_country: "Canada"
+company_currency: "CAD"
+canary_company_url_path: "/app/company/Pseudo-Co"
