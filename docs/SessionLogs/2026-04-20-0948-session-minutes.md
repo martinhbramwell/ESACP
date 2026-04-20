@@ -128,12 +128,59 @@ Direct to PR + merge per approved D5. Local GPG-signed merge commit, branch reta
 
 ---
 
+## Session-close audit
+
+### Step 1 — forward-tense resolution
+
+| Phrase | Resolution |
+|---|---|
+| "I'll report when it finishes" (run kickoff) | Tool call: Bash `run_in_background`; completion notification handled; green reported |
+| "Will check when run finishes" (relaunch) | Same pattern as above |
+| "I'll still ask for approval after you confirm presence" | Scrapped by user mid-turn; `feedback_keyboard_confirm_before_commit.md` created then deleted; MEMORY.md pointer rolled back |
+| "I'll refine the memory" | Scrapped with same roll-back |
+| "I'll drop the verification `ls` going forward" | Durable home: `memory/feedback_no_verification_ls_after_rm.md` + MEMORY.md pointer |
+| "Run 03 blocker: #234" | Durable home: this minutes file's "What unblocks Run 03" section + MEMORY.md Run 02 tracker |
+
+### Step 2 — GH issues, comment audit
+
+| Issue | New findings this session | Posted to GH? |
+|---|---|---|
+| #247 | Root-cause confirmed reproducible; fix in `750d97f` | Commit message + PR #251 body; issue auto-closed on merge |
+| #248 | SOPS rewrite closes scrub-regression scope; SKIP persists for pre-existing reasons | Commit message `c4f1ee7` + PR #251 body; issue auto-closed on merge |
+| #249 | Filed this session; fix in `c8e289d` | Issue body + commit message + PR #251 body |
+| #250 | Filed this session; reframed after user correction (logo IS visible on restored-path) | Body edited + audit-trail comment posted as `issues/250#issuecomment-4281410198` |
+| #234 | No new findings — referenced only as pre-existing Run 03 blocker | N/A |
+| #239, #246 | Referenced as historical context; no new findings | N/A |
+
+### Step 3 — PR merge verification
+
+`gh pr view 251 --json mergedAt,state` → `{"mergedAt":"2026-04-20T13:48:17Z","state":"MERGED"}`. Non-null confirmed pre-DONE.
+
+### Step 4 — unresolved concerns (reminders)
+
+See `Open reminders for operator / next session` below — also surfaced in the session's closing user message.
+
+---
+
+## Open reminders for operator / next session
+
+1. **#234** — `provisionGeneric` CLI subcommand is an absolute prerequisite before Run 03 can start. A separate session + branch + PR must land first.
+2. **#250** — pre-existing logo file-placement gap. Low-priority until Matrix Run 03/06 exercises `provision_mode="generic"`; at that point, decide (a) fix file-placement, (b) collapse `company_logo_location` to /tmp, (c) SCP direct to secrets dir, or (d) delete the inert upload path.
+3. **Budget headroom** — 3000 s budget on attempt 6 = 1.85× over empirical 27.7 min. If provision slows (stage 7 restore is the usual culprit), this is tight. Consider re-widening to 3300–3600 s if the next 2–3 runs drift upward.
+4. **Post-destroy tree drift** — after `destroy dev01`, two files show harmless drift: `config/wireguard/keys.sops.yml` (ciphertext rotation with identical plaintext) and `hosts_map.yml` (trailing blank line). `git checkout --` on both is the canonical clean-up. Worth a pipeline fix: destroy should leave the tree byte-identical to its pre-provision state.
+5. **Self-check (Step 0)** pattern is new in accept-02. It caught nothing on attempt 6 (correct — all preconditions were clean), but the pattern deserves a port to accept-03/04/05/06/07 as each run's spec is authored. Consider a shared helper in `prototypes/cytoscape/tests/helpers.js`.
+6. **accept-01 spec** now carries the same `execSync` try/catch hardening. Run 01's canonical green remains formally waived per MEMORY, but if it's ever re-attempted, the spec will handle the sync_check non-zero exit gracefully.
+7. **#246** — the 5 acceptance-matrix agenda filenames still carry the pre-scrub token. No effect on pipeline; hygiene-only follow-up.
+
+---
+
 ## Acceptance-of-minutes checklist
 
 - [x] Objective stated.
 - [x] Five D-decisions recorded with reasoning.
 - [x] Every GH issue referenced confirmed current.
 - [x] PR #251 `mergedAt` non-null (2026-04-20T13:48:17Z) — `feedback_pr_merge_before_session_close.md` satisfied.
-- [x] Two new issues filed (#249 closed same session, #250 open); MEMORY.md tracker updated in companion commit.
+- [x] Two new issues filed (#249 closed same session, #250 open); MEMORY.md tracker updated.
 - [x] Side findings filed or explicitly dismissed with reason.
 - [x] Working tree clean on `main`.
+- [x] Session-close audit (Steps 1–4) executed; all forward-tense commitments have a durable home; all new issue findings posted to GH; PR `mergedAt` verified.
