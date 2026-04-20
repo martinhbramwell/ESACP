@@ -15,7 +15,9 @@ At the start of every session, before doing anything else:
 
 **One objective per session.** Hard rule.
 
-**1:1:1 discipline** — 1 issue = 1 branch = 1 session. Branch from main, PR to merge, clean working tree always. No accumulating uncommitted changes on main.
+**1:1:1 discipline (substantive changes)** — 1 issue = 1 branch = 1 session, for substantive project software: pipeline code, dispatchers, SUT scripts, Ansible plays/roles, SOPS-backed config with runtime effect, pipeline unit tests. Branch from main, PR to merge, clean working tree always. No accumulating uncommitted changes on main.
+
+**Housekeeping bundles (exception)** — a single branch/session MAY close multiple issues when all are housekeeping: documentation scrubs (CLAUDE.md, RUNBOOK, agendas, minutes), wording/terminology fixes, external Claude Code config (`~/.claude/*`), `.gitignore`/pre-commit hygiene, issue grooming. Guardrails: each issue still filed individually; PR titled as a sweep (`chore(housekeeping): …` or `docs(sweep): …`); PR body lists `fixes #A, #B, #C`; no mixing (any substantive code change pulls the bundle back to 1:1:1); per-file size-check ratchet still applies.
 
 **Bug workflow** — whenever a bug is found:
 1. Open a GitHub issue immediately (`gh issue create --repo martinhbramwell/ESACP`)

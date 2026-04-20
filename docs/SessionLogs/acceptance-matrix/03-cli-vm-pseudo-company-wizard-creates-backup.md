@@ -39,7 +39,7 @@ These company values are reused verbatim by run 06 (UI) — B03 and B06 must be 
 ## Commands (single destroy, single build)
 
 1. Destroy: `./tools/esacp.py destroyVM <target_vm>` (exact spelling confirmed at session start).
-2. Build: `./tools/esacp.py provision --params docs/SessionLogs/acceptance-matrix/params/03-cli-pseudo-wizard.yml`.
+2. Build: `./tools/esacp.py provisionGeneric <target_vm> --wizard-mode replay --wizard-arg <wizard_recording>` — stages 1–9 produce a skeletal ERPNext, then `replay_wizard.js` drives the recorded Playwright script for company entry, then `handleBackup.sh` archives B03. The spec reads `target_vm` and `wizard_recording` from the param file.
 
 The wizard run and backup-trigger are part of the Playwright test that observes/drives the post-build state — they do not count as additional commands, they're part of the test harness's observation pass.
 

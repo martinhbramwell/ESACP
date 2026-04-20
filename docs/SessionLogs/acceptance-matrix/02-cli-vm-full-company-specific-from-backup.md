@@ -30,7 +30,7 @@ topology_convergence_budget_seconds: 300
 ## Commands (single destroy, single build)
 
 1. Destroy: no-op at start (no dev VM present). If one is unexpectedly present, halt.
-2. Build: `./tools/esacp.py provision --params docs/SessionLogs/acceptance-matrix/params/02-cli-full-company-specific.yml` (exact flag spelling confirmed at session start; must consume the param file without further input).
+2. Build: `./tools/esacp.py provision <target_vm>` — `Config.provision_mode` defaults to `"restored"`; stages 1–9 pull the golden production backup. The spec reads `target_vm` from the param file.
 
 The `provision` subcommand already performs stages 1–9 as one unit; that satisfies "single build command".
 

@@ -30,7 +30,7 @@ topology_convergence_budget_seconds: 300
 ## Commands (single destroy, single build)
 
 1. Destroy: `./tools/esacp.py destroyVM <target_vm>`.
-2. Build: `./tools/esacp.py provision --params docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml` (the pipeline is expected to route to the restore variant based on the param file — no separate restore command).
+2. Build: `./tools/esacp.py provisionGeneric <target_vm> --wizard-mode existing --wizard-arg <backup_tgz_filename>` — stages 1–9 run, then the `existing` wizard mode short-circuits to `handleRestore.sh` against the given tgz from `platforms/kvm/golden_backups/`. The spec reads `target_vm` and the `backup_source` filename from the param file.
 
 ## Playwright test
 
