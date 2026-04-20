@@ -95,7 +95,7 @@ Job types: `provision`, `provision_generic`, `refresh`, `destroy`, `build_templa
 
 ## esacp.py — Unified Lab CLI
 
-`./tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands. 12 subcommands routed through `tools/cli/*.py` per-command dispatchers.
+`./tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands. 13 subcommands routed through `tools/cli/*.py` per-command dispatchers.
 
 Non-obvious behaviours:
 - `provisionVM` Ansible output filter: shows PLAY headers, ✓ ok, ★ changed, ❌ fatal, RECAP only (filter lives in `tools/pipeline/stages/common/ansible_output.py`; orchestrator is `tools/pipeline/orchestration/ansible_provision.py`)
