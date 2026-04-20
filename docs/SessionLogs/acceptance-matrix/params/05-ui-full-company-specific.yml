@@ -1,0 +1,32 @@
+# Matrix Run 05 parameters — UI full company-specific ERPNext from golden backup.
+#
+# Parity partner: Run 02 (CLI). Canary assertions MUST match 02 exactly.
+#
+# UI lifecycle:
+#   1. Destroy dev01 via right-click → Destroy → confirm (if present at baseline).
+#   2. Drag tpl-erpnext-restored tile into Development zone.
+#   3. Fill Deploy dialog (hostname, nickname, wg_ip, virbr0_ip, hypervisor, backend,
+#      zone). Submit. Single atomic register+build.
+#
+# Administrator credential: spec derives it from config/build_secrets.sops.yml
+# (field erp_user_pwd). See memory/feedback_lab_admin_password.md.
+#
+# Transport asymmetry (noted, non-blocker): main.js:1828 forces vm_role=dev:unspecified
+# for the development zone; Run 02 CLI used dev:full_company_specific. Acceptance
+# does not assert vm_role — canary is the parity check.
+run: "05"
+transport: ui
+target_vm: dev01
+target_nickname: dev0
+target_wg_ip: "10.10.0.16"
+target_virbr0_ip: "192.168.122.26"
+variant: full_company_specific
+backup_source: golden_production
+zone: development
+hypervisor: toshiba
+backend: kvm
+wait_budget_seconds: 3000
+topology_convergence_budget_seconds: 300
+canary_doctype: Item
+canary_name: "Test Item"
+canary_app_url_path: "/app/item/Test%20Item"
