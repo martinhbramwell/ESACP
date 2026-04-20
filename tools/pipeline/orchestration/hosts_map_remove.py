@@ -17,7 +17,7 @@ def remove_from_hosts_map(
     """Delete the indented block for *hostname* from *hosts_map*."""
     text = hosts_map.read_text()
     pattern = rf'\n    {re.escape(hostname)}:\n(?:[ ]{{6}}[^\n]*\n)+'
-    new_text = re.sub(pattern, "\n", text)
+    new_text = re.sub(pattern, "", text)
     new_text = re.sub(r'\n{3,}', "\n\n", new_text)
     if new_text == text:
         emit(f"  [WARN] '{hostname}' block not found in hosts_map.yml — nothing removed")
