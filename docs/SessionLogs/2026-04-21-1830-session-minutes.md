@@ -3,7 +3,7 @@
 **Date:** 2026-04-21 ~18:30–19:30 EDT
 **Branch:** `chore/phase-1b-repo-tooling-sweep` (merged to `main` via `f8ccfad`)
 **Issues closed:** #217, #244, #216, #50 (4)
-**Issues filed (follow-ups):** #275, #276 (2)
+**Issues filed (follow-ups):** #275, #276, #278 (3 — #278 filed during session-close audit)
 **PR:** #277 — merged 2026-04-21T23:25:46Z
 **Baseline:** plan file `~/.claude/plans/open-issues-purge.md`; session entered at `main @ 24800c6`
 
@@ -92,6 +92,12 @@ reference `~/.local/bin/cf-mcp-refresh`, now installed from the repo copy.
   scope narrow; proper refactor is extracting the token-writing Python into
   a standalone file.
 
+- **#278** — `sync_check.sh` misclassifies a dormant dev01 as
+  "unreachable" instead of the "dormant (expected off)" treatment given
+  to other dev VMs. Carried as an unresolved reminder across three
+  consecutive sessions' minutes without being filed. Filed during the
+  session-close audit so it no longer relies on minute-to-minute memory.
+
 ## PR + merge
 
 - Commit `dbba514` on `chore/phase-1b-repo-tooling-sweep` (GPG-signed,
@@ -107,8 +113,12 @@ reference `~/.local/bin/cf-mcp-refresh`, now installed from the repo copy.
 
 GitHub auto-closed only **#217**. The `fixes #A #B #C #D` no-comma syntax
 links only the first referenced issue. #50, #216, #244 were closed
-manually with comments citing the merge commit. Future sweep PRs should
-write `fixes #A, fixes #B, fixes #C, fixes #D` to auto-close all of them.
+manually with comments citing the merge commit. House-style guidance for
+future sweep PRs (`fixes #A, fixes #B, …`) is now persisted in:
+
+- `memory/feedback_pr_fixes_comma_syntax.md` (project feedback memory)
+- Comment on #262 (housekeeping-bundle amendment) folding the trap into
+  the amendment's standing guidance: <https://github.com/martinhbramwell/ESACP/issues/262#issuecomment-4292603856>
 
 ## Plan update
 
@@ -131,7 +141,7 @@ explicitly allows scope changes when an audit surfaces a finding).
     called them).
 - Plan next hop: **Phase 2A** (`#206` — snapshot_vm subprocess → pipeline
   primitive). Verification: unit test + manual snapshot smoke. No matrix
-  re-run. Expected delta: 23 → 22.
+  re-run. Expected delta: 24 → 23.
 
 ## Reminders to user (unresolved concerns)
 
@@ -139,31 +149,35 @@ explicitly allows scope changes when an audit surfaces a finding).
    where pinentry timeout has cost time. Still no `default-cache-ttl 7200`
    in `~/.gnupg/gpg-agent.conf`. This session: two back-to-back timeouts
    before the third attempt succeeded (user responded to pinentry). Cost
-   ≈5 minutes.
+   ≈5 minutes. Operator action — the fix belongs in `~/.gnupg/gpg-agent.conf`,
+   not anywhere in this repo.
 
-2. **`fixes #A #B` auto-close trap** — documented above. Suggest adopting
-   `fixes #A, fixes #B, fixes #C, fixes #D` as the house style for sweep
-   PRs to avoid manual-close follow-up.
-
-3. **MEMORY.md issue count drift** — the top of memory still lists 29 open
-   issues; true count is now **23**. Not worth fixing in a dedicated session
-   but a drive-by refresh at the next session start is reasonable.
-
-4. **Dev01 sync-check "unreachable" carve-out** — carried over from
-   2026-04-21-1528 minutes. Still not filed as an issue. Dormant while
-   dev01 runs.
-
-5. **Phase 1A runtime-verification check** — the two acceptance items from
+2. **Phase 1A runtime-verification check** — the two acceptance items from
    the 2026-04-21-1801 minutes (#213 UserPromptSubmit warning, #243
    compound `cd && git` auto-approval) were passively observed clean this
-   session start (no regressions). Can be dropped from carried concerns.
+   session start (no regressions). **Resolved — dropped from carried
+   concerns.**
+
+### Session-close audit resolutions
+
+Items that were surfacing as forward-tense narration in this minutes file
+have been moved to durable homes:
+
+- `fixes #A #B` auto-close trap → `memory/feedback_pr_fixes_comma_syntax.md`
+  + comment on #262.
+- MEMORY.md issue count drift → updated in place (29 → 24, including the
+  three follow-ups filed this arc).
+- Dev01 sync-check carve-out → filed as **#278**.
 
 ## File trail
 
 - Phase 1B commit: `dbba514` on `chore/phase-1b-repo-tooling-sweep`
 - Merge commit: `f8ccfad`
 - PR: <https://github.com/martinhbramwell/ESACP/pull/277>
-- Follow-up issues: #275, #276
+- Follow-up issues: #275, #276, #278
+- #262 auto-close-trap comment: <https://github.com/martinhbramwell/ESACP/issues/262#issuecomment-4292603856>
+- New feedback memory: `memory/feedback_pr_fixes_comma_syntax.md`
+- MEMORY.md edits: open-issues line (29 → 24) + new feedback pointer
 - Plan status edit: `~/.claude/plans/open-issues-purge.md` (Phase 1B ✅)
 - This minutes: `docs/SessionLogs/2026-04-21-1830-session-minutes.md`
 - Prior-session minutes: `docs/SessionLogs/2026-04-21-1801-session-minutes.md`
