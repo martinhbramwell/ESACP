@@ -1,0 +1,51 @@
+# Matrix Run 07 parameters — UI dev VM, skeletal ERPNext restored from B06 (wizard backup).
+#
+# Parity partner: Run 04 (CLI pseudo_restore from B03). Canary facts MUST match
+# Run 04 exactly — same Pseudo-Co, same abbr, same currency, same country,
+# same Company.count == 1. Run 07 uses B06 (Run 06 UI-driven wizard output)
+# as the restore source; since B06 is content-equivalent to B03 (14 Pseudo-Co
+# hits in each, verified 2026-04-21), the canary cross-matches Run 04 despite
+# the different source .tgz.
+#
+# UI lifecycle:
+#   1. Destroy dev01 via right-click → Destroy → confirm (if present at baseline).
+#   2. Drag tpl-erpnext-generic tile into Development zone → Deploy Generic ERPNext.
+#   3. Fill hostname/nickname/IPs/hypervisor/zone, select wizard_mode=existing,
+#      choose B06 tarball, submit. Single atomic register+build+restore.
+#
+# Administrator credential: spec derives it from config/build_secrets.sops.yml
+# (field erp_user_pwd). See memory/feedback_lab_admin_password.md. The post-
+# restore pipeline resets Administrator to erp_user_pwd regardless of what was
+# baked into the dumped DB, so the same sops-derived password works here.
+#
+# Backup source (B06): produced by Run 06 / PR #272 on 2026-04-21 —
+#   platforms/kvm/golden_backups/20260421_114520-dev01_iridium_blue.tgz
+# UI `wizard_arg` for `wizard_mode=existing` is the full .tgz filename (per
+# main.js:1808-1810 — dropdown option value is `b.filename`).
+#
+# Transport asymmetry (noted, non-blocker, tracked in #235): main.js:1828 forces
+# vm_role=dev:unspecified for the development zone. Acceptance does not assert
+# vm_role — canary parity with Run 04 is the contract.
+#
+# Restore semantics: `existing` mode runs stages 1–9 + handleRestore.sh during
+# stage 7 — no wizard replay, no new backup captured. Golden-backups delta MUST
+# be 0 post-run (parity with Run 04 Step 6).
+run: "07"
+transport: ui
+target_vm: dev01
+target_nickname: dev0
+target_wg_ip: "10.10.0.16"
+target_virbr0_ip: "192.168.122.26"
+variant: pseudo_restore
+zone: development
+hypervisor: toshiba
+backend: kvm
+wizard_mode: existing
+backup_source: "20260421_114520-dev01_iridium_blue.tgz"
+wait_budget_seconds: 1800
+topology_convergence_budget_seconds: 300
+company_name: "Pseudo-Co"
+company_abbr: "PSC"
+company_country: "Canada"
+company_currency: "CAD"
+canary_company_url_path: "/app/company/Pseudo-Co"
