@@ -159,7 +159,7 @@ PR #137).
 
 The thin entry resolves `sys.path` to either `./vm_scripts`
 (controller) or `/tmp/vm_scripts` (VM), then
-`from install_specific import cmd_phase1, cmd_gate, ...`.
+`from install_specific import cmd_before_install, cmd_after_restart`.
 
 **API URLs use `localhost`** (gunicorn binds 127.0.0.1); the site name is sent as `Host` header via `_HOST_SITE` (in `_http.py`) for Frappe multi-tenant routing. All doc names in URLs are encoded via `urllib.parse.quote`.
 
@@ -167,21 +167,18 @@ The thin entry resolves `sys.path` to either `./vm_scripts`
 
 | Subcommand | Module | What it does |
 |---|---|---|
-| `phase1` | `phase1.py` | Clone BaRe, symlink envars.sh, render bash_aliases |
-| `gate` | `gate.py` | If no BKP/BACKUP.txt → handleBackup → exit; else → handleRestore |
 | `before-install` | `before_install/` | Write ce_sri.conf, patch site_config.json, nginx.conf, Procfile, supervisor.conf |
 | `after-restart` | `after_restart/` | Confirm API, install Client Scripts, logo, naming series, test data |
 
 Called from `stage_8_app_config/pre_restart_config.sh` (`before-install`)
-and `post_restart_config.sh` (`after-restart`). `phase1` and `gate` are
-defined subcommands without a current pipeline caller — intended for
-manual golden-backup operations.
+and `post_restart_config.sh` (`after-restart`).
 
 Config comes from environment variables (envars.sh sourced by the stage scripts) + `ce_sri_parms.json` + `site_config.json`. HTTP via stdlib `urllib` — no `requests` dependency.
 
-**First run** (no golden backup): `gate` runs handleBackup.sh and exits. The backup is copied to `platforms/kvm/golden_backups/` on the controller.
-
-**Subsequent runs**: `gate` runs handleRestore.sh, then `before-install` and `after-restart` complete the ce_sri customization.
+Golden-backup capture/restore is handled directly by the pipeline:
+`stages/wizard_completion/capture_backup.py` runs `handleBackup.sh` after
+wizard completion; `stages/stage_7_data_restoration/data_restore.sh` and
+`stages/wizard_completion/restore_backup.py` invoke `handleRestore.sh`.
 
 Acceptance test: `./tools/verify_phase9.py`.
 

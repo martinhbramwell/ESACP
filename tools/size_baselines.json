@@ -36,7 +36,7 @@
   "tools/cli/verify_provision_generic.py": 69,
   "tools/cli/verify_vpn.py": 22,
   "tools/esacp.py": 106,
-  "tools/install_specific.py": 47,
+  "tools/install_specific.py": 43,
   "tools/job_worker.py": 92,
   "tools/pipeline/__init__.py": 0,
   "tools/pipeline/macro/__init__.py": 0,
@@ -141,5 +141,6 @@
   "tools/pipeline/stages/stage_9_service_activation/verify.py": 127,
   "tools/pipeline/stages/wizard_completion/__init__.py": 1,
   "tools/pipeline/stages/wizard_completion/capture_backup.py": 74,
-  "tools/pipeline/stages/wizard_completion/restore_backup.py": 76
+  "tools/pipeline/stages/wizard_completion/restore_backup.py": 76,
+  "tools/vm_scripts/install_specific/__init__.py": 14
 }

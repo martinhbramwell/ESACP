@@ -16,12 +16,10 @@ for _candidate in (_here / "vm_scripts", Path("/tmp/vm_scripts")):
         break
 
 from install_specific import (  # noqa: E402
-    cmd_after_restart, cmd_before_install, cmd_gate, cmd_phase1,
+    cmd_after_restart, cmd_before_install,
 )
 
 COMMANDS = {
-    "phase1": cmd_phase1,
-    "gate": cmd_gate,
     "before-install": cmd_before_install,
     "after-restart": cmd_after_restart,
 }
@@ -30,8 +28,6 @@ COMMANDS = {
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command")
-    sub.add_parser("phase1", help="BaRe clone, envars symlink, bash_aliases")
-    sub.add_parser("gate", help="handleBackup (first run) or handleRestore")
     sub.add_parser("before-install", help="File patches (no gunicorn needed)")
     sub.add_parser("after-restart", help="API work (gunicorn must be running)")
     args = parser.parse_args()
