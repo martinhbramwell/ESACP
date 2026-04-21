@@ -1,0 +1,47 @@
+# Matrix Run 06 parameters — UI dev VM, skeletal ERPNext via setup wizard, backup produced.
+#
+# Parity partner: Run 03 (CLI pseudo-wizard). Same wizard recording replayed.
+# Canary facts (Pseudo-Co company + exactly-one Company row) MUST match Run 03.
+#
+# UI lifecycle:
+#   1. Destroy dev01 via right-click → Destroy → confirm (if present at baseline).
+#   2. Drag tpl-erpnext-generic tile into Development zone → Deploy Generic ERPNext.
+#   3. Fill hostname/nickname/IPs/hypervisor/zone, select wizard_mode=replay,
+#      choose pseudo-co-wizard.spec.js, submit. Single atomic register+build+wizard.
+#
+# Administrator credential: spec derives it from config/build_secrets.sops.yml
+# (field erp_user_pwd). See memory/feedback_lab_admin_password.md.
+#
+# Wizard recording (reused from Run 03): prototypes/cytoscape/recordings/wizard/
+# pseudo-co-wizard.spec.js — replay_wizard.js rewrites base URL per target VM.
+#
+# B06 artefact: captured automatically by capture_golden_backup() after the wizard
+# completes — lands at platforms/kvm/golden_backups/<ts>-generic_<zone>.tgz. That
+# .tgz IS B06, committed alongside the spec (agenda's prescribed .sql.gz path
+# predates the provisionGeneric/wizard_completion pipeline — same carve-out as
+# Run 03; see 03-cli-pseudo-wizard.yml).
+#
+# Transport asymmetry (noted, non-blocker, tracked in #235): main.js:1828 forces
+# vm_role=dev:unspecified for the development zone. Acceptance does not assert
+# vm_role — canary parity with B03 is the contract.
+run: "06"
+transport: ui
+target_vm: dev01
+target_nickname: dev0
+target_wg_ip: "10.10.0.16"
+target_virbr0_ip: "192.168.122.26"
+variant: pseudo_wizard
+zone: development
+hypervisor: toshiba
+backend: kvm
+wizard_mode: replay
+wizard_recording: "pseudo-co-wizard.spec.js"
+wait_budget_seconds: 3000
+topology_convergence_budget_seconds: 300
+company_name: "Pseudo-Co"
+company_abbr: "PSC"
+company_country: "Canada"
+company_currency: "CAD"
+admin_full_name: "Pseudo Admin"
+admin_email: "admin@pseudo-co.example"
+canary_company_url_path: "/app/company/Pseudo-Co"
