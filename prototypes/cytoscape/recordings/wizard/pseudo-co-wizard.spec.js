@@ -28,19 +28,33 @@ const { chromium } = require('playwright');
   await page.getByRole('textbox').nth(1).press('Tab');
   await page.locator('input[type="password"]').fill('sasa');
   await page.getByRole('button', { name: 'Next' }).click();
-  // Flake guard: the Industry page occasionally shows a Bootstrap welcome
-  // modal that intercepts pointer events on the checkbox (attempts 3 and 5
-  // of #256 blocked > 30s here). Wait for Frappe's AJAX freeze to clear,
-  // then Escape-dismiss any lingering modal before the checkbox click.
+  // Wait for Frappe's AJAX freeze overlay to clear before Industry-page
+  // interaction (#256 flake guard — does not cover the welcome-modal race,
+  // which is handled below).
   await page.waitForFunction(
     () => !document.querySelector('#freeze.modal-backdrop.in'),
     null, { timeout: 30_000 },
   );
-  if (await page.locator('.modal.fade.show').count()) {
-    await page.keyboard.press('Escape');
-    await page.waitForSelector('.modal.fade.show', { state: 'detached', timeout: 10_000 });
+  // Fixes #267. Run 06 attempt 1 showed the welcome modal can materialise
+  // DURING Playwright's .check() retry loop, not just before it — a
+  // pre-click Escape guard cannot see the future. Resolve the checkbox
+  // via the role locator, then mutate it directly in the page origin:
+  // the assignment + event dispatch runs synchronously and does not
+  // compete with any overlay. Verify via isChecked() so that if Frappe
+  // did not observe the change (e.g. custom component swallowing native
+  // events), we fail immediately instead of passing a broken wizard.
+  const mfgCheckbox = page.getByRole('checkbox', { name: 'Manufacturing' });
+  await mfgCheckbox.waitFor({ state: 'attached', timeout: 30_000 });
+  await mfgCheckbox.evaluate((cb) => {
+    if (!cb.checked) {
+      cb.checked = true;
+      cb.dispatchEvent(new Event('input',  { bubbles: true }));
+      cb.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+  if (!(await mfgCheckbox.isChecked())) {
+    throw new Error('Manufacturing checkbox did not register as checked after DOM mutation');
   }
-  await page.getByRole('checkbox', { name: 'Manufacturing' }).check();
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('textbox').first().fill('Pseudo-Co');
   await page.getByRole('textbox').first().press('Tab');
