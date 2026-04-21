@@ -85,6 +85,8 @@ Commit `9277f0a` required two GPG pinentry retries — default agent TTL / pinen
 
 PR #273 opened on branch `accept/07-ui-pseudo-restore`. Merged locally via `git merge --no-ff -S` → merge commit `5350641` (GPG good signature `DA9704E8`), pushed to origin. `gh pr view 273 --json mergedAt` → `2026-04-21T18:19:15Z`, state MERGED.
 
+**PR-body discrepancy (post-merge):** #273's body states the matrix closeout + MEMORY.md compaction "will land as the next follow-on PR". They actually landed as direct commit `515b26d` to main (docs-only, consistent with Run 04/05/06 minutes-on-main pattern). Discrepancy is documentary only — work is complete; amending the merged PR body was judged not worth the churn.
+
 ### Matrix close-out
 
 Wrote `docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md` — 7-run result table, three parity-pair verdicts (02↔05 full, 03↔06 wizard, 04↔07 restore), issue ledger (matrix-time + remaining-open), transport-parity verdict ("functionally indistinguishable endpoints"), and a handoff note for downstream ERPNext-focused work.
@@ -108,7 +110,8 @@ Addressed reminders #3 and #4 from Run 06 minutes:
 1. **Untracked `doCytoscape.sh` / `doVite.sh`** — still unresolved since 2026-04-21-1033. Decide commit vs `.gitignore` vs leave. Interacts with #244 (`*.tgz` in `.gitignore`).
 2. **Dev01 sync-check "unreachable" carve-out** — not filed as an issue. Dormant for this exit state (dev01 is running) but returns on any test run that ends with dev01 destroyed.
 3. **#271 fix** — when tackled, audit accept-02..05 for the same destroy-guard gap.
-4. **GPG-agent TTL** — `pinentry-timeout` + `default-cache-ttl` default values caused two signing retries this session. User asked about extending to 2hr; config knobs noted, no change applied.
+4. **GPG-agent TTL** — `pinentry-timeout` + `default-cache-ttl` default values caused two signing retries this session. User asked about extending to 2hr; config knobs provided (`default-cache-ttl 7200`, `max-cache-ttl 7200`, `pinentry-timeout 7200` in `~/.gnupg/gpg-agent.conf` + `gpgconf --reload gpg-agent`); no change applied this session.
+5. **PR #273 body discrepancy** — body states closeout "will land as the next follow-on PR"; actually landed as direct commit `515b26d` to main (docs-only precedent from Runs 04/05/06). Noted; not amended.
 
 ## File trail
 
