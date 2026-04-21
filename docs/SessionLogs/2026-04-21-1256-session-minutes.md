@@ -3,7 +3,7 @@
 **Date:** 2026-04-21 ~11:40–12:55 EDT
 **Branch:** `accept/06-ui-pseudo-wizard` (scaffold from 2026-04-21-1033 session, forward-merged with main this session)
 **Issue opened:** #271 (latent `accept-NN` destroy-guard bug, deferred)
-**PR opened:** #272 — **TBD** (to be merged at session close after this minutes commit)
+**PR:** #272 — merged `2026-04-21T17:12:28Z` via GPG-signed merge commit `29aec7a`
 
 ## Objective
 
@@ -118,11 +118,11 @@ Commit contents (avoiding Run-04/05 commit pattern):
 - `config/wireguard/keys.sops.yml` (+24/-24)
 - `hosts_map.yml` (+1/-1)
 
-(PR number + merge commit filled in at merge time.)
+PR #272 merged `2026-04-21T17:12:28Z` via merge commit `29aec7a` on main.
 
 ## State handed to Run 07
 
-- `main @` (next merge commit) — B06 available for Run 07 consumption.
+- `main @ 29aec7a` — B06 available for Run 07 consumption.
 - dev01 running with skeletal Pseudo-Co ERPNext from the wizard. Run 07 destroys first and restores from B06.
 - No schema/pipeline changes in this PR — all lifts were test-layer or artefacts.
 - **Acceptance progress: CLI 4/4 + UI 2/3 = 6/7**. Only Run 07 (UI restore-from-B06, parity partner to Run 04) remains.
@@ -144,6 +144,6 @@ Commit contents (avoiding Run-04/05 commit pattern):
 - Agenda (unchanged): `docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md`
 - Params (unchanged): `docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml`
 - Spec (unchanged from scaffold): `prototypes/cytoscape/tests/accept-06-ui-pseudo-wizard.spec.js`
-- PR #272 — merge commit TBD
+- PR #272 — merge commit `29aec7a`, merged 2026-04-21T17:12:28Z
 - Issue #271 (deferred, out of scope): https://github.com/martinhbramwell/ESACP/issues/271
 - Prior-session minutes: `docs/SessionLogs/2026-04-21-1121-session-minutes.md` (#267 fix), `2026-04-21-1100-session-minutes.md` (#268 fix), `2026-04-21-1033-session-minutes.md` (Run 06 attempt 1 halt)
