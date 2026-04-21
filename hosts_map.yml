@@ -109,7 +109,7 @@ groups:
       ansible_managed: true
       backend: kvm
       hypervisor: toshiba
-      vm_role: dev:pseudo_wizard
+      vm_role: dev:unspecified
       ansible_groups:
         - kvm
         - targets
