@@ -37,7 +37,7 @@ function loadParams() {
   const raw = readFileSync(PARAM_PATH, 'utf8')
   const params = {}
   for (const line of raw.split('\n')) {
-    const m = line.match(/^\s*([a-z_]+)\s*:\s*(.+?)\s*$/)
+    const m = line.match(/^\s*([a-z0-9_]+)\s*:\s*(.+?)\s*$/)
     if (!m) continue
     const [, k, v] = m
     const quoted = v.match(/^["'](.*)["']$/)
