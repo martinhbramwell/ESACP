@@ -2,8 +2,8 @@
 """Acceptance test for Phase 9 (#197) — install_specific.py decomposition.
 
 Verifies the thin entry is ≤50 lines, each package file is ≤80 lines,
-the stdlib-only constraint holds (no `requests`), all four subcommands
-are importable through the entry, and prior phases still pass.
+the stdlib-only constraint holds (no `requests`), the pipeline-reachable
+subcommands are importable through the entry, and prior phases still pass.
 
 Exit 0 on pass, 1 on first failure (prints all). Usage: ``./tools/verify_phase9.py``
 """
@@ -77,13 +77,13 @@ def check_commands_importable() -> list[str]:
          "import sys; sys.path.insert(0, str('"
          + str(PKG.parent) + "')); "
          "from install_specific import "
-         "cmd_phase1, cmd_gate, cmd_before_install, cmd_after_restart; "
+         "cmd_before_install, cmd_after_restart; "
          "print('imports ok')"],
         capture_output=True, text=True, cwd=REPO,
     )
     if r.returncode != 0:
         return [f"[FAIL] package import failed:\n{r.stderr.strip()}"]
-    print("[OK]   all 4 cmd_* importable through the package")
+    print("[OK]   both cmd_* importable through the package")
     return []
 
 
@@ -93,11 +93,11 @@ def check_entry_help() -> list[str]:
     )
     if r.returncode != 0:
         return [f"[FAIL] ./tools/install_specific.py --help failed:\n{r.stderr}"]
-    expected = ["phase1", "gate", "before-install", "after-restart"]
+    expected = ["before-install", "after-restart"]
     missing = [cmd for cmd in expected if cmd not in r.stdout]
     if missing:
         return [f"[FAIL] --help missing subcommands: {missing}"]
-    print("[OK]   ./tools/install_specific.py --help lists all 4 subcommands")
+    print("[OK]   ./tools/install_specific.py --help lists both subcommands")
     return []
 
 

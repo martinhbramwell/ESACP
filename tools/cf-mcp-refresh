@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# cf-mcp-refresh — Refresh Cloudflare MCP OAuth token before Claude Code starts.
+#
+# Uses the stored refresh_token to obtain a new access_token from the Cloudflare
+# OAuth server, then writes fresh tokens to ALL mcp-remote version dirs so every
+# version of mcp-remote finds valid credentials.
+#
+# Run this before launching Claude Code (done automatically by Cld.sh).
+
+set -euo pipefail
+
+URL_HASH="6244cf5467a6f706b7b55d5e88d4e4c4"
+MCP_AUTH_DIR="$HOME/.mcp-auth"
+TOKEN_ENDPOINT="https://mcp.cloudflare.com/token"
+CLIENT_ID="BXqzVhKMwfrRRLVd"
+
+# Find the most recently modified tokens file across all version dirs
+NEWEST=""
+NEWEST_TIME=0
+for f in "$MCP_AUTH_DIR"/mcp-remote-*/"${URL_HASH}_tokens.json"; do
+    [ -f "$f" ] || continue
+    t=$(stat -c %Y "$f" 2>/dev/null || echo 0)
+    if [ "$t" -gt "$NEWEST_TIME" ]; then
+        NEWEST_TIME=$t
+        NEWEST=$f
+    fi
+done
+
+if [ -z "$NEWEST" ]; then
+    echo "cf-mcp-refresh: no token cache found — manual re-auth required:" >&2
+    echo "  Run: npx mcp-remote https://mcp.cloudflare.com/mcp  (then Ctrl+C)" >&2
+    exit 0
+fi
+
+# Extract refresh_token
+REFRESH_TOKEN=$(python3 -c "import json,sys; d=json.load(open('$NEWEST')); print(d.get('refresh_token',''))" 2>/dev/null || true)
+
+if [ -z "$REFRESH_TOKEN" ]; then
+    echo "cf-mcp-refresh: no refresh_token in cache — manual re-auth required:" >&2
+    echo "  Run: npx mcp-remote https://mcp.cloudflare.com/mcp  (then Ctrl+C)" >&2
+    exit 0
+fi
+
+# Call OAuth token endpoint with refresh_token grant
+RESPONSE=$(curl -sf -X POST "$TOKEN_ENDPOINT" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "grant_type=refresh_token&refresh_token=${REFRESH_TOKEN}&client_id=${CLIENT_ID}" \
+    2>/dev/null || true)
+
+if [ -z "$RESPONSE" ] || ! echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if 'access_token' in d else 1)" 2>/dev/null; then
+    echo "cf-mcp-refresh: ⚠️  token refresh failed — Claude Code will use cached (possibly expired) token" >&2
+    echo "  Response: $RESPONSE" >&2
+    exit 0
+fi
+
+# Write fresh tokens to ALL version dirs
+python3 - "$MCP_AUTH_DIR" "$URL_HASH" <<PYEOF
+import json, sys, os, glob
+
+mcp_auth_dir = sys.argv[1]
+url_hash = sys.argv[2]
+new_tokens = json.loads("""$RESPONSE""")
+
+pattern = os.path.join(mcp_auth_dir, f"mcp-remote-*/{url_hash}_tokens.json")
+written = 0
+for path in glob.glob(pattern):
+    with open(path, 'w') as fh:
+        json.dump(new_tokens, fh, indent=2)
+    written += 1
+
+print(f"cf-mcp-refresh: ✅ token refreshed and written to {written} version dir(s)")
+PYEOF

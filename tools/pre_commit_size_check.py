@@ -29,6 +29,7 @@ CATEGORY_LIMITS = {
     "tools/cli/": 80,
     "tools/pipeline/": 80,
     "tools/api/": 80,
+    "tools/vm_scripts/": 80,
 }
 
 

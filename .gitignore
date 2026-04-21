@@ -97,6 +97,8 @@ override.yml
 
 # Binary archives (install from upstream, don't bundle)
 *.tar.gz
+*.tgz
+*.tar
 *.zip
 *.deb
 

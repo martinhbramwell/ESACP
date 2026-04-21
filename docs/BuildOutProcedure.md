@@ -37,6 +37,19 @@ age-keygen -y ~/.config/sops/age/keys.txt   # prints public key
 grep recipient .sops.yaml                   # must match
 ```
 
+### Claude Code Cloudflare MCP helper
+
+`Cld.sh` (the project launcher) calls `cf-mcp-refresh` before `claude --chrome`
+to keep the Cloudflare MCP OAuth access token fresh. Install the canonical
+repo copy onto the operator's `PATH`:
+
+```bash
+install -m 0755 tools/cf-mcp-refresh ~/.local/bin/cf-mcp-refresh
+```
+
+Re-run the install whenever `tools/cf-mcp-refresh` is updated. `sync_check.sh`
+expects the script at `~/.local/bin/cf-mcp-refresh`.
+
 ---
 
 ## 1. Verify WireGuard Keys
