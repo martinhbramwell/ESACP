@@ -121,6 +121,19 @@ Common scopes: `kvm`, `vbox`, `observability`, `wireguard`, `ansible`, `claude`,
 
 **Existing violations**: None — G-pre, H4e, and H4a have all been migrated to standalone Python scripts in `tools/vm_scripts/`.
 
+## Invoke scripts as executables
+
+Every script under `tools/` has `#!/usr/bin/env python3` and is `chmod +x`.
+Run them directly:
+
+- ✓ `./tools/esacp.py confirmPrerequisites`
+- ✗ `python tools/esacp.py …` (no `python` on PATH)
+- ✗ `python3 tools/esacp.py …` (bypasses the shebang contract)
+
+Covers `esacp.py`, `generate_inventory.py`, `host_identity.py`, pipeline
+scripts, and every other shebanged Python file. Rationale + recurrence
+history: `feedback_invoke_as_executable.md` in project memory (#188).
+
 ## Function and script size limits
 
 Any function or standalone script over **50 lines** needs decomposition. This is a gradient, not a cliff:

@@ -108,14 +108,6 @@ def main():
                 baselines[filepath] = lines
                 baselines_changed = True
 
-    if baselines_changed:
-        save_baselines(baselines)
-        # Auto-stage the updated baselines file so it's included in the commit.
-        subprocess.run(
-            ["git", "add", str(BASELINES_FILE)],
-            cwd=REPO_ROOT,
-        )
-
     if violations:
         print("Anti-spiral size check FAILED:")
         print()
@@ -125,6 +117,16 @@ def main():
         print("Dispatcher/pipeline files must not grow. Extract logic to")
         print("tools/pipeline/ and delete the old code in the same commit.")
         return 1
+
+    # Persist baselines only when the commit will proceed. Writing on the
+    # failure path (#238) locks in baselines for files that never shipped,
+    # and the auto-stage pollutes the working tree.
+    if baselines_changed:
+        save_baselines(baselines)
+        subprocess.run(
+            ["git", "add", str(BASELINES_FILE)],
+            cwd=REPO_ROOT,
+        )
 
     return 0
 
