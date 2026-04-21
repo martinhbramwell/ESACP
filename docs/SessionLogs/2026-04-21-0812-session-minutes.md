@@ -129,7 +129,7 @@ dev01 was absent at baseline (attempt 1's destroy succeeded), so the spec's idem
 ## Reminders for next session
 
 1. **Runtime churn on main** — same pattern as every destroy+rebuild. Long-term fix is #241 (hosts_map.local.yml overlay), deferred behind #240. Run 06's destroy will overwrite.
-2. **`vm_role` UI asymmetry** — `main.js:1828` forces `dev:unspecified` when a VM is dropped into the development zone. Run 06 (UI pseudo-wizard) will set `dev:unspecified` too, whereas Run 03 (CLI) set `dev:pseudo_wizard`. #235 tracks CLI/API transport asymmetries — consider logging this as a sub-note there if it becomes a friction point.
+2. **`vm_role` UI asymmetry** — `main.js:1828` forces `dev:unspecified` when a VM is dropped into the development zone. Run 06 (UI pseudo-wizard) will set `dev:unspecified` too, whereas Run 03 (CLI) set `dev:pseudo_wizard`. Posted as finding on #235 ([issuecomment-4288447246](https://github.com/martinhbramwell/ESACP/issues/235#issuecomment-4288447246)) — non-blocking; no fix proposed.
 3. **Runs 06/07 scaffolding** — copy the Run 05 spec (fixed regex) as the seed, not an earlier one. Both will need a `target_virbr0_ip` field, so the regex fix is load-bearing.
 4. **Regex bug in 01–04 left dormant by choice** — if a future re-run of 02/03/04 adds a digit key to its params, the spec will crash loudly at the point of use. #265 gives the 2-minute lookup.
 
