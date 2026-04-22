@@ -54,19 +54,5 @@ if [ -z "$RESPONSE" ] || ! echo "$RESPONSE" | python3 -c "import json,sys; d=jso
 fi
 
 # Write fresh tokens to ALL version dirs
-python3 - "$MCP_AUTH_DIR" "$URL_HASH" <<PYEOF
-import json, sys, os, glob
-
-mcp_auth_dir = sys.argv[1]
-url_hash = sys.argv[2]
-new_tokens = json.loads("""$RESPONSE""")
-
-pattern = os.path.join(mcp_auth_dir, f"mcp-remote-*/{url_hash}_tokens.json")
-written = 0
-for path in glob.glob(pattern):
-    with open(path, 'w') as fh:
-        json.dump(new_tokens, fh, indent=2)
-    written += 1
-
-print(f"cf-mcp-refresh: ✅ token refreshed and written to {written} version dir(s)")
-PYEOF
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+echo "$RESPONSE" | "$SCRIPT_DIR/cf-mcp-write-tokens.py" "$MCP_AUTH_DIR" "$URL_HASH"
