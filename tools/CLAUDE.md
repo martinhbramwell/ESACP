@@ -22,7 +22,6 @@ pipeline primitive, format output. Business logic lives in
 
 Subprocess is banned in dispatchers except:
 1. `tools/api/jobs.py` — `subprocess.Popen` to spawn `tools/job_worker.py`
-2. `tools/cli/snapshot_vm.py` — documented #206 deferral
 
 The pre-commit ratchet (`tools/pre_commit_size_check.py`) enforces the caps.
 
@@ -101,7 +100,7 @@ Non-obvious behaviours:
 - `provisionVM` Ansible output filter: shows PLAY headers, ✓ ok, ★ changed, ❌ fatal, RECAP only (filter lives in `tools/pipeline/stages/common/ansible_output.py`; orchestrator is `tools/pipeline/orchestration/ansible_provision.py`)
 - `validateObservability` credential order: `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` env vars → SSH hub `/opt/observability/.env` → interactive prompt
 - `buildVM`: uses `virsh vol-create-as` + `virsh vol-upload` for seed ISO — not `sudo cp` (hangs in uvicorn threads)
-- `snapShotVM`: KVM-only, hardwired to `platforms/kvm/snapshot.py` → `virsh` (#206 — pending extraction to a snapshot primitive)
+- `snapShotVM`: KVM-only; dispatcher calls `pipeline/orchestration/snapshot_ops.py` (local virsh). Standalone `platforms/kvm/snapshot.py` still exists for operator use (revert/delete/start/state) per `docs/BuildOutProcedure.md`.
 - `destroyVM` (legacy, local libvirt only): uses `tools/pipeline/orchestration/local_vm_teardown.py` for inspect + teardown; not to be confused with `destroy` which runs the full `macro/destroy.py`
 
 ## diagnose.py — Remote VM Process Diagnostics

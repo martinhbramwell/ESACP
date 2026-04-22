@@ -41,7 +41,7 @@ tasks, ❌ fatal errors, and the PLAY RECAP summary. All other Ansible output is
 All check targets (jobs, nodenames, datasource UIDs, dashboard titles) are derived
 from the project's own config files — nothing is hardcoded in the script.
 
-**`snapShotVM` is KVM-only**: hardwired to `platforms/kvm/snapshot.py` → `virsh`.
+**`snapShotVM` is KVM-only**: dispatcher calls `tools/pipeline/orchestration/snapshot_ops.py` (local virsh). The standalone `platforms/kvm/snapshot.py` tool still provides revert/delete/start/state for operator use.
 
 ---
 
