@@ -125,13 +125,56 @@ for umbrella-branch model, no SUT surface).
 - Plan next hop: **Phase 2C** (#236). Verification: none (policy doc).
   Expected delta: 22 → 21.
 
+## Reminders to user (initial — superseded by audit section below)
+
+Superseded by the Session-close audit resolutions section. Original
+note: "None live. The Hyper-V design discussion is captured but
+intentionally not filed as an issue." The audit surfaced additional
+unresolved items beyond Hyper-V.
+
+## Session-close audit resolutions
+
+Audit run at user request after the initial summary.
+
+- **Step 1 (promise-language grep):** all inline future-tense statements
+  mapped to executed tool calls except (a) the PR-body test-plan bullets
+  (RUNBOOK banner wording review, validateObservability smoke,
+  snapShotVM smoke) which are user-facing test-plan items, not commitments
+  from me — surfaced as reminders below; and (b) "if/when Hyper-V support
+  is on the roadmap, reference this session's discussion" — intentional
+  park, surfaced as reminder below.
+- **Step 2 (findings → issue comments):** initial close left #211 with
+  zero comments; per Phase 2A precedent (2100 minutes), key dispositions
+  should be posted on the issue, not only in minutes. **Corrected
+  2026-04-22** — comment posted:
+  <https://github.com/martinhbramwell/ESACP/issues/211#issuecomment-4295804336>
+  capturing the three per-file dispositions, the no-follow-up rationale
+  for `fake_attack.py`, the Cytoscape-5th-quadrant deferral to #280, and
+  the 22→22 count note.
+- **Step 3 (PR mergedAt):** PR #281 `mergedAt=2026-04-22T11:27:57Z`,
+  state `MERGED`, merge commit `c044d93`. Non-null — DONE valid.
+- **Step 4 (unresolved concerns):** three live items surfaced as
+  reminders to the user (Hyper-V filing decision, PR test-plan
+  execution, Phase 2C / #236 confirmation). See reminders section
+  below.
+
 ## Reminders to user (unresolved concerns)
 
-None live. The Hyper-V design discussion is captured in this minutes
-(see "Design discussion" above) but intentionally not filed as an
-issue — no active work warrants it yet. If/when Hyper-V support is
-on the roadmap, reference this session's discussion for the KVM-adapt
-recommendation and the SSH/WinRM/PSRemoting tradeoff.
+1. **Hyper-V design discussion is captured in these minutes but no
+   issue is filed.** Do you want one opened now (e.g., "planning:
+   Hyper-V adapter — adapt from KVM; decide SSH/WinRM/PSRemoting
+   up-front"), or keep it as a parked reference for when the work is
+   scheduled? No action taken this session either way.
+2. **PR #281 test plan contains three items I did not execute this
+   session** — (a) manual review of the RUNBOOK retired-banner wording,
+   (b) smoke-test `./tools/esacp.py validateObservability`, (c)
+   smoke-test `./tools/esacp.py snapShotVM <vm>`. None are runnable
+   from this controller without a live VM context, and (a) is a
+   judgement-call review. Flagging in case you want them done in a
+   follow-up session.
+3. **Plan next hop is Phase 2C (#236 — umbrella-branch policy doc),**
+   per `~/.claude/plans/open-issues-purge.md`. No SUT surface; expected
+   delta 22 → 21. Confirm or redirect at the next session start.
 
 ## File trail
 
@@ -139,6 +182,8 @@ recommendation and the SSH/WinRM/PSRemoting tradeoff.
 - Merge commit: `c044d93`
 - PR: <https://github.com/martinhbramwell/ESACP/pull/281>
 - Follow-up issue: <https://github.com/martinhbramwell/ESACP/issues/280>
+- Issue #211 disposition comment (posted during session-close audit):
+  <https://github.com/martinhbramwell/ESACP/issues/211#issuecomment-4295804336>
 - Plan status edit: `~/.claude/plans/open-issues-purge.md` (Phase 2B ✅)
 - MEMORY.md edits: open-issues line (22 → 22 + Phase 2B entry); new
   "Parked / Future" pointer to chaos orphan audit memory
