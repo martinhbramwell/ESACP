@@ -19,6 +19,15 @@ At the start of every session, before doing anything else:
 
 **Housekeeping bundles (exception)** — a single branch/session MAY close multiple issues when all are housekeeping: documentation scrubs (CLAUDE.md, RUNBOOK, agendas, minutes), wording/terminology fixes, external Claude Code config (`~/.claude/*`), `.gitignore`/pre-commit hygiene, issue grooming. Guardrails: each issue still filed individually; PR titled as a sweep (`chore(housekeeping): …` or `docs(sweep): …`); PR body lists `fixes #A, #B, #C`; no mixing (any substantive code change pulls the bundle back to 1:1:1); per-file size-check ratchet still applies.
 
+**Umbrella branches (multi-session refactors / broad-context work)** — for efforts where unit-level PRs can each pass their own narrow acceptance while still leaving a broad-context integration bug on `main`, use a long-lived umbrella branch off main. Each 1:1:1 unit is a sub-branch of the umbrella; sub-branches merge into the umbrella, not main. The umbrella merges to main only in a deliberate **certification session** (all scoped issues resolved, broad-context acceptance green, `sync_check` green against umbrella tip, explicit user sign-off).
+
+- **When to use** — any of: >3 sub-branches expected; cross-cutting files touched by multiple issues; a broad-context acceptance exists that cannot run per-sub-branch (matrix runs, full-pipeline e2e); or explicit user call at planning time. Otherwise direct-to-main per 1:1:1 or housekeeping rules. Single-issue hotfixes and doc-only PRs always direct to main.
+- **Naming** — `umbrella/<short-topic>` (e.g. `umbrella/v16-upgrade`, `umbrella/matrix-run-08`). Single prefix so `git branch --list 'umbrella/*'` enumerates live umbrellas.
+- **Rebase cadence** — on demand, not scheduled: before cutting a new sub-branch off umbrella; when a direct-to-main PR touches files also touched on umbrella; before the certification session. No fixed cron.
+- **"Merged" semantics** — per `feedback_pr_merge_before_session_close.md`, "merged" means merged-to-target-branch. A sub-branch's target is its umbrella; the umbrella's target is main. Both must reach non-null `mergedAt` before the respective "done" claims.
+- **Retroactive application** — none. Rule applies only to multi-session work **started after** this policy lands. Prior matrix/Gen 3 work stays as-landed.
+- **CI / sync_check** — no branch-topology awareness in `sync_check` for this phase; revisit only if merges are later gated on umbrella-tip state.
+
 **Bug workflow** — whenever a bug is found:
 1. Open a GitHub issue immediately (`gh issue create --repo martinhbramwell/ESACP`)
 2. Fix the code, committing with `fixes #N`
