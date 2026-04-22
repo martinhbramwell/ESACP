@@ -8,8 +8,7 @@
 # Note: Ubuntu 22.04+ enforces PEP 668; pip will refuse to install
 # into the system Python. Use apt or a virtual environment instead.
 
-# Rich terminal output — used by Stage 1 orchestration scripts
-# and required by Stage 1.5 chaos drill scripts
+# Rich terminal output — used by orchestration/validate_observability.py
 rich>=13.0.0
 
 # YAML parsing — used by scripts/generate_diagrams.py
