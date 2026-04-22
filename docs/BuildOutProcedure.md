@@ -45,10 +45,14 @@ repo copy onto the operator's `PATH`:
 
 ```bash
 install -m 0755 tools/cf-mcp-refresh ~/.local/bin/cf-mcp-refresh
+install -m 0755 tools/cf-mcp-write-tokens.py ~/.local/bin/cf-mcp-write-tokens.py
 ```
 
-Re-run the install whenever `tools/cf-mcp-refresh` is updated. `sync_check.sh`
-expects the script at `~/.local/bin/cf-mcp-refresh`.
+Re-run the install whenever `tools/cf-mcp-refresh` or
+`tools/cf-mcp-write-tokens.py` is updated. `cf-mcp-refresh` locates its
+sibling token-writer by `BASH_SOURCE`-relative path, so both files must
+live in the same directory on `PATH`. `sync_check.sh` expects
+`cf-mcp-refresh` at `~/.local/bin/cf-mcp-refresh`.
 
 ---
 
