@@ -134,7 +134,6 @@ esacp/
 │   ├── cli/                  # Per-command entry points
 │   └── pipeline/             # Stages + macros (atomic primitives)
 ├── orchestration/            # Legacy/standalone scripts
-│   ├── revertToBaseline.py   # Snapshot restore (VBox-era)
 │   └── validate_observability.py  # 27-check harness
 ├── docker/                   # Container configurations
 │   └── observability/
@@ -160,11 +159,7 @@ esacp/
 ### Snapshot-Based Iteration
 
 ```bash
-# Restore to baseline and apply changes
-python3 orchestration/revertToBaseline.py
-ansible-playbook -i ansible/inventory/dev.yml ansible/site.yml
-
-# Or use the unified lab CLI
+# Restore from snapshot and provision via the unified lab CLI
 ./tools/esacp.py provision <hostname>
 ```
 

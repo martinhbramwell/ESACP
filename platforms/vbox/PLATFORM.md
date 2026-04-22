@@ -1,14 +1,12 @@
 # Platform: VirtualBox / WSL
 
-Existing scripts for this platform live in `orchestration/`:
+The Stage 1 / 1.5 orchestration scripts (`provision.py`, `revertToBaseline.py`,
+`chaos/run_scenario.py`) have been deleted — VBox is permanently retired
+(2026-03-17 hardware failure) and the pipeline code lives in `tools/pipeline/`.
+Only `orchestration/validate_observability.py` (the 27-check harness) remains
+and is shared with the KVM platform.
 
-| Script | Purpose |
-|---|---|
-| `orchestration/provision.py` | Full provisioning orchestrator |
-| `orchestration/revertToBaseline.py` | Snapshot revert via VBoxManage |
-| `orchestration/chaos/run_scenario.py` | Chaos failure injection |
-
-Ansible inventory: `ansible/inventory/dev.yml`
+Ansible inventory for this historical platform: `ansible/inventory/dev.yml`
 
 ## Environment Variables
 

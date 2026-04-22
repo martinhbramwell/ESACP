@@ -2,6 +2,15 @@
 
 Stage 1.5 — Failure Injection & Observability Validation
 
+> **RETIRED 2026-04-22.** This runbook describes the VBox-era chaos harness
+> (`orchestration/chaos/run_scenario.py`, `revertToBaseline.py`). Both scripts
+> were deleted in the #211 orphan audit — they were bound to VBoxManage on a
+> platform permanently retired 2026-03-17. The ten chaos scenarios preserved
+> here as historical reference are tracked for KVM re-implementation in
+> **[#280](https://github.com/martinhbramwell/ESACP/issues/280)** (wire to
+> `tools/pipeline/orchestration/snapshot_ops.py`; decide Cytoscape placement).
+> Do not run the commands below — the scripts no longer exist.
+
 ---
 
 ## Table of Contents
