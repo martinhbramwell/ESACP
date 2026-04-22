@@ -1,12 +1,46 @@
 const { chromium } = require('playwright');
 
-// Pseudo-Co setup wizard — reusable recording for acceptance Run 03 (CLI) and
-// Run 06 (UI). replay_wizard.js rewrites the base URL per target VM at replay
-// time, so the hardcoded dev01 URL below is a template only.
+// ─────────────────────────────────────────────────────────────────────────────
+// ERPNext setup-wizard replay — parameterised (#181).
 //
-// Administrator password is the dev-lab value sourced from
-// config/build_secrets.sops.yml (erp_user_pwd="sasa"). See
-// memory/feedback_lab_admin_password.md — never substitute a production value.
+// Default config below reproduces the Pseudo-Co run used by acceptance matrix
+// Run 03 (CLI) and Run 06 (UI). B03 and B06 are captured by the downstream
+// pipeline; parity between the two is the matrix contract.
+//
+// Override the entire config by setting WIZARD_CONFIG_JSON to a JSON literal
+// matching DEFAULT_CONFIG's shape. replay_wizard.js forwards that env var into
+// the child Node process when invoked with --config <json-file>.
+//
+// replay_wizard.js also rewrites the hardcoded dev01 URL below to the caller's
+// --url target at replay time, so the goto() URL here is a template only.
+//
+// Password 'sasa' is the dev-lab value sourced from config/build_secrets.sops.yml
+// (erp_user_pwd). See memory/feedback_lab_admin_password.md — never substitute a
+// production value.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DEFAULT_CONFIG = {
+  admin: {
+    login_user:     'Administrator',
+    login_password: 'sasa',
+    full_name:      'Pseudo Admin',
+    email:          'admin@pseudo-co.example',
+    password:       'sasa',
+  },
+  country: 'Canada',
+  industries: ['Manufacturing'],
+  company: {
+    name:                 'Pseudo-Co',
+    abbr:                 'PSC',
+    description:          'Pseudo-wizard demonstration company for acceptance matrix',
+    currency:             'CAD',
+    accounting_standard:  'Standard with Numbers',
+  },
+};
+
+const CONFIG = process.env.WIZARD_CONFIG_JSON
+  ? JSON.parse(process.env.WIZARD_CONFIG_JSON)
+  : DEFAULT_CONFIG;
 
 (async () => {
   const browser = await chromium.launch({
@@ -14,20 +48,28 @@ const { chromium } = require('playwright');
   });
   const context = await browser.newContext();
   const page = await context.newPage();
+
+  // ── Login ────────────────────────────────────────────────────────────────
   await page.goto('https://dev01.iridium.blue/#login');
-  await page.getByRole('textbox', { name: 'Email', exact: true }).fill('Administrator');
-  await page.getByRole('textbox', { name: 'Password' }).fill('sasa');
+  await page.getByRole('textbox', { name: 'Email', exact: true }).fill(CONFIG.admin.login_user);
+  await page.getByRole('textbox', { name: 'Password' }).fill(CONFIG.admin.login_password);
   await page.getByRole('button', { name: 'Login' }).click();
   await page.waitForURL('**/app**');
+
+  // ── Wizard screen 1: Welcome + Country ───────────────────────────────────
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.locator('a').filter({ hasText: 'Canada' }).click();
+  await page.locator('a').filter({ hasText: CONFIG.country }).click();
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.getByRole('textbox').first().fill('Pseudo Admin');
+
+  // ── Wizard screen 2: User ────────────────────────────────────────────────
+  await page.getByRole('textbox').first().fill(CONFIG.admin.full_name);
   await page.getByRole('textbox').first().press('Tab');
-  await page.getByRole('textbox').nth(1).fill('admin@pseudo-co.example');
+  await page.getByRole('textbox').nth(1).fill(CONFIG.admin.email);
   await page.getByRole('textbox').nth(1).press('Tab');
-  await page.locator('input[type="password"]').fill('sasa');
+  await page.locator('input[type="password"]').fill(CONFIG.admin.password);
   await page.getByRole('button', { name: 'Next' }).click();
+
+  // ── Wizard screen 3: Industry ────────────────────────────────────────────
   // Wait for Frappe's AJAX freeze overlay to clear before Industry-page
   // interaction (#256 flake guard — does not cover the welcome-modal race,
   // which is handled below).
@@ -37,33 +79,64 @@ const { chromium } = require('playwright');
   );
   // Fixes #267. Run 06 attempt 1 showed the welcome modal can materialise
   // DURING Playwright's .check() retry loop, not just before it — a
-  // pre-click Escape guard cannot see the future. Resolve the checkbox
+  // pre-click Escape guard cannot see the future. Resolve each checkbox
   // via the role locator, then mutate it directly in the page origin:
   // the assignment + event dispatch runs synchronously and does not
   // compete with any overlay. Verify via isChecked() so that if Frappe
   // did not observe the change (e.g. custom component swallowing native
   // events), we fail immediately instead of passing a broken wizard.
-  const mfgCheckbox = page.getByRole('checkbox', { name: 'Manufacturing' });
-  await mfgCheckbox.waitFor({ state: 'attached', timeout: 30_000 });
-  await mfgCheckbox.evaluate((cb) => {
-    if (!cb.checked) {
-      cb.checked = true;
-      cb.dispatchEvent(new Event('input',  { bubbles: true }));
-      cb.dispatchEvent(new Event('change', { bubbles: true }));
+  for (const industry of CONFIG.industries) {
+    const cb = page.getByRole('checkbox', { name: industry });
+    await cb.waitFor({ state: 'attached', timeout: 30_000 });
+    await cb.evaluate((el) => {
+      if (!el.checked) {
+        el.checked = true;
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+    if (!(await cb.isChecked())) {
+      throw new Error(`${industry} checkbox did not register as checked after DOM mutation`);
     }
-  });
-  if (!(await mfgCheckbox.isChecked())) {
-    throw new Error('Manufacturing checkbox did not register as checked after DOM mutation');
+  }
+  // Fixes #284 (second failure site). The welcome/onboarding modal can
+  // materialise AFTER the checkbox DOM mutation and before the Next click,
+  // intercepting pointer events (<div class="modal fade show">). #267 fixed
+  // the checkbox interaction via DOM mutation; this complement Escape-dismisses
+  // any modal that emerged in the meantime so the real Next click lands.
+  const industryModalBackdrop = await page.locator('.modal-backdrop.show').first()
+    .isVisible().catch(() => false);
+  if (industryModalBackdrop) {
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(
+      () => !document.querySelector('.modal-backdrop.show'),
+      null, { timeout: 5_000 },
+    );
   }
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.getByRole('textbox').first().fill('Pseudo-Co');
+
+  // ── Wizard screen 4a: Company name + abbr ────────────────────────────────
+  // Fixes #284 (first failure site). Industry→Company screen transition
+  // stalled on Run 06 regen when a Frappe freeze-backdrop lingered longer
+  // than it did under Run 03's CLI-transport timing. Same class as #267
+  // on the Industry step — guard every post-Next wizard screen with the
+  // same freeze-backdrop wait.
+  await page.waitForFunction(
+    () => !document.querySelector('#freeze.modal-backdrop.in'),
+    null, { timeout: 30_000 },
+  );
+  await page.getByRole('textbox').first().fill(CONFIG.company.name);
   await page.getByRole('textbox').first().press('Tab');
-  await page.getByRole('textbox').nth(1).fill('PSC');
+  await page.getByRole('textbox').nth(1).fill(CONFIG.company.abbr);
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.getByRole('textbox', { name: 'e.g. "Build tools for' }).fill('Pseudo-wizard demonstration company for acceptance matrix');
+
+  // ── Wizard screen 4b: Company description, currency, accounting standard ─
+  await page.getByRole('textbox', { name: 'e.g. "Build tools for' }).fill(CONFIG.company.description);
   await page.getByRole('textbox', { name: 'e.g. "Build tools for' }).press('Tab');
-  await page.getByRole('textbox').nth(1).fill('CAD');
-  await page.getByRole('combobox').selectOption('Standard with Numbers');
+  await page.getByRole('textbox').nth(1).fill(CONFIG.company.currency);
+  await page.getByRole('combobox').selectOption(CONFIG.company.accounting_standard);
+
+  // ── Complete Setup ───────────────────────────────────────────────────────
   // Fixes #256. The setup_wizard.setup_complete handler is synchronous
   // through Company INSERT + Chart-of-Accounts seeding (~30–45s). Wait for
   // the POST response itself — page.waitForFunction(async fn) returned
@@ -78,26 +151,29 @@ const { chromium } = require('playwright');
   if (!completeResp.ok()) {
     throw new Error(`setup_complete returned HTTP ${completeResp.status()}`);
   }
+
+  // ── Canary: verify Company exists and CoA seeding completed ──────────────
   // Belt-and-braces — page.evaluate runs fetch in the page's own origin,
   // dodging both the waitForFunction async-truthy quirk (attempt 4) and
   // page.request's absolute-URL requirement (attempt 6). default_bank_account
   // is only populated once CoA seeding finishes, so its presence proves the
   // full handler chain ran end-to-end.
-  const check = await page.evaluate(async () => {
+  const companyName = CONFIG.company.name;
+  const check = await page.evaluate(async (name) => {
     try {
-      const r = await fetch('/api/resource/Company/Pseudo-Co', { credentials: 'include' });
+      const r = await fetch(`/api/resource/Company/${encodeURIComponent(name)}`, { credentials: 'include' });
       if (!r.ok) return { ok: false, status: r.status };
       const ct = r.headers.get('content-type') || '';
       if (!ct.includes('application/json')) return { ok: false, reason: 'non-json' };
       const j = await r.json();
       return { ok: true, data: j?.data };
     } catch (err) { return { ok: false, reason: String(err) }; }
-  });
+  }, companyName);
   if (!check.ok) {
-    throw new Error(`Company/Pseudo-Co check failed: ${JSON.stringify(check)}`);
+    throw new Error(`Company/${companyName} check failed: ${JSON.stringify(check)}`);
   }
   if (!check.data?.default_bank_account) {
-    throw new Error('Company/Pseudo-Co default_bank_account empty — CoA seeding incomplete');
+    throw new Error(`Company/${companyName} default_bank_account empty — CoA seeding incomplete`);
   }
   await page.close();
 

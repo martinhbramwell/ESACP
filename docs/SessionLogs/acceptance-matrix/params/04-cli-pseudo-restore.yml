@@ -2,8 +2,10 @@
 #
 # Parity partner: Run 07 (UI-driven restore from B06).
 #
-# B03 artefact: produced by Run 03 / PR #257 on 2026-04-20 —
-#   platforms/kvm/golden_backups/20260420_142102-dev01_iridium_blue.tgz
+# B03 artefact: regenerated via Phase 3A Run 03 on 2026-04-22 —
+#   platforms/kvm/golden_backups/20260422_112724-dev01_iridium_blue.tgz
+# (supersedes the original 20260420_142102 B03 from PR #257 — the prior
+# generation is preserved under platforms/kvm/golden_backups/archive/.)
 # CLI `--wizard-arg` expects the backup's basename only, not a path.
 #
 # Agenda-vs-SUT note: the Run 04 agenda proposes
@@ -27,7 +29,7 @@ variant: pseudo_restore
 zone: development
 vm_role: "dev:pseudo_restore"
 hypervisor: toshiba
-backup_source: "20260420_142102-dev01_iridium_blue.tgz"
+backup_source: "20260422_112724-dev01_iridium_blue.tgz"
 wait_budget_seconds: 1800
 topology_convergence_budget_seconds: 300
 company_name: "Pseudo-Co"

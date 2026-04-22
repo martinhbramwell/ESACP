@@ -102,6 +102,11 @@ override.yml
 *.zip
 *.deb
 
+# Golden-backup archive — pre-refactor fallbacks kept locally, never tracked
+# (B03/B06 canonicals are the tracked .tgz files in the parent dir; archive/
+# holds displaced prior generations)
+platforms/kvm/golden_backups/archive/
+
 # Session/scratch files
 dialog*.txt
 DIALOG

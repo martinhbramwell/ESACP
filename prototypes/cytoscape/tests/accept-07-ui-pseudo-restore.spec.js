@@ -154,8 +154,8 @@ test.describe('Acceptance Run 07 — UI pseudo-restore skeletal ERPNext from B06
     const baselineResp = await page.request.get(`${API_URL}/api/hosts`)
     const baseline = await baselineResp.json()
     const existing = baseline.hosts.find(h => h.hostname === params.target_vm)
-    if (existing) {
-      console.log(`[accept-07] ${params.target_vm} present at baseline — destroying via UI`)
+    if (existing && existing.provisioned) {
+      console.log(`[accept-07] ${params.target_vm} present and provisioned — destroying via UI`)
       await selectNode(page, params.target_vm)
       await clickInfoButton(page, 'Destroy')
       await page.waitForSelector('#confirm-overlay:not(.hidden)', { timeout: 5_000 })
@@ -180,6 +180,21 @@ test.describe('Acceptance Run 07 — UI pseudo-restore skeletal ERPNext from B06
       expect(stillThere, `${params.target_vm} must be ABSENT after destroy`).toBeFalsy()
 
       // Rehydrate Cytoscape from post-destroy /api/hosts — bypasses stale 30s poll (#249)
+      await page.reload()
+      await waitForGraph(page)
+    } else if (existing) {
+      // #271: pre-registered-only (hosts_map entry present, VM absent) has no
+      // UI Destroy button — the info-panel only renders it when provisioned:true.
+      // Fall back to CLI destroy which unregisters hosts_map cleanly; identical
+      // post-condition to the UI branch (host absent from /api/hosts).
+      console.log(`[accept-07] ${params.target_vm} pre-registered only — CLI destroy to unregister`)
+      execSync(`echo y | ./tools/esacp.py destroy ${params.target_vm}`, {
+        cwd: PROJECT_ROOT, stdio: ['ignore', 'inherit', 'inherit'], shell: '/bin/bash',
+      })
+      const afterDestroyResp = await page.request.get(`${API_URL}/api/hosts`)
+      const afterDestroy = await afterDestroyResp.json()
+      const stillThere = afterDestroy.hosts.find(h => h.hostname === params.target_vm)
+      expect(stillThere, `${params.target_vm} must be ABSENT after CLI destroy`).toBeFalsy()
       await page.reload()
       await waitForGraph(page)
     } else {

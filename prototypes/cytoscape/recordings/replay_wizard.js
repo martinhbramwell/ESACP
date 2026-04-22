@@ -3,10 +3,16 @@
  * replay_wizard.js — Replay a previously recorded wizard script.
  *
  * Usage:
- *   node recordings/replay_wizard.js --script recordings/wizard/dev01-20260414.spec.js --url https://dev02.iridium.blue
+ *   node recordings/replay_wizard.js --script recordings/wizard/pseudo-co-wizard.spec.js --url https://dev02.iridium.blue
+ *   node recordings/replay_wizard.js --script ... --url ... --config recordings/wizard/alt-config.json
  *
  * Reads the raw Playwright codegen recording, rewrites any hardcoded URLs
  * to the target URL, writes a temporary .cjs copy, and executes it via node.
+ *
+ * If --config is passed, its JSON contents are forwarded to the child process
+ * as WIZARD_CONFIG_JSON — parameterised recordings (#181) read this to
+ * override their DEFAULT_CONFIG. Without --config, the recording's default
+ * config applies.
  *
  * Exit code 0 on success, non-zero on failure.
  */
@@ -22,12 +28,13 @@ const { values } = parseArgs({
   options: {
     script: { type: 'string' },
     url:    { type: 'string' },
+    config: { type: 'string' },
   },
   strict: true,
 })
 
 if (!values.script || !values.url) {
-  console.error('Usage: node replay_wizard.js --script <path> --url <url>')
+  console.error('Usage: node replay_wizard.js --script <path> --url <url> [--config <json-file>]')
   process.exit(2)
 }
 
@@ -62,10 +69,29 @@ console.log(`Replaying: ${scriptPath}`)
 console.log(`Against:   ${targetUrl}`)
 
 const msPlaywrightPath = join(process.env.HOME || '', '.cache', 'ms-playwright')
+const childEnv = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: msPlaywrightPath }
+
+if (values.config) {
+  const configPath = resolve(values.config)
+  if (!existsSync(configPath)) {
+    console.error(`Config file not found: ${configPath}`)
+    process.exit(1)
+  }
+  const configRaw = readFileSync(configPath, 'utf-8')
+  // Validate JSON before passing through so a bad file fails loudly here rather
+  // than inside the child process.
+  try { JSON.parse(configRaw) } catch (err) {
+    console.error(`Config file is not valid JSON (${configPath}): ${err.message}`)
+    process.exit(1)
+  }
+  childEnv.WIZARD_CONFIG_JSON = configRaw
+  console.log(`Config:    ${configPath}`)
+}
+
 const child = spawn('node', [tmpScript], {
   stdio: 'inherit',
   cwd: projectDir,
-  env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: msPlaywrightPath },
+  env: childEnv,
 })
 
 child.on('close', (code) => {
