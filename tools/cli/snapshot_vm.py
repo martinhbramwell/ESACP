@@ -1,29 +1,27 @@
-"""CLI: create or list KVM VM snapshots.
-
-Note: this module contains a direct ``subprocess.run`` call to
-``platforms/kvm/snapshot.py`` — this is a documented Phase 7 exception
-tracked in GitHub issue #206, pending extraction to a pipeline primitive.
-"""
+"""CLI: create or list KVM VM snapshots via the snapshot_ops primitive (#206)."""
 
 from __future__ import annotations
 
-import subprocess
-from pathlib import Path
-
 from tools.cli._common import banner
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-SNAPSHOT_PY  = PROJECT_ROOT / "platforms" / "kvm" / "snapshot.py"
+from tools.pipeline.orchestration import snapshot_ops
 
 
 def run(args, config: dict) -> int:
-    vm   = args.vm
+    vm = args.vm
     name = args.name
 
     if name:
         banner(f"Snapshot: {vm} / {name}")
-        r = subprocess.run(["python3", str(SNAPSHOT_PY), "create", vm, name])
-    else:
-        banner(f"Snapshots: {vm}")
-        r = subprocess.run(["python3", str(SNAPSHOT_PY), "list", vm])
-    return r.returncode
+        if name in snapshot_ops.list_snapshots(vm):
+            print(f"  Snapshot '{name}' already exists on {vm} — skipping.")
+            return 0
+        return 0 if snapshot_ops.create_snapshot(vm, name, emit=print) else 1
+
+    banner(f"Snapshots: {vm}")
+    snapshots = snapshot_ops.list_snapshots(vm)
+    if not snapshots:
+        print(f"  (no snapshots on {vm})")
+        return 0
+    for s in snapshots:
+        print(f"  {s}")
+    return 0

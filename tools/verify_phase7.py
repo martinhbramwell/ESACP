@@ -33,7 +33,6 @@ CATEGORY_CAPS = [
 # Files allowed to call subprocess.run/Popen inside the dispatcher surfaces.
 SUBPROCESS_EXCEPTIONS = {
     "tools/api/jobs.py",        # spawn_job (Popen) — documented GH #37
-    "tools/cli/snapshot_vm.py", # GH #206 — pending pipeline primitive
 }
 
 
@@ -75,6 +74,10 @@ def check_no_subprocess() -> list[str]:
     for line in r.stdout.splitlines():
         rel = line.split(":", 1)[0]
         if rel in SUBPROCESS_EXCEPTIONS:
+            continue
+        # tools/cli/verify_*.py are SUT integration harnesses, not dispatchers —
+        # they invoke the built esacp.py CLI under test (GH #275).
+        if rel.startswith("tools/cli/verify_") and rel.endswith(".py"):
             continue
         fails.append(f"[FAIL] unexpected subprocess call: {line}")
     if not fails:
