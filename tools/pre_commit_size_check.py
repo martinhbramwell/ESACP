@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Pre-commit ratchet hook: dispatcher and pipeline file size enforcement.
+"""Pre-commit ratchet hook: tracked-file size enforcement.
 
 Implements the anti-spiral rules from CLAUDE.md (#198).
 Files can shrink but never grow beyond their recorded baseline.
 New files exceeding their category limit are blocked outright.
 
-Baselines are stored in tools/size_baselines.json and updated
-automatically when a file shrinks.
+Covers Python dispatchers/pipeline and bash phase scripts
+(platforms/kvm/bootstrap_hub/ from #220). Baselines are stored in
+tools/size_baselines.json and updated automatically when a file shrinks.
 """
 
 import json
@@ -22,6 +23,7 @@ TARGET_LIMITS = {
     "tools/esacp.py": 150,
     "tools/job_worker.py": 100,
     "tools/install_specific.py": 50,
+    "platforms/kvm/bootstrap_hub.sh": 100,
 }
 
 # Category limits for pattern-matched files.
@@ -30,7 +32,10 @@ CATEGORY_LIMITS = {
     "tools/pipeline/": 80,
     "tools/api/": 80,
     "tools/vm_scripts/": 80,
+    "platforms/kvm/bootstrap_hub/": 100,
 }
+
+CHECKED_SUFFIXES = (".py", ".sh")
 
 
 def get_staged_files():
@@ -39,7 +44,7 @@ def get_staged_files():
         ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
         capture_output=True, text=True, cwd=REPO_ROOT,
     )
-    return [f for f in result.stdout.strip().splitlines() if f.endswith(".py")]
+    return [f for f in result.stdout.strip().splitlines() if f.endswith(CHECKED_SUFFIXES)]
 
 
 def count_lines(filepath):
@@ -115,8 +120,9 @@ def main():
         for v in violations:
             print(v)
         print()
-        print("Dispatcher/pipeline files must not grow. Extract logic to")
-        print("tools/pipeline/ and delete the old code in the same commit.")
+        print("Tracked files must not grow beyond their baseline. Extract")
+        print("behavior into a new unit and delete the old code in the same")
+        print("commit. Python → tools/pipeline/; bash → bootstrap_hub/.")
         return 1
 
     # Persist baselines only when the commit will proceed. Writing on the
