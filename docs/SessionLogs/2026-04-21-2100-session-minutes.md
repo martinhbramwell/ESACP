@@ -149,11 +149,25 @@ of the acceptance-criterion dependency. Plan next hop: **Phase 2B**
 
 ## Reminders to user (unresolved concerns)
 
-1. **GPG-agent `default-cache-ttl` missing** — did not manifest this
-   session (single pinentry succeeded), but the underlying config gap
-   in `~/.gnupg/gpg-agent.conf` remains. Operator action, carried from
-   the 1830 minutes. **Not escalated** — only flagging when it causes
-   friction.
+None live for this session. The GPG-agent `default-cache-ttl` carry
+(previously resurfacing in the 1830 and 1801 minutes) has been moved
+to `memory/feedback_gpg_agent_cache_ttl.md` + MEMORY.md "Operator
+Environment" index line. It did not cost session time here (single
+clean pinentry). Per the new memory file's own rule, future minutes
+will only re-mention when it actively costs time.
+
+## Session-close audit resolutions
+
+- PR #279 `mergedAt` = 2026-04-22T01:34:54Z (non-null, DONE valid).
+- #206 approach-divergence finding (no new primitive needed; existing
+  `snapshot_ops.py` reused) posted as issue comment:
+  <https://github.com/martinhbramwell/ESACP/issues/206#issuecomment-4292974641>
+- #275 fix approach (prefix carve-out vs. per-file exceptions) posted
+  as issue comment:
+  <https://github.com/martinhbramwell/ESACP/issues/275#issuecomment-4292975097>
+- GPG-agent carry → `memory/feedback_gpg_agent_cache_ttl.md` (new
+  feedback memory) + MEMORY.md index (new "Operator Environment"
+  section).
 
 ## File trail
 
@@ -161,7 +175,10 @@ of the acceptance-criterion dependency. Plan next hop: **Phase 2B**
 - Merge commit: `858d631`
 - PR: <https://github.com/martinhbramwell/ESACP/pull/279>
 - Plan status edit: `~/.claude/plans/open-issues-purge.md` (Phase 2A ✅)
-- MEMORY.md edit: open-issues line (24 → 22 + Phase 2A entry)
+- MEMORY.md edits: open-issues line (24 → 22 + Phase 2A entry); new
+  "Operator Environment" index section
+- New memory file: `memory/feedback_gpg_agent_cache_ttl.md`
+- Issue comments: #206#issuecomment-4292974641, #275#issuecomment-4292975097
 - This minutes: `docs/SessionLogs/2026-04-21-2100-session-minutes.md`
 - Prior-session minutes: `docs/SessionLogs/2026-04-21-1830-session-minutes.md`
   (Phase 1B repo/tooling sweep)
