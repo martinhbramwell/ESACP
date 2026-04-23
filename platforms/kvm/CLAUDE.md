@@ -21,7 +21,7 @@ Override any value via `ESACP_*` env vars (e.g. `ESACP_HYPERVISOR_ALIAS=toshy`).
 ## Bootstrap Scripts
 
 - `rebuild_lab.sh` — hub-only rebuild: destroy all VMs → bootstrap hub (2 phases). Target VMs are provisioned separately via `esacp.py provision <hostname>` or the API
-- `bootstrap_hub.sh` — idempotent 9-phase: seed ISO → upload → VM create → autoinstall wait → "Fresh Install" snapshot → Ansible → "Stage 2.2 Baseline" snapshot → handoff
+- `bootstrap_hub.sh` — thin orchestrator that sources the 9 phase scripts in `platforms/kvm/bootstrap_hub/` (`_helpers.sh`, `01_preflight.sh` … `09_handoff.sh`, `99_summary.sh`). Idempotent: seed ISO → upload → VM create → autoinstall wait → "Fresh Install" snapshot → Ansible → "Stage 2.2 Baseline" snapshot → handoff. Each phase file is size-ratcheted by `tools/pre_commit_size_check.py` (#220).
   - Play 5 (controller WireGuard spoke) requires toshiba UDP 51820 port-forward first
 - `destroy_vms.sh` — tear down VMs on toshiba; also removes seed ISOs + clears known_hosts
 - `prepare_hypervisor.sh` — pre-bootstrap: check + apply controller prereqs; check hypervisor state
