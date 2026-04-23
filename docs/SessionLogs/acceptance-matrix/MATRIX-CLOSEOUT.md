@@ -72,3 +72,26 @@ All blockers were fixed and closed during the matrix; a few latent/tracker issue
 ## What the matrix unblocks
 
 With transport parity live-verified, the next stage of work no longer needs to treat CLI and UI as separate risks. ERPNext-v16 upgrade work, Playwright regression of production workflows, and CloudStack backend expansion can all proceed against either transport with equal confidence. MEMORY.md flags the foundation-solid status; subsequent ERPNext-focused sessions can start from this baseline.
+
+## Erratum — 2026-04-23 — bench-layer contamination in "generic" runs
+
+Runs 03, 04, 06, 07 (pseudo-company variant) treated the provisioned
+substrate as "generic" for comparison purposes. **That claim holds at the
+site and database layers** — `sites/apps.txt`, `sites/apps.json`, and
+`bench --site ... list-apps` all show `frappe` + `erpnext` only.
+
+It does **not** hold at the bench layer. Until the fix in #289 lands,
+Stage 6 provisioned `apps/ce_sri`, `apps/route_planner`, `apps/returnable`,
+and `apps/ce_sri/services/ce_sri_svc` unconditionally, patched the
+Procfile with `ce_sri_svc`, and deployed the ce_sri deploy-key set
+regardless of `provision_mode`. The matrix's CLI↔UI parity verdicts are
+**unaffected** — both sides ran against the same contaminated substrate,
+so the pairs remain apples-to-apples — but the word "generic" in those
+runs meant *site-level-only* generic, not *bench-level* generic.
+
+#289 (Stage 6 gate on `provision_mode="generic"`) is the first
+sub-branch of `umbrella/ladder-fixture` and closes this gap. Future
+"generic" runs will produce a clean bench layer (`frappe`, `erpnext`,
+`BaRe` only; no ce_sri/route_planner/returnable; no ce_sri_svc
+Procfile/supervisor/npm; no you_gh_* deploy keys; envars at
+`/opt/generic/envars.sh`).
