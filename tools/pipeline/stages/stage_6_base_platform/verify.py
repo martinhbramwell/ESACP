@@ -1,112 +1,40 @@
 #!/usr/bin/env python3
 """Verify Stage 6 (Base Platform) postconditions.
 
-Six checks covering sections A–C + B2b:
-  1. /opt/ce_sri/envars.sh deployed
-  2. Bench symlink present
-  3. Deploy keys in ~erpadm/.ssh/
-  4. At least one app cloned (ce_sri in apps/)
-  5. Supervisor running bench processes
-  6. BaRe/envars.sh symlink present
+Six checks covering sections A–C + B2b. Per-check logic lives in
+``check_envars.py`` / ``check_apps.py`` / ``check_infra.py``; this
+module is the orchestrator + CLI entry.
+
+Behaviour diverges by ``provision_mode``:
+
+  restore (default) — legacy bespoke bench layout:
+    envars at /opt/ce_sri; ce_sri cloned in apps/; deploy keys present;
+    BaRe/envars.sh -> /opt/ce_sri/envars.sh.
+
+  generic — clean bench layout (#289):
+    envars at /opt/generic; only BaRe cloned; no ce_sri/route_planner/
+    returnable; Procfile clean; no you_gh_* keys;
+    BaRe/envars.sh -> /opt/generic/envars.sh.
 """
 
 from __future__ import annotations
 
-import subprocess
 import sys
 from pathlib import Path
 
+# Direct ./verify.py invocation needs repo root on sys.path for absolute imports.
+if __name__ == "__main__" and __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-def _ssh_vm(
-    target_ip: str, ssh_opts: list[str], ssh_key: str,
-    cmd: str, timeout: int = 15,
-):
-    return subprocess.run(
-        ["ssh", *ssh_opts, "-i", ssh_key, f"you@{target_ip}", cmd],
-        capture_output=True, text=True, timeout=timeout,
-    )
-
-
-def check_envars_deployed(
-    target_ip: str, ssh_opts: list[str], ssh_key: str,
-) -> tuple[bool, str]:
-    """Section A: /opt/ce_sri/envars.sh exists."""
-    r = _ssh_vm(target_ip, ssh_opts, ssh_key,
-                "test -f /opt/ce_sri/envars.sh && echo y")
-    if r.returncode == 0 and "y" in r.stdout:
-        return True, "/opt/ce_sri/envars.sh deployed"
-    return False, "/opt/ce_sri/envars.sh not found"
-
-
-def check_bench_symlink(
-    target_ip: str, ssh_opts: list[str], ssh_key: str,
-    bench_dir: str,
-) -> tuple[bool, str]:
-    """Section A2: bench dir symlink exists."""
-    r = _ssh_vm(target_ip, ssh_opts, ssh_key,
-                f"test -L {bench_dir} && echo y")
-    if r.returncode == 0 and "y" in r.stdout:
-        return True, f"Bench symlink {bench_dir} present"
-    return False, f"Bench symlink {bench_dir} not found"
-
-
-def check_deploy_keys(
-    target_ip: str, ssh_opts: list[str], ssh_key: str,
-    erp_user: str,
-) -> tuple[bool, str]:
-    """Sections A2c + A2e: deploy keys and SSH config present."""
-    r = _ssh_vm(
-        target_ip, ssh_opts, ssh_key,
-        f"sudo test -f /home/{erp_user}/.ssh/you_gh_ce_sri"
-        f" && sudo test -f /home/{erp_user}/.ssh/config"
-        f" && sudo test -f /home/{erp_user}/.ssh/gh_askpass.sh"
-        " && echo y",
-    )
-    if r.returncode == 0 and "y" in r.stdout:
-        return True, "Deploy keys + SSH config present"
-    return False, "Deploy keys or SSH config missing"
-
-
-def check_app_cloned(
-    target_ip: str, ssh_opts: list[str], ssh_key: str,
-    bench_dir: str,
-) -> tuple[bool, str]:
-    """Section A2d: at least ce_sri cloned in apps/."""
-    r = _ssh_vm(target_ip, ssh_opts, ssh_key,
-                f"test -d {bench_dir}/apps/ce_sri/.git && echo y")
-    if r.returncode == 0 and "y" in r.stdout:
-        return True, "ce_sri app cloned"
-    return False, "ce_sri app not found in apps/"
-
-
-def check_supervisor_running(
-    target_ip: str, ssh_opts: list[str], ssh_key: str,
-) -> tuple[bool, str]:
-    """Sections A3 + A3b: supervisor has running bench processes."""
-    r = _ssh_vm(
-        target_ip, ssh_opts, ssh_key,
-        "sudo supervisorctl status 2>/dev/null | grep -c RUNNING",
-        timeout=20,
-    )
-    if r.returncode == 0:
-        count = r.stdout.strip()
-        if count.isdigit() and int(count) > 0:
-            return True, f"Supervisor: {count} processes RUNNING"
-    return False, "No supervisor processes running"
-
-
-def check_bare_symlink(
-    target_ip: str, ssh_opts: list[str], ssh_key: str,
-    bench_dir: str,
-) -> tuple[bool, str]:
-    """Section C: BaRe/envars.sh symlink to /opt/ce_sri/envars.sh."""
-    r = _ssh_vm(
-        target_ip, ssh_opts, ssh_key,
-        f"test -L {bench_dir}/BaRe/envars.sh && echo y",
-    )
-    if r.returncode == 0 and "y" in r.stdout:
-        return True, "BaRe/envars.sh symlink present"
-    return False, "BaRe/envars.sh symlink not found"
+from tools.pipeline.stages.stage_6_base_platform.check_apps import (
+    check_app_cloned, check_deploy_keys,
+)
+from tools.pipeline.stages.stage_6_base_platform.check_envars import (
+    check_bare_symlink, check_envars_deployed,
+)
+from tools.pipeline.stages.stage_6_base_platform.check_infra import (
+    check_bench_symlink, check_supervisor_running,
+)
 
 
 def verify_stage_6(
@@ -115,15 +43,19 @@ def verify_stage_6(
     ssh_key: str,
     erp_user: str,
     bench_dir: str,
+    provision_mode: str = "restored",
 ) -> list[tuple[bool, str]]:
-    """Run all Stage 6 postcondition checks."""
+    """Run all Stage 6 postcondition checks for the given mode."""
     return [
-        check_envars_deployed(target_ip, ssh_opts, ssh_key),
+        check_envars_deployed(target_ip, ssh_opts, ssh_key, provision_mode),
         check_bench_symlink(target_ip, ssh_opts, ssh_key, bench_dir),
-        check_deploy_keys(target_ip, ssh_opts, ssh_key, erp_user),
-        check_app_cloned(target_ip, ssh_opts, ssh_key, bench_dir),
+        check_deploy_keys(target_ip, ssh_opts, ssh_key, erp_user,
+                          provision_mode),
+        check_app_cloned(target_ip, ssh_opts, ssh_key, bench_dir,
+                         provision_mode),
         check_supervisor_running(target_ip, ssh_opts, ssh_key),
-        check_bare_symlink(target_ip, ssh_opts, ssh_key, bench_dir),
+        check_bare_symlink(target_ip, ssh_opts, ssh_key, bench_dir,
+                           provision_mode),
     ]
 
 
@@ -131,10 +63,10 @@ def all_passed(results: list[tuple[bool, str]]) -> bool:
     return all(ok for ok, _ in results)
 
 
-# ── CLI entry point ──────────────────────────────────────────────────
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <hostname> [project_root]")
+        print(f"Usage: {sys.argv[0]} <hostname> [project_root]"
+              " [--wg] [--mode=generic|restored]")
         sys.exit(2)
 
     from tools.pipeline.stages.common.verify_cli import (
@@ -142,6 +74,8 @@ if __name__ == "__main__":
         print_results,
     )
 
+    mode = next((a.split("=", 1)[1] for a in sys.argv[1:]
+                 if a.startswith("--mode=")), "restored")
     ctx = parse_verify_args()
     results = verify_stage_6(
         target_ip=ctx.target_ip,
@@ -149,5 +83,6 @@ if __name__ == "__main__":
         ssh_key=ctx.ssh_key,
         erp_user=ctx.erp_user,
         bench_dir=ctx.bench_dir,
+        provision_mode=mode,
     )
-    print_results("Stage 6", ctx.hostname, results)
+    print_results(f"Stage 6 ({mode})", ctx.hostname, results)
