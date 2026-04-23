@@ -185,9 +185,12 @@ Per `feedback_pr_merge_before_session_close.md`: both `mergedAt` and
 3. **#288 — preserved-files retention decision.** Not urgent (33 GiB
    on a disk with 579 GB free), but worth a disposition call within a
    few weeks before it ages out of memory.
-4. **#227 (WG spoke re-enrollment) remains open but dormant.** No
-   non-controller spokes currently exist on the mesh, so nothing acts
-   on it. If/when spokes multiply, revisit.
+4. **#227 (WG spoke re-enrollment) remains open but dormant.** New
+   empirical finding posted as issue comment: Play 5 auto-re-enrolls
+   the controller's own spoke, so #227's remaining scope is
+   non-controller spokes only. No non-controller spokes currently exist
+   on the mesh. Finding comment:
+   <https://github.com/martinhbramwell/ESACP/issues/227#issuecomment-4301029085>
 
 ## File trail
 
@@ -195,6 +198,7 @@ Per `feedback_pr_merge_before_session_close.md`: both `mergedAt` and
 - PR: <https://github.com/martinhbramwell/ESACP/pull/287>
 - Closed: <https://github.com/martinhbramwell/ESACP/issues/220>
 - Opened: <https://github.com/martinhbramwell/ESACP/issues/288>
+- #227 finding comment: <https://github.com/martinhbramwell/ESACP/issues/227#issuecomment-4301029085>
 - New feedback memory: `feedback_enumerate_mechanisms_before_committing.md`
 - Updated memory: `MEMORY.md` (issue ledger swap)
 - This minutes: `docs/SessionLogs/2026-04-22-1951-session-minutes.md`
