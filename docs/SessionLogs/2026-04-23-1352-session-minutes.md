@@ -147,13 +147,16 @@ Sub-branch retained.
 
 ## Audit (session-close)
 
-1. **Forward-tense phrases** — all resolved or tracked:
-   - "Restore-verify green" → sub-branch 3 (parked for a separate session).
-   - "Umbrella certification" → parked, operator sign-off required.
-   - "Sub-branches 2 and 3 need new issues at session start" → carried forward from 0915 handoff.
-2. **GH issues** — #289 fix body lives on the commit + PR + this minutes; `fixes #289` will fire auto-close at umbrella→main.
-3. **PRs opened** — #291 merged. `mergedAt` non-null verified.
-4. **Scope discipline** — one concern surfaced mid-session (ratchet-triggered decomposition call) and was resolved in-scope per operator direction; no drive-by changes.
+1. **Forward-tense phrases** — all resolved or tracked with durable homes:
+   - Sub-2 / sub-3 / umbrella certification → `~/.claude/plans/open-issues-purge.md` (updated: sub-1 row marked ✅ DONE with commit pointer; First-move pointer advanced from sub-1 to sub-2; clean-bench flake data point carried as context note).
+   - "Restore-verify green" / "Umbrella certification" / "Sub-2 & sub-3 need new issues at session start" → plan file Pre-Tier 0 section.
+   - Tier 0 (#278, #288) deferred until umbrella certifies → plan file.
+2. **GH issues** — findings posted as comments on the issues themselves (not only in minutes):
+   - #289 resolution comment: https://github.com/martinhbramwell/ESACP/issues/289#issuecomment-4306747819 (PR #291 / `9c66ccf` / acceptance evidence / closed-when pointer).
+   - #284 data point comment: https://github.com/martinhbramwell/ESACP/issues/284#issuecomment-4306748365 (wizard flake reproduces on clean-bench substrate).
+   - #285, #290, #202, #278, #288, #220 referenced for context only — no new findings in this session.
+3. **PRs opened** — #291. `gh pr view 291 --json mergedAt` → `2026-04-23T17:52:37Z` (non-null). DONE justified.
+4. **Scope discipline** — one concern surfaced mid-session (ratchet-triggered decomposition call) and was resolved in-scope per operator direction; no drive-by changes to shared helpers (verify_cli.py reverted; mode parsing localised in stage-6).
 
 ## Files changed
 
