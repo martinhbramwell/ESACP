@@ -6,7 +6,9 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+from tools.pipeline.orchestration import snapshot_ops
 from tools.pipeline.stages.common.types import Emit
+from tools.pipeline.stages.env_kvm import KvmEnv
 from tools.pipeline.stages.wizard_completion.capture_backup import (
     capture_golden_backup,
 )
@@ -26,6 +28,10 @@ def run_wizard(
     elif mode == "replay":
         _replay(hostname, site_url, arg, project_root, emit)
         capture_golden_backup(hostname, str(project_root), emit)
+        hypervisor = KvmEnv.from_project_root(project_root).hypervisor_alias
+        snapshot_ops.create_snapshot(
+            hostname, "ERPNext Generic Company", emit, hypervisor=hypervisor,
+        )
     elif mode == "existing":
         emit(f"── Restoring from golden backup: {arg} ──")
         restore_golden_backup(hostname, arg, str(project_root), emit)

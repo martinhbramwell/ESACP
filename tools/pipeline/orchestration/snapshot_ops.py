@@ -37,3 +37,18 @@ def create_snapshot(
         return True
     emit(f"  [WARN] Snapshot '{name}' failed: {r.stderr.strip()}")
     return False
+
+
+def revert_snapshot(
+    vm: str, name: str, emit: Emit, hypervisor: str | None = None,
+) -> bool:
+    """Revert *vm* to snapshot *name*, leaving it running. Returns True on success."""
+    r = subprocess.run(
+        _virsh_cmd("snapshot-revert", vm, name, "--running", hypervisor=hypervisor),
+        capture_output=True, text=True, timeout=120,
+    )
+    if r.returncode == 0:
+        emit(f"  [OK] Reverted to snapshot '{name}'")
+        return True
+    emit(f"  [WARN] Revert to '{name}' failed: {r.stderr.strip()}")
+    return False
