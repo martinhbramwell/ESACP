@@ -4,8 +4,11 @@
 **Branches on main:** PR #294 merge (`473f058`) + this minutes file
 **Branch cut + merged:** `fix/wizard-freeze-backdrop-guards` → main via PR #294 (`473f058`)
 **Commits on fix branch:** `18d5aab`
-**PRs opened:** **#294** (merged)
+**PRs opened:** **#294** (merged, `mergedAt=2026-04-24T16:04:23Z`)
 **Issues closed:** **#293** (`fixes #293` trailer, `closedAt=2026-04-24T16:04:25Z`)
+**Issue comments posted (post-merge, session-close audit):**
+- [#284 comment](https://github.com/martinhbramwell/ESACP/issues/284#issuecomment-4314709395) — PR #294 extends #284's coverage with a DOM-remove fallback when Escape fails to dismiss the Industry-screen modal; root cause of the intermittent Escape-consumption left open
+- [#292 comment](https://github.com/martinhbramwell/ESACP/issues/292#issuecomment-4314710162) — pre-req cleared; handover path for sub-2 rebase + resume
 **Issues filed:** none
 **Baseline:** entered at `main @ 130f8fa`; 22 open issues
 **Exit:** `main @ <this minutes commit>`; **21 open issues**
