@@ -30,7 +30,7 @@ def run_wizard(
         capture_golden_backup(hostname, str(project_root), emit)
         hypervisor = KvmEnv.from_project_root(project_root).hypervisor_alias
         snapshot_ops.create_snapshot(
-            hostname, "ERPNext Generic Company", emit, hypervisor=hypervisor,
+            hostname, "ERPNext V13 Complete Generic", emit, hypervisor=hypervisor,
         )
     elif mode == "existing":
         emit(f"── Restoring from golden backup: {arg} ──")
