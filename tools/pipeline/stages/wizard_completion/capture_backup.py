@@ -1,7 +1,8 @@
 """Capture a golden backup from a VM after wizard completion.
 
-SSH to the VM, run handleBackup.sh, SCP the resulting .tgz back
-to platforms/kvm/golden_backups/ on the controller.
+Three-step flow: bench-layer gate → run handleBackup.sh → rsync the
+.tgz to platforms/kvm/golden_backups/ on the controller. Each step
+lives in its own unit.
 """
 
 from __future__ import annotations
@@ -11,8 +12,13 @@ from pathlib import Path
 
 from tools.pipeline.orchestration.load_host_config import load_host_config
 from tools.pipeline.stages.common.config import build_config
-from tools.pipeline.stages.common.ssh import ssh_run
 from tools.pipeline.stages.common.types import Emit
+from tools.pipeline.stages.wizard_completion.clean_bench_gate import (
+    assert_clean_bench,
+)
+from tools.pipeline.stages.wizard_completion.run_handle_backup import (
+    run_handle_backup,
+)
 
 GOLDEN_BACKUPS = Path(__file__).resolve().parents[4] / "platforms" / "kvm" / "golden_backups"
 
@@ -22,43 +28,18 @@ def capture_golden_backup(
     project_root: str,
     emit: Emit,
 ) -> str:
-    """Run handleBackup.sh on the VM and copy the result to the controller.
-
-    Returns backup filename. Post-wizard seeding race (#256) is gated in the
-    wizard recording itself via page.waitForFunction(setup_complete == 1).
-    """
+    """Gate, run, stage. Returns backup filename."""
     host_cfg = load_host_config(hostname, project_root)
     config = build_config(hostname, host_cfg, project_root, provision_mode="generic")
 
-    # Run handleBackup.sh on the VM
+    emit("  Verifying clean-bench substrate before capture ...")
+    assert_clean_bench(config, emit)
+
     emit("  Running handleBackup.sh on VM ...")
-    cmd = (
-        f"sudo -u {config.erp_user} bash -c"
-        f" 'cd {config.bench_dir} && bash BaRe/handleBackup.sh"
-        f" \"golden generic snapshot\"'"
-    )
-    r = ssh_run(config, cmd, timeout=300)
-    if r.returncode != 0:
-        raise RuntimeError(
-            f"handleBackup.sh failed (exit {r.returncode}): "
-            f"{r.stderr.strip() or r.stdout.strip()}"
-        )
-    for line in r.stdout.strip().splitlines():
-        emit(f"  {line}")
+    backup_name = run_handle_backup(config, emit)
 
-    # Read BACKUP.txt to get the filename
-    r = ssh_run(config, f"cat {config.bench_dir_orig}/BKP/BACKUP.txt", timeout=10)
-    if r.returncode != 0:
-        raise RuntimeError("BACKUP.txt not found after handleBackup.sh")
-    backup_name = r.stdout.strip()
-    if not backup_name:
-        raise RuntimeError("BACKUP.txt is empty after handleBackup.sh")
-    emit(f"  Backup file: {backup_name}")
-
-    # SCP the backup to the controller
     GOLDEN_BACKUPS.mkdir(parents=True, exist_ok=True)
     local_dest = GOLDEN_BACKUPS / backup_name
-
     rsh = f"ssh {' '.join(config.ssh_opts)} -i {config.ssh_key}"
     r = subprocess.run(
         ["rsync", "-a", "-e", rsh,
