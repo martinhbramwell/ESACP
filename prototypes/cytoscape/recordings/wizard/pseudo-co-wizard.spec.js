@@ -42,6 +42,22 @@ const CONFIG = process.env.WIZARD_CONFIG_JSON
   ? JSON.parse(process.env.WIZARD_CONFIG_JSON)
   : DEFAULT_CONFIG;
 
+// ── Helper: wait for Frappe's AJAX freeze backdrop to clear ──────────────
+// Fixes #293. Every wizard-navigation click (Next / Complete Setup) must be
+// preceded by this guard. Frappe's setup_wizard POSTs per screen and the
+// freeze backdrop (#freeze.modal-backdrop.in) intercepts pointer events
+// until the response lands. Under pipeline load (Python subprocess + the
+// idempotency-verify SSH probes that run just before wizard_run.py), the
+// clearance time crosses the click tolerance on un-guarded Next clicks.
+// A recording-side per-click wait adapts to load; pipeline-side fixed
+// warmup would only guard the first click.
+async function waitForFrappeIdle(page, timeout = 30_000) {
+  await page.waitForFunction(
+    () => !document.querySelector('#freeze.modal-backdrop.in'),
+    null, { timeout },
+  );
+}
+
 (async () => {
   const browser = await chromium.launch({
     headless: false
@@ -50,15 +66,21 @@ const CONFIG = process.env.WIZARD_CONFIG_JSON
   const page = await context.newPage();
 
   // ── Login ────────────────────────────────────────────────────────────────
+  // Fixes #293. Playwright's default waitForURL timeout is 30 s; when the
+  // wizard runs right after the pipeline's Stage 8 supervisor restart, the
+  // client can sit idle for ~29 s between login POST and the /app redirect
+  // (workers/redis warming up), hitting the default. 90 s absorbs that.
   await page.goto('https://dev01.iridium.blue/#login');
   await page.getByRole('textbox', { name: 'Email', exact: true }).fill(CONFIG.admin.login_user);
   await page.getByRole('textbox', { name: 'Password' }).fill(CONFIG.admin.login_password);
   await page.getByRole('button', { name: 'Login' }).click();
-  await page.waitForURL('**/app**');
+  await page.waitForURL('**/app**', { timeout: 90_000 });
 
   // ── Wizard screen 1: Welcome + Country ───────────────────────────────────
+  await waitForFrappeIdle(page);
   await page.getByRole('button', { name: 'Next' }).click();
   await page.locator('a').filter({ hasText: CONFIG.country }).click();
+  await waitForFrappeIdle(page);
   await page.getByRole('button', { name: 'Next' }).click();
 
   // ── Wizard screen 2: User ────────────────────────────────────────────────
@@ -67,16 +89,14 @@ const CONFIG = process.env.WIZARD_CONFIG_JSON
   await page.getByRole('textbox').nth(1).fill(CONFIG.admin.email);
   await page.getByRole('textbox').nth(1).press('Tab');
   await page.locator('input[type="password"]').fill(CONFIG.admin.password);
+  await waitForFrappeIdle(page);
   await page.getByRole('button', { name: 'Next' }).click();
 
   // ── Wizard screen 3: Industry ────────────────────────────────────────────
   // Wait for Frappe's AJAX freeze overlay to clear before Industry-page
   // interaction (#256 flake guard — does not cover the welcome-modal race,
   // which is handled below).
-  await page.waitForFunction(
-    () => !document.querySelector('#freeze.modal-backdrop.in'),
-    null, { timeout: 30_000 },
-  );
+  await waitForFrappeIdle(page);
   // Fixes #267. Run 06 attempt 1 showed the welcome modal can materialise
   // DURING Playwright's .check() retry loop, not just before it — a
   // pre-click Escape guard cannot see the future. Resolve each checkbox
@@ -99,35 +119,47 @@ const CONFIG = process.env.WIZARD_CONFIG_JSON
       throw new Error(`${industry} checkbox did not register as checked after DOM mutation`);
     }
   }
-  // Fixes #284 (second failure site). The welcome/onboarding modal can
-  // materialise AFTER the checkbox DOM mutation and before the Next click,
-  // intercepting pointer events (<div class="modal fade show">). #267 fixed
-  // the checkbox interaction via DOM mutation; this complement Escape-dismisses
-  // any modal that emerged in the meantime so the real Next click lands.
+  // Fixes #284 (second failure site) + #293 (pipeline-context Escape-fail follow-on).
+  // The welcome/onboarding modal can materialise AFTER the checkbox DOM mutation
+  // and before the Next click, intercepting pointer events (<div class="modal fade show">).
+  // #267 fixed the checkbox interaction via DOM mutation; Escape dismisses the modal
+  // in most cases. Under pipeline load the Escape key is intermittently consumed by
+  // something other than the modal (focus trap races, ancestor handlers), leaving the
+  // backdrop up — fall through to a DOM-level removal so the Next click always lands.
   const industryModalBackdrop = await page.locator('.modal-backdrop.show').first()
     .isVisible().catch(() => false);
   if (industryModalBackdrop) {
     await page.keyboard.press('Escape');
-    await page.waitForFunction(
+    const dismissed = await page.waitForFunction(
       () => !document.querySelector('.modal-backdrop.show'),
-      null, { timeout: 5_000 },
-    );
+      null, { timeout: 2_000 },
+    ).then(() => true).catch(() => false);
+    if (!dismissed) {
+      await page.evaluate(() => {
+        document.querySelectorAll('.modal-backdrop, .modal.show, .modal.fade.show').forEach(n => n.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+      });
+      await page.waitForFunction(
+        () => !document.querySelector('.modal-backdrop.show') && !document.querySelector('.modal.show'),
+        null, { timeout: 2_000 },
+      );
+    }
   }
+  await waitForFrappeIdle(page);
   await page.getByRole('button', { name: 'Next' }).click();
 
   // ── Wizard screen 4a: Company name + abbr ────────────────────────────────
   // Fixes #284 (first failure site). Industry→Company screen transition
   // stalled on Run 06 regen when a Frappe freeze-backdrop lingered longer
   // than it did under Run 03's CLI-transport timing. Same class as #267
-  // on the Industry step — guard every post-Next wizard screen with the
-  // same freeze-backdrop wait.
-  await page.waitForFunction(
-    () => !document.querySelector('#freeze.modal-backdrop.in'),
-    null, { timeout: 30_000 },
-  );
+  // on the Industry step — waitForFrappeIdle now guards every Next click.
+  await waitForFrappeIdle(page);
   await page.getByRole('textbox').first().fill(CONFIG.company.name);
   await page.getByRole('textbox').first().press('Tab');
   await page.getByRole('textbox').nth(1).fill(CONFIG.company.abbr);
+  await waitForFrappeIdle(page);
   await page.getByRole('button', { name: 'Next' }).click();
 
   // ── Wizard screen 4b: Company description, currency, accounting standard ─
@@ -141,6 +173,7 @@ const CONFIG = process.env.WIZARD_CONFIG_JSON
   // through Company INSERT + Chart-of-Accounts seeding (~30–45s). Wait for
   // the POST response itself — page.waitForFunction(async fn) returned
   // truthy prematurely in earlier attempts, producing pre-seed backups.
+  await waitForFrappeIdle(page);
   const [completeResp] = await Promise.all([
     page.waitForResponse(
       r => /setup_complete/.test(r.url()) && r.request().method() === 'POST',
