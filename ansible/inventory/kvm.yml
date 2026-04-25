@@ -13,57 +13,57 @@ all:
           vm_name: saconsole
           display_name: Hub Console
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
-        dev02: &id002
-          ansible_host: 192.168.122.20
-          wg_ip: 10.10.0.12
-          wg_role: spoke
-          vm_name: dev02
-          display_name: Dev 02
-          ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
-        dev03: &id003
+        dev03: &id002
           ansible_host: 192.168.122.22
           wg_ip: 10.10.0.14
           wg_role: spoke
           vm_name: dev03
           display_name: Dev 03
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
-        target5: &id004
+        target5: &id003
           ansible_host: 192.168.122.25
           wg_ip: 10.10.0.15
           wg_role: spoke
           vm_name: target5
           display_name: target5
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
-        dev01: &id005
+        dev01: &id004
           ansible_host: 192.168.122.26
           wg_ip: 10.10.0.16
           wg_role: spoke
           vm_name: dev01
           display_name: dev01
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
+        dev02: &id005
+          ansible_host: 192.168.122.27
+          wg_ip: 10.10.0.17
+          wg_role: spoke
+          vm_name: dev02
+          display_name: dev02
+          ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
     development:
       hosts:
         saconsole: *id001
-        dev02: *id002
-        dev03: *id003
-        target5: *id004
-        dev01: *id005
+        dev03: *id002
+        target5: *id003
+        dev01: *id004
+        dev02: *id005
     lab:
       hosts:
         saconsole: *id001
-        dev02: *id002
-        dev03: *id003
-        target5: *id004
-        dev01: *id005
+        dev03: *id002
+        target5: *id003
+        dev01: *id004
+        dev02: *id005
     hub:
       hosts:
         saconsole: *id001
     targets:
       hosts:
-        dev02: *id002
-        dev03: *id003
-        target5: *id004
-        dev01: *id005
+        dev03: *id002
+        target5: *id003
+        dev01: *id004
+        dev02: *id005
     controller:
       hosts:
         localhost:
