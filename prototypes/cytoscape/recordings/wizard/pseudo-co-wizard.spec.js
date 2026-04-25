@@ -58,6 +58,52 @@ async function waitForFrappeIdle(page, timeout = 30_000) {
   );
 }
 
+// ── Helper: dismiss Frappe's welcome/onboarding modal ───────────────────
+// Fixes #297 (which extends #284/#293). The onboarding modal
+// (.modal-backdrop.show / .modal.show) materialises asynchronously at
+// non-deterministic wizard transitions, intercepting pointer events.
+// waitForFrappeIdle does NOT cover this — it checks #freeze.modal-backdrop.in,
+// a different selector for Frappe's AJAX freeze indicator.
+//
+// Escape dismisses it in most cases (2 s budget). Under pipeline load the
+// Escape key is intermittently consumed by something other than the modal
+// (focus trap races, ancestor handlers); the DOM-remove fallback then
+// strips the backdrop directly so the next click always lands.
+//
+// Idempotent: returns immediately if no modal is visible. Safe to call
+// before every wizard interaction.
+async function dismissWelcomeModal(page, timeout = 2_000) {
+  const visible = await page.locator('.modal-backdrop.show').first()
+    .isVisible().catch(() => false);
+  if (!visible) return;
+  await page.keyboard.press('Escape');
+  const dismissed = await page.waitForFunction(
+    () => !document.querySelector('.modal-backdrop.show'),
+    null, { timeout },
+  ).then(() => true).catch(() => false);
+  if (dismissed) return;
+  await page.evaluate(() => {
+    document.querySelectorAll('.modal-backdrop, .modal.show, .modal.fade.show').forEach(n => n.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+  });
+  await page.waitForFunction(
+    () => !document.querySelector('.modal-backdrop.show') && !document.querySelector('.modal.show'),
+    null, { timeout },
+  );
+}
+
+// ── Composite guard for transitions where the welcome modal has been observed ─
+// Use at known-bad transitions only (#284 Industry-Next, #297 Company-name-Next,
+// #296 Complete-Setup). Calling at every wizard step regressed: the DOM-remove
+// fallback or stray Escape can interfere with screen-render timing at
+// transitions where no welcome modal is actually present.
+async function readyForInteraction(page) {
+  await waitForFrappeIdle(page);
+  await dismissWelcomeModal(page);
+}
+
 (async () => {
   const browser = await chromium.launch({
     headless: false
@@ -119,47 +165,18 @@ async function waitForFrappeIdle(page, timeout = 30_000) {
       throw new Error(`${industry} checkbox did not register as checked after DOM mutation`);
     }
   }
-  // Fixes #284 (second failure site) + #293 (pipeline-context Escape-fail follow-on).
-  // The welcome/onboarding modal can materialise AFTER the checkbox DOM mutation
-  // and before the Next click, intercepting pointer events (<div class="modal fade show">).
-  // #267 fixed the checkbox interaction via DOM mutation; Escape dismisses the modal
-  // in most cases. Under pipeline load the Escape key is intermittently consumed by
-  // something other than the modal (focus trap races, ancestor handlers), leaving the
-  // backdrop up — fall through to a DOM-level removal so the Next click always lands.
-  const industryModalBackdrop = await page.locator('.modal-backdrop.show').first()
-    .isVisible().catch(() => false);
-  if (industryModalBackdrop) {
-    await page.keyboard.press('Escape');
-    const dismissed = await page.waitForFunction(
-      () => !document.querySelector('.modal-backdrop.show'),
-      null, { timeout: 2_000 },
-    ).then(() => true).catch(() => false);
-    if (!dismissed) {
-      await page.evaluate(() => {
-        document.querySelectorAll('.modal-backdrop, .modal.show, .modal.fade.show').forEach(n => n.remove());
-        document.body.classList.remove('modal-open');
-        document.body.style.removeProperty('overflow');
-        document.body.style.removeProperty('padding-right');
-      });
-      await page.waitForFunction(
-        () => !document.querySelector('.modal-backdrop.show') && !document.querySelector('.modal.show'),
-        null, { timeout: 2_000 },
-      );
-    }
-  }
-  await waitForFrappeIdle(page);
+  // #267 + #284 + #293: welcome modal can materialise AFTER the checkbox
+  // DOM mutation and before this Next click. dismissWelcomeModal (called via
+  // readyForInteraction) handles Escape + DOM-remove fallback.
+  await readyForInteraction(page);
   await page.getByRole('button', { name: 'Next' }).click();
 
   // ── Wizard screen 4a: Company name + abbr ────────────────────────────────
-  // Fixes #284 (first failure site). Industry→Company screen transition
-  // stalled on Run 06 regen when a Frappe freeze-backdrop lingered longer
-  // than it did under Run 03's CLI-transport timing. Same class as #267
-  // on the Industry step — waitForFrappeIdle now guards every Next click.
   await waitForFrappeIdle(page);
   await page.getByRole('textbox').first().fill(CONFIG.company.name);
   await page.getByRole('textbox').first().press('Tab');
   await page.getByRole('textbox').nth(1).fill(CONFIG.company.abbr);
-  await waitForFrappeIdle(page);
+  await readyForInteraction(page);
   await page.getByRole('button', { name: 'Next' }).click();
 
   // ── Wizard screen 4b: Company description, currency, accounting standard ─
@@ -173,7 +190,7 @@ async function waitForFrappeIdle(page, timeout = 30_000) {
   // through Company INSERT + Chart-of-Accounts seeding (~30–45s). Wait for
   // the POST response itself — page.waitForFunction(async fn) returned
   // truthy prematurely in earlier attempts, producing pre-seed backups.
-  await waitForFrappeIdle(page);
+  await readyForInteraction(page);
   const [completeResp] = await Promise.all([
     page.waitForResponse(
       r => /setup_complete/.test(r.url()) && r.request().method() === 'POST',
