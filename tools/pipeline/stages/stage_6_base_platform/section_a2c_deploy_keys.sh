@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Section A2c: deploy keys + ssh_config + gh_askpass (gated)
+# Usage: section_a2c_deploy_keys.sh ERP_USER PROVISION_MODE
+
+ERP_USER="$1"
+PROVISION_MODE="${2:-restored}"
+
+echo "=== A2c: setup deploy keys for GitHub ==="
+mkdir -p "/home/$ERP_USER/.ssh"
+chmod 700 "/home/$ERP_USER/.ssh"
+chown "$ERP_USER:$ERP_USER" "/home/$ERP_USER/.ssh"
+
+if [ "$PROVISION_MODE" = "generic" ]; then
+    echo "  [SKIP] generic mode — no deploy keys / ssh_config / gh_askpass needed"
+    exit 0
+fi
+
+for key in you_gh_ce_sri you_gh_ce_sri_svc you_gh_route_planner you_gh.txt; do
+    if [ -f "/tmp/$key" ]; then
+        mv "/tmp/$key" "/home/$ERP_USER/.ssh/$key"
+        chmod 600 "/home/$ERP_USER/.ssh/$key"
+    fi
+done
+cp /tmp/rendered/ssh_config "/home/$ERP_USER/.ssh/config"
+chmod 600 "/home/$ERP_USER/.ssh/config"
+cp /tmp/rendered/gh_askpass.sh "/home/$ERP_USER/.ssh/gh_askpass.sh"
+chmod 700 "/home/$ERP_USER/.ssh/gh_askpass.sh"
+chown -R "$ERP_USER:$ERP_USER" "/home/$ERP_USER/.ssh"
+echo "  [OK] deploy keys + SSH config installed"
