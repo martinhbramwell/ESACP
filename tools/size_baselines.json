@@ -157,6 +157,7 @@
   "tools/pipeline/stages/stage_6_base_platform/section_a_envars.sh": 18,
   "tools/pipeline/stages/stage_6_base_platform/section_b2b_cesri_npm.sh": 23,
   "tools/pipeline/stages/stage_6_base_platform/section_b_bkp_owner.sh": 16,
+  "tools/pipeline/stages/stage_6_base_platform/section_c_bare_envars.sh": 34,
   "tools/pipeline/stages/stage_6_base_platform/section_c_bare_symlink.sh": 22,
   "tools/pipeline/stages/stage_6_base_platform/verify.py": 153,
   "tools/pipeline/stages/stage_7_data_restoration/__init__.py": 93,
