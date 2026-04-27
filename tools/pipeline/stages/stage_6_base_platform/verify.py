@@ -7,7 +7,7 @@ Six checks covering sections A–C + B2b:
   3. Deploy keys in ~erpadm/.ssh/
   4. At least one app cloned (ce_sri in apps/)
   5. Supervisor running bench processes
-  6. BaRe/envars.sh symlink present
+  6. BaRe/envars.sh present (symlink in ce_sri mode, real file in generic mode)
 """
 
 from __future__ import annotations
@@ -95,18 +95,18 @@ def check_supervisor_running(
     return False, "No supervisor processes running"
 
 
-def check_bare_symlink(
+def check_bare_envars(
     target_ip: str, ssh_opts: list[str], ssh_key: str,
     bench_dir: str,
 ) -> tuple[bool, str]:
-    """Section C: BaRe/envars.sh symlink to /opt/ce_sri/envars.sh."""
+    """Section C: BaRe/envars.sh exists (symlink in ce_sri mode, real file in generic mode)."""
     r = _ssh_vm(
         target_ip, ssh_opts, ssh_key,
-        f"test -L {bench_dir}/BaRe/envars.sh && echo y",
+        f"(test -L {bench_dir}/BaRe/envars.sh || test -f {bench_dir}/BaRe/envars.sh) && echo y",
     )
     if r.returncode == 0 and "y" in r.stdout:
-        return True, "BaRe/envars.sh symlink present"
-    return False, "BaRe/envars.sh symlink not found"
+        return True, "BaRe/envars.sh present"
+    return False, "BaRe/envars.sh not found"
 
 
 def verify_stage_6(
@@ -123,7 +123,7 @@ def verify_stage_6(
         check_deploy_keys(target_ip, ssh_opts, ssh_key, erp_user),
         check_app_cloned(target_ip, ssh_opts, ssh_key, bench_dir),
         check_supervisor_running(target_ip, ssh_opts, ssh_key),
-        check_bare_symlink(target_ip, ssh_opts, ssh_key, bench_dir),
+        check_bare_envars(target_ip, ssh_opts, ssh_key, bench_dir),
     ]
 
 
