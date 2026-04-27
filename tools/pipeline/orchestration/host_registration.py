@@ -9,7 +9,6 @@ three api.py endpoints. Raises ``HostRegistrationError`` (HTTP 400),
 from __future__ import annotations
 
 import re
-import subprocess
 from pathlib import Path
 from typing import Callable
 
@@ -18,6 +17,8 @@ import yaml
 from tools.pipeline.orchestration.host_registration_block import (
     MARKER, build_host_block,
 )
+from tools.pipeline.orchestration.inventory_regen import regenerate_inventory
+from tools.pipeline.orchestration.known_hosts_cleanup import clear_known_hosts
 
 Emit = Callable[[str], None]
 
@@ -65,10 +66,9 @@ def register_host(
     hosts_map_path.write_text(text.replace(MARKER, block + MARKER))
     emit(f"  [OK] registered {hostname} in hosts_map.yml")
 
-    result = subprocess.run(
-        ["python3", "tools/generate_inventory.py"],
-        cwd=str(root), capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"generate_inventory.py failed:\n{result.stderr}")
-    emit("  [OK] inventory regenerated")
+    # Defense-in-depth: clear stale known_hosts entries in case a prior VM
+    # at these addresses was destroyed elsewhere or the controller was
+    # different. destroy.py also runs this; the duplication is intentional.
+    clear_known_hosts([hostname, wg_ip, virbr0_ip], emit)
+
+    regenerate_inventory(root, emit)

@@ -77,6 +77,7 @@
   "tools/pipeline/orchestration/hypervisor_helpers.py": 67,
   "tools/pipeline/orchestration/inventory_regen.py": 20,
   "tools/pipeline/orchestration/ip_suggestions.py": 32,
+  "tools/pipeline/orchestration/known_hosts_cleanup.py": 42,
   "tools/pipeline/orchestration/load_host_config.py": 18,
   "tools/pipeline/orchestration/local_vm_teardown.py": 73,
   "tools/pipeline/orchestration/memory_guard.py": 77,
