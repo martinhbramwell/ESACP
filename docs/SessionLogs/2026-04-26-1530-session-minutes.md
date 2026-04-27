@@ -96,4 +96,40 @@ Manual `ssh-keygen -R 10.10.0.17` was needed during acceptance verification to c
 
 ## Time accounting
 
-Spanned date change 2026-04-26 → 2026-04-27 UTC. Substantive work concentrated on 2026-04-27 between roughly 07:50–08:50 EDT (commits `57086eb`, `c68a0a0`, `c5cbd4d`).
+Spanned date change 2026-04-26 → 2026-04-27 UTC. Substantive work concentrated on 2026-04-27 between roughly 07:50–09:25 EDT (commits `57086eb`, `c68a0a0`, `c5cbd4d`, `0546d7a`).
+
+## Session extension — post-original-close work
+
+After the first session-end audit, operator directed three additional units. Following the audit/agenda directive:
+
+### Extension 1: BaRe cleanup tracking issue
+
+Combined the two flagged unresolved concerns (drift review vs `PRODUCTION_*/BaRe/`; envars.sh extension for non-restore BaRe scripts) into a single tracking issue: **martinhbramwell/BaRe#8** ("BaRe cleanup — drift vs production + extend envars.sh for non-restore scripts"). Two sub-tasks documented; per-script follow-up issues to be filed as those scripts get exercised.
+
+### Extension 2: #300 fix (known_hosts cleanup) — PR #305 merged
+
+**Closed via PR #305 / `65e3e63`** at 2026-04-27 13:41 UTC.
+
+| File | Change |
+|---|---|
+| `tools/pipeline/orchestration/known_hosts_cleanup.py` (new, 42 lines) | Primitive `clear_known_hosts(keys, emit)` — `ssh-keygen -R` per key, idempotent |
+| `tools/pipeline/macro/destroy.py` | Step 9 at end of teardown |
+| `tools/pipeline/orchestration/host_registration.py` | Defense-in-depth call after registration. Drive-by: replaced inline `subprocess generate_inventory.py` with existing `regenerate_inventory()` primitive |
+| `tools/CLAUDE.md` | destroy macro now 9-step; primitives table updated |
+
+Smoke-tested three cases (nonexistent / empty / real entry) — all pass. e2e validation will happen organically the next session that runs a destroy.
+
+Pre-commit ratchet caught growth twice during implementation; resolved by (a) replacing duplicated subprocess logic in host_registration.py with the existing primitive, (b) tightening destroy.py's 8-step docstring list to a 1-line summary. Both files net at their previous baselines.
+
+### Extension 3: V14 branch fast-forward
+
+`feat/v13-to-v14-upgrade-experiment` had zero unique commits vs main; fast-forwarded to current tip `65e3e63`. Pushed to remote (was previously local-only). Ready for V14 work in next session — no rebase friction expected.
+
+## Updated state at extended session close
+
+- ESACP `main` tip: `65e3e63` (PR #305 merge) preceded by `0546d7a` (#300 fix), `37ca83e` (1530 minutes), `c5cbd4d` (state), `be441a1` (PR #304 merge)
+- BaRe `main` tip: `818c37f` (PR #7 merge)
+- `feat/v13-to-v14-upgrade-experiment` tip: `65e3e63` (matches main)
+- Working tree clean
+- Open ESACP issues: 23 (closed #300, opened #302; #303 was opened+closed within session)
+- BaRe filed-this-session: #6 (closed via PR #7), #8 (open, tracking)
