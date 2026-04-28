@@ -122,6 +122,7 @@
   "tools/pipeline/stages/stage_1_vm_creation/cleanup_residue.py": 59,
   "tools/pipeline/stages/stage_1_vm_creation/clone_template.py": 39,
   "tools/pipeline/stages/stage_1_vm_creation/seed_iso.py": 83,
+  "tools/pipeline/stages/stage_1_vm_creation/test_virt_install_ram.py": 62,
   "tools/pipeline/stages/stage_1_vm_creation/upload_seed.py": 25,
   "tools/pipeline/stages/stage_1_vm_creation/verify.py": 131,
   "tools/pipeline/stages/stage_1_vm_creation/virt_install.py": 34,
