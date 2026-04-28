@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Macro: full destroy — 9-step teardown.
+"""Macro: full destroy — 8-step teardown.
 
 Steps: live WG peer → VM → hosts_map → group_vars → inventory → hub WG
-→ SOPS keys → cloud-init → known_hosts cleanup.
+→ SOPS keys → known_hosts cleanup.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from pathlib import Path
 
 from tools.host_identity import HUB_HYPERVISOR, HUB_KEY, HUB_VIRBR0_IP
 from tools.pipeline.orchestration.ansible_wg_update import update_hub_wireguard
-from tools.pipeline.orchestration.cloud_init_cleanup import remove_cloud_init
 from tools.pipeline.orchestration.destroy_vm import destroy_vm
 from tools.pipeline.orchestration.group_vars_remove import remove_from_group_vars
 from tools.pipeline.orchestration.hosts_map_remove import remove_from_hosts_map
@@ -63,10 +62,7 @@ def run(
     emit("── Step 7: Remove WireGuard keys ──")
     remove_keys_from_sops(hostname, keys_sops, root, emit)
 
-    emit("── Step 8: Remove cloud-init directory ──")
-    remove_cloud_init(hostname, root / "platforms" / "kvm" / "cloud-init", emit)
-
-    emit("── Step 9: Clear stale ~/.ssh/known_hosts entries ──")
+    emit("── Step 8: Clear stale ~/.ssh/known_hosts entries ──")
     clear_known_hosts(
         [hostname, host_cfg.get("wg_ip") or "", host_cfg.get("virbr0_ip") or ""],
         emit,

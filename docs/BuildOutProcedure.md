@@ -89,39 +89,19 @@ ssh-keygen -R 192.168.122.11
 
 ---
 
-## 3. Build Cloud-Init Seed ISOs
+## 3. Bootstrap the Hub VM
 
 ```bash
-bash platforms/kvm/create_seeds.sh
+bash platforms/kvm/bootstrap_hub.sh
 ```
 
-Expected output:
-```
-Building saconsole-seed.iso...  ✅
-Building target1-seed.iso...    ✅
-```
+This single command runs the 9-phase hub bootstrap: render the cloud-init seed ISO from `platforms/kvm/cloud-init/hub-autoinstall.*.j2` + `hosts_map.yml`, upload to the hypervisor, `virt-install` the hub, wait for autoinstall + first boot, snapshot, run Ansible, snapshot baseline, hand off. Each phase is idempotent — safe to re-run.
+
+Target VMs are provisioned separately — see section 4.
 
 ---
 
-## 4. Create VMs and Start Autoinstall
-
-```bash
-bash platforms/kvm/create_vms.sh both
-```
-
-This creates both VMs and immediately starts the Ubuntu autoinstall.
-The command returns promptly — autoinstall continues in the background.
-
-Optionally monitor progress:
-
-```bash
-virt-viewer saconsole &
-virt-viewer target1 &
-```
-
----
-
-## 5. Provision Both VMs
+## 4. Provision Target VMs
 
 Run the provisioner — the pipeline detects mid-autoinstall automatically:
 
@@ -155,7 +135,7 @@ Enter your sudo password. This configures the **controller WireGuard spoke** (wg
 
 ---
 
-## 6. Verify WireGuard Connectivity
+## 5. Verify WireGuard Connectivity
 
 After the provisioner completes:
 
@@ -173,7 +153,7 @@ ssh -i ~/.ssh/hasan_mighty you@saconsole "sudo wg show"
 
 ---
 
-## 7. Run Validation
+## 6. Run Validation
 
 ```bash
 export GRAFANA_ADMIN_USER=admin
@@ -195,7 +175,7 @@ Expected final line:
 
 ---
 
-## 8. Take Validated Snapshot
+## 7. Take Validated Snapshot
 
 ```bash
 python3 platforms/kvm/snapshot.py create saconsole "Stage 2.1 Validated"
@@ -208,7 +188,7 @@ python3 platforms/kvm/snapshot.py list target1
 
 ---
 
-## 9. Access Services
+## 8. Access Services
 
 All services are accessible over WireGuard from the controller:
 

@@ -11,27 +11,22 @@ The Stage 2.1 implementation exposed a structural tension: `hosts_map.yml` is th
 intended single source of truth, but several generated or quasi-generated artifacts
 duplicate its data independently:
 
-- `ansible/inventory/kvm.yml` — correctly generated from `hosts_map.yml`
-- `platforms/kvm/cloud-init/*/user-data` — **static**, contain hostname, virbr0 IP,
-  OS username, and sudoers entries that duplicate or shadow `hosts_map.yml` data
+- `ansible/inventory/kvm.yml` — generated from `hosts_map.yml` by `generate_inventory.py`
+- `platforms/kvm/cloud-init/hub-autoinstall.*.j2` — Jinja2 templates rendered from
+  `hosts_map.yml` by `tools/pipeline/orchestration/hub_seed_iso.py` (hub) and
+  `tools/pipeline/stages/stage_1_vm_creation/seed_iso.py` (targets)
 - `ansible/group_vars/kvm.yml` — contains `ansible_user` which must match the OS
   username in cloud-init
 
-Consequence: changing a WireGuard subnet, renaming a VM, or changing the OS username
-requires edits in multiple unlinked files. A global search-and-replace (e.g. `10.10.0.x`
-→ `10.10.1.x`) will miss static cloud-init network stanzas. A username change in
-`kvm.yml` silently diverges from the OS user already baked into the running VM.
-
-**Resolution:** Cloud-init user-data files should be generated from `hosts_map.yml`
-via Jinja2 templates, exactly as `ansible/inventory/kvm.yml` already is. `hosts_map.yml`
-should carry `vm_user` per host (or as a KVM-group default). After this change, the
-full set of generated artifacts all derive from one file:
+Resolution status: cloud-init dynamic generation landed via #202. All generated
+artifacts now derive from `hosts_map.yml`:
 
 ```
 hosts_map.yml
   │
-  ├─► ansible/inventory/kvm.yml          (generate_inventory.py — existing)
-  └─► platforms/kvm/cloud-init/*/user-data  (generate_cloud_init.py — to build)
+  ├─► ansible/inventory/kvm.yml                  (generate_inventory.py)
+  ├─► platforms/kvm/<hub>-seed.iso              (hub_seed_iso.py + hub-autoinstall.*.j2)
+  └─► platforms/kvm/<target>-seed.iso           (seed_iso.py — inline cloud-config)
 ```
 
 ---
