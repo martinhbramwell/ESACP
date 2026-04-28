@@ -1,19 +1,14 @@
-# 02_build_seed.sh — render cloud-init user-data/meta-data into seed ISO locally.
+# 02_build_seed.sh — render hub autoinstall artifacts via Jinja2 + hosts_map.yml
+# and pack them into a NoCloud seed ISO. Replaces the static cloud-init/<hub>/
+# pattern (#202).
 
 step "Phase 2: Build hub seed ISO"
 
 SEED_ISO="${SCRIPT_DIR}/${HUB_KEY}-seed.iso"
-USER_DATA="${SCRIPT_DIR}/cloud-init/${HUB_KEY}/user-data"
-META_DATA="${SCRIPT_DIR}/cloud-init/${HUB_KEY}/meta-data"
 
-[[ -f "${USER_DATA}" ]] || die "Missing: ${USER_DATA}"
-[[ -f "${META_DATA}" ]] || die "Missing: ${META_DATA}"
+PYTHONPATH="${PROJ_ROOT}" \
+    "${PROJ_ROOT}/tools/pipeline/orchestration/hub_seed_iso.py" \
+    "${HUB_KEY}" "${HUB_VIRBR0_IP}" "${SCRIPT_DIR}" \
+    || die "hub seed ISO build failed"
 
-if [[ -f "${SEED_ISO}" \
-    && "${SEED_ISO}" -nt "${USER_DATA}" \
-    && "${SEED_ISO}" -nt "${META_DATA}" ]]; then
-    log "Seed ISO is current — skipping rebuild."
-else
-    cloud-localds "${SEED_ISO}" "${USER_DATA}" "${META_DATA}"
-    log "✅  ${SEED_ISO}"
-fi
+log "✅  ${SEED_ISO}"

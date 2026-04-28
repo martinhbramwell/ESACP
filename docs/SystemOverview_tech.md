@@ -45,8 +45,8 @@ Prometheus scrapes both saconsole (via `host.docker.internal`) and target1 (via 
 ## Provisioning Pipeline
 
 ```
-create_seeds.sh          cloud-localds → seed ISOs (cloud-init user-data/meta-data)
-create_vms.sh            virt-install → KVM VMs; autoinstall runs unattended
+bootstrap_hub.sh         render cloud-init from hub-autoinstall.*.j2 + hosts_map.yml,
+                          cloud-localds → seed ISO, virt-install → KVM hub
 provision_kvm.py         orchestrates: autoinstall wait → SSH poll →
                            snapshot → Ansible → snapshot
 site-kvm.yml             Ansible top-level playbook; 4 plays:

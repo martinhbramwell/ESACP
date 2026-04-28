@@ -196,7 +196,7 @@ Acceptance test: `./tools/verify_phase9.py`.
 | `macro/provision.py` | Stages 1–9 sequentially | `job_worker.py` (provision job) |
 | `macro/provision_generic.py` | Stages 1–9 + wizard completion | `job_worker.py` (provision_generic job) |
 | `macro/refresh.py` | Stages 3–9 (WG transport) | `job_worker.py` (refresh job) |
-| `macro/destroy.py` | 9-step teardown: WG peer → VM → hosts_map → group_vars → inventory → Ansible WG → SOPS keys → cloud-init → known_hosts cleanup | `job_worker.py` (destroy job), `esacp.py` (destroy cmd) |
+| `macro/destroy.py` | 8-step teardown: WG peer → VM → hosts_map → group_vars → inventory → Ansible WG → SOPS keys → known_hosts cleanup | `job_worker.py` (destroy job), `esacp.py` (destroy cmd) |
 
 ### Destroy orchestration primitives (in `orchestration/`)
 
@@ -212,8 +212,8 @@ Each is a single-task atomic script — no duplicated logic:
 | `inventory_regen.py` | Run generate_inventory.py |
 | `ansible_wg_update.py` | Run Ansible to update hub WG config |
 | `sops_key_remove.py` | Remove host keys from SOPS-encrypted keyring |
-| `cloud_init_cleanup.py` | Remove cloud-init directory |
 | `known_hosts_cleanup.py` | Clear stale `~/.ssh/known_hosts` entries (used by destroy + addHost) |
+| `hub_seed_iso.py` | Render hub autoinstall seed ISO from Jinja2 templates + hosts_map.yml (#202) |
 
 ### Dispatcher-extracted primitives (Phase 7, #195)
 
