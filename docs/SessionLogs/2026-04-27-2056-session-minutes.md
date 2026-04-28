@@ -50,3 +50,14 @@ The issue body's stated checkbox — "dev0N build via addHost → provisionGener
 - 1:1:1 honoured: 1 issue (#308) = 1 branch (`config/308-default-vm-ram-6gib`) = 1 session.
 - Session-start docs commit (`9a63372`) was prior-session residue (1730 minutes/agenda), landed direct-to-main per housekeeping convention before branch was cut.
 - Session-close minutes + next agenda land direct-to-main (this commit) — same convention.
+
+## Audit follow-up (post-`b21bc99`)
+
+Standard session-end audit surfaced two findings worth pinning to the issues themselves rather than leaving in the minutes alone:
+
+| Issue | Finding | Comment |
+|---|---|---|
+| **#308** (closed) | Operator-approved deviations: option 1 mechanism (unconditional, not body's option 2) + option (i) acceptance (mechanism test, not full e2e); e2e checkbox deferred per `feedback_not_perfection_project.md` | [issuecomment-4331593632](https://github.com/martinhbramwell/ESACP/issues/308#issuecomment-4331593632) |
+| **#202** (open, queued) | Design constraint inherited from #308: `templates.yml` should subsume per-role RAM defaults (dev:* = 6144 default, others opt-in) since #308 deliberately did not thread `vm_role` through the stage 1 orchestrator | [issuecomment-4331594218](https://github.com/martinhbramwell/ESACP/issues/202#issuecomment-4331594218) |
+
+PR #309 mergedAt re-confirmed non-null (`2026-04-28T00:56:24Z`).
