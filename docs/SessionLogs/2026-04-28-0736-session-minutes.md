@@ -52,9 +52,20 @@
 - Open issues: 24 (no change — #202 will close on merge, no new issues filed yet per operator's "file after" decision)
 - Sequence position: #308 done → **#202 in-flight (PR open) →** #306 next
 
-## Next session opener
-Once PR #310 merges:
-1. File `templates.yml` per-role substrate follow-up issue (RAM defaults from #308 / hrms+payments install behaviour from #306 / per-role packages). Reference both #308's [comment 4331594218](https://github.com/martinhbramwell/ESACP/issues/202#issuecomment-4331594218) and the new issue from the merge commit context.
-2. Resume operator-approved sequence with **#306** — `feat(generic): provisionGeneric should install hrms + payments by default`.
+## Next session opener (superseded — see session-end discussion below)
+Original draft: file templates.yml follow-up + proceed to #306. Both happened (PR merged 11:54Z, #311 filed) but the **post-merge discussion produced a direction shift** — see below.
 
-If PR #310 has not merged, next session reopens with the merge as the first step.
+## Session-end discussion — direction shift (2026-04-28)
+
+After PR #310 merged and #311 was filed, the operator surfaced their actual real-world objective: **upgrading the fully customised production ERPNext from V13 to V14**. The dev-VM ladder + matrix + wizard work + #311 + #306 are now framed as **scaffolding** for that, not as the objective itself.
+
+Agent sketched a 7-step pre-migration scaffolding sequence; operator endorsed it. Three operator-supplied data points changed the shape:
+1. **No informal customisation inventory exists** — agent's responsibility to produce one
+2. **Pipeline can already provision dev VMs from real production BKP** — existing capability, not new work
+3. **Production-side backup+restore via BaRe `handle*.sh` is tested** — rollback is rehearsal, not build
+
+The 7-step sequence + plan now lives at [`~/.claude/plans/production-v14-migration-prep.md`](../../../home/hasan/.claude/plans/production-v14-migration-prep.md). The MEMORY.md "Short-Term Priority" entry was updated to match the new framing. The next-agenda was re-written to point at step 2 (customisation inventory) as the next session's objective, not #306.
+
+#306 and #311 are deferred (still on the books, no longer immediately-next). Wizard/replay bugs, #280 chaos, #219 cytoscape decomp, #187 esacp.py, etc. are explicitly **not** on the v13→v14 critical path.
+
+**Next session: customisation inventory (step 2 of the migration-prep plan).** See agenda for pre-flight + scope.
