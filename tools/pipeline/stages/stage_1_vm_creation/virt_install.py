@@ -15,7 +15,7 @@ def virt_install_import(
     virt_cmd = (
         f"virt-install --connect qemu:///system"
         f" --name {hostname}"
-        f" --ram 4096"
+        f" --ram 6144"
         f" --vcpus 2"
         f" --disk vol={env.pool}/{hostname}.qcow2"
         f" --disk path={remote_seed},device=cdrom,readonly=on"
