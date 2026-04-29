@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from tools.customisation_audit import app_inventory, db_query, drift_builder, target_resolution
+from tools.customisation_audit import (
+    app_inventory, attribution, db_query, drift_builder, target_resolution,
+)
 from tools.customisation_audit.audit_config import AuditConfig
 from tools.customisation_audit.drift import Drift
 from tools.customisation_audit.verdict import PromotionStrategy
@@ -30,8 +32,11 @@ def run(config: AuditConfig) -> list[Drift]:
     mapping = target_resolution.module_to_app(config.bespoke_apps)
     seen = {r["name"] for r in rows}
     drifts = [
-        drift_builder.db_only(DRIFT_CLASS, DOCTYPE, r, KEY_FIELDS, mapping,
-                              PromotionStrategy.FIXTURE_JSON)
+        drift_builder.db_only(
+            DRIFT_CLASS, DOCTYPE, r, KEY_FIELDS, mapping,
+            PromotionStrategy.FIXTURE_JSON,
+            attribution.lookup(config.attribution_map, DRIFT_CLASS, r["name"]),
+        )
         for r in rows if r["name"] not in fixtures
     ]
     drifts += [
