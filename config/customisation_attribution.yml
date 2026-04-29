@@ -1,0 +1,31 @@
+# Operator-curated customisation attribution.
+#
+# When a discover_*.py module finds a DB-only customisation row that lacks
+# a `module` column on the substrate (Frappe v13 schema), it consults this
+# file to determine which bespoke app should own the row and how Phase 2
+# should promote it.
+#
+# Format: drift_class -> row_name -> { owning_app, promotion_strategy }
+#
+# Run `./tools/identify_bad_customisations.py --substrate <vm> --write-stubs`
+# to append TODO placeholders for newly-discovered unmapped names; then
+# replace each TODO with the appropriate value:
+#
+#   owning_app:          ce_sri | returnable | route_planner
+#   promotion_strategy:  fixture_json | fixtures_custom_scripts | v14_patch_script | manual
+#
+# Entries with TODO in either field are treated as unresolved (audit emits
+# `manual` strategy and counts the row as needing attribution).
+#
+# Limitation: classes whose `name` column is an opaque hash (notably Custom
+# DocPerm) are keyed by that hash here — unfriendly for human attribution.
+# Phase 2 will revisit with a richer (parent + role + permlevel) schema.
+
+custom_field: {}
+property_setter: {}
+client_script: {}
+print_format: {}
+workflow: {}
+custom_docperm: {}
+translation: {}
+server_script: {}
