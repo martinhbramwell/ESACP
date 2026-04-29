@@ -11,20 +11,34 @@
 # to append TODO placeholders for newly-discovered unmapped names; then
 # replace each TODO with the appropriate value:
 #
-#   owning_app:          ce_sri | returnable | route_planner
-#   promotion_strategy:  fixture_json | fixtures_custom_scripts | v14_patch_script | manual
+#   owning_app:          ce_sri | returnable | route_planner | not_ours
+#   promotion_strategy:  fixture_json | fixtures_custom_scripts | v14_patch_script | manual | none
 #
 # Entries with TODO in either field are treated as unresolved (audit emits
 # `manual` strategy and counts the row as needing attribution).
+#
+# Use `owning_app: not_ours` + `promotion_strategy: none` to explicitly
+# acknowledge a row as not-our-customisation (e.g. a Frappe regional artifact
+# present in the production DB but not business-load-bearing). The audit then
+# surfaces it with `none` strategy, distinguishing it from unresolved rows.
 #
 # Limitation: classes whose `name` column is an opaque hash (notably Custom
 # DocPerm) are keyed by that hash here — unfriendly for human attribution.
 # Phase 2 will revisit with a richer (parent + role + permlevel) schema.
 
-custom_field: {}
+custom_field:
+  Customer-compras:
+    owning_app: returnable
+    promotion_strategy: fixture_json
 property_setter: {}
-client_script: {}
-print_format: {}
+client_script:
+  Delivery Trip-Form:
+    owning_app: route_planner
+    promotion_strategy: fixtures_custom_scripts
+print_format:
+  IRS 1099 Form:
+    owning_app: not_ours
+    promotion_strategy: none
 workflow: {}
 custom_docperm: {}
 translation: {}
