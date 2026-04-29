@@ -18,7 +18,7 @@ def test_enumerate_only_verdict() -> None:
         out = mod.run(cfg)
     assert len(out) == 1
     assert out[0].verdict == "enumerate_only"
-    assert out[0].promotion_strategy == "manual"
+    assert out[0].promotion_strategy == "none"
 
 
 if __name__ == "__main__":
