@@ -23,7 +23,7 @@ def run(config: AuditConfig) -> list[Drift]:
             drift_class=DRIFT_CLASS, verdict=Verdict.ENUMERATE_ONLY.value,
             doctype=DOCTYPE, name=row["name"], owning_app_proposed="",
             fixture_path_proposed="",
-            promotion_strategy=PromotionStrategy.MANUAL.value,
+            promotion_strategy=PromotionStrategy.NONE.value,
             row_data=row, notes=["Server Scripts require manual review per audit D-5."],
         )
         for row in rows
