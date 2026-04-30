@@ -9,6 +9,8 @@ from typing import Optional
 
 import yaml
 
+from tools.customisation_audit import auto_rules
+
 DEFAULT_PATH = "config/customisation_attribution.yml"
 TODO_TOKEN = "TODO"
 
@@ -25,6 +27,14 @@ def lookup(amap: dict, drift_class: str, name: str) -> Optional[dict]:
     if not entry or TODO_TOKEN in (entry.get("owning_app"), entry.get("promotion_strategy")):
         return None
     return entry
+
+
+def resolve(amap: dict, drift_class: str, name: str, row: dict) -> Optional[dict]:
+    """Per-name operator-resolved entry takes precedence; otherwise auto-rule (#319)."""
+    entry = lookup(amap, drift_class, name)
+    if entry:
+        return entry
+    return auto_rules.match(amap, drift_class, name, row)
 
 
 def append_stubs(path: Path, drift_class: str, names: list[str]) -> int:

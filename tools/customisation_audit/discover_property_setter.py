@@ -35,7 +35,7 @@ def run(config: AuditConfig) -> list[Drift]:
         drift_builder.db_only(
             DRIFT_CLASS, DOCTYPE, r, KEY_FIELDS, mapping,
             PromotionStrategy.FIXTURE_JSON,
-            attribution.lookup(config.attribution_map, DRIFT_CLASS, r["name"]),
+            attribution.resolve(config.attribution_map, DRIFT_CLASS, r["name"], r),
         )
         for r in rows if r["name"] not in fixtures
     ]

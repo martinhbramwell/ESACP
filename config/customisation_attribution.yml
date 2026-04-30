@@ -25,6 +25,46 @@
 # Limitation: classes whose `name` column is an opaque hash (notably Custom
 # DocPerm) are keyed by that hash here — unfriendly for human attribution.
 # Phase 2 will revisit with a richer (parent + role + permlevel) schema.
+#
+# auto_rules (#319): consulted AFTER per-name lookup. Each rule has a
+# `class`, a `when:` block (matchers), and a `then:` block (resolution).
+# All matchers in a rule's `when:` must pass (AND). First matching rule
+# wins. Per-name operator-resolved entries override auto-rules.
+#
+# Supported matchers:
+#   dt_in:        list — row["dt"] must be in the list
+#   name_pattern: str  — drift name must match SQL LIKE pattern (% → .*)
+#   view:         str  — exact match on row["view"]
+#   standard:     str  — exact match on row["standard"]
+
+auto_rules:
+  - class: custom_field
+    when:
+      dt_in: [Sales Order, Customer, Quotation, Sales Invoice, Purchase Invoice, Delivery Note]
+    then:
+      owning_app: ce_sri
+      promotion_strategy: fixture_json
+  - class: client_script
+    when:
+      name_pattern: '%-Form'
+      view: Form
+    then:
+      owning_app: ce_sri
+      promotion_strategy: fixtures_custom_scripts
+  - class: print_format
+    when:
+      standard: 'No'
+      name_pattern: 'PF:%'
+    then:
+      owning_app: ce_sri
+      promotion_strategy: v14_patch_script
+  - class: print_format
+    when:
+      standard: 'No'
+      name_pattern: 'FdI:%'
+    then:
+      owning_app: ce_sri
+      promotion_strategy: v14_patch_script
 
 custom_field:
   Customer-compras:

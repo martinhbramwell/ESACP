@@ -20,7 +20,7 @@ SQL = (
 
 
 def _resolve(name: str, row: dict, mapping: dict, amap: dict) -> tuple[str, str]:
-    entry = attribution.lookup(amap, DRIFT_CLASS, name)
+    entry = attribution.resolve(amap, DRIFT_CLASS, name, row)
     if entry:
         return entry["owning_app"], entry["promotion_strategy"]
     owning = target_resolution.resolve_owning_app(row.get("module", ""), mapping)
