@@ -36,7 +36,7 @@ def run(config: AuditConfig) -> list[Drift]:
             csv_cache[lang] = _csv_sources(config.bespoke_apps, lang)
         if row.get("source_text", "") in csv_cache[lang]:
             continue
-        entry = attribution.lookup(config.attribution_map, DRIFT_CLASS, row["name"])
+        entry = attribution.resolve(config.attribution_map, DRIFT_CLASS, row["name"], row)
         owning = entry["owning_app"] if entry else ""
         strategy = entry["promotion_strategy"] if entry else PromotionStrategy.APP_TRANSLATIONS_CSV.value
         drifts.append(Drift(
