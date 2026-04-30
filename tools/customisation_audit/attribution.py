@@ -7,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
-import yaml
+from ruamel.yaml import YAML
 
 from tools.customisation_audit import auto_rules
 
@@ -15,10 +15,18 @@ DEFAULT_PATH = "config/customisation_attribution.yml"
 TODO_TOKEN = "TODO"
 
 
+def _yaml() -> YAML:
+    y = YAML()
+    y.preserve_quotes = True
+    y.indent(mapping=2, sequence=4, offset=2)
+    y.width = 4096
+    return y
+
+
 def load(path: Path) -> dict:
     if not path.exists():
         return {}
-    return yaml.safe_load(path.read_text()) or {}
+    return _yaml().load(path.read_text()) or {}
 
 
 def lookup(amap: dict, drift_class: str, name: str) -> Optional[dict]:
@@ -44,7 +52,8 @@ def append_stubs(path: Path, drift_class: str, names: list[str]) -> int:
     for n in new:
         cls[n] = {"owning_app": TODO_TOKEN, "promotion_strategy": TODO_TOKEN}
     amap[drift_class] = cls
-    path.write_text(yaml.safe_dump(amap, sort_keys=True))
+    with path.open("w") as f:
+        _yaml().dump(amap, f)
     return len(new)
 
 
