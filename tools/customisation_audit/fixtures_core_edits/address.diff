@@ -1,0 +1,43 @@
+diff --git a/frappe/contacts/doctype/address/address.json b/frappe/contacts/doctype/address/address.json
+index e85a89f..658cf7d 100644
+--- a/frappe/contacts/doctype/address/address.json
++++ b/frappe/contacts/doctype/address/address.json
+@@ -21,9 +21,11 @@
+   "email_id",
+   "phone",
+   "fax",
++  "disabled",
+   "is_primary_address",
+   "is_shipping_address",
+-  "disabled",
++  "delivery_route",
++  "barrio",
+   "linked_with",
+   "links"
+  ],
+@@ -143,12 +145,24 @@
+    "fieldtype": "Table",
+    "label": "Links",
+    "options": "Dynamic Link"
++  },
++  {
++   "fieldname": "delivery_route",
++   "fieldtype": "Link",
++   "label": "Ruta de Entrega",
++   "options": "Ruta de Entrega"
++  },
++  {
++   "fieldname": "barrio",
++   "fieldtype": "Link",
++   "label": "Barrio",
++   "options": "Barrio"
+   }
+  ],
+  "icon": "fa fa-map-marker",
+  "idx": 5,
+  "links": [],
+- "modified": "2020-10-21 16:14:37.284830",
++ "modified": "2023-11-14 07:29:25.706649",
+  "modified_by": "Administrator",
+  "module": "Contacts",
+  "name": "Address",
