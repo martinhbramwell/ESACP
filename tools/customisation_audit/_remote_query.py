@@ -33,8 +33,27 @@ def main() -> None:
         json.dump({"rows": []}, sys.stdout)
         return
     cols = lines[0].split("\t")
-    rows = [dict(zip(cols, ln.split("\t"))) for ln in lines[1:]]
+    rows = [dict(zip(cols, (_unescape(c) for c in ln.split("\t")))) for ln in lines[1:]]
     json.dump({"rows": rows}, sys.stdout)
+
+
+# mysql -B (batch mode) escapes these sequences inside cell data; reverse them
+# so row_data carries the original string. (#333)
+_UNESCAPE_MAP = {"\\\\": "\\", "\\n": "\n", "\\r": "\r",
+                 "\\t": "\t", "\\0": "\0", "\\Z": "\x1a"}
+
+
+def _unescape(cell: str) -> str:
+    out, i = [], 0
+    while i < len(cell):
+        if cell[i] == "\\" and i + 1 < len(cell):
+            seq = cell[i:i + 2]
+            out.append(_UNESCAPE_MAP.get(seq, seq))
+            i += 2
+        else:
+            out.append(cell[i])
+            i += 1
+    return "".join(out)
 
 
 if __name__ == "__main__":

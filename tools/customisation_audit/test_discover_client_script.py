@@ -18,9 +18,10 @@ def test_db_only_when_no_js_file() -> None:
     rows = [{"name": "Sales Invoice-validate", "dt": "Sales Invoice",
              "view": "Form", "script": "frappe.ui.form.on(...)", "enabled": "1",
              "module": "CE-SRI"}]
-    # _file_exists_for returns None because no scaffolded apps; resolve returns "ce_sri"
+    # Pin _file_exists_for to None for hermetic test (don't read real disk state).
     with patched(db_query, "run_query", lambda *a, **k: rows), \
-         patched(target_resolution, "module_to_app", lambda apps: {"CE-SRI": "ce_sri"}):
+         patched(target_resolution, "module_to_app", lambda apps: {"CE-SRI": "ce_sri"}), \
+         patched(mod, "_file_exists_for", lambda apps, dt: None):
         out = mod.run(cfg)
     assert len(out) == 1 and isinstance(out[0], Drift)
     assert out[0].verdict == "db_only"

@@ -22,7 +22,8 @@ def _index_fixtures(apps: list[str]) -> dict[str, tuple[str, dict]]:
     out: dict[str, tuple[str, dict]] = {}
     for app in apps:
         for entry in app_inventory.load_fixture_file(app, DOCTYPE):
-            out[entry["name"]] = (app, entry)
+            name = entry.get("name") or f"{entry.get('doc_type','')}-{entry.get('property','')}"
+            out[name] = (app, entry)
     return out
 
 
