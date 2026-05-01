@@ -1,0 +1,12 @@
+diff --git a/frappe/model/delete_doc.py b/frappe/model/delete_doc.py
+index 67f3bf3..e2f32c2 100644
+--- a/frappe/model/delete_doc.py
++++ b/frappe/model/delete_doc.py
+@@ -315,6 +315,7 @@ def check_if_doc_is_linked(doc, method="Delete"):
+ def check_if_doc_is_dynamically_linked(doc, method="Delete"):
+ 	"""Raise `frappe.LinkExistsError` if the document is dynamically linked"""
+ 	for df in get_dynamic_link_map().get(doc.doctype, []):
++		print(df)
+ 
+ 		ignore_linked_doctypes = doc.get("ignore_linked_doctypes") or []
+ 

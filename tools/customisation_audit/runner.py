@@ -8,9 +8,9 @@ from pathlib import Path
 from tools.customisation_audit import (
     attribution, db_query, delta_report, discover_client_script,
     discover_custom_docperm, discover_custom_doctype, discover_custom_field,
-    discover_naming_series, discover_print_format, discover_property_setter,
-    discover_server_script, discover_translation, discover_unknown,
-    discover_workflow,
+    discover_in_place_core_edits, discover_naming_series, discover_print_format,
+    discover_property_setter, discover_server_script, discover_translation,
+    discover_unknown, discover_workflow,
 )
 from tools.customisation_audit.audit_config import AuditConfig
 from tools.pipeline.stages.common.config import build_config
@@ -19,7 +19,7 @@ DISCOVER_MODULES = [
     discover_custom_field, discover_property_setter, discover_client_script,
     discover_print_format, discover_workflow, discover_custom_docperm,
     discover_translation, discover_server_script, discover_custom_doctype,
-    discover_naming_series, discover_unknown,
+    discover_naming_series, discover_unknown, discover_in_place_core_edits,
 ]
 BESPOKE_APPS = ["ce_sri", "returnable", "route_planner"]
 
@@ -39,6 +39,7 @@ def _build_audit_config(hostname: str, project_root: str) -> AuditConfig:
         bespoke_apps=BESPOKE_APPS,
         substrate_meta={"vm": hostname, "site_url": cfg.site_url},
         attribution_map=amap,
+        core_tree_root=discover_in_place_core_edits.resolve_root(project_root),
     )
 
 

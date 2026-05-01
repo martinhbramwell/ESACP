@@ -1,0 +1,10 @@
+diff --git a/erpnext/translations/es.csv b/erpnext/translations/es.csv
+index 0f2259d..ad6b86a 100644
+--- a/erpnext/translations/es.csv
++++ b/erpnext/translations/es.csv
+@@ -9838,3 +9838,5 @@ Enable European Access,Habilitar el acceso europeo,
+ Creating Purchase Order ...,Creando orden de compra ...,
+ "Select a Supplier from the Default Suppliers of the items below. On selection, a Purchase Order will be made against items belonging to the selected Supplier only.","Seleccione un proveedor de los proveedores predeterminados de los artículos a continuación. En la selección, se realizará una orden de compra contra los artículos que pertenecen al proveedor seleccionado únicamente.",
+ Row #{}: You must select {} serial numbers for item {}.,Fila # {}: debe seleccionar {} números de serie para el artículo {}.,
++Gross Year To Date, Año Bruto Hasta La Fecha,
++Hour Rate (Company Currency), Tarifa por Hora (Divisa por defecto)

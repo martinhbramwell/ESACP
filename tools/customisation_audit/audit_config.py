@@ -15,3 +15,5 @@ class AuditConfig:
     substrate_meta: dict    # populated into the report's "substrate" header
     attribution_map: dict = field(default_factory=dict)
     """Operator-curated drift-class → name → {owning_app, strategy}; see attribution.py."""
+    core_tree_root: str | None = None
+    """Phase 4 substrate root (apps/{frappe,erpnext} parent). None → skip Phase 4."""

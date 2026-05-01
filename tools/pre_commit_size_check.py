@@ -24,6 +24,18 @@ TARGET_LIMITS = {
     "tools/job_worker.py": 100,
     "tools/install_specific.py": 50,
     "platforms/kvm/bootstrap_hub.sh": 100,
+    # Phase 4 — in-place core-tree edits classifier (#317).
+    "tools/customisation_audit/core_diff_canonical.py": 50,
+    "tools/customisation_audit/core_diff_classifier.py": 50,
+    "tools/customisation_audit/core_diff_deletion.py": 50,
+    "tools/customisation_audit/core_diff_human_review.py": 50,
+    "tools/customisation_audit/core_diff_objects.py": 50,
+    "tools/customisation_audit/core_diff_permission.py": 50,
+    "tools/customisation_audit/core_diff_property.py": 50,
+    "tools/customisation_audit/core_diff_translation.py": 50,
+    "tools/customisation_audit/core_tree_config.py": 50,
+    "tools/customisation_audit/core_tree_diff.py": 50,
+    "tools/customisation_audit/discover_in_place_core_edits.py": 50,
 }
 
 # Category limits for pattern-matched files.
