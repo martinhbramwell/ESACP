@@ -45,6 +45,17 @@ def resolve(amap: dict, drift_class: str, name: str, row: dict) -> Optional[dict
     return auto_rules.match(amap, drift_class, name, row)
 
 
+def append_resolved(path: Path, drift_class: str, name: str,
+                    owning_app: str, strategy: str) -> None:
+    """Write a resolved (non-TODO) attribution entry; idempotent."""
+    amap = load(path)
+    cls = amap.setdefault(drift_class, {}) or {}
+    cls[name] = {"owning_app": owning_app, "promotion_strategy": strategy}
+    amap[drift_class] = cls
+    with path.open("w") as f:
+        _yaml().dump(amap, f)
+
+
 def append_stubs(path: Path, drift_class: str, names: list[str]) -> int:
     amap = load(path)
     cls = amap.setdefault(drift_class, {}) or {}

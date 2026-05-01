@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from tools.customisation_audit import core_diff_classifier, core_tree_diff
+from tools.customisation_audit import core_diff_classifier, core_tree_diff, in_place_attribution  # noqa: E501
 from tools.customisation_audit.audit_config import AuditConfig
 from tools.customisation_audit.core_tree_config import CoreTreeConfig
 from tools.customisation_audit.drift import Drift
@@ -32,4 +32,4 @@ def run(config: AuditConfig) -> list[Drift]:
     drifts: list[Drift] = []
     for app, rel, diff, before, after in core_tree_diff.iter_modified(cc):
         drifts.extend(core_diff_classifier.classify(app, rel, diff, before, after))
-    return drifts
+    return in_place_attribution.apply_attribution(drifts, config.attribution_map)

@@ -11,8 +11,14 @@
 # to append TODO placeholders for newly-discovered unmapped names; then
 # replace each TODO with the appropriate value:
 #
-#   owning_app:          ce_sri | returnable | route_planner | not_ours
-#   promotion_strategy:  fixture_json | fixtures_custom_scripts | v14_patch_script | manual | none
+#   owning_app:          ce_sri | returnable | route_planner | in_core | not_ours
+#   promotion_strategy:  fixture_json | fixtures_custom_scripts | app_translations_csv |
+#                        v14_patch_script | manual | none
+#
+# `in_core` (added 2026-05-01): customisation lives in frappe/erpnext core,
+# typically with paired Python controller code that can't be expressed as a
+# bespoke-app fixture. Phase 5 generates a runtime v14 patch script that
+# re-applies the customisation post-upgrade. NEVER manual.
 #
 # Entries with TODO in either field are treated as unresolved (audit emits
 # `manual` strategy and counts the row as needing attribution).
@@ -81,5 +87,90 @@ print_format:
     promotion_strategy: none
 workflow: {}
 custom_docperm: {}
-translation: {}
+translation:
+  8ea015fb48:
+    owning_app: returnable
+    promotion_strategy: app_translations_csv
+  ee7a8029cc:
+    owning_app: returnable
+    promotion_strategy: app_translations_csv
+  c505c49507:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  c6a4d9d73b:
+    owning_app: route_planner
+    promotion_strategy: app_translations_csv
+  50f0fcfb45:
+    owning_app: returnable
+    promotion_strategy: app_translations_csv
+  881eae59fa:
+    owning_app: ce_sri
+    promotion_strategy: app_translations_csv
+  a18d6188fc:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  c242b3d5fc:
+    owning_app: returnable
+    promotion_strategy: app_translations_csv
+  c5d547d1dc:
+    owning_app: ce_sri
+    promotion_strategy: app_translations_csv
+  '512e981864':
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
 server_script: {}
+in_place_core_edit:
+  erpnext/erpnext/buying/doctype/purchase_order_item/purchase_order_item.json#fields[comprobante_interno]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/translations/es.csv:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/stock/doctype/delivery_note/delivery_note.json#fields[saldo_del_cliente]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/selling/doctype/customer/customer.json#fields[forma_de_pago_preferida]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/buying/doctype/purchase_order_item/purchase_order_item.json#fields[tipo_comprobante]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/buying/doctype/supplier/supplier.json#fields[purchase_taxes_and_charges_template]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  frappe/frappe/contacts/doctype/address/address.json#fields[barrio]:
+    owning_app: route_planner
+    promotion_strategy: fixture_json
+  erpnext/erpnext/accounts/doctype/sales_invoice/sales_invoice.json#fields[comission_entry_created]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  frappe/frappe/contacts/doctype/address/address.json#fields[delivery_route]:
+    owning_app: route_planner
+    promotion_strategy: fixture_json
+  erpnext/erpnext/hr/doctype/employee/employee.json#0:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/accounts/doctype/sales_invoice/sales_invoice.json#fields[sales_partner_supplier]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/selling/doctype/sales_order/sales_order.json#fields[data_90]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/accounts/doctype/sales_invoice/sales_invoice.json#fields[break_down]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  frappe/frappe/core/doctype/user/user.json#1:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/accounts/doctype/sales_invoice/sales_invoice.json#fields[commission_paid]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/accounts/doctype/sales_invoice/sales_invoice.json#fields[forma_de_pago_especificada]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  frappe/frappe/core/doctype/user/user.json#0:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
+  erpnext/erpnext/selling/doctype/sales_order/sales_order.json#fields[customer_special_note]:
+    owning_app: in_core
+    promotion_strategy: v14_patch_script
