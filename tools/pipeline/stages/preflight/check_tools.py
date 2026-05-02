@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
-"""Check that required CLI tools are installed on the controller."""
+"""Check that required tools and Python packages are installed on the controller."""
 
 from __future__ import annotations
 
+import importlib.util
 import shutil
 from dataclasses import dataclass
-from tools.pipeline.stages.common.types import Emit, TaskResult
+from tools.pipeline.stages.common.types import Emit
 
-# (tool, apt-package, install-method: "apt" | "manual")
+# (name, apt-package, kind) — apt-bin/manual via shutil.which; apt-py via importlib.util.find_spec.
 REQUIRED_TOOLS = [
-    ("virsh",            "libvirt-clients",   "apt"),
-    ("virt-install",     "virtinst",          "apt"),
-    ("cloud-localds",    "cloud-image-utils", "apt"),
-    ("ansible",          "ansible",           "apt"),
-    ("ansible-playbook", "ansible",           "apt"),
-    ("wg",               "wireguard-tools",   "apt"),
-    ("python3",          "python3",           "apt"),
-    ("ssh-keygen",       "openssh-client",    "apt"),
-    ("sops",             "sops",              "manual"),
-    ("age",              "age",               "manual"),
-    ("age-keygen",       "age",               "manual"),
+    ("virsh",            "libvirt-clients",     "apt-bin"),
+    ("virt-install",     "virtinst",            "apt-bin"),
+    ("cloud-localds",    "cloud-image-utils",   "apt-bin"),
+    ("ansible",          "ansible",             "apt-bin"),
+    ("ansible-playbook", "ansible",             "apt-bin"),
+    ("wg",               "wireguard-tools",     "apt-bin"),
+    ("python3",          "python3",             "apt-bin"),
+    ("ssh-keygen",       "openssh-client",      "apt-bin"),
+    ("ruamel.yaml",      "python3-ruamel.yaml", "apt-py"),
+    ("sops",             "sops",                "manual"),
+    ("age",              "age",                 "manual"),
+    ("age-keygen",       "age",                 "manual"),
 ]
 
 MANUAL_INSTALL_HINTS = {
@@ -43,26 +45,22 @@ class ToolStatus:
 
 
 def check_tools(emit: Emit) -> ToolStatus:
-    """Scan PATH for each required tool. Returns structured result."""
+    """Scan for each required tool / Python package. Returns structured result."""
     tools: list[tuple[str, str, bool]] = []
     missing_apt: set[str] = set()
     missing_manual: list[tuple[str, str]] = []
-    seen_packages: set[str] = set()
+    seen: set[str] = set()
 
-    for tool, pkg, method in REQUIRED_TOOLS:
-        found = shutil.which(tool) is not None
-        tag = "[OK]" if found else "[MISSING]"
-        emit(f"  {tag} {tool} ({pkg})")
-        tools.append((tool, pkg, found))
-        if not found and pkg not in seen_packages:
-            if method == "apt":
+    for name, pkg, kind in REQUIRED_TOOLS:
+        found = (importlib.util.find_spec(name) is not None
+                 if kind == "apt-py" else shutil.which(name) is not None)
+        emit(f"  {'[OK]' if found else '[MISSING]'} {name} ({pkg})")
+        tools.append((name, pkg, found))
+        if not found and pkg not in seen:
+            if kind in ("apt-bin", "apt-py"):
                 missing_apt.add(pkg)
             else:
-                missing_manual.append((tool, pkg))
-            seen_packages.add(pkg)
+                missing_manual.append((name, pkg))
+            seen.add(pkg)
 
-    return ToolStatus(
-        tools=tools,
-        missing_apt=missing_apt,
-        missing_manual=missing_manual,
-    )
+    return ToolStatus(tools=tools, missing_apt=missing_apt, missing_manual=missing_manual)
