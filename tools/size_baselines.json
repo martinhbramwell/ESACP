@@ -185,5 +185,6 @@
   "tools/pipeline/stages/wizard_completion/__init__.py": 1,
   "tools/pipeline/stages/wizard_completion/capture_backup.py": 74,
   "tools/pipeline/stages/wizard_completion/restore_backup.py": 76,
-  "tools/vm_scripts/install_specific/__init__.py": 14
+  "tools/vm_scripts/install_specific/__init__.py": 14,
+  "tools/vm_scripts/u6_dedup_smoke_test.py": 70
 }
