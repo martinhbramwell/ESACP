@@ -226,6 +226,10 @@ When a primitive is extracted from a monolith, the monolith code it replaces MUS
 | `tools/job_worker.py` | 400 | ≤100 | #192, #193 |
 | `tools/install_specific.py` | 721 | ≤50 | #197 |
 
+### QA Verdict Contract (#341)
+
+Pre-commit / pre-merge / pre-push / pre-destroy / pre-issue-close verdict layer. The parent agent must invoke `Agent(subagent_type: "esacp-qa", …)` before any trigger op and act on the verdict. Full contract: [`docs/qa-contract.md`](docs/qa-contract.md). Agent definition: [`.claude/agents/esacp-qa.md`](.claude/agents/esacp-qa.md). Verdict log: [`docs/qa-log.md`](docs/qa-log.md).
+
 ---
 
 ## Global Conduct Rules (enforced — see `~/.claude/CLAUDE.md`)
