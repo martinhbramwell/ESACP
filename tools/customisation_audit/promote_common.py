@@ -52,3 +52,12 @@ def _get(drift, key):
     if isinstance(drift, dict):
         return drift.get(key, "")
     return getattr(drift, key, "")
+
+
+def drift_class(drift) -> str:
+    """Read the drift_class value, handling both Drift objects (`drift_class`
+    attr) and JSON-loaded dicts (which use `class` per delta_report.py:18,
+    since `class` is a Python keyword). Empty string when unset."""
+    if isinstance(drift, dict):
+        return drift.get("drift_class") or drift.get("class") or ""
+    return getattr(drift, "drift_class", "") or ""

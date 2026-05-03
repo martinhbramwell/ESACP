@@ -1,55 +1,61 @@
-"""Promote `v14_patch_script` drifts — render runtime Frappe-doc-insert patch.
-
-Q5 (locked design): fixture-tested only in Phase 2; real-data acceptance
-folds into Phase 5. Each patch creates a Frappe doc at `bench migrate` time
-from `row_data`, idempotent via `frappe.db.exists` check on the row's `name`.
-Patch is registered in `<app>/<app>/patches.txt` so bench picks it up.
+"""Promote `v14_patch_script` drifts — shape-aware dispatch to per-shape
+compose modules; in_core/empty owners route to the synthetic
+`legacy_error_fixes` Frappe app. See Phase 5 plan §4.2.
 """
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-from tools.customisation_audit import promote_common
+from tools.customisation_audit import (
+    _v14_compose_custom_docperm,
+    _v14_compose_custom_field,
+    _v14_compose_print_format,
+    _v14_compose_property_setter,
+    _v14_compose_translation,
+    promote_common,
+)
+from tools.customisation_audit.promote_common import _get
+
+SYNTHETIC_APP = "legacy_error_fixes"
+_NON_BESPOKE_OR_EMPTY = {"in_core", "not_ours", ""}
+
+_DISPATCH = (_v14_compose_custom_field, _v14_compose_custom_docperm,
+             _v14_compose_translation, _v14_compose_print_format,
+             _v14_compose_property_setter)
 
 
-def _get(drift, key):
-    if isinstance(drift, dict):
-        return drift.get(key, "")
-    return getattr(drift, key, "")
+def resolve_v14_patch_app(drift) -> str:
+    owning = _get(drift, "owning_app_proposed")
+    return SYNTHETIC_APP if owning in _NON_BESPOKE_OR_EMPTY else owning
 
 
 def patch_module_name(drift) -> str:
-    """Stable module-safe name from drift.name (last path segment, snake-cased)."""
-    raw = _get(drift, "name").split("#")[0].split("/")[-1]
-    return promote_common.snake(raw) or "patch"
+    """Slug from drift.name; suffix-after-`#` is appended to disambiguate
+    multiple drifts on the same source-tree file (e.g. several `fields[X]`
+    additions in one JSON). Without this, all collapse to one filename."""
+    name = _get(drift, "name")
+    base, _, suffix = name.partition("#")
+    base_slug = promote_common.snake(base.split("/")[-1])
+    if suffix:
+        return f"{base_slug}_{promote_common.snake(suffix)}" if base_slug else promote_common.snake(suffix)
+    return base_slug or "patch"
 
 
 def target(drift) -> Path:
-    owning = promote_common.resolve_owning(drift)
-    return (promote_common.app_pkg_root(owning) / "patches" / "v14_0"
-            / f"{patch_module_name(drift)}.py")
+    return (promote_common.app_pkg_root(resolve_v14_patch_app(drift))
+            / "patches" / "v14_0" / f"{patch_module_name(drift)}.py")
 
 
 def patches_txt_entry(drift) -> str:
-    owning = promote_common.resolve_owning(drift)
-    return f"{owning}.patches.v14_0.{patch_module_name(drift)}"
+    return f"{resolve_v14_patch_app(drift)}.patches.v14_0.{patch_module_name(drift)}"
 
 
 def compose(drift) -> str:
-    """Frappe-doc-insert patch script with idempotent existence guard."""
-    doctype = _get(drift, "doctype")
-    row = dict(_get(drift, "row_data") or {})
-    row.setdefault("doctype", doctype)
-    name = row.get("name") or ""
-    return (f'"""V14 patch — auto-generated for {doctype} / {_get(drift, "name")}."""\n\n'
-            "import frappe\n\n\n"
-            "def execute():\n"
-            f"    if {name!r} and frappe.db.exists({doctype!r}, {name!r}):\n"
-            "        return\n"
-            f"    frappe.get_doc({json.dumps(row, sort_keys=True, indent=4)}).insert(ignore_permissions=True)\n"
-            "    frappe.db.commit()\n")
+    for mod in _DISPATCH:
+        if mod.matches(drift):
+            return mod.compose(drift)
+    return _v14_compose_property_setter.compose(drift)
 
 
 def apply(drift) -> Path:

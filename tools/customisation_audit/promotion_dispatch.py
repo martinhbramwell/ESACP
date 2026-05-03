@@ -21,17 +21,24 @@ STRATEGY_MODULE = {
 
 
 def is_promotable(drift) -> bool:
-    """True if Phase 2 should write a fixture/patch for this drift now.
+    """True if a fixture/patch should be written for this drift now.
 
-    Skips: non-promotable strategies, in_core/not_ours owners (deferred to
-    Phase 5 patch generator and not_ours = explicit no-op).
+    Phase 5 (Q5 lifted): v14_patch_script accepts in_core/empty owners —
+    they route to the synthetic `legacy_error_fixes` Frappe app via
+    `promote_v14_patch_script.resolve_v14_patch_app()`. Other strategies
+    still require a real bespoke owner (in_core/not_ours skipped).
     """
     strategy = drift.get("promotion_strategy") if isinstance(drift, dict) else getattr(drift, "promotion_strategy", "")
     if strategy not in STRATEGY_MODULE:
         return False
     if strategy == "v14_patch_script":
-        # Q5: fixture-tested only in Phase 2; real-data Phase 5.
-        return False
+        # Synthetic doctypes like "(translation_csv)" are not Frappe DB rows;
+        # skip them — translation CSVs are operator-handled per Phase 5 plan §3.
+        doctype = drift.get("doctype") if isinstance(drift, dict) else getattr(drift, "doctype", "")
+        if isinstance(doctype, str) and doctype.startswith("("):
+            return False
+        owning = drift.get("owning_app_proposed") if isinstance(drift, dict) else getattr(drift, "owning_app_proposed", "")
+        return owning != "not_ours"
     return promote_common.is_bespoke_writable(drift)
 
 
