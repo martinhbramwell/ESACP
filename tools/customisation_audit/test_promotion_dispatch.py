@@ -30,9 +30,34 @@ def test_not_promotable_for_not_ours() -> None:
     assert mod.is_promotable(d) is False
 
 
-def test_v14_patch_script_skipped_in_phase_2() -> None:
-    """Q5: fixture-tested only in Phase 2; real-data Phase 5."""
+def test_v14_patch_script_promotable_with_bespoke_owner() -> None:
+    """Phase 5 (Q5 lifted): v14_patch_script with bespoke owner promotes."""
     d = {"promotion_strategy": "v14_patch_script", "owning_app_proposed": "ce_sri"}
+    assert mod.is_promotable(d) is True
+
+
+def test_v14_patch_script_promotable_for_in_core_owner() -> None:
+    """in_core drifts route to the synthetic legacy_error_fixes app — promotable."""
+    d = {"promotion_strategy": "v14_patch_script", "owning_app_proposed": "in_core"}
+    assert mod.is_promotable(d) is True
+
+
+def test_v14_patch_script_promotable_for_empty_owner() -> None:
+    """Empty owner falls back to legacy_error_fixes — promotable."""
+    d = {"promotion_strategy": "v14_patch_script", "owning_app_proposed": ""}
+    assert mod.is_promotable(d) is True
+
+
+def test_v14_patch_script_not_promotable_for_not_ours() -> None:
+    """not_ours = explicit no-op even for v14_patch_script."""
+    d = {"promotion_strategy": "v14_patch_script", "owning_app_proposed": "not_ours"}
+    assert mod.is_promotable(d) is False
+
+
+def test_v14_patch_script_not_promotable_for_synthetic_doctype() -> None:
+    """Drifts with synthetic doctypes like '(translation_csv)' are not Frappe rows."""
+    d = {"promotion_strategy": "v14_patch_script", "owning_app_proposed": "in_core",
+         "doctype": "(translation_csv)"}
     assert mod.is_promotable(d) is False
 
 
@@ -47,6 +72,10 @@ if __name__ == "__main__":
     test_not_promotable_for_unknown_strategy()
     test_not_promotable_for_in_core_owner()
     test_not_promotable_for_not_ours()
-    test_v14_patch_script_skipped_in_phase_2()
+    test_v14_patch_script_promotable_with_bespoke_owner()
+    test_v14_patch_script_promotable_for_in_core_owner()
+    test_v14_patch_script_promotable_for_empty_owner()
+    test_v14_patch_script_not_promotable_for_not_ours()
+    test_v14_patch_script_not_promotable_for_synthetic_doctype()
     test_strategy_module_map_complete()
     print("OK test_promotion_dispatch")

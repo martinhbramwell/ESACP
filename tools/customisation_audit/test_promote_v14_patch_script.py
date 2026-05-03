@@ -28,6 +28,19 @@ def test_patch_module_name_snake_cases() -> None:
     assert mod.patch_module_name(_print_format_drift()) == "pf_o_de_v_2"
 
 
+def test_patch_module_name_disambiguates_with_hash_suffix() -> None:
+    """Multiple drifts on the same JSON must not collapse to one filename."""
+    a = {"name": "erpnext/.../sales_invoice.json#fields[foo]"}
+    b = {"name": "erpnext/.../sales_invoice.json#fields[bar]"}
+    assert mod.patch_module_name(a) == "sales_invoice_json_fields_foo"
+    assert mod.patch_module_name(b) == "sales_invoice_json_fields_bar"
+
+
+def test_patch_module_name_for_custom_docperm_uses_index() -> None:
+    drift = {"name": "frappe/frappe/core/doctype/user/user.json#7"}
+    assert mod.patch_module_name(drift) == "user_json_7"
+
+
 def test_patches_txt_entry_format() -> None:
     assert mod.patches_txt_entry(_print_format_drift()) == "ce_sri.patches.v14_0.pf_o_de_v_2"
 
@@ -102,8 +115,81 @@ def test_apply_idempotent_on_repeat() -> None:
         assert pt.read_text().count("ce_sri.patches.v14_0.pf_o_de_v_2") == 1
 
 
+def test_compose_dispatches_in_place_fields_x_to_custom_field() -> None:
+    """When drift_class=in_place_core_edit + Property Setter + property=fields[X],
+    compose routes to Custom Field shape — not generic Property Setter."""
+    drift = {
+        "drift_class": "in_place_core_edit",
+        "doctype": "Property Setter",
+        "name": "erpnext/.../address.json#fields[barrio]",
+        "owning_app_proposed": "in_core",
+        "row_data": {
+            "doctype_or_field": "DocType", "doc_type": "Address",
+            "property": "fields[barrio]",
+            "value": {"fieldname": "barrio", "fieldtype": "Data", "label": "Barrio"},
+        },
+    }
+    src = mod.compose(drift)
+    ast.parse(src)
+    assert '"doctype": "Custom Field"' in src
+    assert "frappe.db.exists('Custom Field'" in src
+    assert "'dt': 'Address'" in src
+    assert "'fieldname': 'barrio'" in src
+
+
+def test_compose_dispatches_custom_docperm() -> None:
+    drift = {
+        "drift_class": "in_place_core_edit",
+        "doctype": "Custom DocPerm", "name": "frappe/.../user.json#7",
+        "owning_app_proposed": "in_core",
+        "row_data": {"role": "HR Manager", "permlevel": 0, "parent": "User", "read": 1},
+    }
+    src = mod.compose(drift)
+    ast.parse(src)
+    assert '"doctype": "Custom DocPerm"' in src
+    assert "'role': 'HR Manager'" in src
+
+
+def test_resolve_v14_patch_app_redirects_in_core() -> None:
+    drift = {"owning_app_proposed": "in_core"}
+    assert mod.resolve_v14_patch_app(drift) == "legacy_error_fixes"
+
+
+def test_resolve_v14_patch_app_redirects_empty_owner() -> None:
+    drift = {"owning_app_proposed": ""}
+    assert mod.resolve_v14_patch_app(drift) == "legacy_error_fixes"
+
+
+def test_resolve_v14_patch_app_keeps_real_bespoke_owner() -> None:
+    drift = {"owning_app_proposed": "ce_sri"}
+    assert mod.resolve_v14_patch_app(drift) == "ce_sri"
+
+
+def test_target_for_in_core_drift_routes_to_legacy_error_fixes() -> None:
+    drift = {
+        "drift_class": "in_place_core_edit",
+        "doctype": "Custom DocPerm", "owning_app_proposed": "in_core",
+        "name": "frappe/frappe/core/doctype/user/user.json#7",
+        "row_data": {"role": "HR Manager", "permlevel": 0, "parent": "User"},
+    }
+    out = mod.target(drift)
+    assert "legacy_error_fixes/legacy_error_fixes/patches/v14_0" in str(out)
+
+
+def test_patches_txt_entry_for_in_core_uses_legacy_error_fixes() -> None:
+    drift = {
+        "drift_class": "in_place_core_edit",
+        "doctype": "Custom DocPerm", "owning_app_proposed": "in_core",
+        "name": "frappe/.../user.json#7",
+        "row_data": {"role": "HR Manager", "permlevel": 0, "parent": "User"},
+    }
+    assert mod.patches_txt_entry(drift).startswith("legacy_error_fixes.patches.v14_0.")
+
+
 if __name__ == "__main__":
     test_patch_module_name_snake_cases()
+    test_patch_module_name_disambiguates_with_hash_suffix()
+    test_patch_module_name_for_custom_docperm_uses_index()
     test_patches_txt_entry_format()
     test_target_constructs_path()
     test_compose_returns_valid_python()
@@ -112,4 +198,11 @@ if __name__ == "__main__":
     test_compose_handles_in_place_property_setter_shape()
     test_apply_writes_patch_and_registers_in_patches_txt()
     test_apply_idempotent_on_repeat()
+    test_compose_dispatches_in_place_fields_x_to_custom_field()
+    test_compose_dispatches_custom_docperm()
+    test_resolve_v14_patch_app_redirects_in_core()
+    test_resolve_v14_patch_app_redirects_empty_owner()
+    test_resolve_v14_patch_app_keeps_real_bespoke_owner()
+    test_target_for_in_core_drift_routes_to_legacy_error_fixes()
+    test_patches_txt_entry_for_in_core_uses_legacy_error_fixes()
     print("OK test_promote_v14_patch_script")
