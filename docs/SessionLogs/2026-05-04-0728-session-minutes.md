@@ -111,3 +111,21 @@ No merge / push / destructive op / `gh issue close` triggers fired this session.
 - **Closed**: none.
 - **Updated**: #343 (twice — body correction + G1 diagnosis comment).
 - **Total open**: 30 (was 29 at session start).
+
+## Session-end audit (retrospective)
+
+After the initial close commit (`77a6534`), a session-end audit pass against the SESSION-CLOSE AUDIT hook surfaced one durable-home gap:
+
+- **#146 had no backlink comment to #343.** The earlier attribution in #146 ("remote SRI test server dropped the TLS connection") had been documented as superseded inside the #343 body and inside these minutes, but #146 itself was not annotated. Posted a supersession comment on #146 ([`#146 comment-4370733431`](https://github.com/martinhbramwell/ESACP/issues/146#issuecomment-4370733431)) cross-linking to #343 so future searches landing on #146 reach the active diagnosis.
+
+Other forward-tense items in the session resolved without further action: all conditional next-session work captured in `~/.claude/plans/issue-343-sri-econnreset.md` and the next-session agenda; all in-session promises executed (issue body edit, edit-note comment, G1 diagnosis comment, plan written, memory `feedback_no_invented_commands.md` written and indexed, runtime probes run on dev01 and toshy, plan + minutes + agenda committed).
+
+No PRs were opened this session.
+
+Issues referenced and their durable-home status after audit:
+
+| Issue | Findings posted to issue itself? |
+|---|---|
+| #343 | ✅ Body corrected + 2 comments (edit-note, G1 diagnosis) |
+| #146 | ✅ Supersession backlink comment posted post-audit |
+| #341, #163, #311, #312, #330, #331, #306, #307, #213, #238, #243, #188 | n/a — referenced as backlog only, no new findings |
