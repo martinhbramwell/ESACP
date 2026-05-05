@@ -79,15 +79,13 @@ Operator submitted the test invoice to SRI; got `AxiosError: read ECONNRESET` at
 | route_planner commit + push `e87a64e` | approve-with-conditions | Wanted acceptance test before push; satisfied via local-on-dev02 G2+migrate validation, with full e2e to follow post-push (catch-22 — pipeline clones from remote) |
 | ESACP PR #348 merge | approve-with-conditions | New module untracked by ratchet — addressed via follow-up commit `843fb68` |
 
-## Memory updates queued
+## Memory updates written
 
-Two new feedback memories from this session:
+Two new feedback memories from this session, written to local memory directory `~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/` (outside the repo) and indexed in MEMORY.md:
 
-1. **`feedback_consultant_not_peer_engineer.md`** (new) — When operator frames a problem, default to consultant-action mode (investigate, decide, fix, verify, report). Don't ask non-technical operators to pick between engineering taxonomy paths. Trigger surfaced: 2026-05-04 mid-#347 investigation when parent presented 4 ranked options; operator's response: "Do I want you asking me what to do with it?"
+1. **`feedback_consultant_not_peer_engineer.md`** — When operator frames a problem operationally, default to consultant-action mode (investigate, decide, fix, verify, report). Don't ask non-technical operators to pick between engineering taxonomy paths. Trigger: 2026-05-04 mid-#347 investigation when parent presented 4 ranked options; operator's response: "Do I want you asking me what to do with it?"
 
-2. **`feedback_check_size_baselines_at_commit_time.md`** (candidate) — Two pre-commit ratchet collisions tonight (`core_diff_property.py` 47→50, `core_diff_classifier.py` 25→29). Both required iteration. Pattern: when a commit touches files in TARGET_LIMITS, check `tools/size_baselines.json` first and trim docstrings/comments to fit BEFORE running `git commit`. Cheap to do, expensive to chase iteratively under hook rejection.
-
-Will write these as standalone memory files.
+2. **`feedback_check_size_baselines_at_commit_time.md`** — Two pre-commit ratchet collisions tonight (`core_diff_property.py` 47→50, `core_diff_classifier.py` 25→29). Pattern: when a commit touches files in TARGET_LIMITS, check `tools/size_baselines.json` first and trim docstrings/comments to fit BEFORE running `git commit`.
 
 ## Files at session-end
 
