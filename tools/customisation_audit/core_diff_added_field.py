@@ -1,18 +1,7 @@
-"""Rule 2.5 — additions to a doctype's `fields` array → Custom Field fixture rows.
+"""Rule 2.5 — fields[X] core-edits → Custom Field fixture rows (#347).
 
-In-place core edits that add a new entry to the `fields` array of a stock
-doctype JSON are conceptually Custom Fields (they extend the doctype with
-a new field). They are NOT Property Setter overrides — `fields[X]` is not
-a real Frappe property name, and Property Setter records targeting it
-crash `bench migrate` because Frappe's importer cannot stringify a nested
-dict into a TEXT column cleanly (see #347).
-
-See `_v14_compose_property_setter.py:6-7` for the design distinction:
-real properties like `naming_rule` go to property_setter; `fields[X]`
-additions belong with custom_field.
-
-This rule runs BEFORE `core_diff_property` so that field additions are
-peeled off first; the property rule then handles only true property changes.
+Runs before core_diff_property; peels off field additions so the property
+rule handles only true top-level prop changes. See _v14_compose_property_setter.py:6-7.
 """
 from __future__ import annotations
 
@@ -26,10 +15,8 @@ DRIFT_CLASS = "in_place_core_edit"
 def _added_fields(bc: dict, ac: dict) -> list[dict]:
     """Field defs present in `after` but not in `before` (matched by fieldname)."""
     bf = {f.get("fieldname") for f in bc.get("fields", []) if isinstance(f, dict)}
-    return [
-        f for f in ac.get("fields", [])
-        if isinstance(f, dict) and f.get("fieldname") and f.get("fieldname") not in bf
-    ]
+    return [f for f in ac.get("fields", []) if isinstance(f, dict)
+            and f.get("fieldname") and f.get("fieldname") not in bf]
 
 
 def classify(app: str, rel_path: str, diff: str,

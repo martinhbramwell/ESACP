@@ -25,6 +25,7 @@ TARGET_LIMITS = {
     "tools/install_specific.py": 50,
     "platforms/kvm/bootstrap_hub.sh": 100,
     # Phase 4 — in-place core-tree edits classifier (#317).
+    "tools/customisation_audit/core_diff_added_field.py": 50,
     "tools/customisation_audit/core_diff_canonical.py": 50,
     "tools/customisation_audit/core_diff_classifier.py": 50,
     "tools/customisation_audit/core_diff_deletion.py": 50,

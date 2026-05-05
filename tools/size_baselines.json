@@ -48,6 +48,7 @@
   "tools/cli/verify_add_host.py": 62,
   "tools/cli/verify_provision_generic.py": 69,
   "tools/cli/verify_vpn.py": 22,
+  "tools/customisation_audit/core_diff_added_field.py": 49,
   "tools/customisation_audit/core_diff_canonical.py": 41,
   "tools/customisation_audit/core_diff_classifier.py": 21,
   "tools/customisation_audit/core_diff_deletion.py": 39,
