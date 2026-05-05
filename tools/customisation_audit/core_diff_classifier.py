@@ -1,19 +1,15 @@
 """Priority-ordered rule dispatch — first match wins."""
 from __future__ import annotations
 
-from tools.customisation_audit import (
-    core_diff_deletion, core_diff_human_review, core_diff_permission,
-    core_diff_property, core_diff_translation,
-)
+from tools.customisation_audit import (  # noqa: I001
+    core_diff_added_field, core_diff_deletion, core_diff_human_review,
+    core_diff_permission, core_diff_property, core_diff_translation)
 from tools.customisation_audit.drift import Drift
 
-# Priority order: translation → permission → property → deletion → human_review fallback.
-_RULES = (
-    core_diff_translation,
-    core_diff_permission,
-    core_diff_property,
-    core_diff_deletion,
-)
+# Priority: translation → permission → added_field → property → deletion → human_review.
+# added_field MUST precede property (fields[X] → Custom Field, not Property Setter; #347).
+_RULES = (core_diff_translation, core_diff_permission, core_diff_added_field,
+          core_diff_property, core_diff_deletion)
 
 
 def classify(app: str, rel_path: str, diff: str,

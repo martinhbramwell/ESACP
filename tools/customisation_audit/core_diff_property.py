@@ -1,4 +1,9 @@
-"""Rule 3 — JSON property-modification → Property Setter fixture rows."""
+"""Rule 3 — JSON top-level property-modification → Property Setter fixture rows.
+
+Handles real Property Setter targets (e.g. `naming_rule`, `default_print_format`).
+Additions to the `fields` array are NOT handled here — they are routed by
+`core_diff_added_field` to Custom Field fixtures (#347).
+"""
 from __future__ import annotations
 from tools.customisation_audit import core_diff_canonical, core_diff_objects
 from tools.customisation_audit.drift import Drift, stable_id
@@ -8,15 +13,8 @@ DRIFT_CLASS = "in_place_core_edit"
 
 
 def _additions(bc: dict, ac: dict) -> list[tuple[str, object]]:
-    out: list[tuple[str, object]] = []
-    for k in sorted(set(ac) - set(bc) - {"permissions", "fields"}):
-        out.append((k, ac[k]))
-    bf = {f.get("fieldname") for f in bc.get("fields", []) if isinstance(f, dict)}
-    af = {f.get("fieldname"): f for f in ac.get("fields", []) if isinstance(f, dict)}
-    for fn in sorted(set(af) - bf):
-        if fn:
-            out.append((f"fields[{fn}]", af[fn]))
-    return out
+    """Top-level prop additions; excludes fields[X] (→ core_diff_added_field, #347)."""
+    return [(k, ac[k]) for k in sorted(set(ac) - set(bc) - {"permissions", "fields"})]
 
 
 def classify(app: str, rel_path: str, diff: str,
