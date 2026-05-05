@@ -147,6 +147,11 @@ QA-log rows appended in same commit as these minutes.
 - **ESACP #312** — comment posted with PR #1 link, catalogue scope
   summary, and Phase B completion claim.
 - **ESACP #351** — new issue filed for audit-engine parameterisation.
+- **ESACP #352** — new issue filed during session-end audit, for
+  LogiSoluValidations QA governance (size table doesn't cleanly apply
+  to a sibling test repo). Audit caught a forward-tense commitment
+  ("happy to file one if useful") that lacked a durable home; #352
+  is that home.
 - **LogiSoluValidations#1** — PR opened, awaiting review.
 
 ## Files at session-end
