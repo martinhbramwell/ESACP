@@ -148,3 +148,137 @@ on #352 itself; would have left the retraction strand-stuck in minutes.
 Caught by the close-out audit's step 2 (every issue referenced gets
 its findings on the issue, not deferred to minutes). Posted prior to
 writing these minutes.
+
+---
+
+## Post-close-out addendum (continuation after commit `1e5d0e9`)
+
+After the formal close-out commit landed, operator continued the
+conversation, surfacing miscommunication that re-shaped the plan
+materially. This addendum captures what actually happened so the
+minutes match the durable state.
+
+### Operator-driven scope clarifications
+
+1. **Phases 1, 2, 3 are vendored-core-edit work, not bespoke-app
+   refactoring.** I had elided this. Operator clarified: "Did we not
+   already devise corrective measure for all of those?" — yes, exactly
+   what those phases do (18 fixture-equivalent → Custom Fields, 10
+   discardable + 2 debug-print → deleted, 1 redis/rq pin → operational
+   decision). The 31 vendored-core-edits are wholly accounted for in
+   Phases 1, 2, 3 + es.csv in Phase 6.
+
+2. **Returnable + route_planner refactor confirmed in scope.**
+   Previously parked as an undecided architectural option from Session
+   11. Operator: "I definitely want to refactor those and eliminate
+   the distinct apps." Added as Phases 7 (route_planner DB-residency,
+   trivial port) and 8 (returnable DB-residency, ~200-line port +
+   safe_exec sandbox question) of #353.
+
+3. **Sales Partner Customer Item Commissions (Phase 4) is the
+   on-ramp.** Operator: "It's not a distinct app, but it is a distinct
+   issue, which will uncover learning opportunities." Sequenced as the
+   first substantive refactor before the app-eliminations.
+
+### Operator-stated sequencing principle
+
+Operator stated the sole guiding principle for multi-phase refactor
+sequencing: **"no work early in the pipeline that needs rework later
+in the pipeline."** Plus secondary rule: **"give priority to smaller
+issues which provide scaffolding or educational support to more
+difficult later tasks."** Operator framed the constraint set:
+"no time or money business considerations, only efficiency, efficacy
+and mature architectural and coding practice."
+
+Saved as `memory/feedback_no_rework_sequencing.md`. This explicitly
+retired the safety-cover argument that originally placed the
+Playwright suite *before* Phase 4 in Plan B's chronology. Revenue
+regression risk too small to justify rework cost.
+
+### Decisions resolved
+
+- **Polvo de Roca**: defer entirely. No old-way work makes sense.
+  Becomes child-row data entry under Phase 4. Recorded in
+  `memory/project_sales_partner_commissions_redesign.md::Operational
+  decision — Polvo de Roca`.
+- **Phase 4 sequencing**: revised. Refactors (Phases 4, 7, 8) precede
+  Playwright suite authoring; suite written against post-refactor
+  canonical shapes. Original Plan B chronology (suite-before-Phase-4
+  for safety) retired.
+- **Returnable + route_planner**: confirmed in scope as Phases 7 + 8.
+- **Moot-sweep authorization**: confirmed.
+- **Wizard-replay overarching issue**: confirmed; new placeholder issue
+  filed as #355.
+
+### Revised sequencing (current truth)
+
+1. Phases 1, 2, 3, 6 — vendored-core-edit cleanup on dev02
+2. Phase 5 — catalogue triage (interleavable)
+3. CloudStack VM substrate stand-up — production V13 BaRe restore
+4. Phase 4 — commissions master/detail redesign (operator on-ramp)
+5. Phase 7 — route_planner DB-residency (smaller-scaffolds-larger)
+6. Phase 8 — returnable DB-residency (informed by Phase 7 learning)
+7. Author Playwright regression suite against post-refactor shapes
+8. Climb V13 → V14 → V15 → V16, suite as gate at each rung
+9. Production cutover
+
+### Moot-sweep executed
+
+8 issues closed with comments + 1 new issue filed:
+
+| Action | Issue | Closure framing |
+|---|---|---|
+| close | #312 | completed-elsewhere — LogiSoluValidations audit subsumes |
+| close | #339 | superseded by #353 Phase 6 |
+| close | #284, #285, #290, #292, #296, #297 | Plan A retired by Plan B |
+| file | [#355](https://github.com/martinhbramwell/ESACP/issues/355) | overarching V16+ Playwright wizard handler placeholder |
+
+Comment on #353 ([4399999503](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4399999503))
+posted documenting Phases 7+8, revised sequencing, moot-sweep summary.
+
+Open ESACP issue count: 37 → 30 (net -7).
+
+### Memory updates (auto-memory, persists across sessions)
+
+- NEW `feedback_no_rework_sequencing.md` — operator's guiding principle
+- `project_erpnext_idiomatic_refactor.md`:
+  - Phases 7 + 8 added to phased-execution table
+  - Each-phase descriptor updated (refactors before suite under
+    no-rework principle)
+  - Chronology rewritten under no-rework principle
+  - Session 12 premises section added
+  - Connection-to-existing-work: closed-issue references updated,
+    Phase 4 typo fixed, sequencing-principle pointer added
+- `project_sales_partner_commissions_redesign.md` — Polvo decision
+  recorded
+- `MEMORY.md` index — sequencing-principle pointer added under
+  Critical Rules cluster
+
+### Files committed
+
+Follow-up commit `c7f31c4` on main:
+
+- `docs/SessionLogs/2026-05-07-0858-next-agenda.md` (substantial
+  rewrite — open-issue count, resolved decisions section, backlog
+  reordered under no-rework principle, reminders updated)
+- `docs/qa-log.md` (single appended row for the post-close
+  pre-commit verdict)
+
+Push: `1e5d0e9..c7f31c4 main -> main`.
+
+### QA verdicts (post-close-out)
+
+| Gate | Verdict | Notes |
+|---|---|---|
+| Pre-commit on `c7f31c4` | approve-with-conditions | Conditions: GPG-sign + Co-Authored-By trailer (both met). Subagent suggested `Claude Sonnet 4.6` for trailer based on its own runtime context — same self-context confusion logged 2026-05-04. Parent (Opus 4.7 1M context) overrode per documented precedent. |
+| Pre-push on `c7f31c4` | approve | Hard-block scrutiny applied; nothing found. |
+
+### Audit gap closed (round 2)
+
+This addendum itself was added because the round-2 close-out audit
+caught that the original minutes (committed in `1e5d0e9`) described the
+session as ending with several decisions still pending — when in
+reality those decisions resolved in the post-close segment that
+followed. "Minutes describe what happened, not what you intended to
+happen" required the file to be updated, not just the agenda + memory
++ qa-log. Audit caught the omission; addendum closes it.
