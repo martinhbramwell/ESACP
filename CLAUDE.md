@@ -2,6 +2,8 @@
 
 **Mission**: Self-repairing, AI-assisted platform so a family-owned business can maintain and enhance their heavily customised ERPNext system without depending on any single developer. See `memory/mission_vision.md` for full context.
 
+**Behavioral memory home**: Claude Code's per-session memory dir is a clone of the private repo [`martinhbramwell/LogiSoluMemory`](https://github.com/martinhbramwell/LogiSoluMemory), mounted via symlink at `~/.claude/projects/<encoded-controller-path>/memory` → `$BESPOKE_ROOT/LogiSoluMemory`. Standup procedure in that repo's README. Decision: [#359](https://github.com/martinhbramwell/ESACP/issues/359). Three-bucket architecture context: [#358](https://github.com/martinhbramwell/ESACP/issues/358).
+
 ---
 
 ## Session Protocol
