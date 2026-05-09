@@ -91,6 +91,8 @@ Two failure modes:
 
 Both failure-mode paths must also append a row to `docs/qa-log.md` at session-close batching.
 
+**"Malformed verdict" defined narrowly** (clarification per #367): a verdict whose substantive answer (`approve` / `approve-with-conditions` / `reject`) is unclear or self-contradictory. Flag inconsistencies on an unambiguous verdict — e.g. `hard_block: false` on an `approve` verdict for a Trigger 2–5 action — are NOT malformed for fail-closed purposes. The parent reads the substantive answer and proceeds. The `hard_block` flag determines override semantics on `reject` only; on `approve`, the flag has no operational effect. Note such inconsistencies once in `docs/qa-log.md` if useful, but do not treat them as fail-closed events and do not build escalation watches around them in isolation.
+
 ---
 
 ## 6. Bootstrap exception

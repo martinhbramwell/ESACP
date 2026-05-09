@@ -119,3 +119,14 @@ Clean.
 ## Wall-clock cadence note
 
 Session 21: ~30 min from objective acknowledgement to commit-ready state. Matches the agenda's 30–60 min estimate. Cleaner than Session 20's reframed 3-hour sidebar; this is the expected cadence for single-issue-migration sessions going forward.
+
+## Post-close addendum (added after commit `16691e4`)
+
+Operator-directed cleanup of the verdict-format-defect tracking pattern. The "recurrence cadence / escalation threshold" framing in the QA verdict-layer activity section above was process noise — both incidents involved approve verdicts where the `hard_block` flag has no operational effect. Operator at Session 21 close: "Am I right that you are in an ongoing argument with QA? ... it doesn't seem to make any sense at all."
+
+Resolution per [#367](https://github.com/martinhbramwell/ESACP/issues/367):
+
+- `docs/qa-contract.md` §5 amended to clarify "malformed verdict" excludes flag inconsistencies on unambiguous-approve verdicts.
+- Session 22 next-agenda carry-forward watch dropped.
+- LogiSoluMemory `feedback_qa_flag_format_only_matters_on_reject.md` added.
+- This addendum records the resolution per "minutes describe what happened" rule.
