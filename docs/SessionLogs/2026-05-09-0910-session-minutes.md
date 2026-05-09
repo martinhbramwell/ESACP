@@ -340,6 +340,53 @@ audit hook fires on every UserPromptSubmit and currently catches gaps
 between session-close commits, not before them. Whether to tighten
 this is Session 20+ work, not this session.
 
+### Second audit follow-up — MEMORY.md trim 218 → 199
+
+After the first audit follow-up (`3f73f51`) landed, audit step 4
+("reminders for operator") flagged MEMORY.md line-count ceiling
+overage as urgent: 18 lines (200–218) of forward-looking content
+(Known Tech Debt + Parked / Future sections) were being truncated
+from auto-load every session. Operator framed it as urgent and asked
+"Is there something we can do before actually exiting this session?"
+
+Operator-approved trim plan via AskUserQuestion ("Approve — execute
+the trim now"). 12 sections condensed to terse pointer form; all
+trimmed prose's substance preserved in topic files (which already
+exist). Net: −19 lines, 218 → 199.
+
+LogiSoluMemory commit `b7e7f3a`, GPG-signed, fast-forward pushed:
+
+```sh
+git -C /home/hasan/projects/Logichem/LogiSoluMemory push origin main
+# 033c9a2..b7e7f3a  main -> main
+```
+
+QA Trigger 1 (advisory) — invocation `a11e8f8428d94d91c`. Verdict
+**approve**. Agent confirmed all load-bearing facts preserved
+section-by-section in trimmed pointer form (carve-out, #343 status,
+ce_sri_svc#3 awaits merge, AMBIENTE warnings, Plan B 6-phase pointer,
+main-as-canonical for bespoke-apps).
+
+QA Trigger 3 (hard-block) — invocation `ae3d55ea1057826c9`. Verdict
+**approve**, `hard_block: true` (correct).
+
+**Pre-existing tracked debt resolved**: MEMORY.md ceiling overage was
+parked since pre-Session-17. Sessions 17/18/19 all noted "same
+parking" without action. This trim discharges the parking; future
+Phase 1 work can build on a stable index baseline.
+
+**Honest implication**: the audit hook's step-4 reminders surface
+operationally important debt that the in-line forward-tense table
+treats as "tracked debt = not actionable here." Sometimes "tracked
+debt" is just deferred work the operator wants done now. Worth
+revisiting how step-4 reminders are framed — they read as
+informational but were actionable.
+
+**Single-pass close was missed by two follow-up commits**. Same shape
+as Session 18 (which had one audit-follow-up); Session 19 has two
+(`3f73f51` + this third commit). Whether this is sustainable or
+warrants tightening is Session 20+ work.
+
 ## Files at session-end
 
 - `docs/SessionLogs/2026-05-09-0910-session-minutes.md` (this file)
@@ -357,6 +404,9 @@ this is Session 20+ work, not this session.
 - `martinhbramwell/ESACP/issues/358` comment
   [4412633266](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412633266)
   — close-commit hash citation (close-out-audit follow-up)
+- `martinhbramwell/LogiSoluMemory` — MEMORY.md trim 218→199 lines
+  (commit `b7e7f3a`); pre-existing tracked debt resolved (second
+  close-out-audit follow-up)
 
 ## Open issue count
 
