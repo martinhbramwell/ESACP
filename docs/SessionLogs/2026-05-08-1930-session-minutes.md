@@ -163,9 +163,17 @@ See `docs/qa-log.md` rows for 2026-05-08 — Session 17 entries:
    Verdict approve. Notable: Co-Authored-By model-version trailer
    cosmetic note (recurring observation, harness directive overrides
    stale CLAUDE.md template — not blocking).
-3. Trigger 3 — pre-push of this session-close doc-sweep on ESACP main.
-   See qa-log row.
-4. Trigger 5 — pre-`gh issue close #359`. See qa-log row.
+3. Trigger 1 — pre-commit on this session-close doc-sweep on ESACP
+   main (verdict effectively gates the immediate push by established
+   convention rows 53–56). Verdict approve. See qa-log row 3 (line 59
+   of `docs/qa-log.md`).
+4. Trigger 5 — pre-`gh issue close #359`. Verdict
+   **approve-with-conditions** (sole condition: surface the item-5
+   partial-scope note at top of closing comment, not bottom —
+   discharged before close ran). See qa-log row 4 (line 60 of
+   `docs/qa-log.md`, added in follow-up commit) + closing comment on
+   #359 ([4409929832](https://github.com/martinhbramwell/ESACP/issues/359#issuecomment-4409929832))
+   for the verdict transcript.
 
 ## Operator decisions captured this session
 
@@ -190,9 +198,17 @@ See `docs/qa-log.md` rows for 2026-05-08 — Session 17 entries:
 
 ## GH issue activity
 
-- **#359** — closure expected at session close after the closure
-  checklist completes for items 2–6 (item 1 closed in Session 16).
-  See `gh issue close` step + QA Trigger 5 verdict in qa-log.
+- **#359** — CLOSED 2026-05-08T23:41:40Z (state=completed). All six
+  closure-checklist items resolved (item 1 in Session 16; items 2–6
+  in Session 17 with the session_start.py half of item 5 explicitly
+  deferred to #358 by operator scope decision — captured in #359
+  closing comment [4409929832](https://github.com/martinhbramwell/ESACP/issues/359#issuecomment-4409929832)).
+- **#358** — Companion comment posted Session 17 close-out audit
+  ([4410746487](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4410746487))
+  capturing: (a) checklist item 2 (LogiSoluMemory repo created)
+  satisfied, (b) the session_start.py half of #359's item 5 is
+  subsumed by #358's checklist item 5 (session-start protocol
+  extension).
 
 ## Forward-tense audit (close-out)
 
@@ -200,8 +216,8 @@ See `docs/qa-log.md` rows for 2026-05-08 — Session 17 entries:
 |---|---|
 | "I'll proceed through sub-tasks 1–6." | Discharged: all six executed |
 | "Invoking esacp-qa for verdict." (×2 mid-session) | Discharged: invocations `a40c5b80ca8303339` + `adb4c9002ddd792d3` |
-| "Pre-push QA invocation for ESACP main push." (planned) | Discharged: see qa-log row 3 below |
-| "Pre-`gh issue close` QA invocation." (planned) | Discharged: see qa-log row 4 below |
+| "Pre-commit QA invocation for session-close ESACP main commit." (planned) | Discharged: invocation `aa4777a10d5a7e673`; qa-log row 3 (line 59) |
+| "Pre-`gh issue close` QA invocation." (planned) | Discharged: invocation `a8b3b96353dab8fc0`; qa-log row 4 (line 60, added in follow-up commit) + #359 closing comment [4409929832](https://github.com/martinhbramwell/ESACP/issues/359#issuecomment-4409929832) |
 | "Verifying memory loading still works after the swap." | Discharged: 5 checks through symlinked path; all pass |
 | "Closing #359 with hash references." (planned) | Discharged: `gh issue close 359` after QA approves |
 
