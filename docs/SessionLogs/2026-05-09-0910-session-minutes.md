@@ -256,10 +256,16 @@ required yet.
 
 - **BaRe #9** — filed and **CLOSED** in-session by `fixes #9` trailer
   on commit `8653412` (auto-close at 2026-05-09T12:58:45Z).
+- **BaRe #10** — filed during close-out-audit follow-up: `docs: README
+  should mention production-machine installability` (non-blocking
+  documentation gap; future-PR material). Open.
 - **ESACP #358** — three-bucket architecture; **closure-checklist item
   3 satisfied** (BaRe associated with ESACP-platform on three durable
   surfaces). Satisfaction comment posted at
-  [4412607502](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412607502).
+  [4412607502](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412607502);
+  follow-up comment with close-commit hash at
+  [4412633266](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412633266)
+  (close-out-audit discharge).
   #358 itself remains OPEN — closure expected at end of Phase 1
   (~Sessions 20–25).
 - **No new ESACP issues filed** this session.
@@ -277,7 +283,62 @@ required yet.
 | "Writing session-close artifacts" | This file + next-agenda + qa-log rows |
 | "Session 20 to anchor on first issue migration ESACP → LogiSoluKnowBase" | Captured in next-agenda — proposed anchor #354 (smallest migration; pure doc bug) |
 
-No deferred forward-tense promises remain.
+**Close-out-audit follow-up (post-`a81b34e`)** — see "Close-out-audit
+follow-up" section below; the original audit table missed two items
+caught by the post-close audit-hook pass.
+
+## Close-out-audit follow-up
+
+System-reminder session-close audit hook fired after `a81b34e` landed
+and surfaced two outstanding items the in-line forward-tense audit
+table missed:
+
+1. **BaRe README production-machine installability documentation gap**
+   — flagged by QA Trigger 1 (`ac07ac161b6bc0f97`) on BaRe commit
+   `8653412`. Listed in this minutes' "What was NOT done" + Session 20
+   next-agenda backlog, but neither is a durable home per the audit
+   protocol ("minutes reference durable homes, they do not replace
+   them"). Action: filed BaRe
+   [#10](https://github.com/martinhbramwell/BaRe/issues/10) — `docs:
+   README should mention production-machine installability`. Future-PR
+   material on BaRe; the issue is the durable home.
+
+2. **ESACP #358 comment ([4412607502](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412607502))
+   referenced minutes as "forthcoming session-close commit"** — was
+   accurate at posting time (before `a81b34e`); now stale (minutes
+   landed in `a81b34e`). Action: posted follow-up #358 comment
+   ([4412633266](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412633266))
+   citing the actual close-commit hash so the satisfaction record is
+   self-contained without requiring readers to chase commit lookups.
+
+Both discharged via this minutes update + a qa-log row 74 entry,
+under Session 17 row 60 / Session 18 row 65 precedent: close-out-audit
+follow-up commits that purely record existing facts (issue creation,
+comment URL, audit table updates) do not re-invoke QA Trigger 1 — the
+recorded facts inherit gating from their original sources (BaRe issue
+filing is `gh issue create`, not in QA Trigger contract per
+qa-contract.md §2; #358 comment is `gh issue comment`, also not in QA
+contract).
+
+No close-out-audit-follow-up Trigger 3 push verdict invoked either,
+under same convention. The audit hook itself is not destructive nor
+visible-state-changing; the BaRe issue + #358 comment URLs are the
+real public state changes and were each captured before this minutes
+update.
+
+**Honest implication**: the in-line forward-tense audit table at the
+top of this section was insufficient — it missed gaps the
+session-close audit hook caught. Same shape as Session 18's two-pass
+audit pattern, despite Session 19's intent to land in a single pass.
+Two follow-up artifacts (BaRe #10 + ESACP #358 comment 4412633266) +
+this minutes update + qa-log row 74 close the gap. The
+single-close-commit goal was missed by one follow-up commit; same as
+Session 18's `f0920b8` audit-follow-up commit pattern.
+
+The Session 18 "Operator's standing observation" remains live: the
+audit hook fires on every UserPromptSubmit and currently catches gaps
+between session-close commits, not before them. Whether to tighten
+this is Session 20+ work, not this session.
 
 ## Files at session-end
 
@@ -291,6 +352,11 @@ No deferred forward-tense promises remain.
 - `martinhbramwell/ESACP/issues/358` comment
   [4412607502](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412607502)
   — closure-checklist item 3 satisfaction
+- `martinhbramwell/BaRe/issues/10` — production-machine installability
+  documentation gap (close-out-audit follow-up)
+- `martinhbramwell/ESACP/issues/358` comment
+  [4412633266](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412633266)
+  — close-commit hash citation (close-out-audit follow-up)
 
 ## Open issue count
 
