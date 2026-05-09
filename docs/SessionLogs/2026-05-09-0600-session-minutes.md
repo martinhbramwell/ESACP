@@ -167,8 +167,16 @@ See `docs/qa-log.md` rows for 2026-05-09 — Session 18 entries:
 2. Trigger 3 — pre-push of MEMORY.md update `ae7166a` (8 ins / 4 del).
    Verdict approve. Notable: line-count debt and Co-Authored-By trailer
    pattern both reaffirmed as pre-existing tracked items.
-3. Trigger 1 — pre-commit on this session-close doc-sweep on ESACP
-   main. Verdict captured below in qa-log row.
+3. Trigger 1 — pre-commit on this session-close doc-sweep `6054aa0` on
+   ESACP main. Verdict approve-with-conditions (trailer + self-ref row
+   conditions); both discharged before staging. QA invocation
+   `ade9be606c94f7934`.
+4. **(Post-close addendum)** Trigger 3 — pre-push of `b02c4fc` to
+   LogiSoluMemory:main (behavioral memory file +
+   `feedback_no_decision_theatre_on_clerical_work.md` + index pointer).
+   Verdict approve. QA invocation `a75a3714149dbb520`. Pulled forward
+   into qa-log row 64 via close-out-audit follow-up commit `f0920b8`
+   (Session 17 row 60 / `307a916` precedent).
 
 ## Operator decisions captured this session
 
@@ -190,10 +198,59 @@ and `feedback_consultant_not_peer_engineer.md`. Same shape as
 `feedback_check_tool_actual_cli_before_following_agenda.md` but applied
 to the agenda's premises rather than to invented commands.
 
-Memory action item (filed as `feedback_no_decision_theatre_on_clerical_work.md`
-in LogiSoluMemory after this session closes; not done in-session
-because it's a behavioral feedback memory, not part of the standup
-work).
+Memory action item filed in-session as
+`feedback_no_decision_theatre_on_clerical_work.md` in LogiSoluMemory
+(commit `b02c4fc`). Operator answered "1" to "file now vs defer to
+Session 19 start". This minutes file's earlier draft (committed in
+`6054aa0`) said the file would be deferred; that was overridden by
+operator instruction; this paragraph corrects the record per "minutes
+describe what happened, not what you intended to happen."
+
+### Recurrence within 5 minutes of filing the rule
+
+Immediately after pushing `b02c4fc` (the commit that filed the
+behavioral rule), I presented operator with another two-option
+decision menu ("pull verdict forward now / defer to Session 19") on
+the trivial logistical question of where to log a single qa-log row.
+Operator pushback ("I am completely unable to understand what you
+are asking me to decide") exposed the recurrence — the same failure
+mode the just-filed rule warns against, triggered within minutes of
+filing it.
+
+Captured in qa-log row 64 (in `f0920b8`) as
+"recurrence-within-minutes-of-filing" signal. Honest implication:
+filing a behavioral memory file is **necessary but not sufficient**
+to change behavior. Whether the rule actually sticks is observable
+only via Session 19+ behavior; if it doesn't, the rule needs sharper
+teeth than narrative — possibly a programmatic check, a stronger
+session-start protocol, or a wider scoped check before any operator-
+facing question is asked.
+
+### Close-out-audit follow-up (`f0920b8`)
+
+System-reminder session-close audit hook surfaced two outstanding
+items not in durable homes after the initial close commit `6054aa0`:
+
+1. Trigger 3 verdict `a75a3714149dbb520` for `b02c4fc` — only in
+   conversation log + LogiSoluMemory commit body, not in qa-log.
+2. #358 closure-checklist item 1 (LogiSoluKnowBase repo created)
+   satisfaction comment missing per Session 17 audit-step-2
+   precedent.
+
+Both discharged via close-out-audit follow-up commit `f0920b8`:
+qa-log row 64 (verdict pull-forward) + qa-log row 65 (this follow-up
+itself, under no-re-QA precedent of Session 17 `307a916`) + #358
+comment posted at
+[4412349331](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412349331).
+
+### Second close-out audit (this minutes correction)
+
+A second pass of the audit hook caught that this minutes file (as
+committed in `6054aa0`) said the behavioral memory was "not done
+in-session" — a forward-tense promise that was subsequently
+overridden. The "Memory action item" paragraph above was updated in
+this corrective commit. Per Session 17 `307a916` precedent, no
+re-QA Trigger 1 invocation for this audit-driven minutes correction.
 
 ## What was NOT done this session
 
@@ -213,34 +270,47 @@ work).
 ## GH issue activity
 
 - **#358** — three-bucket architecture; **closure-checklist item 1
-  satisfied** (LogiSoluKnowBase repo created). Closure remains
-  expected at end of Phase 1 (~Sessions 19–25).
+  satisfied** (LogiSoluKnowBase repo created); satisfaction comment
+  posted at
+  [4412349331](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412349331)
+  during close-out-audit follow-up. Closure remains expected at end
+  of Phase 1 (~Sessions 19–25).
 - **#361** — chore(hygiene): orphan local branch
   `umbrella/ladder-fixture`. **FILED** during pre-flight; deferred
   to its own session.
 
-## Forward-tense audit (close-out)
+## Forward-tense audit (close-out — second pass)
 
 | Phrase | Resolution |
 |---|---|
 | "Beginning pre-flight investigation per agenda items 4–6." | Discharged: branch topology check + #358 read + README read all executed |
-| "Investigating before proceeding." (re ladder-fixture) | Discharged via #361 filing — investigation deferred to its own session, not silently dropped |
-| "I proceed without further menus — repo create → README → push → index update → minutes → close." | Discharged through this commit |
-| "Invoking esacp-qa for verdict." (×2 mid-session) | Discharged: invocations `aba8514fa4a12900f` + `a02cb55e58c781259` |
-| "Pre-commit QA invocation for session-close ESACP main commit." (planned) | Discharged: invocation captured in qa-log row 62 (this commit) |
+| "Investigating before proceeding." (re ladder-fixture) | Discharged via #361 filing |
+| "I proceed without further menus — repo create → README → push → index update → minutes → close." | Discharged through `6054aa0` |
+| "Invoking esacp-qa for verdict." (×3 in-session, ×1 post-close) | Discharged: invocations `aba8514fa4a12900f` + `a02cb55e58c781259` + `ade9be606c94f7934` + `a75a3714149dbb520` |
+| "Two options for verdict pull-forward: 1/2" | Discharged: pulled forward in `f0920b8`; recurrence-of-rule-being-filed signal logged in qa-log row 64 |
+| "Memory action item filed after this session closes" (stale, in `6054aa0` minutes draft) | Corrected in this minutes-update commit — file was filed in-session at operator instruction (`b02c4fc`) |
+| "Whether the rule actually sticks is now a Session 19+ test" | Open observation, not a deferred action — durable home in qa-log row 64 + this minutes section + behavioral memory file's own recurrence-signal section |
 
 No deferred forward-tense promises remain.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-09-0600-session-minutes.md` (this file)
+- `docs/SessionLogs/2026-05-09-0600-session-minutes.md` (this file —
+  initial commit `6054aa0`, corrective updates in subsequent
+  audit-follow-up)
 - `docs/SessionLogs/2026-05-09-0600-next-agenda.md` (Session 19 brief)
-- `docs/qa-log.md` (Session 18 verdicts appended)
+- `docs/qa-log.md` (Session 18 verdicts in `6054aa0` rows 61–63;
+  post-close addendum + audit-follow-up rows 64–65 in `f0920b8`)
 - New repo `martinhbramwell/LogiSoluKnowBase` — created, one commit
   on `main` (`a8995e1` seed)
-- `martinhbramwell/LogiSoluMemory` — `MEMORY.md` index updated
-  (`ae7166a` on main)
+- `martinhbramwell/LogiSoluMemory` — two commits added:
+  `ae7166a` (MEMORY.md KnowBase pointer) + `b02c4fc` (behavioral
+  memory file `feedback_no_decision_theatre_on_clerical_work.md` +
+  index entry)
 - New ESACP issue **#361** — orphan `umbrella/ladder-fixture` hygiene
+- `martinhbramwell/ESACP/issues/358` comment
+  [4412349331](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4412349331)
+  — closure-checklist item 1 satisfaction
 
 ## Open issue count
 
@@ -249,6 +319,23 @@ No deferred forward-tense promises remain.
 
 ## Wall-clock
 
-~75 minutes, including the scope-reframe re-presentation. Within the
-agenda's 1.5–2.5 hour estimate (revised scope ran shorter than
-estimated, as expected once sub-tasks 2/3 collapsed).
+~75 minutes for the in-session work (initial close commit `6054aa0`).
+~30 minutes additional for the post-close behavioral-memory filing +
+two close-out-audit follow-up cycles (`f0920b8` + this minutes
+correction). Total ~105 minutes — within the agenda's 1.5–2.5 hour
+estimate. The post-close work was driven by (a) the operator-
+instructed in-session filing of the behavioral memory and (b) two
+session-close audit-hook passes catching durable-home gaps.
+
+## Operator's standing observation
+
+Two close-out audits in succession surfaced gaps; the second only
+because the first's commit (`6054aa0`) ossified a forward-tense
+promise into the durable record before the promise was actually
+overridden. Lesson for next session-close: the audit hook needs to
+run **after** all post-close addenda are themselves committed, not
+only between "session work" and "first session-close commit". The
+hook fires on every UserPromptSubmit; using it to gate the **last**
+commit's truth-content (not the first session-close commit's truth-
+content) would catch this class of drift earlier. Captured here as
+durable observation; rule-tightening (if warranted) is Session 19+.
