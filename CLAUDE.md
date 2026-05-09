@@ -4,6 +4,8 @@
 
 **Behavioral memory home**: Claude Code's per-session memory dir is a clone of the private repo [`martinhbramwell/LogiSoluMemory`](https://github.com/martinhbramwell/LogiSoluMemory), mounted via symlink at `~/.claude/projects/<encoded-controller-path>/memory` → `$BESPOKE_ROOT/LogiSoluMemory`. Standup procedure in that repo's README. Decision: [#359](https://github.com/martinhbramwell/ESACP/issues/359). Three-bucket architecture context: [#358](https://github.com/martinhbramwell/ESACP/issues/358).
 
+**BaRe — bucket 1 associate**: [`martinhbramwell/BaRe`](https://github.com/martinhbramwell/BaRe) (backup/restore for ERPNext bench) is institutionally associated with bucket 1 (ESACP-platform) per [#358](https://github.com/martinhbramwell/ESACP/issues/358) closure-checklist item 3. Memory: [`project_bare_bucket_1_association.md`](https://github.com/martinhbramwell/LogiSoluMemory/blob/main/project_bare_bucket_1_association.md). Full three-bucket rewrite of the "Bespoke App Repos" section below is deferred to a later Phase 1 session.
+
 ---
 
 ## Session Protocol
