@@ -87,3 +87,20 @@ No PR opened or merged on ESACP this session — `feedback_pr_merge_before_sessi
 ## Wall-clock
 
 ~30 min — at the lower end of the agenda's 30–45 min Candidate-B estimate. Linear execution helped; no defect detours.
+
+## Post-close audit (audit-triggered fix)
+
+Standard SESSION END audit step 2 ("for every GH issue referenced this session, confirm any new findings have been posted as a comment on the issue itself, not just the minutes") surfaced one gap post-close-commit `a7b7c2e`:
+
+The umbrella standup is a "new finding" applicable to LSKB#1, #2, #3 (filed pre-umbrella) — specifically that they stay direct-to-LSKB-`main` per `feedback_umbrella_branches.md` retroactive-application policy. This finding was durably homed in the [ESACP#353 cross-ref comment](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4415543897) and in this minutes file, **but not posted on each of LSKB#1/#2/#3 individually**. Per audit principle "noted in the minutes is NOT a valid resolution," each of LSKB#1/#2/#3 needed its own pointer comment.
+
+Discharged by posting one pointer-comment on each:
+- LSKB#1 → [issuecomment-4415574173](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/1#issuecomment-4415574173) (doc-only, stays direct-to-`main` per existing flow)
+- LSKB#2 → [issuecomment-4415574278](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/2#issuecomment-4415574278) (Phase 1 sub-piece; natural Session 29 first-execution candidate)
+- LSKB#3 → [issuecomment-4415574351](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/3#issuecomment-4415574351) (Phase 1B sub-piece alongside LSKB#2)
+
+Each comment is brief (one paragraph): umbrella exists at commit `a7b7c2e`, retroactive-application policy means this issue stays direct-to-`main`, full phase decomposition link to ESACP#353 comment.
+
+**Structural finding (carry-forward to Session 29 reminders)**: pre-close esacp-qa invocation Session 28 was scoped to specific verification points (real-name scan, path enumeration, self-referential-row pattern, commit-message format) — it caught the `Logichem`-absent-claim defect but did not catch the "every-referenced-issue-needs-a-comment" gap because that check was outside the prompt's scope. The SESSION END audit step 2 is broader. Worth tracking: pre-close QA can miss issue-comment-coverage audits unless explicitly asked. Pattern-recurrence threshold = 1 (this session); revisit in Session 29 close if recurrence happens.
+
+LSKB-side comments are out of qa-contract.md §2 v1 strict scope (voluntary), so no Trigger 5 obligation; the comments themselves are out of trigger list (`gh issue comment` not in §2 v1). Pre-commit + pre-push QA on this minutes update + the qa-log audit-triggered-fix row applies (Triggers 1+3).
