@@ -66,7 +66,7 @@ Extended `project_bucket_2_migration_pattern.md` (in LogiSoluMemory clone) with:
 - "Verdict-layer scope (Op 4)" subsection: no Trigger 5 in either sub-shape; comments out of qa-contract.md §2 v1 scope.
 - Op 4 first worked examples appended (#197 + #353, both Session 27).
 
-LogiSoluMemory commit pending session-close batch on that repo.
+Landed at LogiSoluMemory commit [`70f712b`](https://github.com/martinhbramwell/LogiSoluMemory/commit/70f712b).
 
 ### Sub-task 7 — MEMORY.md index update
 
@@ -82,7 +82,7 @@ with:
 - [Bucket migration pattern](project_bucket_2_migration_pattern.md) — #358 Ops 2/3/4; step 0 = issues∪PRs (#368); examples #354→LSKB#1 (Op 2), #345→ce_sri_svc#4 (Op 3), #197+#353 (Op 4)
 ```
 
-LogiSoluMemory commit pending session-close batch.
+Landed at LogiSoluMemory commit [`70f712b`](https://github.com/martinhbramwell/LogiSoluMemory/commit/70f712b) (same commit as Sub-task 6).
 
 ## Files at session-end
 
