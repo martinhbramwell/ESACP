@@ -11,8 +11,12 @@ Available domains: core, erpnext, kvm, docker, cytoscape
 """
 
 import os
+import sys
 import subprocess
 import json
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bucket_survey import survey_buckets
 
 # CC harness exposes $CLAUDE_PROJECT_DIR when started with a project directory.
 # When set, derive the encoded memory-dir path from it. When unset (current
@@ -108,10 +112,18 @@ if 'kvm' in active_domains:
     )
     sync_output = '\n=== Sync Check ===\n' + result.stdout
 
-ctx = '\n'.join(parts) + sync_output
+# ── Bucket surveys — per ESACP #358 Discipline #2 / #369 ───────────────────
+buckets_file = os.path.join(MEMORY_DIR, 'session_buckets.txt')
+active_buckets = []
+if os.path.exists(buckets_file):
+    active_buckets = [l.strip() for l in open(buckets_file).readlines()
+                      if l.strip() and not l.strip().startswith('#')]
+bucket_output = survey_buckets(active_buckets)
+
+ctx = '\n'.join(parts) + sync_output + (('\n' + bucket_output) if bucket_output else '')
 
 # ── Header note ───────────────────────────────────────────────────────────
-loaded_summary   = f"domains={active_domains}, files={len(to_load)}"
+loaded_summary   = f"domains={active_domains}, buckets={active_buckets}, files={len(to_load)}"
 unloaded_summary = (
     f"INACTIVE domains (files NOT loaded): {inactive_domains}. "
     f"To activate, add domain name to memory/session_focus.txt and start a new session. "
