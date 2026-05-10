@@ -70,6 +70,16 @@ Posting comment on `#358` flagging "6 of 8 closure-checklist Phase 1 items satis
 
 This file + Session 30 agenda + qa-log Session 29 rows + #358 progress comment. One Trigger 1+3 verdict at session-close push.
 
+### Sub-task 6 — Post-close audit (UserPromptSubmit hook)
+
+Audit per session-end protocol. Three findings:
+
+- **Forward-tense statements**: all eight scanned promises resolved to durable homes (qa-log rows / commit hashes / GH comments / closed issue / commits) or correctly marked MOOT (Phase 1 LSKB direction abandoned at scope-switch).
+- **GH issues referenced — new-findings comment audit**: one gap surfaced. Session 29 rediscovered the wip-consolidation gating on Plan B Phase 1 execution, but no comment had been posted on #353 (the parent epic). Posted [`issuecomment-4416342828`](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4416342828) discharging the gap.
+- **PRs opened this session**: zero. mergedAt check N/A.
+
+This sub-task added one commit beyond the close-out (`678f009`): the audit-discharge commit amending these minutes + qa-log row 44.
+
 ## Files at session-end
 
 - `docs/SessionLogs/2026-05-10-1649-session-minutes.md` (this file)
