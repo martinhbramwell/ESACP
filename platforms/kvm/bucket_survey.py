@@ -10,7 +10,7 @@ BUCKETS = {
     'logisolu_knowbase': ['martinhbramwell/LogiSoluKnowBase'],
     'ce_sri': ['martinhbramwell/ce_sri', 'martinhbramwell/ce_sri_svc'],
     'tenant_business_apps': [
-        'martinhbramwell/route_planner', 'martinhbramwell/returnable',
+        'martinhbramwell/route_planner', 'martinhbramwell/BtlMng',
     ],
     'logisolu_memory': ['martinhbramwell/LogiSoluMemory'],
     'logisolu_validations': ['martinhbramwell/LogiSoluValidations'],
