@@ -269,3 +269,24 @@ in `docs/qa-log.md` Session 35 rows.
 | D3 — LSKB#7 (22 TBDs documentation) | 🔜 Session 37+ | |
 
 **4 of 6** Epoch-1 sessions complete. D2 + D3 remain.
+
+## Post-close audit-fix
+
+Session-close audit (post-push) caught three gaps requiring discharge:
+
+1. **#373** had no Session-34 + Session-35 cross-repo auto-close update.
+   Posted [`issuecomment-4425988198`](https://github.com/martinhbramwell/ESACP/issues/373#issuecomment-4425988198)
+   recording ce_sri#6 (S34) + LSKB#3 (S35) as the 4th + 5th `fixes`-keyword
+   auto-close events in the running pattern.
+2. **#197** had no comment recording its new gating relationship to
+   LSKB#2 + LSKB#3 deferred audit-reruns. Posted
+   [`issuecomment-4425988628`](https://github.com/martinhbramwell/ESACP/issues/197#issuecomment-4425988628)
+   noting #197 is the substrate-consolidation gate controlling when the
+   audit-rerun can run as acceptance (until then, it's a regression check
+   after substrate lands).
+3. **Session 36 next-agenda** claimed (in minutes) to record the Phase 5
+   `__init__.py` finding but the agenda body did not actually mention it.
+   Amended the agenda's "Carry-forward operator-reminders" section to
+   include the finding explicitly.
+
+Audit-fix commit follows this minutes amendment + the qa-log row addition.
