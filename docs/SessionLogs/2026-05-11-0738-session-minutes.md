@@ -127,6 +127,7 @@ No verdict-format defects this session — tenth clean session in a row. esacp-q
 | Filed | ESACP#374 | git-deploy wrapper follow-on |
 | Filed | ESACP#375 | SOPS source-of-truth follow-on |
 | Comment posted | ESACP#373 (open) | PR-description-only `Closes` keyword insufficient for cross-repo auto-close — Session-31 datapoint + memory-correction-scope refinement: https://github.com/martinhbramwell/ESACP/issues/373#issuecomment-4420351806 |
+| Comment posted (post-close audit fix) | ESACP#364 (open) | Pattern recurrence + Session-31 partial in-session mitigation (pre-discharged step 2 via #373 comment but not #364 itself; hook still fired post-close on this exact issue, demonstrating the timing problem remains): https://github.com/martinhbramwell/ESACP/issues/364#issuecomment-4420383132 |
 
 ## Carry-forward operator-reminders
 
