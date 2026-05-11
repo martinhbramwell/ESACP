@@ -2,9 +2,7 @@
 
 **Mission**: Self-repairing, AI-assisted platform so a family-owned business can maintain and enhance their heavily customised ERPNext system without depending on any single developer. See `memory/mission_vision.md` for full context.
 
-**Behavioral memory home**: Claude Code's per-session memory dir is a clone of the private repo [`martinhbramwell/LogiSoluMemory`](https://github.com/martinhbramwell/LogiSoluMemory), mounted via symlink at `~/.claude/projects/<encoded-controller-path>/memory` → `$BESPOKE_ROOT/LogiSoluMemory`. Standup procedure in that repo's README. Decision: [#359](https://github.com/martinhbramwell/ESACP/issues/359). Three-bucket architecture context: [#358](https://github.com/martinhbramwell/ESACP/issues/358).
-
-**BaRe — bucket 1 associate**: [`martinhbramwell/BaRe`](https://github.com/martinhbramwell/BaRe) (backup/restore for ERPNext bench) is institutionally associated with bucket 1 (ESACP-platform) per [#358](https://github.com/martinhbramwell/ESACP/issues/358) closure-checklist item 3. Memory: [`project_bare_bucket_1_association.md`](https://github.com/martinhbramwell/LogiSoluMemory/blob/main/project_bare_bucket_1_association.md). Full three-bucket rewrite of the "Bespoke App Repos" section below is deferred to a later Phase 1 session.
+ESACP is bucket 1 of a three-bucket institutional architecture (decision: [#358](https://github.com/martinhbramwell/ESACP/issues/358)). See the [Three-Bucket Architecture & Bespoke App Repos](#three-bucket-architecture--bespoke-app-repos) section below for the full bucket map, where issues live by app, and the three discipline mechanisms that prevent uncatalogued sprawl.
 
 ---
 
@@ -47,6 +45,64 @@ At the start of every session, before doing anything else:
 Do this at the moment of discovery — not at session end.
 
 **Issues review** — at the start of bug-fixing/infrastructure sessions: `gh issue list --repo martinhbramwell/ESACP --state open` and close any already-resolved issues.
+
+---
+
+## Three-Bucket Architecture & Bespoke App Repos
+
+ESACP is one of three institutional buckets governing ERP-maintenance work for this tenant. Issues, code, and memory live in the bucket that matches the work's scope. The framing is what prevents the Session-13 discovery-gap failure mode (one tracker for everything → uncatalogued sprawl + AI loses thread between sessions). Decision: [#358](https://github.com/martinhbramwell/ESACP/issues/358).
+
+### The three buckets
+
+| # | Bucket | Repo | Scope |
+|---|---|---|---|
+| 1 | **ESACP-platform** | [`martinhbramwell/ESACP`](https://github.com/martinhbramwell/ESACP) (this repo) | Generic AI-assisted ERP-maintenance toolkit. Pipelines, Cytoscape control plane, observability, QA verdict layer, `sync_check`, audit framework. |
+| 2 | **LogiSoluKnowBase** (LSKB) | [`martinhbramwell/LogiSoluKnowBase`](https://github.com/martinhbramwell/LogiSoluKnowBase) (private) | Operating-tenant business logic + Plan B execution. Holds tickets for `returnable`, `route_planner`, sales-partner-commissions, the 31 `in_place_core_edit` drift items, LogiSoluValidations governance. |
+| 3 | **ERPNext-generic operational dependencies** | [`martinhbramwell/ce_sri`](https://github.com/martinhbramwell/ce_sri), [`martinhbramwell/ce_sri_svc`](https://github.com/martinhbramwell/ce_sri_svc) | ERPNext-generic operational dependencies. Loosely linked to LogiSolu, no community-product aspiration. |
+
+### Bucket-1 associate: BaRe
+
+[`martinhbramwell/BaRe`](https://github.com/martinhbramwell/BaRe) (backup/restore for ERPNext bench) is institutionally paired with bucket 1 — backup/restore is universal infrastructure, not tenant-specific. Issues filed on BaRe's own tracker. BaRe is modifiable; treat it like ESACP-platform code, not third-party. Memory: [`project_bare_bucket_1_association.md`](https://github.com/martinhbramwell/LogiSoluMemory/blob/main/project_bare_bucket_1_association.md).
+
+### Sibling artifact: LogiSoluMemory
+
+[`martinhbramwell/LogiSoluMemory`](https://github.com/martinhbramwell/LogiSoluMemory) (private) holds Claude Code's behavioral memory for this tenant. Mounted via symlink at `~/.claude/projects/<encoded-controller-path>/memory` → `$BESPOKE_ROOT/LogiSoluMemory`. Standup procedure in that repo's README. Decision: [#359](https://github.com/martinhbramwell/ESACP/issues/359).
+
+### Where issues live by app
+
+| App | Bucket | Tracker |
+|---|---|---|
+| `BaRe` | 1 (associate) | `martinhbramwell/BaRe` own tracker |
+| `ce_sri` | 3 | `martinhbramwell/ce_sri` own tracker |
+| `ce_sri_svc` | 3 | `martinhbramwell/ce_sri_svc` own tracker |
+| `returnable` | 2 | LogiSoluKnowBase (slated for Plan B Phase 8 elimination) |
+| `route_planner` | 2 | LogiSoluKnowBase (slated for Plan B Phase 7 elimination) |
+
+### Four migration operations (Phase 1)
+
+The 32+ open ESACP issues at #358 filing time required four distinct migration moves; the pattern is now reusable for future re-triage:
+
+1. **Consolidation** — BaRe → ESACP-platform bucket-1 association (no repo move; README cross-reference + memory pointer).
+2. **Migration** — ESACP → LogiSoluKnowBase (re-file on new tracker; original closed with pointer comment). Cross-repo `fixes` works only when the keyword is in the **commit message body**, not the PR description.
+3. **Tracker redirect** — ESACP → `ce_sri` / `ce_sri_svc` (re-file on dependency repo's own tracker).
+4. **Methodology-stays** — mixed bucket on ESACP (e.g., #353 Plan B epic: methodology stays on ESACP, execution sub-issues live on LSKB).
+
+Executable pattern: [`project_bucket_2_migration_pattern.md`](https://github.com/martinhbramwell/LogiSoluMemory/blob/main/project_bucket_2_migration_pattern.md). Step 0 = enumerate issues ∪ PRs.
+
+### Three discipline mechanisms (load-bearing together)
+
+All three are required — two-out-of-three is insufficient to prevent the Session-13 failure mode that motivated #358:
+
+1. **Catalog coverage** — every commit on any tracked repo references an issue. `esacp-qa` flags otherwise — advisory on Trigger 1 (commits), hard-block on Triggers 2–5 (merge / push / destructive ops / issue close).
+2. **Bucket-explicit session-start surveys** — each session names the bucket(s) it touches; session-start surveys each bucket's tracker(s) + recent commits + open branches. Driven by `session_buckets.txt` per [`bucket_definitions.md`](https://github.com/martinhbramwell/LogiSoluMemory/blob/main/bucket_definitions.md).
+3. **`wip/*` prohibition** — no future uncatalogued sprawl on any tracked repo. Pre-#358 wip-branch consolidation tracked in [`project_wip_consolidation_plan.md`](https://github.com/martinhbramwell/LogiSoluMemory/blob/main/project_wip_consolidation_plan.md).
+
+### Naming and privacy
+
+- `LogiSolu` alias is cleared for public-repo / public-issue use (not a real client name; see `feedback_no_real_client_names.md` in memory dir).
+- `LogiSoluKnowBase`, `LogiSoluMemory`, `LogiSoluValidations` repos are **private** under `martinhbramwell/`.
+- `ce_sri` / `ce_sri_svc` keep their current GitHub locations.
+- Multi-tenant `<Tenant>KnowBase` / `<Tenant>Memory` / `<Tenant>Validations` org placement is a mental placeholder; future tenants stand up their own GitHub orgs.
 
 ---
 
