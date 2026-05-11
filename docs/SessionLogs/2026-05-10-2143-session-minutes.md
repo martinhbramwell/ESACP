@@ -124,3 +124,13 @@ None this session. `project_wip_consolidation_plan.md` is unchanged — its plan
 ## No PRs left dangling
 
 `feedback_pr_merge_before_session_close.md`: route_planner PR #1 `mergedAt` non-null before session close ✅. No other PRs opened.
+
+## Post-close audit
+
+Standard SESSION END audit run post-close-commit `1990794` surfaced three referenced issues whose new findings were captured only in minutes/agenda, not as comments on the issues themselves (audit step 2: "noted in the minutes is NOT a valid resolution — minutes reference durable homes, they do not replace them"). Discharged via three pointer comments:
+
+- ESACP [#353](https://github.com/martinhbramwell/ESACP/issues/353) → [issuecomment-4417110531](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4417110531) — Plan B Phase 1 progress pointer (2 of 14 LSKB#2 entries landed via Session 30 pilot; #372 + #373 captured as deferred discoveries)
+- ESACP [#370](https://github.com/martinhbramwell/ESACP/issues/370) → [issuecomment-4417110830](https://github.com/martinhbramwell/ESACP/issues/370#issuecomment-4417110830) — partial dissolution progress (route_planner pilot discharged the wip-consolidation prerequisite for Address fields; full dissolution awaits returnable + ce_sri consolidations)
+- LSKB [#3](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/3) → [issuecomment-4417111076](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/3#issuecomment-4417111076) — unblocking status note (Custom DocPerm sub-piece can proceed via standard sub-branch flow against LSKB umbrella; dev02 acceptance gated on #372)
+
+Pre-close QA invocation (`a6516b5fb81f62a4b`) was scoped to caller-specified verification points; the "every-referenced-issue-needs-a-comment" audit step 2 check was outside QA's prompted scope and was caught only by the post-close audit grep. Same shape as Session 28's `912be77` post-close audit-fix and Session 29's `da8c6a6` discharge. Pattern-recurrence threshold for the "pre-close-QA-vs-SESSION-END-audit scope coverage gap" now at 3 sessions (28, 29, 30); if recurrence continues, the audit step 2 check should be folded into the pre-close QA invocation scope structurally rather than caught reactively.
