@@ -203,3 +203,17 @@ Mixing all three in one session works when substrate-model is settled, but isn't
 | D3 — LSKB#7 (22 TBDs documentation) | 🔜 Session 38+ | Session 37 reserved for introspection |
 
 **5 of 6** Epoch-1 sessions complete. **D3 + introspection sidebar** remain before Epoch 1 closes. After Epoch 1: CloudStack VM substrate standup (Epoch 2 stage 10).
+
+## Post-close audit-fix
+
+Session-close audit (post-push, per `SESSION END` re-run) caught one gap warranting follow-up record:
+
+**Gap 1**: ESACP #373 (cross-repo `fixes` auto-close pattern tracker) had no Session-36 update recording the **6th** auto-close event (`LSKB#8 closed 2026-05-12T02:37:37Z` via ce_sri PR #9 merge). Posted [`issuecomment-4429605422`](https://github.com/martinhbramwell/ESACP/issues/373#issuecomment-4429605422) recording the full 6-event pattern table + Session 36 specifics + the open memory-correction work (`feedback_pr_fixes_comma_syntax.md` + `project_bucket_2_migration_pattern.md` still need correction; Session 37 introspection Area 4 candidate).
+
+**Not-a-gap** (verified during audit):
+- LSKB#8 / #5 / #4 — all three closing comments fully on-issue (not just minutes). ✅
+- LogiSoluMemory commit `cc7f8ad` — referenced in Session 36 close commit `45fac00` body + minutes Files-at-session-end section. ✅
+- ce_sri PR #9 — `mergedAt 2026-05-12T02:37:36Z` confirmed via `gh pr view`. ✅
+- Forward-tense phrases (verify-production-redis / escalation-path / behaviour-deferred / Session-37-introspection) — all in durable homes (memory files / close-comments / agenda). ✅
+
+The 1 surfaced gap was discharged before this audit-fix commit was authored. Session 36 audit clean after the discharge.
