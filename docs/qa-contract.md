@@ -36,7 +36,7 @@ When a commit will be pushed in the same operational step — no intermediate in
 Appropriate when all of the following hold:
 
 1. The push immediately follows the commit (no intermediate state to re-verdict).
-2. The push target is either a feature branch, or `main` on a project where main is the only branch (e.g., LogiSoluMemory, BaRe).
+2. The push target is one of: a feature branch; `main` on a project where main is the only branch (e.g., LogiSoluMemory, BaRe); or `main` on a project where the operating convention explicitly permits direct-to-main for the commit's category (e.g., ESACP doc-only session-close commits per the S30–S36 precedent — feature work on ESACP still goes through feature-branch + PR + T2).
 3. No new commits will be added between the verdict and the push.
 
 If any condition fails, T1 and T3 are invoked separately.
@@ -188,3 +188,4 @@ This is acceptable for v1 because the agent's output is text (a verdict), not ac
 |---|---|---|
 | 2026-05-03 | v1 initial — implementation of #341 | `feat/esacp-qa-agent` branch, D2a |
 | 2026-05-12 | v2 — risk-tiered triggers calibrated on Sessions 5.5–36 data (109 verdicts): T2 advisory carve-out when prior T1+T3 approve already covers the commits; T1+T3 combined invocation codified; rolling-window recalibration audit at every 25th ESACP session | [#380](https://github.com/martinhbramwell/ESACP/issues/380) |
+| 2026-05-12 | v2.1 — §2.1 condition 2 broadened to recognise repo-specific direct-to-main conventions (e.g., ESACP doc-only session-close commits per S30–S36 precedent), so the §2.1 carve-out covers the very lane that motivated it. v2 wording was under-inclusive and caught by the v1 QA agent on the Session 37 session-close commit. | [#382](https://github.com/martinhbramwell/ESACP/issues/382) |
