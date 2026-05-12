@@ -57,3 +57,16 @@ Per `project_plan_b_remaining_roadmap.md` §"Closure of this memo": memo retires
 - `docs/qa-log.md` — Session 38 rows appended (2 rows)
 - `LogiSoluMemory/archive/project_plan_b_remaining_roadmap.md` — archived from root per memo's own retirement instruction
 - `martinhbramwell/LogiSoluKnowBase/issues/7` — closed `2026-05-12` (this session)
+
+## Post-close audit-fix
+
+SESSION END audit caught one gap after the session-close commit `c36b81a` landed:
+
+1. **#353 (Plan-B parent epic) missing Epoch-1 completion pointer-comment** — Audit step 2 flagged: significant milestones on a parent epic require a pointer-comment on the epic itself (precedent: S29 post-close audit-fix posted `issuecomment-4416342828` to #353 for the same reason). Plan-B Epoch-1 completion is exactly such a milestone (6/6 sessions; 31 in_place_core_edits eliminated; roadmap memo archived). Discharged by posting [`issuecomment-4430587627`](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4430587627) on #353 — Epoch-1 completion summary + disposition rollup + LogiSoluMemory archive reference + Epoch-2 forward pointer.
+
+Other audit categories all clean:
+- Audit step 1 (forward-tense scan): no unresolved I'll/I will/should/next phrases.
+- Audit step 3 (PRs opened): none this session; nothing to verify.
+- Audit step 4 (operator reminders): 3 ripple-forward concerns (`ejm` speculative read, `FdI: Factura de Venta ejemplo` potential `drop` downgrade, `Bought Returnable` Phase 8 confirmation) all surfaced in operator response; durable homes are the LSKB#7 close-comment rows + the catalogue's own `operator_confirmed: false` flags.
+
+Audit principle invoked: "minutes reference durable homes; durable homes must be accurate." #353 had a durable home (the GH tracker) but the Epoch-1 milestone omission would have made the milestone invisible to a future session search keyed on "#353 Epoch-1 complete." This audit-fix discharges the omission before the post-Session-38 baseline is set.
