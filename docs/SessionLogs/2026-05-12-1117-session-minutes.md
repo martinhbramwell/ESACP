@@ -65,7 +65,8 @@ v2 is active from `0137977a` forward. Agent file (`.claude/agents/esacp-qa.md`) 
 |---|---|
 | #380 | Filed + auto-closed via PR #381 (`closedAt 2026-05-12T11:17:20Z`, 1s after merge) |
 | #381 (PR) | Opened + squash-merged to main (`mergedAt 2026-05-12T11:17:19Z`) |
-| #373 | 7th-auto-close datapoint comment posted |
+| #373 | 7th-auto-close datapoint comment posted at [`issuecomment-4430066911`](https://github.com/martinhbramwell/ESACP/issues/373#issuecomment-4430066911) |
+| #382 | Filed mid-verdict as §2.1 condition-2 wording-defect discharge per QA Trigger 1+3 verdict `abef538d3b63d22c2` on the session-close commit (remains open) |
 
 ## Plan-B Epoch-1 roadmap progress
 
@@ -77,3 +78,13 @@ Unchanged from Session 36. D3 (LSKB#7 — 22 DB-resident TBDs documentation) rem
 - **§7.1 first audit boundary** — at Session 50; ~13 sessions away.
 - **Areas 1/2/4/5 deferred without tracker issues** — agenda's "others get tracker issues filed" rule overridden in-session per operator's clerical-reduction theme. The areas remain available for future introspection sessions; not filing speculative issues is itself an Area-4 application (memory/issue-surface restraint).
 - **Trimmed session-close ceremony as introspection-lesson application.** S36 minutes were ~220 lines; this file is ~70. Tracking whether the trim affects Session 38's pickup quality.
+
+## Post-close audit-fix
+
+SESSION END audit caught two gaps after the session-close commit `15a6fe2` landed:
+
+1. **Open-issue count stale in agenda** — `next-agenda` "State carried forward" said "Open ESACP issues: 35 (Session 37 net: 0)" and pre-flight checklist expected 35. Actual count at session-end is 37 (filed #380 [auto-closed via PR #381 merge, net 0] + filed #382 mid-verdict [open, net +1]). Both fixed in this audit-fix amendment.
+
+2. **#382 missing from minutes GH-activity table** — minutes' "GH issue activity" table listed #380 / #381 / #373 but not #382. #382 was filed mid-session-close-verdict as a discharge for QA's catch on §2.1 condition-2 wording (qa-contract.md v2 self-defect). Now added to the table.
+
+Audit principle invoked: "minutes reference durable homes; durable homes must be accurate." #382 has a durable home (the GH tracker) but the minutes table omission would have made it invisible to a future session search keyed on "Session 37 issues filed." This audit-fix discharges the omission before the post-Session-37 baseline is set.
