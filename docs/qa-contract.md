@@ -24,10 +24,38 @@ The parent must obtain a verdict before any of these operations are executed. Ve
 | # | Operation | Scope | Reject behaviour |
 |---|---|---|---|
 | 1 | `git commit` (any branch) | **Advisory** | Parent revises; if parent genuinely disagrees after attempting revision, parent documents the override in its response and proceeds. |
-| 2 | `git merge` or `gh pr merge` to `main` or any `umbrella/*` branch | **Hard-block** | Parent stops; surface verdict to operator; operator decides override. |
+| 2 | `git merge` or `gh pr merge` to `main` or any `umbrella/*` branch | **Hard-block by default; advisory when the §2.2 carve-out conditions all hold** | Parent stops; surface verdict to operator; operator decides override. |
 | 3 | `git push` to remote | **Hard-block** | Parent stops; surface verdict to operator; operator decides override. |
 | 4 | Destructive ops: `rm -rf`, `git reset --hard`, `git branch -D`, `gh pr close --delete-branch` | **Hard-block** | Parent stops; surface verdict to operator; operator decides override. |
 | 5 | `gh issue close` (institutional-memory mutation) | **Hard-block** | Parent stops; surface verdict to operator; operator decides override. |
+
+### 2.1 Combined T1+T3 invocation (codified de facto practice)
+
+When a commit will be pushed in the same operational step — no intermediate inspection, no further edits, no waiting for an intervening operator decision — the parent invokes a **single combined T1+T3 verdict** on the commit-and-push pair. The verdict covers both gates; no separate T3 invocation is needed.
+
+Appropriate when all of the following hold:
+
+1. The push immediately follows the commit (no intermediate state to re-verdict).
+2. The push target is either a feature branch, or `main` on a project where main is the only branch (e.g., LogiSoluMemory, BaRe).
+3. No new commits will be added between the verdict and the push.
+
+If any condition fails, T1 and T3 are invoked separately.
+
+The invocation prompt is labeled `Trigger 1+3 (combined pre-commit + pre-push)` and includes both the staged diff (T1 input) and the push target (T3 input). The verdict trailer carries `hard_block: true` (inheriting the T3 hard-block scope; T1's advisory scope is subsumed). On `reject`, the parent does not commit; on `approve-with-conditions`, the parent addresses conditions before commit.
+
+Codified from S33+ practice. Pre-S33 rows in `docs/qa-log.md` show the historical separate-invocation pattern.
+
+### 2.2 T2 advisory carve-out
+
+T2 (merge) is hard-block by default. It downgrades to **advisory** when all three of the following conditions hold:
+
+1. The PR head commit (or commit chain) already received an `approve` (or `approve-with-conditions` with conditions addressed) **combined T1+T3 verdict** on the source branch.
+2. No additional commits have been added to the source branch since that verdict.
+3. The merge is a clean fast-forward or squash, and no rebase, cherry-pick, or amend of any kind has been performed on the source-branch commits since the prior T1+T3 verdict. Bit-identical content after a rebase does **not** satisfy this condition — the rule is categorical on the operation, not on its output.
+
+When all three hold, the parent confirms the conditions explicitly in its T2 invocation prompt (cite the prior verdict's invocation ID) and proceeds with advisory verdict. If any condition fails, T2 reverts to hard-block.
+
+**Carve-out rationale**: Sessions 5.5–36 catch-rate data (109 verdicts) shows T2 combined `approve-with-conditions` + `reject` rate is 17%, and inspection of those rows shows most T2 catches verify what T1+T3 already caught on the same commits. Full rollup in [#380](https://github.com/martinhbramwell/ESACP/issues/380). The carve-out preserves the catch surface for merges that bypassed prior QA (manual cherry-picks, multi-source merges, rebased branches) while eliminating duplicate verdicts on already-QA'd content.
 
 **Not in scope for v1** (parent does not need a verdict, but may invoke voluntarily for sanity-check):
 
@@ -117,6 +145,14 @@ After the agent file is committed, the parent must reload subagents (`/agents` i
 
 Log row template lives in `docs/qa-log.md` itself. Goal: surface skip incidents and verdict-quality drift; if recurrence rate matches the original "3 regressions in 36 hours" pattern that triggered #341, escalate to v2 hook-based enforcement.
 
+### 7.1 Rolling-window recalibration audit
+
+At each Session-25 boundary — where session-count is read from the ESACP session-log rows in `docs/qa-log.md` only, not summed across other-bucket sessions — the parent runs a rolling-window analysis on the **most-recent 50 ESACP qa-log rows**. For each trigger type, compute the combined `approve-with-conditions` + `reject` rate. If that rate falls below **10%** for any trigger, surface the finding to the operator with a contract-revision recommendation (further carve-out, downgrade to advisory, or retirement).
+
+The audit is **detection-only**: surfacing does not auto-mutate the contract. The parent files an issue + recommendation; the operator decides whether to revise.
+
+Rationale: catches-per-invocation is the load-bearing signal. Sessions 5.5–36 showed 4-5 of 6 rejects concentrated in Sessions 5.5–10 (early-calibration phase); recent rate has dropped sharply. A periodic check ensures the contract revises down as the parent's internalisation of rules makes specific triggers redundant — rather than letting "approve" pile up indefinitely on rubber-stamped lanes.
+
 ---
 
 ## 8. Anti-rubber-stamp principle
@@ -151,3 +187,4 @@ This is acceptable for v1 because the agent's output is text (a verdict), not ac
 | Date | Change | Source |
 |---|---|---|
 | 2026-05-03 | v1 initial — implementation of #341 | `feat/esacp-qa-agent` branch, D2a |
+| 2026-05-12 | v2 — risk-tiered triggers calibrated on Sessions 5.5–36 data (109 verdicts): T2 advisory carve-out when prior T1+T3 approve already covers the commits; T1+T3 combined invocation codified; rolling-window recalibration audit at every 25th ESACP session | [#380](https://github.com/martinhbramwell/ESACP/issues/380) |
