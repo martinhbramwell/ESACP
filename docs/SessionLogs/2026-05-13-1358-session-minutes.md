@@ -70,3 +70,10 @@ Unchanged. 1 monitor-only item (LogiSoluMemory Trigger 3 skip pattern, S33).
 ## Trimmed minutes experiment
 
 This session: ~80 lines as committed (substantive-code-class with full QA-iteration narrative: 2 substantive QA invocations + PR + merge + ladder-state pointer-comments). Sits right at the S40–S45 ~73–80 line baseline despite substantive-code-execution shape — compression came from tabular QA-verdict + counts rather than narrative expansion. Trim baseline holds.
+
+## Post-close audit-fix
+
+SESSION END audit (UserPromptSubmit hook re-run) caught one gap in the close-out batch (`694426e` + `5d3e3b0`):
+
+- **LSKB#15 missing transaction-management pointer-comment** — the QA T1+T3 verdict on commit `fd8353f` (invocation `ad5732d199d19c54f`) flagged a non-blocking observation about `_upsert.py` calling `frappe.db.commit()` directly inside the install hook, worth verifying under LSKB#15 substrate-apply transaction-management testing. Structurally identical to S45's audit-fix `65b9f44` (LSKB#15 v14-lifecycle pointer-comment for the prior session's analogous non-blocking observation). Discharged this session by posting [`issuecomment-4443933850`](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/15#issuecomment-4443933850) — full observation + 5-item LSKB#15-scope transaction-management verification checklist (first-install upsert / migration re-run idempotency / mid-hook transaction state / both DocType-events fire / `safe_exec` runtime acceptance).
+- Other audit categories all clean: step 1 (forward-tense — no unresolved "will" claims in minutes; agenda Candidate A descriptions are about S47 scope not S46 commitments); step 3 (PR #2 `mergedAt` non-null verified `2026-05-13T17:57:54Z`); step 4 (no carried-forward doubts — all four operator decisions D1–D4 resolved at planning gate).
