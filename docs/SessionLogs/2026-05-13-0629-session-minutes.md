@@ -25,6 +25,7 @@
 
 - LSKB [#6](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/6#issuecomment-4439933684) — Phase 4 epic; design re-open summary + ladder update.
 - ESACP [#353](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4439933838) — Plan-B parent epic; Session-44 ledger entry + cross-repo `fixes` tally update.
+- LSKB [#13](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/13#issuecomment-4440145184) — *post-close audit-fix* — unblock notice + updated patch constraints (Currency / float()-unwrap / DocField mutation).
 
 ## QA verdicts
 
@@ -62,4 +63,11 @@ Unchanged. 1 monitor-only item (LogiSoluMemory Trigger 3 skip pattern, S33).
 
 ## Trimmed minutes experiment
 
-This session: ~65 lines (mixed-class: planning verification + design re-open + memo amendment + 1 issue filed+closed + 2 pointer-comments). Tracks under the S40–S43 ~75-line planning-class baseline despite the pivot — the verification-evidence narrative compressed cleanly because findings consolidated into one outcome line + one GH-activity row. Trim baseline healthy.
+This session: ~73 lines as committed (mixed-class: planning verification + design re-open + memo amendment + 1 issue filed+closed + 3 pointer-comments incl. post-close audit-fix). Matches the S40–S43 ~75-line planning-class baseline. Trim baseline healthy.
+
+## Post-close audit-fix
+
+SESSION END audit (UserPromptSubmit hook) caught one gap in the close-out commit `e7ace37`:
+
+- **LSKB#13 missing pointer-comment** — the design-pivot finding (Currency re-freeze + biodox_2k handling + DocField terminology correction) was documented on LSKB#19 (filed+closed), the LSM memo amendment (`bd31a50`), LSKB#6 + ESACP#353 (pointer-comments), and the S45 agenda, but NOT on LSKB#13 itself. A reader of LSKB#13 alone would not see the S44 unblock event. Discharged this session by posting [`issuecomment-4440145184`](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/13#issuecomment-4440145184) — Session-44 design-pivot summary + updated patch constraints (Currency, float()-unwrap, DocField mutation pattern). Pattern matches S40 audit-fix `ca321f3` (parent-epic-pointer discharge) and S38 audit-fix `19dea03`.
+- Other audit categories all clean: step 1 (forward-tense phrases — all executed or carried in agenda durable home), step 3 (zero PRs opened — vacuous), step 4 (carry-forward concerns all in agenda; `erp_logichem_solutions` non-blocking observation surfaced to operator awaiting decision on sweep-issue filing).
