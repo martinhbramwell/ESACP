@@ -70,3 +70,10 @@ Unchanged. 1 monitor-only item (LogiSoluMemory Trigger 3 skip pattern, S33).
 ## Trimmed minutes experiment
 
 This session: ~72 lines as committed (substantive-code-class with full QA-iteration narrative: 2 T1+T3 invocations + 1 T2 + file-split + PR + merge). Sits right at the S40–S44 ~73–80 line planning/mixed baseline despite the substantive-code-execution shape (real code authoring + QA iteration + PR mechanics) — compression came from tabular summaries of QA verdicts and counts rather than narrative expansion. Trim baseline holds.
+
+## Post-close audit-fix
+
+SESSION END audit (UserPromptSubmit hook re-run) caught one gap in the close-out batch (`c5963eb` + `cbfb456`):
+
+- **LSKB#15 missing v14-lifecycle pointer-comment** — the QA T1+T3 retry verdict (invocation `ad49aa798c57c3b70`) noted a non-blocking observation about `schema_setup.py`'s programmatic `"custom": 1` DocType creation having Frappe-v14 lifecycle implications (Customise-Form vs module-owned, `bench migrate --reset-permissions` behavior). The agent explicitly tagged it as "noted for LSKB#15's substrate-apply acceptance," but it was captured only in the qa-log row, not on LSKB#15 itself. A reader of LSKB#15 alone would not see the constraint at substrate-apply time. Discharged this session by posting [`issuecomment-4442587958`](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/15#issuecomment-4442587958) — full observation + 4-item LSKB#15-scope verification checklist (DocType creation flags + Customise-Form editability + reset-permissions persistence + no-fixture-side-effects). Pattern matches S44 audit-fix `e5730a4` (LSKB#13 unblock pointer-discharge) and S40 audit-fix `ca321f3` (parent-epic-pointer discharge).
+- Other audit categories all clean: step 1 (forward-tense — line 62 "will coordinate retirement" carried in agenda Candidate A design constraints + LSKB#6 ladder pointer); step 3 (PR #1 `mergedAt` non-null verified); step 4 (no carried-forward doubts — all three AskUserQuestion prompts resolved within-session).
