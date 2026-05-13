@@ -69,4 +69,11 @@ Unchanged. 1 monitor-only item (LogiSoluMemory Trigger 3 skip pattern, S33).
 
 ## Trimmed minutes experiment
 
-This session: ~90 lines, mixed-class execution (planning + repo creation + scaffold + deploy-key + 1 issue filed). Slightly above S42's ~75 line planning-class baseline; expected — execution-class > planning-class. Trim baseline still healthy.
+This session: ~72 lines (mixed-class execution: planning + repo creation + scaffold + deploy-key + 1 issue filed). Tracks under S42's ~75-line planning-class baseline despite execution-class scope — the mixed-class work compressed cleanly because the substantive outcomes were narrow (1 repo, 1 commit, 1 deploy key, 1 follow-up issue). Trim baseline healthy.
+
+## Post-close audit-fix
+
+SESSION END audit (UserPromptSubmit hook) caught one gap in the close-out commit `cf02905`:
+
+- **Minutes line-count self-claim** stated "~90 lines" in this section + the agenda's carry-forward operator-reminders block — actual line count is 72 (minutes) / 123 (agenda) per `wc -l`. The minutes were claiming intent ("expected ~90") rather than reality. Fixed in both files via this audit-fix commit. Pattern matches S37 audit-fix `9313bd6` (counts correction) and S40 audit-fix `ca321f3` (parent-epic-pointer discharge).
+- Other audit categories all clean: step 1 (forward-tense phrases — all executed or carried in durable homes), step 2 (GH issues — LSKB#6 + ESACP#353 pointer-comments already posted; LSKB#18 body captures the finding; LSKB#17 close-by-`fixes` is itself the durable record), step 3 (zero PRs opened — vacuous), step 4 (carry-forward concerns all in agenda).
