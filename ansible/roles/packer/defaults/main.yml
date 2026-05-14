@@ -1,0 +1,14 @@
+---
+# packer role defaults
+
+# Minimum packer version required by platforms/packer/erpnext-v13.pkr.hcl
+# (`required_version = ">= 1.9.0"`). The role installs whatever the HashiCorp
+# apt repo currently publishes for the host's Ubuntu release; this value is
+# the floor checked by the post-install verification task.
+packer_min_version: "1.9.0"
+
+# HashiCorp apt repo plumbing — kept here so the role is self-contained and
+# build.sh can be cleaned up to assume `apt install packer` works post-bootstrap.
+packer_hashicorp_gpg_url: "https://apt.releases.hashicorp.com/gpg"
+packer_hashicorp_keyring: "/usr/share/keyrings/hashicorp-archive-keyring.gpg"
+packer_hashicorp_apt_list: "/etc/apt/sources.list.d/hashicorp.list"

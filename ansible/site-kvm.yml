@@ -48,6 +48,8 @@
     - desktop
     - control_plane
     - mcp_grafana
+    - role: packer
+      tags: [packer]
     - role: acme_sh
       tags: [acme_sh]
 
