@@ -74,7 +74,7 @@ build {
   # Reboots the VM at the end — Packer waits for SSH to return before proceeding.
   provisioner "shell" {
     script          = "${path.root}/scripts/01_os_prep.sh"
-    execute_command = "sudo env ERP_USER=${var.erp_user} bash {{ .Path }}"
+    execute_command = "sudo env ERP_USER=${var.erp_user} FRAPPE_BRANCH=${var.frappe_branch} ERPNEXT_BRANCH=${var.erpnext_branch} bash {{ .Path }}"
     expect_disconnect = true   # VM reboots at end of this script
     pause_after     = "30s"
   }
@@ -82,13 +82,11 @@ build {
   # Phase 2: Bench + frappe + erpnext apps
   # bench init → bench get-app frappe → bench get-app erpnext → bench setup requirements
   # Stops BEFORE bench new-site — no site, no data.
+  # NOTE: branch vars must be passed inside `env` here — `sudo -H` strips environment_vars,
+  # so Packer's `environment_vars` block alone would silently drop them. See #390.
   provisioner "shell" {
     script          = "${path.root}/scripts/02_bench_install.sh"
-    execute_command = "sudo -Hu ${var.erp_user} env ERP_USER=${var.erp_user} bash {{ .Path }}"
-    environment_vars = [
-      "FRAPPE_BRANCH=${var.frappe_branch}",
-      "ERPNEXT_BRANCH=${var.erpnext_branch}",
-    ]
+    execute_command = "sudo -Hu ${var.erp_user} env ERP_USER=${var.erp_user} FRAPPE_BRANCH=${var.frappe_branch} ERPNEXT_BRANCH=${var.erpnext_branch} bash {{ .Path }}"
     timeout = "60m"
   }
 
@@ -97,13 +95,13 @@ build {
   # See feedback_frappe_v13_deps.md for full explanation.
   provisioner "shell" {
     script          = "${path.root}/scripts/03_dep_fix.sh"
-    execute_command = "sudo -Hu ${var.erp_user} env ERP_USER=${var.erp_user} bash {{ .Path }}"
+    execute_command = "sudo -Hu ${var.erp_user} env ERP_USER=${var.erp_user} FRAPPE_BRANCH=${var.frappe_branch} ERPNEXT_BRANCH=${var.erpnext_branch} bash {{ .Path }}"
   }
 
   # Phase 4: Cleanup — remove SSH host keys, machine-id, apt caches
   # Ensures each VM deployed from this image gets a fresh identity.
   provisioner "shell" {
     script          = "${path.root}/scripts/04_generalise.sh"
-    execute_command = "sudo env ERP_USER=${var.erp_user} bash {{ .Path }}"
+    execute_command = "sudo env ERP_USER=${var.erp_user} FRAPPE_BRANCH=${var.frappe_branch} ERPNEXT_BRANCH=${var.erpnext_branch} bash {{ .Path }}"
   }
 }
