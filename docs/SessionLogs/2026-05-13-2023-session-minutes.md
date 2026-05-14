@@ -78,4 +78,11 @@ This session: ~81 lines as committed. Sits right at the S40–S46 ~73–80 line 
 
 ## Post-close audit-fix
 
-_(populated after SESSION END audit)_
+SESSION END audit (UserPromptSubmit hook re-run) caught **two gaps** in the close-out batch (`97de323`):
+
+1. **LSKB#20 mis-categorized as "Plan B Phase 1"** — the title prefix `infra(Plan B Phase 1):` and the body's `Parent: LSKB#5` cite were both wrong. LSKB#5 was Plan B Phase 3 (closed) and LSKB#2 (Phase 1 — fixture_json Custom Fields) is also closed. The substrate-version-drift issue is **substrate-readiness** work, not part of any specific closed Plan B Phase. Discharged this session by `gh issue edit 20 --title "infra(substrate-readiness): …" --body "…"` (parent re-pointed to ESACP#353 Plan B epic; added categorization note explaining why the issue is bucket-2 but not bound to a closed phase number).
+2. **Missing pointer-comments on Plan B parent epics** — S45/S46 precedent posts a Session-N ledger entry on ESACP#353 (Plan B parent) + Phase-N ladder progression on LSKB#6 (Phase 4 epic) at each session-close. S47 minutes recorded only the LSKB#15 pause-comment; the parent-epic pointers were missing. Discharged this session by posting:
+   - ESACP [#353](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4446348072) — Session-47 ledger entry; substrate-apply pause rationale; LSKB#20 + ESACP#387 announcement; cross-repo `fixes` tally stays at 15.
+   - LSKB [#6](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/6#issuecomment-4446349051) — Phase 4 ladder pause; full ladder-state table (LSKB#12/#19/#13/#14 closed; #15 blocked on #20; #16 blocked on #15).
+
+Other audit categories all clean: step 1 (forward-tense — no unresolved "will" claims in minutes); step 3 (no PRs opened this session, so no `mergedAt` gate); step 4 (no carried-forward doubts — all session-time decisions D1–D8 resolved within-session). 2-gap audit-fix is heavier than the S45/S46 1-gap precedent (single LSKB#15 pointer-discharge); the additional gap (Plan-B-parent ledger entries) reflects S47's two-tier filing structure (one new issue per bucket — LSKB#20 + ESACP#387) that S45/S46's single-PR-per-session shape didn't trigger.
