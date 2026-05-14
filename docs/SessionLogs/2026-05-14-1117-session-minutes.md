@@ -88,3 +88,17 @@ Substrate-investigation-class with one new bug filed and the existing blocked is
 ## Saconsole-discipline check
 
 ESACP#390 is bucket-1 substrate-config (build-mechanism flaw), in the same family as ESACP#388 (saconsole-as-fleet-capability-record discipline). Fix lands in the repo; saconsole inherits via `git pull` next session (already aligned to `3336e4a` this session). No new saconsole capability declaration needed for the #390 fix — the env-var pass-through is a self-contained packer-script change.
+
+## Post-close audit-fix
+
+SESSION END audit (UserPromptSubmit hook re-run pattern per S45–S49) ran clean on **all four steps** — first zero-gap close in the S45-S49 precedent window. Discharge: pure clerical verdict-cell finalization (close-row commit-hash `1bdea66` + verdict cells `approve-with-conditions → approve | proceeded` + 2 QA invocation IDs `aaa62d26025e50a81 → a7663a54f0a7808d6`) + this minutes subsection + qa-log self-referential row appended.
+
+1. **Forward-tense scan** — 3 hits, all benign and verified non-S50-commitments: (a) agenda line 25 Candidate A description ("should be harmonised" — describing S51 fix scope); (b) minutes line 77 ("will be destroyed/rebuilt again in the LSKB#20-resume session" — future state of disposable substrate); (c) minutes line 90 ("Fix lands in the repo; saconsole inherits via `git pull` next session" — explanatory analysis of how the S51 fix propagates, not a S50 commitment). No S50 work was deferred or unexecuted.
+
+2. **GH issue references** — every issue with a S50-specific finding received a within-session comment: ESACP#353 ([`issuecomment-4452009096`](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4452009096)), LSKB#6 ([`issuecomment-4452010889`](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/6#issuecomment-4452010889)), LSKB#20 ([`issuecomment-4452006631`](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/20#issuecomment-4452006631)). ESACP#390 filed with full root-cause + proposed fix + acceptance in the issue body. ESACP#388/#387/#341 + LSKB#15/#16/#18 + LSKB#9/#10 referenced only in passing carry-forward / agenda backlog text — no S50-specific finding requiring a comment per S48 precedent (comment when the immediate block changes; do not comment when only upstream chain depth changes — LSKB#15's immediate blocker LSKB#20 did not change state, only the chain upstream grew).
+
+3. **PR mergedAt gate** — no PRs opened this session. N/A.
+
+4. **Unresolved doubts** — four AskUserQuestion prompts all resolved within-session: candidate pick (Candidate A); LSKB#20 scope + saconsole repo state (strict + update); wizard mode (replay); path forward on bug discovery (Option 1 file + pause + close).
+
+Zero-gap shape vs S45-S49 1-2-gap precedents reflects S50's explicit improvement on the pointer-comment discipline (all three parent-epic / blocked-issue comments posted within-session rather than surfaced at audit-fix time — averting the S48 close-batch-omission shape). The audit-fix commit's own qa-log row carries residual `_pending_` verdict cells per S48 `0bbd54e` finalization-row irreducible-self-reference convention.
