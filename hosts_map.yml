@@ -81,26 +81,27 @@ groups:
         - development
         - lab
 
-    dev02:
-      hostname: dev02
+    dev01:
+      hostname: dev01
       nickname: dev0
-      virbr0_ip: "192.168.122.27"
-      wg_ip: "10.10.0.17"
+      virbr0_ip: "192.168.122.26"
+      wg_ip: "10.10.0.16"
       wg_role: spoke
       ansible_managed: true
       backend: kvm
       hypervisor: toshiba
+      vm_role: dev:unspecified
       ansible_groups:
         - kvm
         - targets
         - development
         - lab
 
-    dev01:
-      hostname: dev01
+    dev02:
+      hostname: dev02
       nickname: dev0
-      virbr0_ip: "192.168.122.26"
-      wg_ip: "10.10.0.16"
+      virbr0_ip: "192.168.122.27"
+      wg_ip: "10.10.0.17"
       wg_role: spoke
       ansible_managed: true
       backend: kvm
