@@ -84,3 +84,15 @@ None this session. The S48 LSM memory `project_saconsole_as_fleet_capability_rec
 ## Shape note
 
 Substantive bucket-1 substrate-config fix with single-PR landing. Minutes ~75 lines as drafted — tracks the S40–S48 73–95 line baseline. The audit table compresses what would otherwise be a 6-paragraph survey into one row per capability; QA-verdicts table compresses three invocations into the standard form. One issue closed, no new issues filed.
+
+## Post-close audit-fix
+
+SESSION END audit (UserPromptSubmit hook re-run pattern per S45–S48) caught **one gap** in the close-out batch (`d9a364e`):
+
+1. **LSKB#20 unblock pointer-comment missing.** S48 close posted a pause-comment on LSKB#20 ([`issuecomment-4449760310`](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/20#issuecomment-4449760310)) cross-linking the (then-just-filed) ESACP#388 blocker. ESACP#388 is now closed (`fixes` auto-close on PR #389 merge), but no symmetrical unblock-comment was posted on LSKB#20 itself — only recorded in the S49 minutes and S50 agenda. Per the SESSION END audit step 2 ("any new findings about it have been posted as a comment on the issue itself, not just the minutes"), minutes are not a valid resolution. Discharged this session by posting [LSKB#20 issuecomment-4450445622](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/20#issuecomment-4450445622) — blocker-cleared notice + Path-1 step sequence (preserve old metadata → packer build at pinned versions → verify → destroy/rebuild dev02 → substrate-apply for `sales_partner_commissions`) + slating as S50 Candidate A.
+
+Other audit categories all clean: step 1 (forward-tense — every "I'll"/"Continuing with"/"Now invoking"/"Merging now" phrase in this session has an executing tool-call); step 3 (PR #389 `mergedAt` non-null `2026-05-14T11:40:59Z` verified pre-session-close); step 4 (no carried-forward doubts — three planning-gate AskUserQuestion prompts + one apply-to-saconsole confirmation all resolved within-session).
+
+ESACP#353 + LSKB#6 (Plan-B parent epics) explicitly excluded from this audit-discharge per the minutes' "Shape note" reasoning (this fix is bucket-1 substrate-config, not Plan-B execution; LSKB#20 unblock is the operational consequence and is the directly-affected downstream issue, the only one needing symmetry with its S48 pause-pointer). QA approval on this reasoning was issued at the session-close T1+T3 invocation `a9e80d00b4d9a02af`.
+
+One-gap shape vs S47/S48 two-gap precedent reflects S49's cleaner close commit (qa-log staging was correct this time — S48's batch-omission gap is structurally averted) with the only remaining gap being the symmetry-pointer omission for the directly-blocked downstream issue.
