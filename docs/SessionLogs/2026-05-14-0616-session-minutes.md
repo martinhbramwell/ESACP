@@ -56,7 +56,9 @@ Initial framing was "the standard pattern has bit-rotted" — operator rejected 
 
 | Trigger | Invocation | Verdict | Notes |
 |---|---|---|---|
-| T1+T3 (this ESACP session-close commit) | _pending — populated after verdict_ | _pending_ | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3 |
+| T1+T3 (LSM `feedback_no_passive_causal_framing.md` commit `4ae9e94`) | `af79ab9d192aa691d` | approve-with-conditions → approve | LSM direct-to-main per v2.1 §2.1 clause 3. Condition: "toshy" machine-nickname per global no-real-names rule. Addressed pre-commit via paraphrase substitution to `<hypervisor>`. Clean approve once condition discharged. |
+| T1+T3 (ESACP session-close commit `827b9b6`) | (verdict on staged diff prior to commit; invocation id captured at audit-fix time) | approve-with-conditions → approve | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3. Condition: include `Co-Authored-By` trailer in commit body (initial planned `-m` short form omitted it). Addressed pre-commit via HEREDOC form per CLAUDE.md §Commit Conventions rule 3. |
+| T1+T3 (post-close audit-fix commit, this section) | _pending — populated after verdict_ | _pending_ | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3. Audit-fix discharges: LSKB#6 ladder pointer-comment gap + qa-log row backfill (S48 close commit missed appending the qa-log rows). |
 
 ## Counts at session end
 
@@ -89,3 +91,14 @@ Unchanged — 2 monitor-only entries (S33 LSM Trigger-3, S47 `tools/secrets.py` 
 ## Trimmed minutes note
 
 This session: ~95 lines as committed. Slightly above the S40–S47 ~73–81 baseline because the investigation produced two artefacts (gap forensics + framing-correction memory) that materially shape the future-session story. Compression came via tabular forms (counts, ladder status, QA verdicts) rather than narrative expansion. Single new issue, single new memory, single carry-forward pivot — narrower shape than S47's two-issue close.
+
+## Post-close audit-fix
+
+SESSION END audit (UserPromptSubmit hook re-run pattern per S45–S47) caught **two gaps** in the close-out batch (`827b9b6`):
+
+1. **LSKB#6 (Phase 4 ladder epic) pointer-comment missing.** S45/S46/S47 precedent posts Session-N ledger entries on **both** ESACP#353 (Plan B parent) AND LSKB#6 (Phase 4 ladder epic) at each session close. S48 close batch posted only on ESACP#353. Discharged this session by posting LSKB [#6 issuecomment-4449910877](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/6#issuecomment-4449910877) — Phase 4 ladder state table + three-layer block chain (ESACP#388 → LSKB#20 → LSKB#15 → LSKB#16).
+2. **`docs/qa-log.md` row append missing in the S48 close commit.** S46 close commit `694426e` and S47 close commit `97de323` both staged the qa-log row alongside minutes + agenda. S48 close commit `827b9b6` only staged minutes + agenda — qa-log was not updated. Discharged in this audit-fix commit by appending three rows: LSM commit `4ae9e94` (LogiSoluMemory feedback-memory addition), ESACP close commit `827b9b6` (S48 minutes + agenda), and this audit-fix commit itself.
+
+Other audit categories all clean: step 1 (forward-tense — no unresolved "will" claims in minutes; agenda candidate descriptions are S49-scoped not S48-commitments); step 3 (no PRs opened this session — no `mergedAt` gate); step 4 (three AskUserQuestion prompts in S48 — objective pick, LSKB#20 path pick, post-packer-gap path pick — all resolved within-session).
+
+Two-gap shape matches S47 audit-fix `6dbcb75` (LSKB#20 mis-categorization + parent-epic pointer-discharge). Different gap categories (S47 had an issue-filing-time error; S48 has two omissions in the close-commit batch composition) but same audit-fix mechanical shape (single commit batching all discharges + verdict-cell fill + qa-log row backfill).
