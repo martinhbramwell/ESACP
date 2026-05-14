@@ -12,7 +12,7 @@
 #   bash platforms/packer/build.sh [--frappe-branch version-13] [--erpnext-branch version-13]
 #
 # Prerequisites (all met after bootstrap_hub.sh):
-#   - packer installed on the hub (this script checks and offers to install)
+#   - packer installed on the hub (declared by ansible/roles/packer/; see #388)
 #   - SSH access from the hub to toshiba: ssh hasan@toshiba
 #   - cloud-image-utils on the hub (cloud-localds)
 #   - Ubuntu 22.04 ISO on toshiba at UBUNTU_ISO_PATH
@@ -146,15 +146,9 @@ trap 'destroy_build_vm' EXIT
 
 step "Phase 1: Preflight"
 
-command -v packer &>/dev/null || {
-    log "packer not found — attempting install ..."
-    curl -fsSL https://apt.releases.hashicorp.com/gpg \
-        | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
-https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
-        | sudo tee /etc/apt/sources.list.d/hashicorp.list
-    sudo apt-get update -qq && sudo apt-get install -y packer
-}
+command -v packer &>/dev/null || die "packer not installed on this host. \
+packer is declared as a saconsole dependency by ansible/roles/packer/ (ESACP #388). \
+Apply with: (cd ansible && ansible-playbook -i inventory/kvm.yml site-kvm.yml --limit saconsole --tags packer)"
 
 command -v cloud-localds &>/dev/null \
     || die "cloud-localds not found — run: sudo apt install cloud-image-utils"

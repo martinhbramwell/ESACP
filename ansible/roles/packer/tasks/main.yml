@@ -1,0 +1,60 @@
+---
+# packer role — Declare HashiCorp packer as a first-class saconsole dependency.
+#
+# Why this role exists (ESACP #388):
+#   platforms/packer/build.sh formerly had an inline auto-install fallback
+#   (curl gpg | apt source | apt install) that ran transiently the first time
+#   build.sh was invoked. When saconsole was rebuilt later, packer was absent
+#   because nothing in the bootstrap path declared it. This role makes the
+#   HashiCorp apt repo + packer package an explicit saconsole capability so
+#   future rebuilds restore it with no manual intervention.
+#
+# Applied to the hub only (Play 2 in site-kvm.yml). saconsole == hub.
+
+- name: Ensure HashiCorp GPG keyring directory exists
+  ansible.builtin.file:
+    path: "{{ packer_hashicorp_keyring | dirname }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Install HashiCorp apt signing key (dearmored)
+  ansible.builtin.get_url:
+    url: "{{ packer_hashicorp_gpg_url }}"
+    dest: /tmp/hashicorp-archive-keyring.asc
+    mode: '0644'
+    force: no
+  register: packer_gpg_download
+
+- name: Dearmor HashiCorp GPG key into keyring
+  ansible.builtin.command:
+    cmd: "gpg --batch --yes --dearmor -o {{ packer_hashicorp_keyring }} /tmp/hashicorp-archive-keyring.asc"
+  args:
+    creates: "{{ packer_hashicorp_keyring }}"
+
+- name: Add HashiCorp apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by={{ packer_hashicorp_keyring }}] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+    filename: "hashicorp"
+    state: present
+    update_cache: yes
+
+- name: Install packer
+  ansible.builtin.apt:
+    name: packer
+    state: present
+
+- name: Capture packer version
+  ansible.builtin.command:
+    cmd: "packer version"
+  register: packer_version_out
+  changed_when: false
+
+- name: Assert packer version meets minimum required by erpnext-v13.pkr.hcl
+  ansible.builtin.assert:
+    that:
+      - packer_version_out.stdout is regex('^Packer v[0-9]+\\.[0-9]+\\.[0-9]+')
+      - (packer_version_out.stdout | regex_search('v([0-9]+\\.[0-9]+\\.[0-9]+)', '\\1') | first) is version(packer_min_version, '>=')
+    fail_msg: "packer {{ packer_version_out.stdout }} is older than required {{ packer_min_version }} (set in erpnext-v13.pkr.hcl)"
+    success_msg: "packer {{ packer_version_out.stdout | regex_search('v[0-9]+\\.[0-9]+\\.[0-9]+') }} >= {{ packer_min_version }}"
