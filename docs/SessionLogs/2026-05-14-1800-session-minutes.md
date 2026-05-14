@@ -62,7 +62,7 @@ The script now sees `FRAPPE_BRANCH=v13.41.3`. The env-var-passing flaw is resolv
 |---|---|---|---|
 | T1+T3 (combined pre-commit + pre-push on `be9b637` to feature branch) | `ad358a1a30acc05e1` | approve | Clean approve, `hard_block: true`. Four mechanisms enumerated; chosen (explicit `env VAR=val` in `execute_command`) matches issue-body recommendation. Agent confirmed root-cause diagnosis accuracy by independently reading `02_bench_install.sh:18` (`cd "$HOME"`) and verifying `-H` is load-bearing for bench path correctness. Non-blocking observation: `packer` scope absent from CLAUDE.md's listed common scopes (`kvm`, `vbox`, `observability`, ...) — agent treated as descriptive/honest, not blocking. |
 | T2 (pre-merge under §2.2 advisory carve-out on PR#391 → main) | `a516eb8f89f0dea04` | approve | Advisory per §2.2 carve-out (all three conditions verified: prior T1+T3 approve on `be9b637`; head SHA unchanged; `mergeStateStatus: CLEAN`, single-commit squash equivalent to ff). Agent independently re-read diff for content-review; flagged that PR-body acceptance items 3/4 (`bench list-apps` versions + metadata match) remain unchecked at merge time and noted per `feedback_no_downstream_of_merge_acceptance.md` this is by-design (those items belong in ESACP#392, not #390). |
-| T1+T3 (this session-close commit) | _pending — irreducible self-referential row per S46/S47/S48/S49/S50 precedent_ | _pending_ | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3. Three files staged: minutes (this file) + next-agenda (S52) + qa-log (this row + the 2 verdict rows above). Pure doc-only — no substrate-state files this session. |
+| T1+T3 (session-close commit `d2cf4c9`) | `a326056a476ee10b3` | approve | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3. Three files staged: minutes (this file) + next-agenda (S52) + qa-log (close-row + the 2 verdict rows above). Pure doc-only — no substrate-state files this session. Verdict cells filled in by post-close audit-fix commit per S46/S47/S48/S49/S50 precedent. |
 
 ## Counts at session end
 
@@ -97,3 +97,17 @@ Substantive-class with one issue closed via fix landing + one new downstream bug
 ## Saconsole-discipline check
 
 ESACP#390 fix landed via PR#391 merge; saconsole inherited via `git pull` during S51 close (controller + saconsole both at `9ef1aa5`). No new saconsole capability declaration triggered — the fix is a self-contained packer-HCL change. ESACP#392 (when fixed) will also be self-contained inside `02_bench_install.sh` (Option B's `UV_PRERELEASE=allow` env var); not a new saconsole capability either.
+
+## Post-close audit-fix
+
+SESSION END audit (UserPromptSubmit hook re-run pattern per S45–S50) ran clean on all four steps — **second consecutive zero-gap close** in the S40-S50 precedent window. Discharge: pure clerical verdict-cell finalization (close-row commit-hash `d2cf4c9` + verdict cells `approve | proceeded` + 2 QA invocation IDs `ad358a1a30acc05e1` and `a516eb8f89f0dea04`) + this minutes subsection + qa-log self-referential row appended.
+
+1. **Forward-tense scan** — 9 hits, all benign: (a) self-referential `_pending_` cells in QA-verdicts table row 3 (expected protocol); (b) future-state of disposable dev02 substrate; (c) forward-looking analysis of #392 fix shape (UV_PRERELEASE env var inside 02_bench_install.sh); (d) agenda's "after Session 51 close-out commit lands" state-at-next-session-start language; (e) historical S41→S51 trail describing Phase 4 ladder; (f) standing operator-decision on `Asignar Producto a Campo` retirement carried verbatim from prior agendas; (g) LSKB#20 block-chain description; (h) QA file-size discipline reminder for future Frappe-patch sessions; (i) S52 estimated wall-clock by candidate. No S51 work was deferred or unexecuted.
+
+2. **GH issue references** — every issue with an S51-specific finding received a within-session comment: ESACP#353 ([`issuecomment-4453698874`](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4453698874)), LSKB#6 ([`issuecomment-4453699665`](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/6#issuecomment-4453699665)), LSKB#20 ([`issuecomment-4453697757`](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/20#issuecomment-4453697757)). ESACP#390 closed via PR#391 `fixes` (the merge IS the closure, no comment needed). ESACP#392 filed with full content in body. LSKB#15/#16/#18 + ESACP#387/#341/#388 referenced in passing only — per S48/S50 precedent, LSKB#15 specifically did NOT receive an S51 comment because its immediate blocker LSKB#20 did not change state (only the upstream chain top swapped from #390 to #392).
+
+3. **PR mergedAt gate** — PR#391 `mergedAt: 2026-05-14T18:40:51Z` (verified pre-session-close). `feedback_pr_merge_before_session_close.md` satisfied.
+
+4. **Unresolved doubts** — two AskUserQuestion prompts (build-acceptance mode = background; #390/#391 merge-path = merge-now-defer-#392-to-S52) both resolved within-session.
+
+Second consecutive zero-gap shape (after S50's first such finalization) suggests the pointer-comment-within-session discipline is now structurally embedded rather than a per-session correction. The audit-fix commit's own qa-log row carries residual `_pending_` verdict cells per S48 `0bbd54e` / S50 `e1fdf9a` finalization-row irreducible-self-reference convention.
