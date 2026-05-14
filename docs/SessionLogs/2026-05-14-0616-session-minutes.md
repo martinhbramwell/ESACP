@@ -57,8 +57,9 @@ Initial framing was "the standard pattern has bit-rotted" — operator rejected 
 | Trigger | Invocation | Verdict | Notes |
 |---|---|---|---|
 | T1+T3 (LSM `feedback_no_passive_causal_framing.md` commit `4ae9e94`) | `af79ab9d192aa691d` | approve-with-conditions → approve | LSM direct-to-main per v2.1 §2.1 clause 3. Condition: "toshy" machine-nickname per global no-real-names rule. Addressed pre-commit via paraphrase substitution to `<hypervisor>`. Clean approve once condition discharged. |
-| T1+T3 (ESACP session-close commit `827b9b6`) | (verdict on staged diff prior to commit; invocation id captured at audit-fix time) | approve-with-conditions → approve | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3. Condition: include `Co-Authored-By` trailer in commit body (initial planned `-m` short form omitted it). Addressed pre-commit via HEREDOC form per CLAUDE.md §Commit Conventions rule 3. |
-| T1+T3 (post-close audit-fix commit, this section) | _pending — populated after verdict_ | _pending_ | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3. Audit-fix discharges: LSKB#6 ladder pointer-comment gap + qa-log row backfill (S48 close commit missed appending the qa-log rows). |
+| T1+T3 (ESACP session-close commit `827b9b6`) | `a67b04b821f24592d` | approve-with-conditions → approve | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3. Condition: include `Co-Authored-By` trailer in commit body (initial planned `-m` short form omitted it). Addressed pre-commit via HEREDOC form per CLAUDE.md §Commit Conventions rule 3. |
+| T1+T3 (post-close audit-fix commit `0a787ba`) | `a3852a1ec36c98ca1` | approve | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3. Clean approve, no conditions. Audit-fix discharged: LSKB#6 ladder pointer-comment gap + qa-log 3-row backfill (S48 close commit missed appending the qa-log rows). |
+| T1+T3 (this verdict-cell finalization commit) | _pending — populated post-commit per finalization-row protocol_ | _pending_ | ESACP doc-only direct-to-main per v2.1 §2.1 clause 3. Substitutes the audit-fix commit hash `0a787ba` into the qa-log self-row + populates verdict cells in qa-log and this table. Matches S46 `ba21078` / S47 `10eec42` finalization-commit precedent. |
 
 ## Counts at session end
 
