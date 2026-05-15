@@ -23,6 +23,21 @@ BENCH_DIR="${HOME}/frappe-bench"
 
 log() { echo "[02_bench $(date '+%H:%M:%S')] $*"; }
 
+# ── Yanked-transitive-dep overrides ───────────────────────────────────────────
+# Frappe pins transitive deps by range; some later get yanked from PyPI. uv
+# accepts yanked versions only when pinned exactly (PEP 592). Tag-gated because
+# the override would downgrade transitive deps on tags that don't need it. (#392)
+
+case "${FRAPPE_BRANCH}" in
+    v13.41.3)
+        log "applying uv override for ${FRAPPE_BRANCH}: braintree==4.8.0 (yanked, only candidate)"
+        mkdir -p "${HOME}/.config/uv"
+        cat > "${HOME}/.config/uv/uv.toml" <<'UV_TOML'
+override-dependencies = ["braintree==4.8.0"]
+UV_TOML
+        ;;
+esac
+
 # ── Sanity checks ──────────────────────────────────────────────────────────────
 
 [[ "$(whoami)" == "${ERP_USER}" ]] || { echo "ERROR: must run as ${ERP_USER} (got: $(whoami))"; exit 1; }
