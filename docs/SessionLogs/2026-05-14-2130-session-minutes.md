@@ -135,3 +135,17 @@ ESACP#392 fix landed via PR#393 squash-merge; saconsole inherited via `git pull`
 ## Plan-C as a meta-pattern
 
 This session is the first explicit instance of "stop peeling, pivot the substrate". S47-S51 walked the LSKB#20 ladder by fixing each downstream blocker as it surfaced. S52 hit a second decay class (build-from-source vs resolver) within v13.41.3 and surfaced the diminishing-returns shape: each peel costs ~30 min build + diagnosis, with no upper bound on how many remain in a ~2-year-old tag. The Plan-C call moves the substrate-version-alignment target instead of fixing each decayed pin. Worth filing as a feedback memory if a future session sees the same pattern recur on a different aged tag. (Not filing this session — single instance is not yet a pattern.)
+
+## Post-close audit-fix
+
+SESSION END audit (UserPromptSubmit hook re-run pattern per S45–S51) ran clean on all four steps — **third consecutive zero-gap close** in the S40-S51 precedent window. Discharge: pure clerical verdict-cell finalization (close-row commit-hash `fbeb384` + verdict cells `approve | proceeded` + QA invocation ID `ae41ab1f5a8570409`) + this minutes subsection + qa-log self-referential row appended.
+
+1. **Forward-tense scan** — 7 categories of hits in minutes/agenda but all benign: (a) S53 agenda candidates A/B/C/D forward-looking by definition; (b) parked backlog items; (c) carry-forward operator-reminders; (d) self-referential `_pending_` cells in qa-log close-row; (e) Plan-C conditional "if future tag-pivot brings us back" language in #395 carry-forward note; (f) standing `Asignar Producto a Campo` operator-decision carried verbatim from prior agendas; (g) general-principle reminders ("any future production-snapshot restore"). No unresolved S52 commitments.
+
+2. **GH issue references** — every issue with an S52-specific finding received a within-session comment: ESACP#392 ([issuecomment-4455173018](https://github.com/martinhbramwell/ESACP/issues/392#issuecomment-4455173018) + [4456006779](https://github.com/martinhbramwell/ESACP/issues/392#issuecomment-4456006779)), PR#393 ([issuecomment-4455173697](https://github.com/martinhbramwell/ESACP/pull/393#issuecomment-4455173697) + [4455385208](https://github.com/martinhbramwell/ESACP/pull/393#issuecomment-4455385208)), LSKB#20 ([issuecomment-4456005757](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/20#issuecomment-4456005757)). ESACP#392 closed via PR#393 `fixes` (the merge IS the closure, no comment needed). ESACP#394 + #395 filed with full content in body. LSKB#15/#16/#18 + ESACP#387/#341/#353/#388 referenced in passing only per S48/S50/S51 precedent.
+
+3. **PR mergedAt gate** — PR#393 `mergedAt: 2026-05-15T01:16:24Z` verified pre-session-close. `feedback_pr_merge_before_session_close.md` satisfied.
+
+4. **Unresolved doubts** — three AskUserQuestion prompts (acceptance shape = full build / direction after v1 failure = update #392 + decide / pyyaml finding = Plan-C pivot) all resolved within-session.
+
+Third consecutive zero-gap shape (after S50/S51) confirms the pointer-comment-within-session discipline is structurally embedded rather than a per-session correction. The audit-fix commit's own qa-log row carries residual `_pending_` verdict cells per S48 `0bbd54e` / S50 `e1fdf9a` / S51 `ae0a3ac` finalization-row irreducible-self-reference convention.
