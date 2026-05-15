@@ -155,4 +155,16 @@ No saconsole capability change in S53. The pipeline-from-saconsole gap (ESACP#39
 
 ## Post-close audit-fix
 
-(Will be filled in by the post-close audit-fix commit per S46/S47/S48/S49/S50/S51/S52 precedent.)
+SESSION END audit (UserPromptSubmit hook re-run pattern per S45–S52) ran with two self-caught procedural-skip gaps surfaced **before** minutes were drafted (T4 dev02-destroy boundary, T5 LSKB#20 close); both logged transparently in qa-log additions above. No content gaps in pointer-comments — within-session-comment discipline sustained through S53.
+
+Discharge: pure clerical verdict-cell finalization (close-row commit-hash `108c865` + verdict cells `approve | proceeded` + QA invocation ID `a0486c130be795059`) + this minutes subsection + qa-log self-referential row.
+
+1. **Forward-tense scan** — categories of hits in minutes/agenda all benign: (a) S54 agenda candidates A/B/C/D/E forward-looking by definition; (b) parked backlog items; (c) carry-forward operator-reminders; (d) self-referential `_pending_` cells in qa-log close-row + audit-fix-row; (e) Plan-C conditional language (#395 carry-forward "reactivates only if future tag-pivot brings us back"); (f) `Asignar Producto a Campo` standing operator-decision carried verbatim from prior agendas; (g) general-principle reminders ("any future production-snapshot restore"). No unresolved S53 commitments.
+
+2. **GH issue references** — every issue with an S53-specific finding received a within-session comment: LSKB#20 ([issuecomment-4459046442 — Plan-C decision](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/20#issuecomment-4459046442) + [issuecomment-4459863513 — closure](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/20#issuecomment-4459863513)) + ESACP#395 ([issuecomment-4459966812 — moot-under-Plan-C](https://github.com/martinhbramwell/ESACP/issues/395#issuecomment-4459966812)) + ESACP#396 (filed with full body in issue body). LSKB#20 closed manually (no `fixes` keyword). LSKB#15/#16/#18 + ESACP#387/#394/#392 referenced in passing only per S48/S50/S51/S52 precedent. **ESACP#395 status-update was the close-out-audit-caught gap** — it had not been posted within-session and was discharged during audit pass 2 before declaring DONE.
+
+3. **PR mergedAt gate** — no PRs opened this session; `feedback_pr_merge_before_session_close.md` vacuously satisfied.
+
+4. **Unresolved doubts** — three operator-confirmation prompts (Option 1 vs Option 2 tag choice / new-session-needed question / SCC?) all resolved within-session via direct operator response.
+
+**Fourth consecutive zero-substantive-gap close** (after S50/S51/S52 zero-gap finalizations) — pointer-comment-within-session discipline structurally embedded. **First instance** of self-flagged T4/T5 procedural-skip rows in qa-log; recurrence-tracking will inform whether to upgrade either to a hard pre-action checklist requirement. The audit-fix commit's own qa-log row carries residual `_pending_` verdict cells per S48 `0bbd54e` / S50 `e1fdf9a` / S51 `ae0a3ac` / S52 `4023469` finalization-row irreducible-self-reference convention.
