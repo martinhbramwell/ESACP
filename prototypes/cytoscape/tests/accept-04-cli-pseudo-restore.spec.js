@@ -21,8 +21,8 @@ import { BASE_URL, API_URL, waitForGraph } from './helpers.js'
  * Run 03 reappear in the restored instance.
  *
  * Plan:    ~/.claude/plans/acceptance-matrix-transport-parity.md
- * Agenda:  docs/SessionLogs/acceptance-matrix/04-cli-vm-pseudo-company-restore-from-wizard-backup.md
- * Params:  docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml
+ * Agenda:  internal_docs/SessionLogs/acceptance-matrix/04-cli-vm-pseudo-company-restore-from-wizard-backup.md
+ * Params:  internal_docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml
  *
  * Parity partner: Run 07 (UI-driven restore from B06).
  */
@@ -32,7 +32,7 @@ const __dirname  = path.dirname(__filename)
 const PROJECT_ROOT = path.resolve(__dirname, '../../..')
 const PARAM_PATH = path.join(
   PROJECT_ROOT,
-  'docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml'
+  'internal_docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml'
 )
 const BUILD_SECRETS_PATH = path.join(PROJECT_ROOT, 'config/build_secrets.sops.yml')
 const GOLDEN_BACKUPS_DIR = path.join(PROJECT_ROOT, 'platforms/kvm/golden_backups')

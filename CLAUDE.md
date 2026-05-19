@@ -149,7 +149,7 @@ docker/observability/      # Compose stack: Prometheus, Grafana, Loki, Alertmana
 prototypes/cytoscape/      # Cytoscape.js + Vite control plane prototype
 tools/api.py               # FastAPI backend (port 8088)
 tools/esacp.py             # Unified lab CLI
-docs/                      # DiagramDesign.md, FailoverDesign.md, RUNBOOK.md
+internal_docs/                      # DiagramDesign.md, FailoverDesign.md, RUNBOOK.md
 ```
 
 **Domain-specific detail in subdirectory CLAUDE.md files:**
@@ -295,7 +295,7 @@ When a primitive is extracted from a monolith, the monolith code it replaces MUS
 
 ### QA Verdict Contract (#341)
 
-Pre-commit / pre-merge / pre-push / pre-destroy / pre-issue-close verdict layer. The parent agent must invoke `Agent(subagent_type: "esacp-qa", …)` before any trigger op and act on the verdict. Full contract: [`docs/qa-contract.md`](docs/qa-contract.md). Agent definition: [`.claude/agents/esacp-qa.md`](.claude/agents/esacp-qa.md). Verdict log: [`docs/qa-log.md`](docs/qa-log.md).
+Pre-commit / pre-merge / pre-push / pre-destroy / pre-issue-close verdict layer. The parent agent must invoke `Agent(subagent_type: "esacp-qa", …)` before any trigger op and act on the verdict. Full contract: [`internal_docs/qa-contract.md`](internal_docs/qa-contract.md). Agent definition: [`.claude/agents/esacp-qa.md`](.claude/agents/esacp-qa.md). Verdict log: [`internal_docs/qa-log.md`](internal_docs/qa-log.md).
 
 ---
 

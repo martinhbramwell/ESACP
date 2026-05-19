@@ -1,6 +1,6 @@
 """Catch-all — anything DM-suspect not covered by the 11 audited classes.
 
-Phase 1 ships this as a stub. The audit (`docs/upgrade/DMCustomisationCapabilityAudit.md`)
+Phase 1 ships this as a stub. The audit (`internal_docs/upgrade/DMCustomisationCapabilityAudit.md`)
 identifies 11 classes; future runs that surface table types not in that list should
 extend this module with class-specific detection. For now it returns an empty list.
 

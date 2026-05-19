@@ -20,8 +20,8 @@ import { BASE_URL, API_URL, waitForGraph } from './helpers.js'
  * produces the B03 golden backup at platforms/kvm/golden_backups/.
  *
  * Plan:    ~/.claude/plans/acceptance-matrix-transport-parity.md
- * Agenda:  docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md
- * Params:  docs/SessionLogs/acceptance-matrix/params/03-cli-pseudo-wizard.yml
+ * Agenda:  internal_docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md
+ * Params:  internal_docs/SessionLogs/acceptance-matrix/params/03-cli-pseudo-wizard.yml
  *
  * Parity partner: Run 06 (UI-driven pseudo-wizard). Same recording replayed.
  *
@@ -34,7 +34,7 @@ const __dirname  = path.dirname(__filename)
 const PROJECT_ROOT = path.resolve(__dirname, '../../..')
 const PARAM_PATH = path.join(
   PROJECT_ROOT,
-  'docs/SessionLogs/acceptance-matrix/params/03-cli-pseudo-wizard.yml'
+  'internal_docs/SessionLogs/acceptance-matrix/params/03-cli-pseudo-wizard.yml'
 )
 const BUILD_SECRETS_PATH = path.join(PROJECT_ROOT, 'config/build_secrets.sops.yml')
 const GOLDEN_BACKUPS_DIR = path.join(PROJECT_ROOT, 'platforms/kvm/golden_backups')

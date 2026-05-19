@@ -71,7 +71,7 @@ def check_no_live_doc_refs() -> list[str]:
     for rel in r.stdout.splitlines():
         rel = rel.removeprefix("./")
         # Session logs are immutable history — always acceptable.
-        if rel.startswith("docs/SessionLogs/"):
+        if rel.startswith("internal_docs/SessionLogs/"):
             continue
         if rel in DOC_EXCEPTIONS:
             continue

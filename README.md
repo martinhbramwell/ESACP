@@ -143,7 +143,7 @@ esacp/
 │       ├── authelia/
 │       ├── loki/
 │       └── alertmanager/
-├── docs/                     # Documentation
+├── internal_docs/                     # Documentation
 │   ├── architecture.yml      # System architecture (YAML)
 │   ├── templates/           # Jinja2 templates
 │   └── diagrams/            # Generated Mermaid diagrams

@@ -21,8 +21,8 @@ import { BASE_URL, API_URL, waitForGraph, selectNode, clickInfoButton, waitForJo
  *   6. Assert sync_check ERPNext dev01 row is ✅.
  *
  * Plan:    ~/.claude/plans/acceptance-matrix-transport-parity.md
- * Agenda:  docs/SessionLogs/acceptance-matrix/07-ui-vm-pseudo-company-restore-from-wizard-backup.md
- * Params:  docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml
+ * Agenda:  internal_docs/SessionLogs/acceptance-matrix/07-ui-vm-pseudo-company-restore-from-wizard-backup.md
+ * Params:  internal_docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml
  *
  * Administrator password: derived from config/build_secrets.sops.yml (erp_user_pwd).
  */
@@ -32,7 +32,7 @@ const __dirname  = path.dirname(__filename)
 const PROJECT_ROOT = path.resolve(__dirname, '../../..')
 const PARAM_PATH = path.join(
   PROJECT_ROOT,
-  'docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml'
+  'internal_docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml'
 )
 const BUILD_SECRETS_PATH = path.join(PROJECT_ROOT, 'config/build_secrets.sops.yml')
 const GOLDEN_BACKUPS_DIR = path.join(PROJECT_ROOT, 'platforms/kvm/golden_backups')
