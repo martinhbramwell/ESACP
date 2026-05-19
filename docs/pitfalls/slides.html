@@ -12,6 +12,26 @@
     .reveal .insist { background: #f4f0e6; padding: 0.6em 1em; border-left: 4px solid #b87333; margin-top: 1em; }
     .reveal section ul { display: block; }
     .reveal .footer { font-size: 0.55em; opacity: 0.6; margin-top: 1em; }
+    .reveal section img.qr { max-height: 80vh; max-width: 80vw; border: none; box-shadow: none; background: transparent; }
+    #jump-controls {
+      position: fixed;
+      bottom: 12px;
+      right: 110px;
+      z-index: 30;
+      display: flex;
+      gap: 6px;
+    }
+    #jump-controls button {
+      background: rgba(0, 0, 0, 0.15);
+      color: #1a3a52;
+      border: none;
+      border-radius: 4px;
+      font-size: 18px;
+      padding: 4px 10px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    #jump-controls button:hover { background: rgba(0, 0, 0, 0.3); color: #fff; }
   </style>
 </head>
 <body>
@@ -348,7 +368,15 @@
         </aside>
       </section>
 
+      <section data-background-color="#ffffff">
+        <img class="qr" src="../ESACP_Pitfalls_Slide_Show_QRCode.png" alt="QR code linking to this slideshow">
+      </section>
+
     </div>
+  </div>
+  <div id="jump-controls">
+    <button id="btn-first" title="Go to first slide (Home)" aria-label="Go to first slide">&#x23EE;</button>
+    <button id="btn-last" title="Go to last slide (End)" aria-label="Go to last slide">&#x23ED;</button>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
   <script>
@@ -358,6 +386,12 @@
       progress: true,
       center: true,
       transition: 'slide'
+    });
+    document.getElementById('btn-first').addEventListener('click', function () {
+      Reveal.slide(0);
+    });
+    document.getElementById('btn-last').addEventListener('click', function () {
+      Reveal.slide(Reveal.getTotalSlides() - 1);
     });
   </script>
 </body>
