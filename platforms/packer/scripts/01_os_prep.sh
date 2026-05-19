@@ -46,6 +46,13 @@ character-set-client-handshake = FALSE
 character-set-server            = utf8mb4
 collation-server                = utf8mb4_unicode_ci
 
+# performance_schema OFF — ESACP#398
+# frappe v12_0 delete_duplicate_indexes patch calls frappe.db.get_tables()
+# which doesn't filter by table_schema; with performance_schema visible to
+# the site DB user, SHOW INDEX FROM global_status fails with 1146 against
+# the site DB.
+performance_schema = OFF
+
 [mysql]
 default-character-set = utf8mb4
 MYCNF
