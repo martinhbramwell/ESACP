@@ -122,3 +122,16 @@ Process-compliance signal worth tracking:
 ## Notable timing
 
 - Session 58 wall-clock: ~4½ hours from pre-flight through Pages-live verification. Within the agenda's 90–150 min estimate × multiplier for the (a) git-mv re-stage trap, (b) interactive draft-approval for index.md, (c) browser-test rounds (local + live), and (d) operator-permission-gated Pages-enable handoff. Operator's session-start guidance: "No time concerns anymore." — observed; pacing was unhurried and thorough.
+
+## Post-close audit-fix
+
+Standard session-end audit ritual ran clean — **zero substantive gaps**. Seventh consecutive S40-precedent-tracking session at this discipline (S50/S51/S52/S53/S54/S55/S58; S56+S57 entries are missing from qa-log = pre-existing process drift, separate from S58). Audit findings:
+
+- **Forward-tense**: every "I'll do X" / "to be done" / "will be filed" promise from the session has a durable home — Pages enabled, URLs verified, pointer comments posted (#402, #400, ce_sri#10, LSKB#15), `Mighty` ref to TRIVIAL_FIXES, T3 miss to qa-log, new feedback memory committed to LSM, LSM cross-repo cleanup carried forward to S59 with 3 opportunistic fixes already discharged.
+- **GH issue updates**: 4 pointer comments posted within-session, each linked from the minutes. ESACP#401 + LSKB#16 not commented because no new findings about either this session (saconsole was up at session start AND close; LSKB#16 referenced only as block-chain leaf).
+- **PR merged**: PR#403 `mergedAt: 2026-05-19T15:46:27Z` verified pre-minutes-write; gate satisfied per `feedback_pr_merge_before_session_close.md`.
+- **First substantive Pages-site delivery** for the project. Live URL [https://martinhbramwell.github.io/ESACP/](https://martinhbramwell.github.io/ESACP/) is the public face of ESACP from S58 forward.
+- **One new feedback memory** + **one S57 orphan landed in LSM** + **three opportunistic LSM stale-ref fixes** discharged at close.
+- **Cross-repo `fixes` tally unchanged** at 18 (#402 closed via in-repo `fixes`).
+
+This subsection added by the post-close audit-fix commit per the S46–S55 precedent.
