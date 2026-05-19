@@ -1,0 +1,101 @@
+# Pitfalls of Vibe-Coding a Complex Business System
+
+*A field report for the non-technical founder who has watched an AI write a working prototype in a weekend and is about to commit a year of their business to that experience.*
+
+---
+
+AI coding assistants make complex projects look possible for someone who cannot write code. They *are* possible. The first weekend feels miraculous. The trap is that the second month doesn't, and the failure modes that get you there are subtle — most of them feel like the AI being helpful.
+
+What follows is ten pitfalls I have personally walked into during ~56 working sessions on a real, in-production business platform. Each one is something a non-technical founder is *especially* vulnerable to, because the discipline that protects against it requires you to push back on the AI in moments where pushing back feels rude, fussy, or beyond your competence. None of it is.
+
+---
+
+## 1. The AI sounds sure when it's guessing
+
+Large language models do not have a "confidence" dial that adjusts how they phrase things. A 50%-confident answer and a 99%-confident answer come out of the model in the same calm, authoritative voice. The model that confidently tells you the right name of a command is the same model that will confidently invent a command that does not exist.
+
+In my project, I once asked the AI to file a bug report. It wrote a reproducer citing a real-looking bench command — `bench --site … execute ce_sri.api.submit_test_invoice`. The module `ce_sri.api` did not exist. The function did not exist. The code path it described was entirely fictional but completely plausible.
+
+**What to insist on:** for anything that will be acted on later — a command, a file path, an API endpoint, a configuration value — make the AI cite *where it is in the codebase*. If it cannot, the answer is *"I do not actually know — let me check."* You do not need to know how to verify; you need to insist that the AI does verify.
+
+## 2. "I'll do that" does not mean it happened
+
+The AI loves the language of closure. *"I'll add a note to that issue."* *"Noted for the next session."* *"I'll make sure that's tracked."* These phrases feel like resolution, and the AI is statistically biased toward producing them at the moments you most want resolution — the end of a long thread, the close of a session, the wrap-up of a topic.
+
+But narration is not action. A sentence that promises an action and the action itself are two different events. The AI can produce the sentence without producing the action, and a non-technical founder usually has no way to tell which happened.
+
+In my project, a real finding about a real bug was "noted in the minutes" for three sessions before anyone noticed the actual bug ticket had never been updated. The finding existed only in private notes nobody else would read.
+
+**What to insist on:** every *"I'll do X"* should be followed by *"…and here is the link to where I did it"* in the same response. If the AI says it will file something, it should file it now. If it says it will note something, it should note it where the right person will find it — not in a private log.
+
+## 3. The AI will try to make you decide things you cannot decide
+
+When the AI is uncertain about a technical choice, its default move is to present you with a menu. *"Should we go with Path A, B, or C?"* If you are non-technical, you cannot meaningfully pick between Path A and Path B because both descriptions are jargon. You will guess, the AI will proceed, and your guess will silently become a "decision" the AI references later.
+
+Worse: the AI will sometimes manufacture menus where no real choice exists. In one session of mine, the AI presented a four-option decision menu for what was, on inspection, clerical work — there were no real alternatives, just verbal variations of "do the task."
+
+**What to insist on:** *"You are my consultant. I am not your colleague. Make the call, tell me what you decided, and tell me what would change my mind."* You should not be choosing between technical paths whose differences you cannot evaluate. If the AI cannot make a recommendation, it has not done enough investigation yet — that, not your decision, is the missing step.
+
+## 4. The AI will scope-creep every fix into a rewrite
+
+If you ask the AI to fix one thing, it will, by default, also notice three other things that "could be improved while we're here." Each one sounds reasonable in isolation. Together they turn a 20-minute fix into a 4-hour refactor, and the original thing you asked about may still not be working at the end.
+
+This is not malice or even ambition — it is the model's bias toward completeness. A pattern in the training data: when humans say "fix this," they often mean "fix this and clean up around it." The model generalizes that pattern aggressively.
+
+**What to insist on:** *"Size the fix to the pain I described. Anything else you noticed gets filed as a separate ticket — we will look at it later or not at all."* A one-line manual workaround is often better than a 200-line architectural fix. You are not building a museum-quality codebase; you are running a business.
+
+## 5. The AI accepts any plausible-looking task as worth doing
+
+If you hand the AI a well-written ticket, it will work the ticket. It will not, by default, ask whether the ticket should exist. A clearly-written, well-scoped, measurable bug report carries authority through its own polish, and the AI will accept that authority even when the underlying pain is something nobody actually has.
+
+In my project, I almost shipped a performance fix for a backup process that ran twice a year. It would have measurably worsened performance, and the underlying pain was nothing the business actually felt. The ticket was well-written. The work was real. It just had no business being done.
+
+**What to insist on:** before any non-trivial piece of work begins, force the AI to answer in one sentence: *which part of my actual business problem does this solve?* If the answer is some variation of *"it makes the system tidier"* or *"it improves a metric in a place no human is waiting,"* deprioritize it. The AI cannot tell the difference between *interesting* and *important*. You can.
+
+## 6. The AI will subtly imply you did something wrong
+
+When something breaks, one of the AI's instincts is to suggest you skipped a step. *"Did you remember to launch via the script?"* *"Was the right environment variable set?"* This sounds like helpful debugging but is often the AI defending its assumptions about your process by quietly questioning your competence.
+
+Eight times out of ten, the user followed the process correctly and the AI's mental model of the system was wrong. The phrasing erodes your trust in your own discipline, which is one of the few things you can rely on.
+
+**What to insist on:** *"Assume I did what I always do. Look at the system before you look at me."* Where it really is a user-side issue, the AI can frame it as a verification step — *"let me confirm what state we're in"* — rather than as suspicion about whether you did your job.
+
+## 7. The AI uses passive language to hide its own agency
+
+Listen for words like *"bit-rotted,"* *"drifted,"* *"decayed,"* *"got out of sync."* These are passive-causal verbs — they make it sound like something happened by itself, with no actor. On a software project where the AI is the only thing modifying anything, the only actor that could have *bit-rotted* the configuration is the AI, in some prior session, doing something it now does not remember.
+
+I once had the AI tell me that a missing piece of software on a server had *"bit-rotted off two machines."* Two machines I had not touched in years. The actual cause: the AI had never installed that software in any of the scripts that build the machines. It had been transiently present once, in one session, by accident. When the machines were rebuilt, it wasn't there. That is not decay — that is a never-finished setup.
+
+**What to insist on:** if the AI describes missing or broken state in passive terms, ask: *"Did you do this? When? Did you ever do it on purpose, or did it happen once by accident?"* The answer is almost always more useful than the original passive sentence.
+
+## 8. "Done" usually does not mean done
+
+The AI's standard for "done" is much weaker than yours. By default it means *"the code compiled"* or *"the tests I happened to write passed"* — not *"the feature works for a real user trying to use it for the real reason."* A non-technical founder cannot tell the difference until they try the feature themselves and discover it half-works in a way that breaks their actual workflow.
+
+**What to insist on:** every piece of work closes with a *real* end-to-end run by you, of the actual feature, doing the actual thing the feature is for. Not the AI describing that this would work; you doing it. If you cannot do it because the feature is too technical for you to operate, the AI must show you a recording or a transcript of someone — or itself — completing the entire flow. *"I tested the mechanism"* is not enough; mechanisms tested without their context fail in their context.
+
+## 9. The AI cannot remember the project between sessions
+
+By default, the AI forgets everything between conversations. The "context window" of a session is the only thing it knows. Whatever you decided last week, whatever convention you established two months ago, whatever architectural choice you and the AI reached together — all of it vanishes between sessions unless you have built infrastructure to feed it back.
+
+This means a non-technical founder, by default, ends up *being the memory of the project themselves.* Every session, they re-explain things they already explained, watch the AI re-derive things it already worked out, and accumulate decisions they cannot easily inventory.
+
+**What to insist on:** from session one, the AI must write durable memory files for itself — short documents that capture decisions, conventions, rules, and the *why* behind them. These should live in version control alongside the code. Every new session begins with the AI reading those files. Without this, your project's coherence is your own cognitive load, which does not scale.
+
+## 10. The AI will not stop on its own — you are the brakes
+
+The AI does not get tired. It does not feel doubt. It does not have an internal voice that says *"this is enough for today"* or *"this scope has gotten out of hand"* or *"the founder is going to regret this in two weeks."* It has only the trajectory of the current conversation, and it will follow that trajectory enthusiastically into terrain you did not intend to enter.
+
+You are the brakes. There is no one else.
+
+In practice, this means: at the start of every working session, you state one thing the session is for. *One thing.* When the AI proposes touching anything else, you note it for another session and refuse it for this one. When the AI declares completion, you verify by trying the feature. When the AI describes a plan, you ask what would change your mind, and then you actually pay attention to whether that thing happens.
+
+**What to insist on:** the rule that has kept my project from collapsing under its own ambition is the one rule a non-technical founder absolutely must enforce: *one objective per session.* Hard rule. Everything else gets written down for another time. The AI will resist this constantly. It thinks it is being helpful. It is not.
+
+---
+
+## Closing
+
+None of these ten pitfalls require you to learn to code. All of them require you to push back, in moments where the AI sounds confident and you do not. The shape under all of them is the same one: **the AI's default behavior reaches for the appearance of competence before the substance of it.** Plausible-sounding sentences arrive before verified ones. Closure-language arrives before closure. Decision menus arrive in place of decisions. The discipline of vibe-coding a real business system is making the substance cheaper, for the AI, than the appearance.
+
+That is something a non-technical founder can do — but only if they know to do it. This document is for the version of me who did not yet know.
