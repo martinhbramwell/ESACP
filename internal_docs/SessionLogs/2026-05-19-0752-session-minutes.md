@@ -111,7 +111,7 @@ Unchanged (2 entries, both monitor-only):
 - Branch: `main` (after S56 close-out commit lands).
 - dev02 substrate state: unchanged from S55 close.
 - Build evidence on dev02 (`/tmp/lskb15-S55-migrate*.log`): retained.
-- **`docs/qa-contract.md`**: v2.1 (unchanged).
+- **`internal_docs/qa-contract.md`**: v2.1 (unchanged).
 - **`TRIVIAL_FIXES.md`**: 2 entries (unchanged).
 - Cross-repo `fixes` tally: 18 (unchanged — no closes this session).
 

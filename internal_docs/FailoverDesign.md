@@ -18,7 +18,7 @@ Cytoscape control plane UI.
 
 It covers **unplanned production master failure only** — hardware fault, disk failure,
 or unrecoverable service crash. Planned software promotion (staging → production) is a
-separate operation; see `docs/DiagramDesign.md` (DNS flip workflow).
+separate operation; see `internal_docs/DiagramDesign.md` (DNS flip workflow).
 
 ---
 
@@ -268,7 +268,7 @@ Many of these will be answered by reading the existing failover bash scripts.
 
 | Document | Relationship |
 |---|---|
-| `docs/DiagramDesign.md` | DNS-flip / planned promotion workflow; Production quadrant layout spec |
-| `docs/CategoriesOfCatastrophe.md` | Risk inventory that motivated this document; Categories 2 and 5 most relevant |
-| `docs/RUNBOOK.md` | Operational runbook; verified failover steps should be added as a scenario here |
+| `internal_docs/DiagramDesign.md` | DNS-flip / planned promotion workflow; Production quadrant layout spec |
+| `internal_docs/CategoriesOfCatastrophe.md` | Risk inventory that motivated this document; Categories 2 and 5 most relevant |
+| `internal_docs/RUNBOOK.md` | Operational runbook; verified failover steps should be added as a scenario here |
 | `ansible/roles/mariadb/` | MariaDB deployment config; replication setup lives here |

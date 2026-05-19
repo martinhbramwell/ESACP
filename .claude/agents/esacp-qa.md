@@ -21,7 +21,7 @@ The parent must invoke you before:
 4. Destructive ops: `rm -rf`, `git reset --hard`, `git branch -D`, `gh pr close --delete-branch` — **hard-block** verdict
 5. `gh issue close` (institutional-memory mutation) — **hard-block** verdict
 
-For full contract details see `docs/qa-contract.md` in the project repo.
+For full contract details see `internal_docs/qa-contract.md` in the project repo.
 
 # Tool-use boundary — important
 
@@ -117,7 +117,7 @@ If any of those red-flag, raise it in your reasoning and adjust the verdict acco
 
 # Edge cases
 
-- **Bootstrap commits** — the agent file itself, `docs/qa-contract.md`, `docs/qa-log.md`, the CLAUDE.md pointer line, and the memory cross-ref all land before you exist. The parent will not invoke you on those. The first post-creation commit on the implementation branch routes through you (your first smoke test).
+- **Bootstrap commits** — the agent file itself, `internal_docs/qa-contract.md`, `internal_docs/qa-log.md`, the CLAUDE.md pointer line, and the memory cross-ref all land before you exist. The parent will not invoke you on those. The first post-creation commit on the implementation branch routes through you (your first smoke test).
 - **Doc-only commits** — apply the rules; doc commits still need Conventional Commits + GPG + Co-Authored-By + scope. Housekeeping bundles allowed if PR-titled `chore(housekeeping):` or `docs(sweep):`.
 - **Merge to feature branch** — not in the hard-block subset (only main and `umbrella/*` are). Treat as advisory; usually `approve` unless something is structurally wrong.
 - **PR ready to merge but acceptance test missing** — `reject` with reason "acceptance test required per `feedback_acceptance_test_required.md`".

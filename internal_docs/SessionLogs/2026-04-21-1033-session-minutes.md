@@ -23,7 +23,7 @@ Working tree held Run 05 live-state drift (same pattern seen previously): new `w
 ### Scaffold commit
 
 Authored:
-- `docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml` — params file, parity-twinned to Run 03 (same wizard recording `pseudo-co-wizard.spec.js`, same company facts).
+- `internal_docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml` — params file, parity-twinned to Run 03 (same wizard recording `pseudo-co-wizard.spec.js`, same company facts).
 - `prototypes/cytoscape/tests/accept-06-ui-pseudo-wizard.spec.js` — UI-transport spec. Drag `tpl-erpnext-generic` into Dev zone, select wizard_mode=replay, waitForJob, canary verbatim from accept-03 Step 5, B06 artefact check mirroring B03.
 
 Design decisions confirmed with user before commit:

@@ -163,9 +163,9 @@ Commit `a2c2fa6`, GPG-signed. Pushed `LogiSoluMemory` `main`.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-11-1410-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-11-1410-next-agenda.md` (Session 34 brief)
-- `docs/qa-log.md` — Session 33 rows appended (4 verdicts: Trigger 1+3 on
+- `internal_docs/SessionLogs/2026-05-11-1410-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-11-1410-next-agenda.md` (Session 34 brief)
+- `internal_docs/qa-log.md` — Session 33 rows appended (4 verdicts: Trigger 1+3 on
   BtlMng commit; Trigger 2 on BtlMng PR#1; Trigger 1+3 on ESACP #379
   commit; Trigger 2 on ESACP PR#379)
 - `martinhbramwell/BtlMng/pull/1` — Phase-2 consolidation, MERGED
@@ -187,7 +187,7 @@ Commit `a2c2fa6`, GPG-signed. Pushed `LogiSoluMemory` `main`.
 
 ## QA invocations (this session)
 
-4 verdicts, all approve / approve-with-conditions. Details in `docs/qa-log.md` Session 33 rows.
+4 verdicts, all approve / approve-with-conditions. Details in `internal_docs/qa-log.md` Session 33 rows.
 
 ## Operator-decided sequencing notes
 

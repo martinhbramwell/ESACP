@@ -81,7 +81,7 @@ deliberately not pre-committed here.
 | `orchestration/chaos/scenarios.yml` | **deleted** |
 | `orchestration/fake_attack.py` | **deleted** (207 lines) |
 | `orchestration/revertToBaseline.py` | **deleted** (205 lines) |
-| `docs/RUNBOOK.md` | Top banner — retired, points at #280; body intact as historical reference for the 10 scenarios |
+| `internal_docs/RUNBOOK.md` | Top banner — retired, points at #280; body intact as historical reference for the 10 scenarios |
 | `README.md` | Removed `revertToBaseline.py` from dir tree + Snapshot-Based Iteration example |
 | `platforms/vbox/PLATFORM.md` | Replaced stale script table with pointer to `tools/pipeline/` (provision.py and chaos/run_scenario.py rows were already broken after Phase 8) |
 | `orchestration/requirements.txt` | Trimmed stale comments referencing deleted Stage 1 / 1.5 scripts |
@@ -188,6 +188,6 @@ Audit run at user request after the initial summary.
 - MEMORY.md edits: open-issues line (22 → 22 + Phase 2B entry); new
   "Parked / Future" pointer to chaos orphan audit memory
 - New memory file: `memory/project_chaos_orphan_audit.md`
-- This minutes: `docs/SessionLogs/2026-04-22-0700-session-minutes.md`
-- Prior-session minutes: `docs/SessionLogs/2026-04-21-2100-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-22-0700-session-minutes.md`
+- Prior-session minutes: `internal_docs/SessionLogs/2026-04-21-2100-session-minutes.md`
   (Phase 2A #206/#275 snapshot_ops rewiring)

@@ -27,8 +27,8 @@ Operator: *"Q-1 Why is (a) not advisable? Q-2 what is the memory clutter risk of
 
 Honest re-look found both my recommendations rested on soft arguments:
 
-- **Q-1**: Recommended (b) memory file. Real reasoning was a reflex toward private storage. Repo is public but session logs are already public — no privacy delta. Machine-local is a *disadvantage*, not a feature, for a verdict ledger. Global rule on institutional-memory-via-repo argues for (a). **Flipped to (a) `docs/qa-log.md`** with batched session-close commits.
-- **§4.1**: Recommended inline-CLAUDE.md. CLAUDE.md is 233 lines today; auto-loaded every session; "~30 lines" estimate is a floor not a ceiling (Banned-Patterns and Anti-Spiral both grew from "short" to ~70 lines each). Global rule against accumulating in CLAUDE.md applies. **Flipped to `docs/qa-contract.md`** with one-line CLAUDE.md pointer.
+- **Q-1**: Recommended (b) memory file. Real reasoning was a reflex toward private storage. Repo is public but session logs are already public — no privacy delta. Machine-local is a *disadvantage*, not a feature, for a verdict ledger. Global rule on institutional-memory-via-repo argues for (a). **Flipped to (a) `internal_docs/qa-log.md`** with batched session-close commits.
+- **§4.1**: Recommended inline-CLAUDE.md. CLAUDE.md is 233 lines today; auto-loaded every session; "~30 lines" estimate is a floor not a ceiling (Banned-Patterns and Anti-Spiral both grew from "short" to ~70 lines each). Global rule against accumulating in CLAUDE.md applies. **Flipped to `internal_docs/qa-contract.md`** with one-line CLAUDE.md pointer.
 
 Both flips share the same theme: institutional-memory-via-repo cuts the same direction.
 
@@ -75,7 +75,7 @@ Not re-run (no infrastructure changes this session). Last reading 46 ✅ / 8 ⚠
 |---|---|---|---|
 | Plan structure | freeform / phase-5 template / customisation-discovery template | phase-5 template | most recent plan, matches house style, has numbered Q-N pattern |
 | Q-1 first pick | (a) repo / (b) memory / (c) #341 thread | initially (b), flipped to (a) | repo wins on operator pushback (institutional-memory-via-repo) |
-| §4.1 first pick | inline-CLAUDE.md / `docs/qa-contract.md` | initially inline, flipped to `docs/qa-contract.md` | CLAUDE.md size + growth-pattern argument |
+| §4.1 first pick | inline-CLAUDE.md / `internal_docs/qa-contract.md` | initially inline, flipped to `internal_docs/qa-contract.md` | CLAUDE.md size + growth-pattern argument |
 | §4.2 verdict transport | JSON-only / trailer block | trailer block | reasoning stays human-readable, verdict still parseable |
 | §4.3 failure-fallback | fail-closed everywhere / fail-open everywhere / split | split mirroring §3 | consistent with already-locked hard-block-vs-advisory |
 | Where to record §10 regression | minutes only / plan §10 / both | both (plan §10 is durable, minutes describe what happened) | enables agent's first verdict-log seed entry |

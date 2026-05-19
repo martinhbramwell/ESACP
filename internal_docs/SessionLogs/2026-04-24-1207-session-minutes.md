@@ -84,7 +84,7 @@ Two consecutive fresh-revert pipeline runs green, plus the two manual replays fr
 |---|---|---|
 | `prototypes/cytoscape/recordings/wizard/pseudo-co-wizard.spec.js` | +52 / −19 — helper, modal fallback, 90 s waitForURL | merged to main via PR #294 |
 | `MEMORY.md` | Open-issue ledger 22→21 with #293 pointer | (memory, not repo) |
-| `docs/SessionLogs/2026-04-24-1207-session-minutes.md` | this file | main |
+| `internal_docs/SessionLogs/2026-04-24-1207-session-minutes.md` | this file | main |
 
 ## State handed to next session
 
@@ -107,9 +107,9 @@ Sub-2 prerequisite now cleared. Next action per prior-session's purge plan: open
 
 ## File trail
 
-- Prior minutes: `docs/SessionLogs/2026-04-24-0841-session-minutes.md`
+- Prior minutes: `internal_docs/SessionLogs/2026-04-24-0841-session-minutes.md`
 - Fix commit: `18d5aab`
 - Merge commit: `473f058`
 - PR: [#294](https://github.com/martinhbramwell/ESACP/pull/294)
 - Issue: [#293](https://github.com/martinhbramwell/ESACP/issues/293) (closed)
-- This minutes: `docs/SessionLogs/2026-04-24-1207-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-24-1207-session-minutes.md`

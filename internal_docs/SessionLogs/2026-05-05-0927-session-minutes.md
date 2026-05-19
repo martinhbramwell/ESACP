@@ -83,7 +83,7 @@ blank (no error, no auto-resolve — operator must set manually).
 1 esacp-qa verdict during this session: pre-commit (trigger 1) on this
 doc-sweep commit returned `approve-with-conditions` — the condition was a
 procedural one (write the qa-log row before staging). Logged in
-`docs/qa-log.md`.
+`internal_docs/qa-log.md`.
 
 ## Issues touched
 
@@ -96,9 +96,9 @@ procedural one (write the qa-log row before staging). Logged in
 
 In the doc-sweep commit (in repo, on `main`):
 
-- `docs/SessionLogs/2026-05-05-0927-session-minutes.md` — this file
-- `docs/SessionLogs/2026-05-05-0927-next-agenda.md` — Session 10 agenda
-- `docs/qa-log.md` — appended Session 9 verdicts
+- `internal_docs/SessionLogs/2026-05-05-0927-session-minutes.md` — this file
+- `internal_docs/SessionLogs/2026-05-05-0927-next-agenda.md` — Session 10 agenda
+- `internal_docs/qa-log.md` — appended Session 9 verdicts
 
 Outside the repo (local persistent memory):
 

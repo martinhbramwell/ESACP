@@ -297,12 +297,12 @@ issue. Per-issue specifics captured below.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-08-1500-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-08-1500-next-agenda.md` (Session 15 brief)
-- `docs/qa-log.md` (Session 14 verdict appended)
+- `internal_docs/SessionLogs/2026-05-08-1500-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-08-1500-next-agenda.md` (Session 15 brief)
+- `internal_docs/qa-log.md` (Session 14 verdict appended)
 - `MEMORY.md` (single index pointer added to these minutes)
 
 ## QA verdicts batched
 
-See `docs/qa-log.md` row for 2026-05-08 — Session 14 close-out doc
+See `internal_docs/qa-log.md` row for 2026-05-08 — Session 14 close-out doc
 sweep. Verdict batched at session-close per the contract.

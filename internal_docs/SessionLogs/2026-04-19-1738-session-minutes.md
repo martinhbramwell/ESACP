@@ -38,7 +38,7 @@ Done, all three commits merged in a single PR.
 | 1 | Reader test (plan-listed files) | Pass — generic-platform presentation |
 | 2 | `bash platforms/kvm/sync_check.sh` | **41 ✓ / 10 ⚠ / 3 ✗** — identical to pre-scrub baseline. 3 ❌ are pre-existing dev-VM ping failures (no dev VM provisioned; one-VM-at-a-time on 16GB toshiba), unrelated to this scrub |
 | 3 | `python3 tools/pre_commit_size_check.py` | exit 0. Commit 2 ratchet auto-lowered baselines on `backup.py` (56→55) and `ddl_views.py` (34→30) |
-| 4 | Diagnostic grep `[Ll]ogichem` | Remaining: `platforms/kvm/session_start.py:17` (documented carve-out) + `docs/SessionLogs/**` (historical — intentionally untouched). **Matches plan acceptance exactly.** |
+| 4 | Diagnostic grep `[Ll]ogichem` | Remaining: `platforms/kvm/session_start.py:17` (documented carve-out) + `internal_docs/SessionLogs/**` (historical — intentionally untouched). **Matches plan acceptance exactly.** |
 | 5 | Pipeline import smoke-test | `cesri_secrets`, `backup`, `ddl_views` import cleanly; paths resolve through `~/projects/bespoke-apps/` symlink |
 | 6 | Controller symlinks | `~/projects/ESACP → ./Logichem/ESACP` (pre-existing) + `~/projects/bespoke-apps → /home/hasan/projects/Logichem` (created this session) |
 | 7 | PR merged before session closes | ✓ `mergedAt=2026-04-19T21:38:15Z` |
@@ -54,7 +54,7 @@ Commit 1 timed out on `gpg: signing failed: Timeout` twice before the user reach
 ## What changed that a future reader should notice
 
 - `tools/bespoke_root.py` is new. Any future code that resolves sibling-repo paths imports `BESPOKE_ROOT` from there. Do not re-introduce local `Path.home() / "projects" / "..."` expressions pointing at bespoke-app content.
-- `docs/ERPNextRestoreRunbook.md` now documents the `${BESPOKE_ROOT}` convention at the top of Prerequisites. All command snippets use the variable.
+- `internal_docs/ERPNextRestoreRunbook.md` now documents the `${BESPOKE_ROOT}` convention at the top of Prerequisites. All command snippets use the variable.
 - `platforms/kvm/fallback/toshy-fallback-install.sh` is idempotent with respect to the symlink — `ln -sfn` re-points rather than failing on a second run.
 - `platforms/kvm/session_start.py` has a `__file__`-relative `SYNC_CHECK` (drive-by fix for a pre-existing absolute-path portability bug) and a `$CLAUDE_PROJECT_DIR` probe for `MEMORY_DIR` with the hardcoded path retained as a documented carve-out.
 
@@ -67,7 +67,7 @@ Commit 1 timed out on `gpg: signing failed: Timeout` twice before the user reach
 
 ## Next
 
-Memory scrub — see `docs/SessionLogs/2026-04-19-1738-next-agenda.md`. Rewrite the real name inside `~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/**` (the CC auto-memory files), update `MEMORY.md` pointers, leave the encoded memory directory name alone (session-continuity carve-out, same reason as `session_start.py:17`).
+Memory scrub — see `internal_docs/SessionLogs/2026-04-19-1738-next-agenda.md`. Rewrite the real name inside `~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/**` (the CC auto-memory files), update `MEMORY.md` pointers, leave the encoded memory directory name alone (session-continuity carve-out, same reason as `session_start.py:17`).
 
 Once memory scrub lands, Matrix Run 02 unblocks.
 

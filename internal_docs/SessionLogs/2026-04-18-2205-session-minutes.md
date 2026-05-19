@@ -74,7 +74,7 @@ Issue was already CLOSED by `332cdff`. Posted confirmation comment with the live
 
 ### MEMORY.md updated
 
-- Acceptance-matrix entry: replaced the Phase E-1/#226/#227 narrative with the closure via PR #230 and a new "Next: Run 01 proper" pointer to `docs/SessionLogs/acceptance-matrix/01-cli-saconsole-rebuild.md`.
+- Acceptance-matrix entry: replaced the Phase E-1/#226/#227 narrative with the closure via PR #230 and a new "Next: Run 01 proper" pointer to `internal_docs/SessionLogs/acceptance-matrix/01-cli-saconsole-rebuild.md`.
 - Open-issues list: removed #226 and #227; added closure line with merge commit `332cdff`.
 - Added note that no pre-rebuild archive is retained post-discharge.
 
@@ -90,5 +90,5 @@ Issue was already CLOSED by `332cdff`. Posted confirmation comment with the live
 
 ## Carry-forward
 
-- **Run 01 proper** — the Playwright-observed acceptance test at `docs/SessionLogs/acceptance-matrix/01-cli-saconsole-rebuild.md`. This session's rebuild was pure CLI verification; Run 01 adds the UI-convergence observer (`prototypes/cytoscape/tests/accept-01-cli-saconsole.spec.js`) and the single-command `./rebuild_saconsole.sh` (no sub-arg) launch. That is the next session.
+- **Run 01 proper** — the Playwright-observed acceptance test at `internal_docs/SessionLogs/acceptance-matrix/01-cli-saconsole-rebuild.md`. This session's rebuild was pure CLI verification; Run 01 adds the UI-convergence observer (`prototypes/cytoscape/tests/accept-01-cli-saconsole.spec.js`) and the single-command `./rebuild_saconsole.sh` (no sub-arg) launch. That is the next session.
 - Open issues unchanged from post-session state: #48, #50, #65, #138, #153, #156, #157, #181, #187, #188, #202, #206, #211, #213, #216, #217, #219, #220, #223, #225.

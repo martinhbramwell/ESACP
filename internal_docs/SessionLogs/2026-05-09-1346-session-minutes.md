@@ -18,7 +18,7 @@ Session reframed from #354 migration to **periodic introspection sidebar**. The 
 2. Document "periodic introspection sidebar" as recognized session-type in CLAUDE.md — closes ESACP #363
 3. Restructure MEMORY.md as thin pointer index per Anthropic memory protocol — closes LogiSoluMemory #1
 4. File ESACP #364 (audit-hook UserPromptSubmit timing) as durable home for recurring observation
-5. File ESACP #365 (CLAUDE.md session-types extraction to docs/) for future-sidebar work
+5. File ESACP #365 (CLAUDE.md session-types extraction to internal_docs/) for future-sidebar work
 6. *(Added mid-session)* File ESACP #366 (repo-controlled YAML ontology) as potential feature
 
 ## Pre-flight
@@ -88,7 +88,7 @@ Tracking issue for the recurring observation that the session-close audit hook f
 
 ### Item 5 — ESACP #365 filed (CLAUDE.md session-types extraction)
 
-Future-sidebar work: extract the 4 session-type policy blocks (1:1:1, housekeeping, introspection, umbrella — totaling ~30 lines) from CLAUDE.md to a new `docs/session-types.md`, replacing each with a one-line summary + link. Net CLAUDE.md reduction ~24 lines. Out of scope for Session 20 (per #363 trigger condition: schedulable to a future introspection sidebar).
+Future-sidebar work: extract the 4 session-type policy blocks (1:1:1, housekeeping, introspection, umbrella — totaling ~30 lines) from CLAUDE.md to a new `internal_docs/session-types.md`, replacing each with a one-line summary + link. Net CLAUDE.md reduction ~24 lines. Out of scope for Session 20 (per #363 trigger condition: schedulable to a future introspection sidebar).
 
 ### Item 6 — ESACP #366 filed (repo-controlled YAML ontology — potential feature)
 
@@ -100,7 +100,7 @@ Recommendation captured in issue: start small (only `user_types` + `institution_
 
 ## QA verdicts batched
 
-See `docs/qa-log.md` — Session 20 entries appended below the Session 19 second-audit-follow-up rows. Six in-session verdicts (3× Trigger 1 + 3× Trigger 3 across ESACP #362, ESACP #363, LogiSoluMemory#1) plus session-close commit Trigger 1 + Trigger 3.
+See `internal_docs/qa-log.md` — Session 20 entries appended below the Session 19 second-audit-follow-up rows. Six in-session verdicts (3× Trigger 1 + 3× Trigger 3 across ESACP #362, ESACP #363, LogiSoluMemory#1) plus session-close commit Trigger 1 + Trigger 3.
 
 **No verdict-format defects this session** (the Session 19 row 76 watch was resolved without recurrence).
 
@@ -170,9 +170,9 @@ Reminder list reduction: 5 → 1.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-09-1346-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-09-1346-next-agenda.md` (Session 21 brief)
-- `docs/qa-log.md` — Session 20 verdicts appended (6 in-session rows + session-close row)
+- `internal_docs/SessionLogs/2026-05-09-1346-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-09-1346-next-agenda.md` (Session 21 brief)
+- `internal_docs/qa-log.md` — Session 20 verdicts appended (6 in-session rows + session-close row)
 - `CLAUDE.md` — trailer template Opus 4.7 (commit `ed73877`); introspection-sidebar policy added (commit `abcdd02`)
 - `martinhbramwell/LogiSoluMemory:MEMORY.md` — restructured 199 → 112 lines (commit `720db42`)
 - `martinhbramwell/ESACP/issues/362` — CLOSED via `ed73877`

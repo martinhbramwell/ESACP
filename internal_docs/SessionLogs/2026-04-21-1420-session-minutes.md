@@ -7,7 +7,7 @@
 
 ## Objective
 
-Execute Matrix Run 07 — UI-transport pseudo-company restore from B06, parity partner to Run 04. Close the 7-run matrix: branch, PR, merge, then write `docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md` and update `MEMORY.md`.
+Execute Matrix Run 07 — UI-transport pseudo-company restore from B06, parity partner to Run 04. Close the 7-run matrix: branch, PR, merge, then write `internal_docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md` and update `MEMORY.md`.
 
 ## Outcome
 
@@ -73,7 +73,7 @@ Total elapsed: 12.0m (`1 passed (12.0m)`, exit 0).
 ### Commit → PR → merge
 
 Commit contents (avoiding runtime drift, consistent with Run 02–06 PRs):
-- `docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml`
+- `internal_docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml`
 - `prototypes/cytoscape/tests/accept-07-ui-pseudo-restore.spec.js`
 
 **Not committed** (runtime drift identical to prior matrix PRs):
@@ -89,7 +89,7 @@ PR #273 opened on branch `accept/07-ui-pseudo-restore`. Merged locally via `git 
 
 ### Matrix close-out
 
-Wrote `docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md` — 7-run result table, three parity-pair verdicts (02↔05 full, 03↔06 wizard, 04↔07 restore), issue ledger (matrix-time + remaining-open), transport-parity verdict ("functionally indistinguishable endpoints"), and a handoff note for downstream ERPNext-focused work.
+Wrote `internal_docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md` — 7-run result table, three parity-pair verdicts (02↔05 full, 03↔06 wizard, 04↔07 restore), issue ledger (matrix-time + remaining-open), transport-parity verdict ("functionally indistinguishable endpoints"), and a handoff note for downstream ERPNext-focused work.
 
 ### MEMORY.md compaction + update
 
@@ -119,8 +119,8 @@ Addressed reminders #3 and #4 from Run 06 minutes:
 - Merge commit: `5350641` on main
 - PR: #273 — merged 2026-04-21T18:19:15Z
 - Spec: `prototypes/cytoscape/tests/accept-07-ui-pseudo-restore.spec.js`
-- Params: `docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml`
-- Agenda (unchanged): `docs/SessionLogs/acceptance-matrix/07-ui-vm-pseudo-company-restore-from-wizard-backup.md`
-- Closeout: `docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md`
-- This minutes: `docs/SessionLogs/2026-04-21-1420-session-minutes.md`
-- Prior-session minutes: `docs/SessionLogs/2026-04-21-1256-session-minutes.md` (Run 06 GREEN)
+- Params: `internal_docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml`
+- Agenda (unchanged): `internal_docs/SessionLogs/acceptance-matrix/07-ui-vm-pseudo-company-restore-from-wizard-backup.md`
+- Closeout: `internal_docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-21-1420-session-minutes.md`
+- Prior-session minutes: `internal_docs/SessionLogs/2026-04-21-1256-session-minutes.md` (Run 06 GREEN)

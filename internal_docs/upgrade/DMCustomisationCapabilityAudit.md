@@ -3,7 +3,7 @@
 **Issue:** [#313](https://github.com/martinhbramwell/ESACP/issues/313) (gates step 2 onward of `~/.claude/plans/production-v14-migration-prep.md`).
 **Plan step:** Step 1.5 — DM Discovery + Promotion Capability Audit (V14 prerequisite).
 **Compiled:** 2026-04-28.
-**Method:** source-read of every existing pipeline / fixture / G-step mechanism + cross-check against the customisation classes enumerated in `docs/upgrade/CustomisationInventory_v13.md` §10 (held branch `feat/customisation-inventory-v13` @ `c6f7f79`). No new code; verification + design only.
+**Method:** source-read of every existing pipeline / fixture / G-step mechanism + cross-check against the customisation classes enumerated in `internal_docs/upgrade/CustomisationInventory_v13.md` §10 (held branch `feat/customisation-inventory-v13` @ `c6f7f79`). No new code; verification + design only.
 **Memory rule applied:** [`feedback_tactical_vs_consultant_mode.md`](../../../home/hasan/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/feedback_tactical_vs_consultant_mode.md) — every coverage claim below is backed by a file:line citation, not a memory note.
 
 ---
@@ -58,7 +58,7 @@ Of 11 customisation classes audited, **0 have full coverage on either Discover o
 | `$BESPOKE_ROOT/PRODUCTION_20260404/apps/returnable/returnable/hooks.py:14-16` | `fixtures = [{"dt": "Custom Field", "filters": [...8 fieldnames]}]`. Same in live `$BESPOKE_ROOT/returnable/`. No Property Setter in this app. |
 | `$BESPOKE_ROOT/PRODUCTION_20260404/apps/route_planner/route_planner/hooks.py` | No `fixtures` declaration. Same in live `$BESPOKE_ROOT/route_planner/`. |
 | `tools/vm_scripts/` directory listing | Only G1, G2, G-pre, plus `h4a_apikeys.py`, `h4e_patch_parms.py`, `poll_gunicorn.py`, `install_specific/`. No G3+ customisation handlers exist. |
-| `docs/upgrade/CustomisationInventory_v13.md` §10 (`feat/customisation-inventory-v13` @ `c6f7f79`) | Pass-B SQL set — defines the Discover-side query surface for every class. |
+| `internal_docs/upgrade/CustomisationInventory_v13.md` §10 (`feat/customisation-inventory-v13` @ `c6f7f79`) | Pass-B SQL set — defines the Discover-side query surface for every class. |
 
 ## 4. Methodology — how to read each class verdict
 
@@ -420,6 +420,6 @@ The recommendations below are advisory; the audit defers to the operator.
 ## 11. Sources of authority for follow-on work
 
 - This document — verdicts and remediation proposals.
-- `docs/upgrade/CustomisationInventory_v13.md` (held branch `feat/customisation-inventory-v13` @ `c6f7f79`) — Pass A inventory and §10 SQL set.
+- `internal_docs/upgrade/CustomisationInventory_v13.md` (held branch `feat/customisation-inventory-v13` @ `c6f7f79`) — Pass A inventory and §10 SQL set.
 - `~/.claude/plans/production-v14-migration-prep.md` step 1.5 — the audit's place in the V14 prep sequence.
 - `feedback_tactical_vs_consultant_mode.md` — the lesson behind this audit.

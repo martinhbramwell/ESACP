@@ -124,7 +124,7 @@ Direct to PR + merge per approved D5. Local GPG-signed merge commit, branch reta
 
 1. **#234** — `provisionGeneric` CLI subcommand must be implemented before Run 03 can begin. Open.
 2. New session on a new branch off `main` (per 1:1:1 discipline) — e.g., `feat/234-cli-provision-generic` for #234 itself, then `accept/03-cli-pseudo-company-wizard-backup` for Run 03 proper.
-3. Agenda file `docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md` remains frozen (#246 deferred).
+3. Agenda file `internal_docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md` remains frozen (#246 deferred).
 
 ---
 

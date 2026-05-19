@@ -70,7 +70,7 @@ Diff: +22 / -8. `node --check` clean. No Python-side changes.
 - `accept/06-ui-pseudo-wizard @ b1a20f2` untouched — Run 06 scaffold intact, ready to resume.
 - `fix/268-waitforjob-error-terminal @ 3499447` preserved (prior session).
 - **Three-session sequence #268 → #267 → Run 06 attempt 2**: steps 1 and 2 complete. Step 3 (Run 06 attempt 2) is the runtime acceptance for both fixes.
-- Run 06 agenda: `docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md` (unchanged from prior session's halt).
+- Run 06 agenda: `internal_docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md` (unchanged from prior session's halt).
 
 ## Reminders to user (unresolved concerns)
 
@@ -85,5 +85,5 @@ Diff: +22 / -8. `node --check` clean. No Python-side changes.
 - Fix commit: `af05f80` on `fix/267-wizard-manufacturing-modal-race`
 - Merge commit: `a3831b9` on `main`
 - PR #270: https://github.com/martinhbramwell/ESACP/pull/270
-- Prior-sequence minutes: `docs/SessionLogs/2026-04-21-1100-session-minutes.md` (#268)
-- Run 06 agenda (unchanged, ready to resume): `docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md`
+- Prior-sequence minutes: `internal_docs/SessionLogs/2026-04-21-1100-session-minutes.md` (#268)
+- Run 06 agenda (unchanged, ready to resume): `internal_docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md`

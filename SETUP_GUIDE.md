@@ -3,7 +3,7 @@
 > **Status: historical — Stage 1 (VirtualBox / WSL).** Stage 1 was permanently
 > retired when the VBox hardware failed on 2026-03-17. The current provisioning
 > path is the Gen 3 pipeline — use `./tools/esacp.py provision <hostname>` or
-> the Cytoscape control plane. See `README.md` and `docs/BuildOutProcedure.md`
+> the Cytoscape control plane. See `README.md` and `internal_docs/BuildOutProcedure.md`
 > for the active procedure. The body below is preserved as a record of the
 > Stage 1 workflow; commands that reference `orchestration/provision.py` or
 > `dev.yml` inventory are from that era and do not map to the current tree.

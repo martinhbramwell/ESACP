@@ -17,7 +17,7 @@ Claude ::    << Peter, just skim this bit.  It changes ... a lot! >>
   The Cytoscape/Grafana control plane is where those two things meet — it's the moment the system becomes self-describing and self-operating, not just well-documented.    
    
   ---                                                                                                                                                                      
-  With that framing: the esacp.py subcommand table belongs in docs/SETUP_GUIDE.md because a new operator needs it, but it has no bearing on session work. I'll put it
+  With that framing: the esacp.py subcommand table belongs in internal_docs/SETUP_GUIDE.md because a new operator needs it, but it has no bearing on session work. I'll put it
   there, commit everything, and then we move to iptables persistence on toshiba.                                                                                           
                                                           
 Me ::

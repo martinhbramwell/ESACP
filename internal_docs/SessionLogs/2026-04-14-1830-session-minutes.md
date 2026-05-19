@@ -12,7 +12,7 @@ The string `saconsole` is not one identifier — it conflates **at least 9 disti
 
 - **648 occurrences** across **110 files** (nearly double the ~320 estimate in the issue)
 - ~377 occurrences in ~57 active code files need migration
-- ~271 occurrences in ~47 files are docs/session-logs/retired VBox — left as-is
+- ~271 occurrences in ~47 files are internal_docs/session-logs/retired VBox — left as-is
 
 ### Breakdown by category
 

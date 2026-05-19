@@ -189,7 +189,7 @@ out of scope for v1).
 
 ## QA verdicts batched
 
-See `docs/qa-log.md` — Session 19 entries. Six verdicts in-session
+See `internal_docs/qa-log.md` — Session 19 entries. Six verdicts in-session
 (three Trigger 1 + three Trigger 3 across BaRe / LogiSoluMemory /
 ESACP), plus session-close commit Trigger 1 + Trigger 3.
 
@@ -389,9 +389,9 @@ warrants tightening is Session 20+ work.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-09-0910-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-09-0910-next-agenda.md` (Session 20 brief)
-- `docs/qa-log.md` — Session 19 verdicts appended
+- `internal_docs/SessionLogs/2026-05-09-0910-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-09-0910-next-agenda.md` (Session 20 brief)
+- `internal_docs/qa-log.md` — Session 19 verdicts appended
 - `CLAUDE.md` — minimal BaRe cross-reference (committed in `6913c80`)
 - `martinhbramwell/BaRe` — new `README.md` (commit `8653412`)
 - `martinhbramwell/LogiSoluMemory` — `project_bare_bucket_1_association.md`

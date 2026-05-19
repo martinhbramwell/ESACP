@@ -77,9 +77,9 @@ temp/
 !selfsigned.crt
 
 # Generated files
-docs/diagrams/*.mmd
-docs/diagrams/*.svg
-docs/diagrams/*.png
+internal_docs/diagrams/*.mmd
+internal_docs/diagrams/*.svg
+internal_docs/diagrams/*.png
 
 # Terraform state (future stages)
 *.tfstate
@@ -129,4 +129,4 @@ test-results/
 old_*.md
 
 # Scratch ideas (not for repo)
-docs/Ideas/
+internal_docs/Ideas/

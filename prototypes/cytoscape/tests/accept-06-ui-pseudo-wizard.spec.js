@@ -19,8 +19,8 @@ import { BASE_URL, API_URL, waitForGraph, selectNode, clickInfoButton, waitForJo
  *      that its SQL references Pseudo-Co (parity with B03).
  *
  * Plan:    ~/.claude/plans/acceptance-matrix-transport-parity.md
- * Agenda:  docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md
- * Params:  docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml
+ * Agenda:  internal_docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md
+ * Params:  internal_docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml
  *
  * Administrator password: derived from config/build_secrets.sops.yml (erp_user_pwd).
  */
@@ -30,7 +30,7 @@ const __dirname  = path.dirname(__filename)
 const PROJECT_ROOT = path.resolve(__dirname, '../../..')
 const PARAM_PATH = path.join(
   PROJECT_ROOT,
-  'docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml'
+  'internal_docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml'
 )
 const BUILD_SECRETS_PATH = path.join(PROJECT_ROOT, 'config/build_secrets.sops.yml')
 const GOLDEN_BACKUPS_DIR = path.join(PROJECT_ROOT, 'platforms/kvm/golden_backups')

@@ -100,7 +100,7 @@ Non-obvious behaviours:
 - `provisionVM` Ansible output filter: shows PLAY headers, ✓ ok, ★ changed, ❌ fatal, RECAP only (filter lives in `tools/pipeline/stages/common/ansible_output.py`; orchestrator is `tools/pipeline/orchestration/ansible_provision.py`)
 - `validateObservability` credential order: `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` env vars → SSH hub `/opt/observability/.env` → interactive prompt
 - `buildVM`: uses `virsh vol-create-as` + `virsh vol-upload` for seed ISO — not `sudo cp` (hangs in uvicorn threads)
-- `snapShotVM`: KVM-only; dispatcher calls `pipeline/orchestration/snapshot_ops.py` (local virsh). Standalone `platforms/kvm/snapshot.py` still exists for operator use (revert/delete/start/state) per `docs/BuildOutProcedure.md`.
+- `snapShotVM`: KVM-only; dispatcher calls `pipeline/orchestration/snapshot_ops.py` (local virsh). Standalone `platforms/kvm/snapshot.py` still exists for operator use (revert/delete/start/state) per `internal_docs/BuildOutProcedure.md`.
 - `destroyVM` (legacy, local libvirt only): uses `tools/pipeline/orchestration/local_vm_teardown.py` for inspect + teardown; not to be confused with `destroy` which runs the full `macro/destroy.py`
 
 ## diagnose.py — Remote VM Process Diagnostics

@@ -111,7 +111,7 @@ Spot-check of B06 Chart of Accounts confirms `'Pseudo-Co','PSC'`, `'CAD'`, `'Can
 
 Commit contents (avoiding Run-04/05 commit pattern):
 - `platforms/kvm/golden_backups/20260421_114520-dev01_iridium_blue.tgz` (B06)
-- `docs/SessionLogs/2026-04-21-1256-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-04-21-1256-session-minutes.md` (this file)
 
 **Not committed** (runtime drift identical to prior matrix PRs):
 - `ansible/group_vars/all.yml` (+1/-1)
@@ -140,10 +140,10 @@ PR #272 merged `2026-04-21T17:12:28Z` via merge commit `29aec7a` on main.
 
 - Merge-main-into-branch: `16ff71d` on `accept/06-ui-pseudo-wizard`
 - B06 artefact: `platforms/kvm/golden_backups/20260421_114520-dev01_iridium_blue.tgz` (1358769 bytes)
-- This minutes: `docs/SessionLogs/2026-04-21-1256-session-minutes.md`
-- Agenda (unchanged): `docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md`
-- Params (unchanged): `docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml`
+- This minutes: `internal_docs/SessionLogs/2026-04-21-1256-session-minutes.md`
+- Agenda (unchanged): `internal_docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md`
+- Params (unchanged): `internal_docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml`
 - Spec (unchanged from scaffold): `prototypes/cytoscape/tests/accept-06-ui-pseudo-wizard.spec.js`
 - PR #272 — merge commit `29aec7a`, merged 2026-04-21T17:12:28Z
 - Issue #271 (deferred, out of scope): https://github.com/martinhbramwell/ESACP/issues/271
-- Prior-session minutes: `docs/SessionLogs/2026-04-21-1121-session-minutes.md` (#267 fix), `2026-04-21-1100-session-minutes.md` (#268 fix), `2026-04-21-1033-session-minutes.md` (Run 06 attempt 1 halt)
+- Prior-session minutes: `internal_docs/SessionLogs/2026-04-21-1121-session-minutes.md` (#267 fix), `2026-04-21-1100-session-minutes.md` (#268 fix), `2026-04-21-1033-session-minutes.md` (Run 06 attempt 1 halt)

@@ -15,7 +15,7 @@ Prove a dev VM can be built from the CLI and end up running full company-specifi
 
 ## Parameter file
 
-`docs/SessionLogs/acceptance-matrix/params/02-cli-full-company-specific.yml`
+`internal_docs/SessionLogs/acceptance-matrix/params/02-cli-full-company-specific.yml`
 
 ```yaml
 run: "02"

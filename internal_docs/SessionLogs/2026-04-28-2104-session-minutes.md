@@ -12,7 +12,7 @@ A multi-session plan for filling the capability gaps (1)–(5) was designed, rev
 
 ### 1. Capability assessment
 
-- Read the just-merged audit (`docs/upgrade/DMCustomisationCapabilityAudit.md`, PR #314).
+- Read the just-merged audit (`internal_docs/upgrade/DMCustomisationCapabilityAudit.md`, PR #314).
 - Reported per-step capability against operator's 5-step goal:
   - Step 1 (receive backup) ✅ existing pipeline.
   - Step 2 (identify) ❌ 0 of 11 classes have Discover coverage.
@@ -104,8 +104,8 @@ Operator approved pre-designing the delta report schema even though only Phase 1
 
 - Plan: `~/.claude/plans/customisation-discovery-promotion.md`
 - Umbrella plan: `~/.claude/plans/production-v14-migration-prep.md`
-- Audit: `docs/upgrade/DMCustomisationCapabilityAudit.md`
-- Inventory (Pass A, held branch): `docs/upgrade/CustomisationInventory_v13.md` @ `c6f7f79`
+- Audit: `internal_docs/upgrade/DMCustomisationCapabilityAudit.md`
+- Inventory (Pass A, held branch): `internal_docs/upgrade/CustomisationInventory_v13.md` @ `c6f7f79`
 - Mission: `memory/mission_vision.md`
 
 ## SCC handoff

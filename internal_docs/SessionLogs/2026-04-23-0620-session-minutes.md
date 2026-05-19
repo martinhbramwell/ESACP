@@ -109,7 +109,7 @@ the scheduled Tier 0 parking-lot sweep — not a finding, per the plan.
 |---|---|
 | `~/.claude/plans/open-issues-purge.md` | full re-draft (258 lines); Appendix A preserves prior 2026-04-21 plan verbatim |
 | `memory/MEMORY.md` | "Short-Term Priority" header + body reframed rung-by-rung; notes 2026-04-23 revision and #202 promotion |
-| `docs/SessionLogs/2026-04-23-0620-session-minutes.md` | this file |
+| `internal_docs/SessionLogs/2026-04-23-0620-session-minutes.md` | this file |
 
 Issue comments (not file changes, but durable homes):
 - #202 → issuecomment-4303600579
@@ -157,6 +157,6 @@ Issue comments (not file changes, but durable homes):
   <https://github.com/martinhbramwell/ESACP/issues/202#issuecomment-4303600579>
 - #187 park-with-trigger comment:
   <https://github.com/martinhbramwell/ESACP/issues/187#issuecomment-4303600891>
-- This minutes: `docs/SessionLogs/2026-04-23-0620-session-minutes.md`
-- Prior minutes: `docs/SessionLogs/2026-04-22-1951-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-23-0620-session-minutes.md`
+- Prior minutes: `internal_docs/SessionLogs/2026-04-22-1951-session-minutes.md`
   (#220 Run 01 acceptance)

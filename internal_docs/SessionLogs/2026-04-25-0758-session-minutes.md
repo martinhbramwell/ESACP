@@ -25,7 +25,7 @@ Modal-handler refactor + #296/#297 fix landed on sub-3 (`cbf8f17`). PR #299 open
 
 ### Session-start (corrected after operator pushback)
 
-Initial session-start review framed working-tree state as "residue" — was wrong. Operator: *"Why do I have to keep helping you clean up your own residue. ... you did not properly clean up after yourself."* The dirty tree was deliberately handed off by the 1844 minutes ("intentionally not committed; next session decides"); I had read only the current branch's `docs/SessionLogs/` listing and missed the 1844 minutes on `main`. Memory written: [`feedback_clean_up_your_own_residue.md`](../../memory/feedback_clean_up_your_own_residue.md) — session-start protocol now requires `git log --all --since="2 days ago" -- 'docs/SessionLogs/*'` to catch handoffs on other branches.
+Initial session-start review framed working-tree state as "residue" — was wrong. Operator: *"Why do I have to keep helping you clean up your own residue. ... you did not properly clean up after yourself."* The dirty tree was deliberately handed off by the 1844 minutes ("intentionally not committed; next session decides"); I had read only the current branch's `internal_docs/SessionLogs/` listing and missed the 1844 minutes on `main`. Memory written: [`feedback_clean_up_your_own_residue.md`](../../memory/feedback_clean_up_your_own_residue.md) — session-start protocol now requires `git log --all --since="2 days ago" -- 'internal_docs/SessionLogs/*'` to catch handoffs on other branches.
 
 Operator confirmed objective + 5-step sequence. Began work.
 
@@ -115,7 +115,7 @@ Filed as **#298**. The screen-4a textbox-render race fires before the wizard eve
 
 ## Lessons (for future sessions)
 
-1. **Read prior minutes from `main`, not just current branch.** A prior session can write minutes/agenda to `main` while the working branch lives on a sub-branch. Session-start protocol must `git log --all --since` for recent `docs/SessionLogs/*` to find the latest, regardless of branch. (Codified in `feedback_clean_up_your_own_residue.md`.)
+1. **Read prior minutes from `main`, not just current branch.** A prior session can write minutes/agenda to `main` while the working branch lives on a sub-branch. Session-start protocol must `git log --all --since` for recent `internal_docs/SessionLogs/*` to find the latest, regardless of branch. (Codified in `feedback_clean_up_your_own_residue.md`.)
 2. **Don't call your own deliberate state "residue".** When the prior session's minutes explicitly hand off in-flight state with "next session decides", the next session executes the decision. Asking the operator to adjudicate cleanup of files only I touched is a form of work-delegation back to the operator.
 3. **Bisect across versions, not just attempts.** When a fix appears flaky (1 PASS, 1 FAIL with same code), test the BASELINE (pre-fix) too — the failure may be entirely orthogonal to your changes. Tonight's bisect attempt 4 (HEAD baseline) was decisive: same failure, no fix needed; surfaced #298 as separate root cause.
 4. **Path-coverage gaps in PR acceptance compound.** PR #294's "4× green" used only `wizard-mode=existing`. PR #299's acceptance is even narrower (1 green run, 3 blocked by #298). Each sibling-issue session needs to enumerate the dispatch transports + replay-modes its acceptance covers, not borrow trust from prior PRs that took different paths.
@@ -123,10 +123,10 @@ Filed as **#298**. The screen-4a textbox-render race fires before the wizard eve
 
 ## File trail
 
-- Prior minutes: [`docs/SessionLogs/2026-04-24-1844-session-minutes.md`](2026-04-24-1844-session-minutes.md)
-- Prior next-agenda: [`docs/SessionLogs/2026-04-24-1844-next-agenda.md`](2026-04-24-1844-next-agenda.md)
-- This-session next-agenda: [`docs/SessionLogs/2026-04-25-0758-next-agenda.md`](2026-04-25-0758-next-agenda.md)
+- Prior minutes: [`internal_docs/SessionLogs/2026-04-24-1844-session-minutes.md`](2026-04-24-1844-session-minutes.md)
+- Prior next-agenda: [`internal_docs/SessionLogs/2026-04-24-1844-next-agenda.md`](2026-04-24-1844-next-agenda.md)
+- This-session next-agenda: [`internal_docs/SessionLogs/2026-04-25-0758-next-agenda.md`](2026-04-25-0758-next-agenda.md)
 - Commits: `a60b8f0` (main), `cbf8f17` (sub-3), this minutes
 - PR: [#299](https://github.com/martinhbramwell/ESACP/pull/299)
 - Issues: [#296](https://github.com/martinhbramwell/ESACP/issues/296) (open, will close on merge), [#297](https://github.com/martinhbramwell/ESACP/issues/297) (open, will close on merge), [#298](https://github.com/martinhbramwell/ESACP/issues/298) (open, next-session primary)
-- This minutes: `docs/SessionLogs/2026-04-25-0758-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-25-0758-session-minutes.md`

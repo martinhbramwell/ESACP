@@ -46,9 +46,9 @@ Posted in-session (not deferred to post-close-commit) — pattern shift from Ses
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-09-1818-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-09-1818-next-agenda.md` (Session 24 brief)
-- `docs/qa-log.md` — Session 23 rows appended (2 rows)
+- `internal_docs/SessionLogs/2026-05-09-1818-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-09-1818-next-agenda.md` (Session 24 brief)
+- `internal_docs/qa-log.md` — Session 23 rows appended (2 rows)
 - `martinhbramwell/LogiSoluKnowBase/issues/3` — third migrated issue
 - `martinhbramwell/ESACP/issues/357` — closed with pointer comment
 - `martinhbramwell/ESACP/issues/358` — Session 23 progress comment posted

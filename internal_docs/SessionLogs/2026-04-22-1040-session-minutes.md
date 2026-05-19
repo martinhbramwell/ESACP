@@ -24,7 +24,7 @@ Actions taken:
 
 ## Objective — #276 outcome
 
-Replaced the 17-line heredoc block in `tools/cf-mcp-refresh` (original lines 56–72) with a 3-line sibling invocation calling a new standalone `tools/cf-mcp-write-tokens.py` (37 lines). Token JSON is piped via stdin (avoids `$RESPONSE` interpolation into a triple-quoted Python literal and `ps aux` exposure); `mcp_auth_dir` + `url_hash` pass via argv. The sibling is located via `BASH_SOURCE`-relative path, so both files must be installed to the same `PATH` directory; `docs/BuildOutProcedure.md` install step updated accordingly.
+Replaced the 17-line heredoc block in `tools/cf-mcp-refresh` (original lines 56–72) with a 3-line sibling invocation calling a new standalone `tools/cf-mcp-write-tokens.py` (37 lines). Token JSON is piped via stdin (avoids `$RESPONSE` interpolation into a triple-quoted Python literal and `ps aux` exposure); `mcp_auth_dir` + `url_hash` pass via argv. The sibling is located via `BASH_SOURCE`-relative path, so both files must be installed to the same `PATH` directory; `internal_docs/BuildOutProcedure.md` install step updated accordingly.
 
 The inline `python3 -c "…"` one-liners at refresh-script lines 36 (`refresh_token` extract) and 50 (`access_token` validation) are intentionally kept — they are not heredocs and are out of scope per #276. Recorded in the commit body for future readers.
 
@@ -34,7 +34,7 @@ The inline `python3 -c "…"` one-liners at refresh-script lines 36 (`refresh_to
 |---|---|
 | `tools/cf-mcp-write-tokens.py` | **NEW** — 37-line standalone stdin→token-writer, shebang + `chmod +x` |
 | `tools/cf-mcp-refresh` | Heredoc block replaced with 3-line sibling call (73 → 58 lines) |
-| `docs/BuildOutProcedure.md` | Install step now covers both files, with note on colocation requirement |
+| `internal_docs/BuildOutProcedure.md` | Install step now covers both files, with note on colocation requirement |
 
 ## Memory + plan updates (outside repo)
 
@@ -84,5 +84,5 @@ The inline `python3 -c "…"` one-liners at refresh-script lines 36 (`refresh_to
 - Plan file: `~/.claude/plans/open-issues-purge.md` (Phase 3A scope narrowed, Phase 1B follow-up annotated)
 - New memory: `memory/project_generic_site_purpose.md`
 - MEMORY.md: Critical-Rules pointer + open-issues 21 → 19
-- This minutes: `docs/SessionLogs/2026-04-22-1040-session-minutes.md`
-- Prior session minutes: `docs/SessionLogs/2026-04-22-0801-session-minutes.md` (Phase 2C umbrella-branch policy)
+- This minutes: `internal_docs/SessionLogs/2026-04-22-1040-session-minutes.md`
+- Prior session minutes: `internal_docs/SessionLogs/2026-04-22-0801-session-minutes.md` (Phase 2C umbrella-branch policy)

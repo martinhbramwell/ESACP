@@ -99,7 +99,7 @@ symlink target is transparent to them). Restore mode untouched.
 
 ### MATRIX-CLOSEOUT.md erratum
 
-Added a dated paragraph at the foot of `docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md`
+Added a dated paragraph at the foot of `internal_docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md`
 noting that runs 03/04/06/07 were **site-generic** (apps.txt /
 apps.json / `bench list-apps` clean) but **not bench-generic**
 (bench layer contained ce_sri et al until #289). CLI↔UI parity
@@ -169,8 +169,8 @@ Sub-branch retained.
 | `tools/pipeline/stages/stage_6_base_platform/check_{ssh,envars,apps,infra}.py` | NEW — decomposed checks; mode-sensitive + absence checks |
 | `tools/pipeline/stages/stage_6_base_platform/sections/*.sh` | NEW — 1 `_helpers.sh`, 7 `ps_*`, 6 `cs_*` section files |
 | `tools/size_baselines.json` | Ratchet bookkeeping for the new files + shrunk verify.py |
-| `docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md` | Erratum appended |
-| `docs/SessionLogs/2026-04-23-1352-session-minutes.md` | this file (on main) |
+| `internal_docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md` | Erratum appended |
+| `internal_docs/SessionLogs/2026-04-23-1352-session-minutes.md` | this file (on main) |
 
 Landing summary: 24 files, +515/-282 LOC on the sub-branch. Code lands on umbrella only. Main gets the minutes.
 
@@ -204,10 +204,10 @@ Landing summary: 24 files, +515/-282 LOC on the sub-branch. Code lands on umbrel
 
 ## File trail
 
-- Prior minutes: `docs/SessionLogs/2026-04-23-0915-session-minutes.md`
+- Prior minutes: `internal_docs/SessionLogs/2026-04-23-0915-session-minutes.md`
 - Purge plan: `~/.claude/plans/open-issues-purge.md` (Pre-Tier 0 section)
-- Matrix closeout (with erratum on umbrella): `docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md`
+- Matrix closeout (with erratum on umbrella): `internal_docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md`
 - PR: [#291](https://github.com/martinhbramwell/ESACP/pull/291) (merged `9c66ccf`)
 - Commit: `bc1742d`
-- This minutes: `docs/SessionLogs/2026-04-23-1352-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-23-1352-session-minutes.md`
 - Issue: [#289](https://github.com/martinhbramwell/ESACP/issues/289) (open until umbrella→main)

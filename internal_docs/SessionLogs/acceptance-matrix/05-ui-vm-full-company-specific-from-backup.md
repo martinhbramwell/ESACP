@@ -15,7 +15,7 @@ Prove that a dev VM can be built through the Cytoscape UI and end up running ful
 
 ## Parameter file
 
-`docs/SessionLogs/acceptance-matrix/params/05-ui-full-company-specific.yml`
+`internal_docs/SessionLogs/acceptance-matrix/params/05-ui-full-company-specific.yml`
 
 ```yaml
 run: "05"

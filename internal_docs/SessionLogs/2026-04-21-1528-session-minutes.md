@@ -101,5 +101,5 @@ Added a new section pointing at the plan file, same pattern as Gen 3 plan refere
 
 - Plan file: `/home/hasan/.claude/plans/open-issues-purge.md` (new)
 - MEMORY.md pointer added to "Open-Issues Purge Plan (post-matrix)" section
-- This minutes: `docs/SessionLogs/2026-04-21-1528-session-minutes.md`
-- Prior-session minutes: `docs/SessionLogs/2026-04-21-1420-session-minutes.md` (Run 07 GREEN + matrix closeout)
+- This minutes: `internal_docs/SessionLogs/2026-04-21-1528-session-minutes.md`
+- Prior-session minutes: `internal_docs/SessionLogs/2026-04-21-1420-session-minutes.md` (Run 07 GREEN + matrix closeout)

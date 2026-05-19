@@ -201,6 +201,6 @@ Per `feedback_pr_merge_before_session_close.md`: both `mergedAt` and
 - #227 finding comment: <https://github.com/martinhbramwell/ESACP/issues/227#issuecomment-4301029085>
 - New feedback memory: `feedback_enumerate_mechanisms_before_committing.md`
 - Updated memory: `MEMORY.md` (issue ledger swap)
-- This minutes: `docs/SessionLogs/2026-04-22-1951-session-minutes.md`
-- Prior minutes: `docs/SessionLogs/2026-04-22-1903-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-22-1951-session-minutes.md`
+- Prior minutes: `internal_docs/SessionLogs/2026-04-22-1903-session-minutes.md`
   (Phase 3B saconsole bundle)

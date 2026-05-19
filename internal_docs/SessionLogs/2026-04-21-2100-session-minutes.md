@@ -89,7 +89,7 @@ SUBPROCESS_EXCEPTIONS entries.
 
 The `platforms/kvm/snapshot.py` standalone script is intentionally
 untouched. It remains the operator-facing tool referenced in
-`docs/BuildOutProcedure.md` for revert/delete/start/state operations.
+`internal_docs/BuildOutProcedure.md` for revert/delete/start/state operations.
 
 ## Files changed
 
@@ -98,7 +98,7 @@ untouched. It remains the operator-facing tool referenced in
 | `tools/cli/snapshot_vm.py` | 29 → 27 lines; subprocess removed, calls `snapshot_ops` |
 | `tools/verify_phase7.py` | Removed `snapshot_vm.py` exception; added `verify_*.py` SUT carve-out |
 | `tools/CLAUDE.md` | Removed `#206 deferral` bullet; updated `snapShotVM` note |
-| `docs/CLI.md` | Updated `snapShotVM` wiring note |
+| `internal_docs/CLI.md` | Updated `snapShotVM` wiring note |
 | `tools/size_baselines.json` | Auto-ratcheted by pre-commit hook (29 → 27) |
 
 ## Acceptance verification
@@ -179,6 +179,6 @@ will only re-mention when it actively costs time.
   "Operator Environment" index section
 - New memory file: `memory/feedback_gpg_agent_cache_ttl.md`
 - Issue comments: #206#issuecomment-4292974641, #275#issuecomment-4292975097
-- This minutes: `docs/SessionLogs/2026-04-21-2100-session-minutes.md`
-- Prior-session minutes: `docs/SessionLogs/2026-04-21-1830-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-21-2100-session-minutes.md`
+- Prior-session minutes: `internal_docs/SessionLogs/2026-04-21-1830-session-minutes.md`
   (Phase 1B repo/tooling sweep)

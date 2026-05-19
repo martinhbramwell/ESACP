@@ -10,7 +10,7 @@
 #
 # B03 artefact: captured automatically by capture_golden_backup() after the
 # wizard completes — lands at platforms/kvm/golden_backups/<ts>-generic_<zone>.tgz.
-# The agenda's prescribed path (docs/SessionLogs/acceptance-matrix/artefacts/
+# The agenda's prescribed path (internal_docs/SessionLogs/acceptance-matrix/artefacts/
 # B03-wizard.sql.gz) predates the provisionGeneric/wizard_completion pipeline
 # delivered by PR #255 — current tooling writes a .tgz to golden_backups/, and
 # that .tgz IS the B03 artefact committed alongside the spec.

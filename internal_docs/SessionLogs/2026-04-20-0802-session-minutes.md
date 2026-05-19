@@ -1,7 +1,7 @@
 # Session Minutes — 2026-04-20 08:02 EDT — Matrix Run 02, attempt 4 — HALTED
 
 **Branch:** `accept/02-cli-full-company-specific` (off `main@8e695a4`)
-**Agenda:** `docs/SessionLogs/acceptance-matrix/02-cli-vm-full-logichem-from-backup.md` (filename frozen pending #246)
+**Agenda:** `internal_docs/SessionLogs/acceptance-matrix/02-cli-vm-full-logichem-from-backup.md` (filename frozen pending #246)
 **Plan:** `~/.claude/plans/acceptance-matrix-transport-parity.md`
 
 ---
@@ -35,7 +35,7 @@ Close Matrix Run 02, attempt 4 — CLI-driven dev VM build with full company-spe
 
 | File | Purpose | Commit |
 |---|---|---|
-| `docs/SessionLogs/acceptance-matrix/params/02-cli-full-company-specific.yml` | Run 02 parameters | `9680b5f` |
+| `internal_docs/SessionLogs/acceptance-matrix/params/02-cli-full-company-specific.yml` | Run 02 parameters | `9680b5f` |
 | `prototypes/cytoscape/tests/accept-02-cli-full-company-specific.spec.js` | Run 02 Playwright spec (190 lines) | `9680b5f` |
 
 Commit `9680b5f` — signed, Conventional Commits format, Claude co-author trailer, refs #239 + #246.

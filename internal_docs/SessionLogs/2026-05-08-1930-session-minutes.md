@@ -153,7 +153,7 @@ gate.
 
 ## QA verdicts batched
 
-See `docs/qa-log.md` rows for 2026-05-08 — Session 17 entries:
+See `internal_docs/qa-log.md` rows for 2026-05-08 — Session 17 entries:
 
 1. Trigger 3 — pre-push of seed commit `f7138d1` (130 files / 5128
    insertions to fresh remote). Verdict approve. Notable: machine-name
@@ -166,12 +166,12 @@ See `docs/qa-log.md` rows for 2026-05-08 — Session 17 entries:
 3. Trigger 1 — pre-commit on this session-close doc-sweep on ESACP
    main (verdict effectively gates the immediate push by established
    convention rows 53–56). Verdict approve. See qa-log row 3 (line 59
-   of `docs/qa-log.md`).
+   of `internal_docs/qa-log.md`).
 4. Trigger 5 — pre-`gh issue close #359`. Verdict
    **approve-with-conditions** (sole condition: surface the item-5
    partial-scope note at top of closing comment, not bottom —
    discharged before close ran). See qa-log row 4 (line 60 of
-   `docs/qa-log.md`, added in follow-up commit) + closing comment on
+   `internal_docs/qa-log.md`, added in follow-up commit) + closing comment on
    #359 ([4409929832](https://github.com/martinhbramwell/ESACP/issues/359#issuecomment-4409929832))
    for the verdict transcript.
 
@@ -225,10 +225,10 @@ No deferred forward-tense promises remain.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-08-1930-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-08-1930-next-agenda.md` (Session 18 brief —
+- `internal_docs/SessionLogs/2026-05-08-1930-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-08-1930-next-agenda.md` (Session 18 brief —
   LogiSoluKnowBase standup)
-- `docs/qa-log.md` (Session 17 verdicts appended)
+- `internal_docs/qa-log.md` (Session 17 verdicts appended)
 - `CLAUDE.md` (one-paragraph addition referencing LogiSoluMemory home)
 - New repo `martinhbramwell/LogiSoluMemory` — created, two commits on
   `main` (`f7138d1` seed + `951e8e4` index pointer)

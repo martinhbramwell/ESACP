@@ -1,7 +1,7 @@
 # Session Minutes — Run-04→Run-05 reminder sweep (4 reminders resolved)
 
 **Date:** 2026-04-20 ~18:05–18:43 EDT
-**Branches:** `fix/sync-check-dormant-vms`, `docs/housekeeping-post-run-04`
+**Branches:** `fix/sync-check-dormant-vms`, `internal_docs/housekeeping-post-run-04`
 **PRs:** #263 (merged `fc80654` at 22:26:05Z), #264 (merged `b892053` at 22:30:15Z)
 **Out-of-repo:** `~/.claude/hooks/memory_md_merge_reminder.py` + `~/.claude/settings.json` SessionEnd entry
 
@@ -26,7 +26,7 @@ User flagged that strict 1:1:1 was slowing the housekeeping queue. Agreed amendm
 - **Substantive** project software changes (pipeline, dispatchers, SUT scripts, Ansible, SOPS-backed config): strict 1:1:1.
 - **Housekeeping** bundles (docs, agenda wording, external Claude Code config, `.gitignore`): one branch may close multiple issues, under guardrails (each issue filed; PR titled as sweep; no mixing; per-file size-check ratchet still applies).
 
-PR #264 is the first bundle under the new rule — one branch `docs/housekeeping-post-run-04` closing #260 + #262.
+PR #264 is the first bundle under the new rule — one branch `internal_docs/housekeeping-post-run-04` closing #260 + #262.
 
 Landed in `CLAUDE.md` Session Protocol and `memory/feedback_issue_branch_session_discipline.md`.
 
@@ -36,7 +36,7 @@ Landed in `CLAUDE.md` Session Protocol and `memory/feedback_issue_branch_session
 |---|---|---|
 | `2062d1a` | fix/sync-check-dormant-vms | fix(sync_check): distinguish dormant VMs from should-be-up — add expected_state |
 | `fc80654` | main | Merge PR #263 |
-| `6d1973e` | docs/housekeeping-post-run-04 | docs(sweep): agenda CLI scrub + 1:1:1 amendment for housekeeping bundles |
+| `6d1973e` | internal_docs/housekeeping-post-run-04 | docs(sweep): agenda CLI scrub + 1:1:1 amendment for housekeeping bundles |
 | `b892053` | main | Merge PR #264 |
 
 ## R1 — sync_check dormant VMs (#259 → PR #263)
@@ -58,7 +58,7 @@ Agendas 02/03/04 referenced the pre-#255 `./tools/esacp.py provision --params <y
 
 Agendas 05/06/07 inspected — no CLI wording present (UI transport). No scrub needed.
 
-Acceptance: `grep -rn 'provision --params' docs/SessionLogs/acceptance-matrix/*.md` → zero hits.
+Acceptance: `grep -rn 'provision --params' internal_docs/SessionLogs/acceptance-matrix/*.md` → zero hits.
 
 **Scope deviation from #260 body:** issue text said "Do not touch 01–03 agendas (historical, already executed)," but grep showed 02/03 also had the drift, and the acceptance clause was "zero hits." Resolved in favour of the acceptance clause; documented on the issue comment for auditability.
 
@@ -93,4 +93,4 @@ Closed this session: #259, #260, #261, #262.
 
 ## Next
 
-Matrix Run 05 — UI-driven dev VM full company-specific restore from production backup. Agenda: `docs/SessionLogs/acceptance-matrix/05-ui-vm-full-company-specific-from-backup.md`. Destroys dev01 first (currently running B03-restored Pseudo-Co).
+Matrix Run 05 — UI-driven dev VM full company-specific restore from production backup. Agenda: `internal_docs/SessionLogs/acceptance-matrix/05-ui-vm-full-company-specific-from-backup.md`. Destroys dev01 first (currently running B03-restored Pseudo-Co).

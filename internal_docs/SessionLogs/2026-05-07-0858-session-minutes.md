@@ -258,10 +258,10 @@ Open ESACP issue count: 37 → 30 (net -7).
 
 Follow-up commit `c7f31c4` on main:
 
-- `docs/SessionLogs/2026-05-07-0858-next-agenda.md` (substantial
+- `internal_docs/SessionLogs/2026-05-07-0858-next-agenda.md` (substantial
   rewrite — open-issue count, resolved decisions section, backlog
   reordered under no-rework principle, reminders updated)
-- `docs/qa-log.md` (single appended row for the post-close
+- `internal_docs/qa-log.md` (single appended row for the post-close
   pre-commit verdict)
 
 Push: `1e5d0e9..c7f31c4 main -> main`.

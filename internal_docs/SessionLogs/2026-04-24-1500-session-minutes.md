@@ -71,8 +71,8 @@ Direction from operator: defer #292 closure; next session re-runs matrix phases 
 
 | File | Change | Branch |
 |---|---|---|
-| `docs/SessionLogs/2026-04-24-1500-session-minutes.md` | this file | main |
-| `docs/SessionLogs/2026-04-24-1500-next-agenda.md` | next agenda | main |
+| `internal_docs/SessionLogs/2026-04-24-1500-session-minutes.md` | this file | main |
+| `internal_docs/SessionLogs/2026-04-24-1500-next-agenda.md` | next agenda | main |
 
 No code commits. Branch tips unchanged from rebased state.
 

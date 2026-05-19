@@ -89,9 +89,9 @@ Two new feedback memories from this session, written to local memory directory `
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-05-0730-session-minutes.md` — this file
-- `docs/SessionLogs/2026-05-05-0730-next-agenda.md` — Session 9 agenda (Playwright regression suite design)
-- `docs/qa-log.md` — appended 5 verdicts from this session
+- `internal_docs/SessionLogs/2026-05-05-0730-session-minutes.md` — this file
+- `internal_docs/SessionLogs/2026-05-05-0730-next-agenda.md` — Session 9 agenda (Playwright regression suite design)
+- `internal_docs/qa-log.md` — appended 5 verdicts from this session
 
 ## Estimated wall-clock
 

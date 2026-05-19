@@ -79,9 +79,9 @@ Pushed as LogiSoluMemory `fdd49a8` (`feat: extend bucket-2/3 migration pattern �
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-10-0046-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-10-0046-next-agenda.md` (Session 25 brief)
-- `docs/qa-log.md` — Session 24 rows appended (2 rows)
+- `internal_docs/SessionLogs/2026-05-10-0046-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-10-0046-next-agenda.md` (Session 25 brief)
+- `internal_docs/qa-log.md` — Session 24 rows appended (2 rows)
 - `martinhbramwell/ce_sri_svc/issues/4` — first Operation 3 migration target (created + body-edited)
 - `martinhbramwell/ESACP/issues/345` — closed with pointer comment
 - `martinhbramwell/ESACP/issues/358` — Session 24 progress comment posted (4 of 8)

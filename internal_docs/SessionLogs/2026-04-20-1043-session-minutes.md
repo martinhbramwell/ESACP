@@ -100,7 +100,7 @@ Close out the "byte-identical destroy" item — Session 2 of 3 from the pre-Run-
 ## What unblocks Run 03
 
 1. **#234** — `provisionGeneric` CLI subcommand. Absolute prerequisite. Own branch + own session (`feat/234-cli-provision-generic`).
-2. Agenda file `docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md` is already scrub-renamed (PR #252 merged earlier today).
+2. Agenda file `internal_docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md` is already scrub-renamed (PR #252 merged earlier today).
 
 ---
 

@@ -54,7 +54,7 @@ Posted URLs:
 - #353 classification → [issuecomment-4415264647](https://github.com/martinhbramwell/ESACP/issues/353#issuecomment-4415264647)
 - #358 progress → [issuecomment-4415265432](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4415265432)
 
-No `gh issue close`; Trigger 5 not invoked. Trigger 5 hard-block does not extend to `gh issue comment` per `docs/qa-contract.md` §2 v1 scope.
+No `gh issue close`; Trigger 5 not invoked. Trigger 5 hard-block does not extend to `gh issue comment` per `internal_docs/qa-contract.md` §2 v1 scope.
 
 ### Sub-task 6 — Pattern-file extension
 
@@ -86,9 +86,9 @@ Landed at LogiSoluMemory commit [`70f712b`](https://github.com/martinhbramwell/L
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-10-1259-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-10-1259-next-agenda.md` (Session 28 brief)
-- `docs/qa-log.md` — Session 27 row(s) appended
+- `internal_docs/SessionLogs/2026-05-10-1259-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-10-1259-next-agenda.md` (Session 28 brief)
+- `internal_docs/qa-log.md` — Session 27 row(s) appended
 - `martinhbramwell/ESACP/issues/197` — capstone comment posted (terminal-state confirmation)
 - `martinhbramwell/ESACP/issues/353` — methodology-stays classification confirmed; stays OPEN
 - `martinhbramwell/ESACP/issues/358` — Session 27 progress comment posted (8 of 8 issue migrations done; 5 of 8 acceptance items satisfied)

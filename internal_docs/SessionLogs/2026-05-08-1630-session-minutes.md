@@ -82,14 +82,14 @@ Forward-tense statements in this minutes file map to:
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-08-1630-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-08-1630-next-agenda.md` (Session 16 brief —
+- `internal_docs/SessionLogs/2026-05-08-1630-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-08-1630-next-agenda.md` (Session 16 brief —
   Phase 1 first move)
-- `docs/qa-log.md` (Session 15 verdict appended)
+- `internal_docs/qa-log.md` (Session 15 verdict appended)
 
 ## QA verdict batched
 
-See `docs/qa-log.md` row for 2026-05-08 — Session 15 close-out doc sweep.
+See `internal_docs/qa-log.md` row for 2026-05-08 — Session 15 close-out doc sweep.
 Verdict batched at session-close per the contract.
 
 ## Operator decisions captured this session

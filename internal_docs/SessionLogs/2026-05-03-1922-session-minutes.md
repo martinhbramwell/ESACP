@@ -23,7 +23,7 @@ Operator approved.
 | `bash platforms/kvm/sync_check.sh` | 43 ✅ / 11 ⚠️ / 2 ❌ — both ❌ are dev02 (WireGuard ping unreachable, ERPNext site unreachable), expected per `feedback_one_vm_at_a_time.md` and Session 5.5 agenda's anticipated baseline. No new failures. |
 | `gh issue list --state open` | 30. In-scope: #341 only. |
 | Subagent reachability ping | ✅ Returned a well-formed verdict block (`approve, hard_block: false`); correctly self-identified as the bootstrap smoke-test per qa-contract §6. |
-| `docs/qa-contract.md` read end-to-end | ✅ Internalized: trigger 1 advisory; triggers 2–5 hard-block; required input format. |
+| `internal_docs/qa-contract.md` read end-to-end | ✅ Internalized: trigger 1 advisory; triggers 2–5 hard-block; required input format. |
 | Working-tree state vs Session 5 close | ✅ Branch tip `bcebe2d`, staged commit-2 files intact, untracked Session 5 minutes + Session 5.5 agenda intact. |
 
 ---
@@ -55,7 +55,7 @@ Operator approved.
 
 ## Verdicts captured this session
 
-See [`docs/qa-log.md`](../qa-log.md) — appended this session per the qa-log batching protocol. **5 rows added** replacing the template row:
+See [`internal_docs/qa-log.md`](../qa-log.md) — appended this session per the qa-log batching protocol. **5 rows added** replacing the template row:
 
 1. Bootstrap exception (Session 5, `bcebe2d`)
 2. Session 5 fail-closed (commit-2 attempt aborted, agent-unreachable)
@@ -82,7 +82,7 @@ See [`docs/qa-log.md`](../qa-log.md) — appended this session per the qa-log ba
 |---|---|---|
 | 1. `.claude/agents/esacp-qa.md` exists with the design | D1 | ✅ landed in `bcebe2d`, on main as of `3f107ef` |
 | 2. Trigger contract in CLAUDE.md (or referenced doc) | D2a + D2b | ✅ landed in `3449a55`, on main as of `3f107ef` |
-| 3. Smoke test — ≥1 real commit + ≥1 real PR-merge through the agent | D5 + D6 + D7 | ✅ Smoke #1 (commit) + Smoke #2 (PR-merge); verdicts logged in `docs/qa-log.md` |
+| 3. Smoke test — ≥1 real commit + ≥1 real PR-merge through the agent | D5 + D6 + D7 | ✅ Smoke #1 (commit) + Smoke #2 (PR-merge); verdicts logged in `internal_docs/qa-log.md` |
 | 4. Memory cross-ref updated | D3 | ✅ done in operator memory dir Session 5; ACTIVE 2026-05-03 |
 | 5. False-pos / false-neg log seeded | D4 | ✅ seed landed in `3449a55`; first 5 entries appended this session (D7) |
 
@@ -109,4 +109,4 @@ None. All carried-forward open tasks (#8 D5, #9 D6, #10 D7) are completed.
 - Local main fast-forwarded to `3f107ef`; divergence with origin: 0/0.
 - Working tree clean (after this minutes + agenda + qa-log commit lands).
 - `feat/esacp-qa-agent` retained on origin and locally.
-- Verdict layer ACTIVE: all future commit/merge/push/destroy/issue-close on this repo route through `Agent(subagent_type: "esacp-qa", …)` per `docs/qa-contract.md`.
+- Verdict layer ACTIVE: all future commit/merge/push/destroy/issue-close on this repo route through `Agent(subagent_type: "esacp-qa", …)` per `internal_docs/qa-contract.md`.

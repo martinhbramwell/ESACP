@@ -216,9 +216,9 @@ work begins.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-11-1817-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-11-1817-next-agenda.md` (Session 36 brief)
-- `docs/qa-log.md` — Session 35 rows appended (3 Trigger verdicts)
+- `internal_docs/SessionLogs/2026-05-11-1817-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-11-1817-next-agenda.md` (Session 36 brief)
+- `internal_docs/qa-log.md` — Session 35 rows appended (3 Trigger verdicts)
 - `martinhbramwell/ce_sri/pull/8` — Phase 1B 3 DocPerm patches, MERGED
   `b22e2639` `2026-05-11T22:13:57Z`
 - `martinhbramwell/LogiSoluKnowBase/issues/3` — auto-closed
@@ -237,7 +237,7 @@ work begins.
 
 3 verdicts: Trigger 1+3 (combined) approve-with-conditions (3 conditions,
 all addressed pre-commit); Trigger 2 approve; Trigger 5 approve. Details
-in `docs/qa-log.md` Session 35 rows.
+in `internal_docs/qa-log.md` Session 35 rows.
 
 ## Operator-decided sequencing notes
 

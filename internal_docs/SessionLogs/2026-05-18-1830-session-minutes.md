@@ -21,7 +21,7 @@ Path A failed empirically post-apply: `performance_schema = OFF` does not remove
 | 7 | Path X read+plan: tabPatch Log row shape from production's un-suffixed `PATCHLOG00105`; frappe-native helper `frappe.modules.patch_handler.update_patch_log` identified at `patch_handler.py:124-126`; `executed()` does exact-string match `patch_handler.py:129-137` | ✓ |
 | 8 | Path X execution: `bench execute update_patch_log --args '["frappe.patches.v12_0.delete_duplicate_indexes  # 2022-12-15"]'` → `PATCHLOG00570` inserted | ✓ |
 | 9 | Retry `bench migrate` — **patches phase clear**: `delete_duplicate_indexes  # 2022-12-15` skipped; 7 remaining will-run patches from S54 Path β survey all ran (`remove_share_for_std_users`, `clear_large_email_queues`, `update_schedule_type_in_loans`, `update_asset_value_for_manual_depr_entries`, `update_docs_link`, `correct_asset_value_if_je_with_workflow`, `frankfurter.app` set_value); failed downstream in fixtures-import phase | ✓ for #398 |
-| 10 | Document Path X as generic substrate-apply technique: `docs/FrappePatchLogPreseeding.md` (70 lines); T1 approve | commit `0797d47` |
+| 10 | Document Path X as generic substrate-apply technique: `internal_docs/FrappePatchLogPreseeding.md` (70 lines); T1 approve | commit `0797d47` |
 | 11 | PR#399 opened + T2 verdict approve (recommended merge-commit over squash to preserve `fbc1299` root-cause forensics in `git log`) + merge | merge `153b346`; #398 auto-closed `2026-05-19T01:43:10Z` |
 | 12 | ce_sri#10 filed for fixtures-import collision (`forma_de_pago_preferida` on Customer; `apps/ce_sri/ce_sri/fixtures/custom_field.json`); LSKB#15 pause-comment posted with updated block chain `ce_sri#10 → LSKB#15 → LSKB#16` | ✓ |
 
@@ -62,9 +62,9 @@ Class: bespoke-app fixture-vs-production-data collision; not a substrate-config 
 |---|---|---|---|
 | T1 | `a04177d3c16e010f5` — pre-commit `5946e2d` | approve-with-conditions | Single condition: audit-trail enumeration of rejected paths (ansible-post-deploy, third-party-frappe-patch) in session response. Discharged. |
 | T1 | `a5cc66cffcb122748` — pre-commit revert `fbc1299` | approve | Clean revert with QA-approved root-cause body; `refs #398` (not `fixes`) — revert alone does not close. |
-| T1 | `aac954dfbf5ce877d` — pre-commit `0797d47` (docs/FrappePatchLogPreseeding.md) | approve | One observation noted (line count metadata mismatch: parent said 63, actual 70 — no rule violation in docs/). |
+| T1 | `aac954dfbf5ce877d` — pre-commit `0797d47` (internal_docs/FrappePatchLogPreseeding.md) | approve | One observation noted (line count metadata mismatch: parent said 63, actual 70 — no rule violation in internal_docs/). |
 | T2 | `a8104992a9cae53ba` — pre-merge PR#399 | approve | Recommended merge-commit over squash to preserve `fbc1299` root-cause forensics in `git log`. Operator accepted. |
-| T1+T3 (combined, this ESACP session-close commit) | _pending — populated after verdict_ | _pending_ | ESACP doc-only direct-to-main per `docs/qa-contract.md` v2.1 §2.1 clause 3 |
+| T1+T3 (combined, this ESACP session-close commit) | _pending — populated after verdict_ | _pending_ | ESACP doc-only direct-to-main per `internal_docs/qa-contract.md` v2.1 §2.1 clause 3 |
 
 ## Counts at session end
 
@@ -83,7 +83,7 @@ Unchanged. 2 monitor-only entries (LogiSoluMemory Trigger-3 skip pattern S33; `t
 
 - **ce_sri#10 (NEW S55)** — fixture-import collision (`forma_de_pago_preferida` on Customer); bucket-3, blocks LSKB#15. Three likely fix paths enumerated in issue body.
 - **LSKB#15** — substrate-apply paused at fixtures-import (not patches anymore). Steps 1–9 state retained on dev02; retry path documented in S55 pause-comment.
-- **Path-X pattern documented in `docs/FrappePatchLogPreseeding.md`** — generic substrate-apply technique for date-suffixed re-run-trigger patches whose un-suffixed equivalent already ran on source data. "When NOT to use" section spells out the masking-risk cases.
+- **Path-X pattern documented in `internal_docs/FrappePatchLogPreseeding.md`** — generic substrate-apply technique for date-suffixed re-run-trigger patches whose un-suffixed equivalent already ran on source data. "When NOT to use" section spells out the masking-risk cases.
 - **MariaDB-10.6 default `performance_schema = OFF`** — discovery during S55: the Packer-baked substrate ships with PS off already, so substrate-config approaches at the PS layer are no-ops. Documented in `fbc1299` revert body.
 - **dev02 substrate state** — v13.58.22 / v13.55.2; production data restored; encryption_key aligned; SPC code at `5567c47`; `PATCHLOG00570` row in tabPatch Log; awaiting ce_sri#10 fix to retry migrate from fixtures-import phase.
 - **Plan-C meta-pattern (second-instance status)** — S54 first-instance + S55 reinforces with second-class-of-blocker (fixture-import vs substrate-config); both flavors are post-restore-pre-migrate runbook gates, both have low single-digit residual case counts. Confidence in Plan-C as cross-major recovery pattern increases.

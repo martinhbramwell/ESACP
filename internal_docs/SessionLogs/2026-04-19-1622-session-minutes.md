@@ -11,7 +11,7 @@
 Goal reframed mid-session from *secret-hiding* to *generic-platform appearance*. Consequences carried through every P-section:
 
 - Git history, PR titles, merge commits: **untouched.**
-- Historical session logs (`docs/SessionLogs/<older-date>-*`): **untouched** by default.
+- Historical session logs (`internal_docs/SessionLogs/<older-date>-*`): **untouched** by default.
 - Acceptance is human-judgement reader-test, not grep-zero. Diagnostic grep allows documented carve-outs.
 - Committed default DNS zone: `yourpublic.work` (owned by project owner, routable).
 - Replacement tokens: `company_specific` (snake), `company-specific` (kebab) — used only where extraction to config is architecturally required; most sites use deletion or natural generic rephrasing (e.g., "Restored ERPNext" with the "Logichem" word removed rather than replaced).
@@ -85,8 +85,8 @@ Per global conduct rule + standard session-end protocol:
 | Artifact | Path |
 |---|---|
 | Execution plan | `~/.claude/plans/conduct-scrub-client-name.md` (outside repo, on controller) |
-| Session minutes | `docs/SessionLogs/2026-04-19-1622-session-minutes.md` (this file) |
-| Next agenda | `docs/SessionLogs/2026-04-19-1622-next-agenda.md` |
+| Session minutes | `internal_docs/SessionLogs/2026-04-19-1622-session-minutes.md` (this file) |
+| Next agenda | `internal_docs/SessionLogs/2026-04-19-1622-next-agenda.md` |
 
 ---
 

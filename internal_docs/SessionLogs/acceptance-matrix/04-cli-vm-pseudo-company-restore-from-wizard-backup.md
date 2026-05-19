@@ -15,14 +15,14 @@ Prove that B03 (the backup produced in run 03) can be used to rebuild an equival
 
 ## Parameter file
 
-`docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml`
+`internal_docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml`
 
 ```yaml
 run: "04"
 transport: cli
 target_vm: dev01
 variant: pseudo_restore
-backup_source: "docs/SessionLogs/acceptance-matrix/artefacts/B03-wizard.sql.gz"
+backup_source: "internal_docs/SessionLogs/acceptance-matrix/artefacts/B03-wizard.sql.gz"
 wait_budget_seconds: 1500
 topology_convergence_budget_seconds: 300
 ```

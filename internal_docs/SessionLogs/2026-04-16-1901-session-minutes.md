@@ -12,7 +12,7 @@
 ## Pre-session state
 
 - `sync_check.sh`: 42 pass / 11 warn / 4 fail (four expected ping failures against unprovisioned dev VMs — `feedback_one_vm_at_a_time.md`; not blockers).
-- `docs/Ideas/` untracked (content drafts, not engineering). Added to `.gitignore` this session.
+- `internal_docs/Ideas/` untracked (content drafts, not engineering). Added to `.gitignore` this session.
 - Prior agenda (`2026-04-16-1620-next-agenda.md`) targeted Phase 7 with Phase 8 deferral for `cmd_destroy`.
 
 ---
@@ -120,7 +120,7 @@ The already-provisioned → 409 path on `/api/provision/erpnext` was not e2e-tes
 
 ## Housekeeping / closure
 
-- `docs/Ideas/` added to `.gitignore` (content drafts, not engineering).
+- `internal_docs/Ideas/` added to `.gitignore` (content drafts, not engineering).
 - `tools/verify_host_registration.py` tracked in the closure PR so future regressions can be caught.
 - Local branches retained per `feedback_keep_merged_branches`: `fix/190-host-registration`, `fix/192-destroy-macro`.
 - `MEMORY.md` corrected: Phase 2 + Phase 4 both marked DONE, open-issues list trimmed (#190, #192 removed; #206 present).

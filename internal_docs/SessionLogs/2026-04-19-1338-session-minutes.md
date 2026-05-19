@@ -41,7 +41,7 @@ Sanity check before writing the Playwright spec filename surfaced the issue: the
 | Category | Files | Notes |
 |---|---|---|
 | Live SUT code | 14 | `hosts_map.yml`, cytoscape `{main,api}.js`, `topology-ops.spec.js`, `tools/pipeline/{macro,stages/stage_3_connectivity}/*.py`, `platforms/kvm/{prepare_hypervisor.sh,session_start.py,fallback/*.sh}`, two CLAUDE.md files |
-| Going-forward docs | 8 | `docs/SessionLogs/acceptance-matrix/{02,03,05,06,07}-*.md` (02 & 05 also have it in the filename), `docs/ERPNextRestoreRunbook.md`, `docs/PrepareHypervisor.md`, this agenda's parent (`2026-04-19-1242-next-agenda.md`) |
+| Going-forward docs | 8 | `internal_docs/SessionLogs/acceptance-matrix/{02,03,05,06,07}-*.md` (02 & 05 also have it in the filename), `internal_docs/ERPNextRestoreRunbook.md`, `internal_docs/PrepareHypervisor.md`, this agenda's parent (`2026-04-19-1242-next-agenda.md`) |
 | Historical session logs | ~30 | Pre-2026-04-19 minutes/agendas. User ruled (iii): separate commit, name-replacement only, zero semantic changes |
 | Memory | N/A | Outside repo. Scrubbed in parallel during execute session |
 
@@ -118,8 +118,8 @@ Enumerating the 20 SUT occurrences revealed they split into five non-uniform cat
 | Issue #239 | github.com/martinhbramwell/ESACP/issues/239 | OPEN. Three-commit plan + P1–P5 breakdown. |
 | `feedback_no_real_client_names.md` | memory (outside repo) | Rule + why + how-to-apply. Placeholder syntax only. |
 | MEMORY.md update | memory | Added pointer under `## Critical Rules`. |
-| This minutes file | `docs/SessionLogs/2026-04-19-1338-session-minutes.md` | Placeholder syntax. On scrub branch only. |
-| Next agenda | `docs/SessionLogs/2026-04-19-1338-next-agenda.md` | Planning session for #239. On scrub branch only. |
+| This minutes file | `internal_docs/SessionLogs/2026-04-19-1338-session-minutes.md` | Placeholder syntax. On scrub branch only. |
+| Next agenda | `internal_docs/SessionLogs/2026-04-19-1338-next-agenda.md` | Planning session for #239. On scrub branch only. |
 
 ---
 
@@ -139,8 +139,8 @@ When the scrub is done and the matrix resumes, resume Run 02 with:
 
 ### Filename implications
 After #239 closes, these files will have been renamed:
-- `docs/SessionLogs/acceptance-matrix/02-cli-vm-full-<real>-from-backup.md` → `02-cli-vm-full-company-specific-from-backup.md`
-- `docs/SessionLogs/acceptance-matrix/05-ui-vm-full-<real>-from-backup.md` → `05-ui-vm-full-company-specific-from-backup.md`
+- `internal_docs/SessionLogs/acceptance-matrix/02-cli-vm-full-<real>-from-backup.md` → `02-cli-vm-full-company-specific-from-backup.md`
+- `internal_docs/SessionLogs/acceptance-matrix/05-ui-vm-full-<real>-from-backup.md` → `05-ui-vm-full-company-specific-from-backup.md`
 - The future param file and Playwright spec for Run 02 will use the `company-specific` form from the outset.
 
 ### Task-list hygiene

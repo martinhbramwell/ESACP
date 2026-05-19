@@ -14,7 +14,7 @@ Prove a dev VM can be built from the CLI into a bare ERPNext instance, driven th
 
 ## Parameter file
 
-`docs/SessionLogs/acceptance-matrix/params/03-cli-pseudo-wizard.yml`
+`internal_docs/SessionLogs/acceptance-matrix/params/03-cli-pseudo-wizard.yml`
 
 ```yaml
 run: "03"
@@ -29,7 +29,7 @@ company:
   language: "en"
 admin_user:
   email: "admin@pseudo-co.example"
-backup_output_path: "docs/SessionLogs/acceptance-matrix/artefacts/B03-wizard.sql.gz"
+backup_output_path: "internal_docs/SessionLogs/acceptance-matrix/artefacts/B03-wizard.sql.gz"
 wait_budget_seconds: 1800
 topology_convergence_budget_seconds: 300
 ```

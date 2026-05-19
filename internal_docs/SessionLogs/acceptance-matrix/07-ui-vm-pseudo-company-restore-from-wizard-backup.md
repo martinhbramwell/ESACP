@@ -14,14 +14,14 @@ Prove that the backup produced in run 06 (B06) can be used to rebuild an equival
 
 ## Parameter file
 
-`docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml`
+`internal_docs/SessionLogs/acceptance-matrix/params/07-ui-pseudo-restore.yml`
 
 ```yaml
 run: "07"
 transport: ui
 target_vm: dev01
 variant: pseudo_restore
-backup_source: "docs/SessionLogs/acceptance-matrix/artefacts/B06-wizard.sql.gz"
+backup_source: "internal_docs/SessionLogs/acceptance-matrix/artefacts/B06-wizard.sql.gz"
 wait_budget_seconds: 1500
 ```
 
@@ -65,7 +65,7 @@ Run 01 (CLI saconsole rebuild) has **no parity partner** — saconsole is CLI-on
 
 Equivalence here means functionally indistinguishable endpoints, identical canary facts, topology in both UI- and CLI-driven cases converged within the wait budget.
 
-Record the close-out in `docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md` and update `MEMORY.md` with the foundation-solid status so subsequent ERPNext-focused work can start from a trusted baseline.
+Record the close-out in `internal_docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md` and update `MEMORY.md` with the foundation-solid status so subsequent ERPNext-focused work can start from a trusted baseline.
 
 ## Findings protocol
 

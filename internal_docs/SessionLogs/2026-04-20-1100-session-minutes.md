@@ -94,7 +94,7 @@ Close the last pre-Run-03 blocker: implement `provisionGeneric` CLI subcommand â
 
 ## What Matrix Run 03 needs next
 
-1. **Agenda**: `docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md` (already scrub-renamed in PR #252).
+1. **Agenda**: `internal_docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md` (already scrub-renamed in PR #252).
 2. **Run 03 exercises `provision_mode="generic"`**, which #250 (pre-existing, low-priority) notes will still show `company logo [SKIP]` because the upload path is inert. Run 03 is likely when the fix-or-explicitly-defer decision becomes actionable.
 3. **Run 03 is the first time** `cli/provision_generic.py` + the Playwright wizard will run together end-to-end outside the API path. Budget accordingly (macro = hours).
 

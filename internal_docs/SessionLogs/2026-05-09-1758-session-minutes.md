@@ -44,9 +44,9 @@ Posted post-close-commit (audit step 2 home), matching Session 21's two-comment 
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-09-1758-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-09-1758-next-agenda.md` (Session 23 brief — third issue migration, ESACP #357)
-- `docs/qa-log.md` — Session 22 row appended (1 row)
+- `internal_docs/SessionLogs/2026-05-09-1758-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-09-1758-next-agenda.md` (Session 23 brief — third issue migration, ESACP #357)
+- `internal_docs/qa-log.md` — Session 22 row appended (1 row)
 - `martinhbramwell/LogiSoluKnowBase/issues/2` — second migrated issue
 - `martinhbramwell/ESACP/issues/356` — closed with pointer comment
 - (No new memory file — pattern already captured by Session 21's `project_bucket_2_migration_pattern.md`; per agenda)

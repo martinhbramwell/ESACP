@@ -10,7 +10,7 @@
 
 ### Phase 1 — spec authoring (as planned)
 
-- Created `docs/SessionLogs/acceptance-matrix/params/01-cli-saconsole.yml` from the agenda's canonical snippet, with one adjustment agreed with user: `wait_budget_seconds` bumped from 600 to **18000** (the agenda value was inconsistent with the known ~3–4 h rebuild duration per #225).
+- Created `internal_docs/SessionLogs/acceptance-matrix/params/01-cli-saconsole.yml` from the agenda's canonical snippet, with one adjustment agreed with user: `wait_budget_seconds` bumped from 600 to **18000** (the agenda value was inconsistent with the known ~3–4 h rebuild duration per #225).
 - Created `prototypes/cytoscape/tests/accept-01-cli-saconsole.spec.js` — spawns `rebuild_saconsole.sh` via `child_process.spawn`, observes Cytoscape UI, asserts subprocess exit 0, UI convergence ≤300 s, 5 WG peers, 8 obs containers, sync_check green, blast radius held.
 - Commits `aa0ff85` (spec + params), `0e33a1e` (headless default), `b64bc36` (fix: `test.use()` hoisted out of `describe` — Playwright refuses it inside a describe group).
 

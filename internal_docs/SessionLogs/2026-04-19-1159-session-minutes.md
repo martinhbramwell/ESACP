@@ -106,6 +106,6 @@ Not recorded this session — Run 01 clean-replay formally waived. Live-verified
 
 ## Carry-forward
 
-- **Next session: Issue #233 (addHost CLI subcommand)** — unblocker for Run 02. Agenda: `docs/SessionLogs/2026-04-19-1159-next-agenda.md`.
+- **Next session: Issue #233 (addHost CLI subcommand)** — unblocker for Run 02. Agenda: `internal_docs/SessionLogs/2026-04-19-1159-next-agenda.md`.
 - **Then Run 02** — on the addHost merge, Run 02 becomes possible. Separate session.
 - **Open issues** post-session: #48, #50, #65, #138, #153, #156, #157, #181, #187, #188, #202, #206, #211, #213, #216, #217, #219, #220, #223, #225, **#233**, **#234**, **#235**, **#236**.

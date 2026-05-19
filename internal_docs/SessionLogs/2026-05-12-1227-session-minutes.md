@@ -51,10 +51,10 @@ Per `project_plan_b_remaining_roadmap.md` §"Closure of this memo": memo retires
 
 ## Files at session-end
 
-- `docs/qa-contract.md` — v2 (unchanged this session)
-- `docs/SessionLogs/2026-05-12-1227-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-12-1227-next-agenda.md` (Session 39 brief)
-- `docs/qa-log.md` — Session 38 rows appended (2 rows)
+- `internal_docs/qa-contract.md` — v2 (unchanged this session)
+- `internal_docs/SessionLogs/2026-05-12-1227-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-12-1227-next-agenda.md` (Session 39 brief)
+- `internal_docs/qa-log.md` — Session 38 rows appended (2 rows)
 - `LogiSoluMemory/archive/project_plan_b_remaining_roadmap.md` — archived from root per memo's own retirement instruction
 - `martinhbramwell/LogiSoluKnowBase/issues/7` — closed `2026-05-12` (this session)
 

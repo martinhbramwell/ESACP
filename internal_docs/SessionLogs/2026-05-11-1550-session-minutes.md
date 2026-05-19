@@ -134,9 +134,9 @@ Phase 2 + Phase 5 content.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-11-1550-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-11-1550-next-agenda.md` (Session 35 brief)
-- `docs/qa-log.md` — Session 34 rows appended (multiple Trigger verdicts)
+- `internal_docs/SessionLogs/2026-05-11-1550-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-11-1550-next-agenda.md` (Session 35 brief)
+- `internal_docs/qa-log.md` — Session 34 rows appended (multiple Trigger verdicts)
 - `martinhbramwell/ce_sri/pull/7` — Phase-1 consolidation, MERGED `dd7199e0`
 - `martinhbramwell/ce_sri/issues/6` — auto-closed via intra-repo `fixes`
 - `martinhbramwell/LogiSoluKnowBase/issues/11` — Plan B Phase 2 tracker filed
@@ -157,7 +157,7 @@ Phase 2 + Phase 5 content.
 3 verdicts on ce_sri work: Trigger 1+3 (combined) approve; Trigger 2 approve.
 LogiSoluMemory commits — Trigger 1+3 skipped (continuing Session 33 pattern;
 TRIVIAL_FIXES.md item parked for recurrence reconciliation). Details in
-`docs/qa-log.md` Session 34 rows.
+`internal_docs/qa-log.md` Session 34 rows.
 
 ## Operator-decided sequencing notes
 

@@ -154,7 +154,7 @@ Appendix A (prior matrix-era plan) untouched — historical record.
 | File | Change |
 |---|---|
 | `~/.claude/plans/open-issues-purge.md` | Pre-Tier 0 umbrella block inserted; baseline 18→20; first move revised to sub-branch 1; exit condition + cost ledger updated |
-| `docs/SessionLogs/2026-04-23-0915-session-minutes.md` | this file |
+| `internal_docs/SessionLogs/2026-04-23-0915-session-minutes.md` | this file |
 
 Branches touched:
 - `umbrella/ladder-fixture` — cut and pushed, empty (same tip as main at entry)
@@ -181,9 +181,9 @@ Issues opened:
 
 ## File trail
 
-- Prior minutes: `docs/SessionLogs/2026-04-23-0620-session-minutes.md`
+- Prior minutes: `internal_docs/SessionLogs/2026-04-23-0620-session-minutes.md`
 - Revised purge plan: `~/.claude/plans/open-issues-purge.md`
 - Matrix closeout pointer (needs erratum in sub-1 session):
-  `docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md`
-- This minutes: `docs/SessionLogs/2026-04-23-0915-session-minutes.md`
+  `internal_docs/SessionLogs/acceptance-matrix/MATRIX-CLOSEOUT.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-23-0915-session-minutes.md`
 - Issues: [#289](https://github.com/martinhbramwell/ESACP/issues/289), [#290](https://github.com/martinhbramwell/ESACP/issues/290)

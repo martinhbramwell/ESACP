@@ -8,7 +8,7 @@ Per `2026-05-12-0619-next-agenda.md` (operator-selected Area 3 via "do that" aft
 
 Introspection conversation first. Operator asked three questions: refactoring progress (5/6 Epoch-1 done, compression real), clerical reduction (per-deliverable ~3x better; per-session unchanged; TRIVIAL_FIXES.md underutilized), block sizing (right-sized; substrate-discovery cost is the wildcard). Operator probed which elements are excessive, then selected Area 3 (QA layer signal review) as the highest-EV slim.
 
-Initial proposal was intuition-driven (carve out T1 on doc-sweeps). Data from a `bash awk` over `docs/qa-log.md` contradicted: T1 has the highest catch rate (49%), not lowest. Revised proposal landed: codify T1+T3 combination, carve T2 down to advisory under three categorical conditions, add §7.1 rolling-window audit. Operator approved revised shape.
+Initial proposal was intuition-driven (carve out T1 on doc-sweeps). Data from a `bash awk` over `internal_docs/qa-log.md` contradicted: T1 has the highest catch rate (49%), not lowest. Revised proposal landed: codify T1+T3 combination, carve T2 down to advisory under three categorical conditions, add §7.1 rolling-window audit. Operator approved revised shape.
 
 Execution: 1 issue filed (#380), 1 branch, 1 PR, 1 merge, 1 auto-close — all in-session. QA chain caught 3 load-bearing conditions on T1+T3 (§2.2 wording-hedge, §7.1 scope, §10 span label); all addressed pre-commit. T2 verdict on PR #381 was clean approve under v1 (bootstrapping correctly handled).
 
@@ -26,7 +26,7 @@ Execution: 1 issue filed (#380), 1 branch, 1 PR, 1 merge, 1 auto-close — all i
 
 ## Contract change
 
-Single file: `docs/qa-contract.md` (+38 / -1).
+Single file: `internal_docs/qa-contract.md` (+38 / -1).
 
 - **§2 row 2 (T2)** — "Hard-block by default; advisory when the §2.2 carve-out conditions all hold."
 - **§2.1** — combined T1+T3 invocation codified (S33+ de facto practice).
@@ -48,14 +48,14 @@ No change to the agent file, T1, T3-alone, T4, T5, §3, §4, §5, §8, §9.
 
 ## Activation semantics
 
-v2 is active from `0137977a` forward. Agent file (`.claude/agents/esacp-qa.md`) unchanged; the layer's behavior is governed by the parent's reading of `docs/qa-contract.md` at trigger time. No retroactive effect on already-issued verdicts.
+v2 is active from `0137977a` forward. Agent file (`.claude/agents/esacp-qa.md`) unchanged; the layer's behavior is governed by the parent's reading of `internal_docs/qa-contract.md` at trigger time. No retroactive effect on already-issued verdicts.
 
 ## Files at session-end
 
-- `docs/qa-contract.md` — v2, merged via PR #381 mid-session at `0137977a`
-- `docs/SessionLogs/2026-05-12-1117-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-12-1117-next-agenda.md` (Session 38 brief)
-- `docs/qa-log.md` — Session 37 rows appended (3 rows)
+- `internal_docs/qa-contract.md` — v2, merged via PR #381 mid-session at `0137977a`
+- `internal_docs/SessionLogs/2026-05-12-1117-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-12-1117-next-agenda.md` (Session 38 brief)
+- `internal_docs/qa-log.md` — Session 37 rows appended (3 rows)
 - `martinhbramwell/ESACP#380` — auto-closed via cross-repo `fixes` (7th auto-close event)
 - `martinhbramwell/ESACP/issues/373` — 7th-auto-close datapoint comment posted
 

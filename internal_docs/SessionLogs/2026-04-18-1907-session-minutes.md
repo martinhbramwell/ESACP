@@ -16,7 +16,7 @@
 
 2. **Preconditions cleared** — #222 OPEN; no in-flight provisioning jobs; toshy `/mnt/esacp-disk` 572 GiB free; controller 183 GiB free on `/`; saconsole running, vda 32.5 GiB physical. Archive location + retention agreed: `~/archives/saconsole/`, last-3-generations, not in git. Transport: `virsh vol-download` via `qemu+ssh://` (no sudo on toshy).
 
-3. **Step 1 — pre-rebuild state capture** — libvirt domain, block devices, snapshots, WG peer state (from hub), `hosts_map.yml` + `config/wireguard/keys.sops.yml` hashes recorded as evidence. Committed as `docs/SessionLogs/2026-04-18-0720-saconsole-pre-rebuild-capture.md`.
+3. **Step 1 — pre-rebuild state capture** — libvirt domain, block devices, snapshots, WG peer state (from hub), `hosts_map.yml` + `config/wireguard/keys.sops.yml` hashes recorded as evidence. Committed as `internal_docs/SessionLogs/2026-04-18-0720-saconsole-pre-rebuild-capture.md`.
 
 4. **Phase A — backup (first attempt failed, redesign, second attempt green)**
    - First attempt: `ssh toshiba 'virsh vol-download ... /dev/stdout' > archive.qcow2` dropped at 1.1 GiB (SSH pipe break under sustained throughput). Also failed on `PYTHONPATH=... python3 -c` layering which violated `feedback_shebang_executable.md` / `feedback_invoke_as_executable.md` (user correctly flagged).
@@ -55,7 +55,7 @@
 | Path | Purpose |
 |---|---|
 | `platforms/kvm/rebuild_saconsole.sh` | Phases A/B/C/D, header, usage, revert procedure. 217 lines (Phase E pending lifts this further). |
-| `docs/SessionLogs/2026-04-18-0720-saconsole-pre-rebuild-capture.md` | Pre-rebuild state evidence. |
+| `internal_docs/SessionLogs/2026-04-18-0720-saconsole-pre-rebuild-capture.md` | Pre-rebuild state evidence. |
 | `tools/host_identity.py` | Added `__main__` shell-eval emitter + `chmod +x`. |
 | `tools/CLAUDE.md` | Documented the executable emitter. |
 

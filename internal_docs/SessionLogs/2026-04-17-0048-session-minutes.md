@@ -58,4 +58,4 @@ Subprocess is now banned in dispatchers. Only two documented exceptions:
 
 ## Next
 
-Phase 8 — delete dead Gen 1 orchestrators (#196). Detailed agenda: `docs/SessionLogs/2026-04-17-0048-next-agenda.md`.
+Phase 8 — delete dead Gen 1 orchestrators (#196). Detailed agenda: `internal_docs/SessionLogs/2026-04-17-0048-next-agenda.md`.

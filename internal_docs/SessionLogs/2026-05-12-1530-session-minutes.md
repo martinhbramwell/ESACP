@@ -14,7 +14,7 @@ Pre-flight clean: sync_check 45/9/2 (#278 dev01 carve-out), ESACP open=37, LSKB 
 
 Path:
 
-1. **ESACP side (#382)** — feature branch `chore/s39-housekeeping-sweep`, single-file edit to `docs/qa-contract.md` (§2.1 condition 2 broadened to a three-clause form recognising repo-specific direct-to-main conventions; §10 v2.1 row appended). Commit `f1aba84`, PR #384, squash-merge `554ad24` at `2026-05-12T13:55:06Z`. #382 auto-closed at `2026-05-12T13:55:07Z` (1-second delta).
+1. **ESACP side (#382)** — feature branch `chore/s39-housekeeping-sweep`, single-file edit to `internal_docs/qa-contract.md` (§2.1 condition 2 broadened to a three-clause form recognising repo-specific direct-to-main conventions; §10 v2.1 row appended). Commit `f1aba84`, PR #384, squash-merge `554ad24` at `2026-05-12T13:55:06Z`. #382 auto-closed at `2026-05-12T13:55:07Z` (1-second delta).
 2. **LogiSoluMemory side (#373)** — direct-to-main commit `1d3fce8` bundling: (a) #373 corrections (3 memory file changes: `feedback_pr_fixes_comma_syntax.md` appended, `project_bucket_2_migration_pattern.md` inline-correction-quote + Why-paragraph rewrite, new `feedback_no_downstream_of_merge_acceptance.md`); (b) operator-directive capture `project_cloudstack_deferred_until_v16.md` + MEMORY.md index updates. `fixes martinhbramwell/ESACP#373` in commit body. #373 auto-closed at `2026-05-12T15:20:19Z` (1-second delta) — **dogfood: the commit correcting the cross-repo-`fixes`-doesn't-auto-close memory was itself auto-closed via cross-repo `fixes`.**
 3. **Sidebar request filed** — #383 (tablet WG enrollment, Windows 10 + Android), bucket-1, priority "important not urgent" per operator framing. Full scope in body; future-session ready.
 
@@ -64,10 +64,10 @@ No Epoch-2 substantive work this session (housekeeping-only). Roadmap pointer: C
 
 ## Files at session-end
 
-- `docs/qa-contract.md` — v2.1 (§2.1 condition 2 broadened, §10 v2.1 row)
-- `docs/SessionLogs/2026-05-12-1530-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-12-1530-next-agenda.md` (Session 40 brief)
-- `docs/qa-log.md` — Session 39 rows appended (4 rows)
+- `internal_docs/qa-contract.md` — v2.1 (§2.1 condition 2 broadened, §10 v2.1 row)
+- `internal_docs/SessionLogs/2026-05-12-1530-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-12-1530-next-agenda.md` (Session 40 brief)
+- `internal_docs/qa-log.md` — Session 39 rows appended (4 rows)
 - LogiSoluMemory commit `1d3fce8` on `main` — three S39 memory edits + CloudStack capture
 - ESACP merge commit `554ad24` on `main` — qa-contract v2.1 landing
 - `martinhbramwell/ESACP/issues/382` — closed `2026-05-12T13:55:07Z`

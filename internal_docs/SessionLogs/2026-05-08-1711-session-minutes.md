@@ -63,8 +63,8 @@ filenames per operator's choice of source artifact.
 
 ### `feedback_enumerate_mechanisms_before_committing.md`
 - Line 136: `[.claude/agents/esacp-qa.md](../../../projects/Logichem/ESACP/.claude/agents/esacp-qa.md)` → `[.claude/agents/esacp-qa.md](.claude/agents/esacp-qa.md)`
-- Line 138: `[docs/qa-contract.md](../../../projects/Logichem/ESACP/docs/qa-contract.md)` → `[docs/qa-contract.md](docs/qa-contract.md)`
-- Line 140: `[docs/qa-log.md](../../../projects/Logichem/ESACP/docs/qa-log.md)` → `[docs/qa-log.md](docs/qa-log.md)`
+- Line 138: `[internal_docs/qa-contract.md](../../../projects/Logichem/ESACP/internal_docs/qa-contract.md)` → `[internal_docs/qa-contract.md](internal_docs/qa-contract.md)`
+- Line 140: `[internal_docs/qa-log.md](../../../projects/Logichem/ESACP/internal_docs/qa-log.md)` → `[internal_docs/qa-log.md](internal_docs/qa-log.md)`
 
 ### `project_erpnext_idiomatic_refactor.md`
 - Line 21: `(the "Logichem" module bucket)` → `(the "<tenant>" module bucket)`
@@ -114,15 +114,15 @@ No deferred forward-tense promises remain.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-08-1711-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-08-1711-next-agenda.md` (Session 17 brief —
+- `internal_docs/SessionLogs/2026-05-08-1711-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-08-1711-next-agenda.md` (Session 17 brief —
   LogiSoluMemory repo standup)
-- `docs/qa-log.md` (Session 16 verdict appended)
+- `internal_docs/qa-log.md` (Session 16 verdict appended)
 - Memory tree: 5 files scrubbed, uncommitted (per decision #7)
 
 ## QA verdict batched
 
-See `docs/qa-log.md` row for 2026-05-08 — Session 16 close-out doc
+See `internal_docs/qa-log.md` row for 2026-05-08 — Session 16 close-out doc
 sweep. Verdict batched at session-close per the contract.
 
 ## Open issue count

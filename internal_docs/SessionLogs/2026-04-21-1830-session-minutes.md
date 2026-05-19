@@ -24,7 +24,7 @@ Plan Phase 1B marked ✅.
 
 **CLEAR.** Grep sweep for callers of `phase1` / `gate` / `cmd_phase1` /
 `cmd_gate` / `install_specific.py phase1|gate` across the entire tree
-(excluding `docs/SessionLogs/`) returned only:
+(excluding `internal_docs/SessionLogs/`) returned only:
 
 - `install_specific.py` — its own dispatcher
 - `vm_scripts/install_specific/__init__.py` — `__all__` + re-exports
@@ -74,7 +74,7 @@ $ git check-ignore -v test.tgz test.tar test.zip test.tar.gz
 
 **#50 (`cf-mcp-refresh` canonical copy + install step)** — added
 `tools/cf-mcp-refresh` (byte-identical to `~/.local/bin/cf-mcp-refresh`).
-Install step added to `docs/BuildOutProcedure.md` section 0 prerequisites:
+Install step added to `internal_docs/BuildOutProcedure.md` section 0 prerequisites:
 `install -m 0755 tools/cf-mcp-refresh ~/.local/bin/cf-mcp-refresh`.
 Existing runtime path unchanged — `Cld.sh` and `sync_check.sh` continue to
 reference `~/.local/bin/cf-mcp-refresh`, now installed from the repo copy.
@@ -133,7 +133,7 @@ explicitly allows scope changes when an audit surfaces a finding).
 - `main @ f8ccfad`, working tree clean.
 - **Phase 1B runtime verification** (passive, observable at next session):
   - From the next CC session start, a new operator setting up a fresh
-    controller would follow the `docs/BuildOutProcedure.md` section 0
+    controller would follow the `internal_docs/BuildOutProcedure.md` section 0
     `install -m 0755 tools/cf-mcp-refresh …` step. Current controller
     is unaffected — `~/.local/bin/cf-mcp-refresh` is still the live copy.
   - `sync_check.sh` should still pass (the ratchet change is commit-time
@@ -179,6 +179,6 @@ have been moved to durable homes:
 - New feedback memory: `memory/feedback_pr_fixes_comma_syntax.md`
 - MEMORY.md edits: open-issues line (29 → 24) + new feedback pointer
 - Plan status edit: `~/.claude/plans/open-issues-purge.md` (Phase 1B ✅)
-- This minutes: `docs/SessionLogs/2026-04-21-1830-session-minutes.md`
-- Prior-session minutes: `docs/SessionLogs/2026-04-21-1801-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-21-1830-session-minutes.md`
+- Prior-session minutes: `internal_docs/SessionLogs/2026-04-21-1801-session-minutes.md`
   (Phase 1A CC-OPS sweep)

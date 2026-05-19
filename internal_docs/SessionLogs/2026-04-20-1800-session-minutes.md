@@ -3,8 +3,8 @@
 **Date:** 2026-04-20 ~17:10–18:04 EDT
 **Branch:** `accept/04-cli-pseudo-restore`
 **PR:** #258 — merged via local GPG-signed merge commit `33c4a3d` at 2026-04-20T22:04:34Z
-**Agenda:** `docs/SessionLogs/acceptance-matrix/04-cli-vm-pseudo-company-restore-from-wizard-backup.md`
-**Params:** `docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml`
+**Agenda:** `internal_docs/SessionLogs/acceptance-matrix/04-cli-vm-pseudo-company-restore-from-wizard-backup.md`
+**Params:** `internal_docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml`
 
 ## Objective
 
@@ -32,7 +32,7 @@ The Run 04 agenda proposes `./tools/esacp.py provision --params <yml>`. The curr
 
 ## Files added
 
-- `docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml` (37 lines)
+- `internal_docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml` (37 lines)
 - `prototypes/cytoscape/tests/accept-04-cli-pseudo-restore.spec.js` (322 lines)
 
 ## Uncommitted runtime churn on main (working tree)

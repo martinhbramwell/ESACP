@@ -1,7 +1,7 @@
 # Session Minutes — 2026-04-19 18:16 EDT — Memory scrub (follow-on to #239)
 
 **Branch:** `chore/memory-scrub-client-name` (off `main@bf30b76`; `main` advanced to `feb3fde` via subsequent docs commits — clean docs-only base)
-**Agenda:** `docs/SessionLogs/2026-04-19-1738-next-agenda.md`
+**Agenda:** `internal_docs/SessionLogs/2026-04-19-1738-next-agenda.md`
 **Context:** #239 closed via PR #242 (merge commit `bf30b76`, 2026-04-19 17:38). This session scrubbed the CC auto-memory files at `~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/**` — the long tail explicitly deferred from the main PR.
 
 ---

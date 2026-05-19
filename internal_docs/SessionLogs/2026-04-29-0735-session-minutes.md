@@ -181,7 +181,7 @@ data; dev02 V14-baseline parked). No real failures.
 - Plan: `~/.claude/plans/customisation-discovery-promotion.md` §5 (done)
 - Umbrella plan: `~/.claude/plans/production-v14-migration-prep.md`
 - Mission: `memory/mission_vision.md`
-- Audit (Phase 4 input): `docs/upgrade/DMCustomisationCapabilityAudit.md`
+- Audit (Phase 4 input): `internal_docs/upgrade/DMCustomisationCapabilityAudit.md`
 
 ## SCC handoff
 

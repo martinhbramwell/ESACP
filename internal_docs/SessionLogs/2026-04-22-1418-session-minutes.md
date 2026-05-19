@@ -90,7 +90,7 @@ Failure pattern read: **sustained host load** (≈3 full VM destroy/rebuild cycl
 | `.gitignore` | `+5` — `platforms/kvm/golden_backups/archive/` directory rule. |
 | `ansible/group_vars/all.yml` | `wg_pubkey_dev01` update from post-rebuild state. |
 | `config/wireguard/keys.sops.yml` | SOPS-re-encrypted after dev01 keypair regen. |
-| `docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml` | `backup_source` → new B03 filename; comment annotated with archival reference. |
+| `internal_docs/SessionLogs/acceptance-matrix/params/04-cli-pseudo-restore.yml` | `backup_source` → new B03 filename; comment annotated with archival reference. |
 | `platforms/kvm/golden_backups/20260422_112724-dev01_iridium_blue.tgz` | **NEW** — regenerated B03, force-added over `*.tgz` ignore. |
 | `platforms/kvm/golden_backups/20260420_142102-dev01_iridium_blue.tgz` | Deleted — old B03 (archive copy preserved locally). |
 | `prototypes/cytoscape/recordings/replay_wizard.js` | `--config <json-file>` flag + env forwarding. |
@@ -132,5 +132,5 @@ Failure pattern read: **sustained host load** (≈3 full VM destroy/rebuild cycl
 - Closed: <https://github.com/martinhbramwell/ESACP/issues/181>, <https://github.com/martinhbramwell/ESACP/issues/271>
 - Opened: <https://github.com/martinhbramwell/ESACP/issues/284>, <https://github.com/martinhbramwell/ESACP/issues/285>
 - Plan file: `~/.claude/plans/open-issues-purge.md` (Phase 3A complete; next hop Phase 3B)
-- This minutes: `docs/SessionLogs/2026-04-22-1418-session-minutes.md`
-- Prior session minutes: `docs/SessionLogs/2026-04-22-1040-session-minutes.md` (#276 cf-mcp-refresh heredoc refactor)
+- This minutes: `internal_docs/SessionLogs/2026-04-22-1418-session-minutes.md`
+- Prior session minutes: `internal_docs/SessionLogs/2026-04-22-1040-session-minutes.md` (#276 cf-mcp-refresh heredoc refactor)

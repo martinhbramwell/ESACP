@@ -45,9 +45,9 @@ No change required. The full-overlap sub-shape executed as documented in `projec
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-10-0649-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-10-0649-next-agenda.md` (Session 26 brief)
-- `docs/qa-log.md` — Session 25 rows appended (2 rows)
+- `internal_docs/SessionLogs/2026-05-10-0649-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-10-0649-next-agenda.md` (Session 26 brief)
+- `internal_docs/qa-log.md` — Session 25 rows appended (2 rows)
 - `martinhbramwell/ESACP/issues/344` — closed with full-overlap pointer comment
 - `martinhbramwell/ESACP/issues/358` — Session 25 progress comment posted (5 of 8)
 - (No new memory file — pattern fully covered the shape; no new ce_sri_svc issue — full-overlap)

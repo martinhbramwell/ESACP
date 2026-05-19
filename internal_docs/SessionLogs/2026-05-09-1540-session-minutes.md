@@ -51,9 +51,9 @@ Commit `6ac39a1`: `feat: project memory — bucket-2 issue migration pattern`. G
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-09-1540-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-09-1540-next-agenda.md` (Session 22 brief — second issue migration)
-- `docs/qa-log.md` — Session 21 rows appended (3 rows: rows 84, 85, 86)
+- `internal_docs/SessionLogs/2026-05-09-1540-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-09-1540-next-agenda.md` (Session 22 brief — second issue migration)
+- `internal_docs/qa-log.md` — Session 21 rows appended (3 rows: rows 84, 85, 86)
 - `martinhbramwell/LogiSoluKnowBase/issues/1` — first migrated issue
 - `martinhbramwell/ESACP/issues/354` — closed with pointer comment
 - LogiSoluMemory commit `6ac39a1` — `project_bucket_2_migration_pattern.md` + MEMORY.md pointer
@@ -126,7 +126,7 @@ Operator-directed cleanup of the verdict-format-defect tracking pattern. The "re
 
 Resolution per [#367](https://github.com/martinhbramwell/ESACP/issues/367):
 
-- `docs/qa-contract.md` §5 amended to clarify "malformed verdict" excludes flag inconsistencies on unambiguous-approve verdicts.
+- `internal_docs/qa-contract.md` §5 amended to clarify "malformed verdict" excludes flag inconsistencies on unambiguous-approve verdicts.
 - Session 22 next-agenda carry-forward watch dropped.
 - LogiSoluMemory `feedback_qa_flag_format_only_matters_on_reject.md` added.
 - This addendum records the resolution per "minutes describe what happened" rule.

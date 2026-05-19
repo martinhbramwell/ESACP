@@ -8,7 +8,7 @@
 
 ## Objective (entering)
 
-Execute Matrix Run 03 per agenda `docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md`: CLI-driven skeletal ERPNext on dev01 via Pseudo-Co setup wizard, B03 golden backup archived, UI converges.
+Execute Matrix Run 03 per agenda `internal_docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md`: CLI-driven skeletal ERPNext on dev01 via Pseudo-Co setup wizard, B03 golden backup archived, UI converges.
 
 ## Status
 
@@ -57,7 +57,7 @@ Fix direction in #256 (not prescriptive): make the wizard recording await a reli
 | D | Question | Answer |
 |---|---|---|
 | D1 | Honor agenda's `provision --params` literally, or map to the actual CLI? | **Map to actual.** Agenda's `--params` predates `provisionGeneric` (PR #255). Replaced with `provisionGeneric dev01 --wizard-mode replay --wizard-arg pseudo-co-wizard.spec.js`. Deviation called out in the commit body. |
-| D2 | B03 output path — honor agenda's `docs/SessionLogs/.../artefacts/B03-wizard.sql.gz`, or accept current tooling's `platforms/kvm/golden_backups/<ts>-generic_<zone>.tgz`? | **Accept current tooling.** The `.tgz` IS B03. Location/format mismatch flagged in commit body. |
+| D2 | B03 output path — honor agenda's `internal_docs/SessionLogs/.../artefacts/B03-wizard.sql.gz`, or accept current tooling's `platforms/kvm/golden_backups/<ts>-generic_<zone>.tgz`? | **Accept current tooling.** The `.tgz` IS B03. Location/format mismatch flagged in commit body. |
 | D3 | Wizard recording design — hand-author codegen-style script, or generate via `npx playwright codegen`? | **Hand-author**, modeled on `target5-20260415_113221.spec.js`. Reason: codegen is an interactive headed process not suited for an automated session; the recording is simple enough to write by inspection. |
 | D4 | On canary failure — fix-in-place, or halt + issue? | **Halt + issue** per agenda findings protocol and CLAUDE.md "root cause over symptoms." Even though the fix is one-line (add a post-completion wait), this is the wizard-automation surface the agenda specifically flagged for halting. |
 | D5 | dev01 disposition | Destroy. Clean slate for next attempt; next attempt will `destroy-as-precondition` anyway. |
@@ -74,7 +74,7 @@ Fix direction in #256 (not prescriptive): make the wizard recording await a reli
 | `0673a08` | `test(accept-matrix): Run 03 pseudo-wizard spec + recording + params` |
 
 Files added:
-- `docs/SessionLogs/acceptance-matrix/params/03-cli-pseudo-wizard.yml`
+- `internal_docs/SessionLogs/acceptance-matrix/params/03-cli-pseudo-wizard.yml`
 - `prototypes/cytoscape/recordings/wizard/pseudo-co-wizard.spec.js`
 - `prototypes/cytoscape/tests/accept-03-cli-pseudo-wizard.spec.js`
 

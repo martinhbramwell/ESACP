@@ -13,7 +13,7 @@
 
 - `sync_check.sh`: 41 pass / 11 warn / **5 fail**. Four failures were the expected ping failures against unprovisioned VMs (dev01/02/03/target5 — toshiba 16 GB constraint, `feedback_one_vm_at_a_time.md`). The **fifth** failure was new: WG hub peer drift (hub had 4 peers, inventory expected 5).
 - Investigated the drift before touching code. Root cause: hub's `/etc/wireguard/wg0.conf` was missing the `dev01` peer block entirely (rendered 2026-04-16 12:25 in an earlier session when the inventory was transiently missing dev01). All other peers present; dev01 keypair + preshared key present in `config/wireguard/keys.sops.yml`. Fix was simply re-running the wireguard role against saconsole: `cd ansible && ansible-playbook -i inventory/kvm.yml site-kvm.yml --limit saconsole --tags wireguard`. Post-fix sync check: 42 pass / 11 warn / 4 fail (only expected noise remains). No code changes required.
-- Six untracked session-log files from earlier Apr 16 sessions (0100, 1215, 1502 rounds of agenda+minutes) committed as `ba5b955` then pushed. `docs/Ideas/` (unrelated content drafts) left untracked.
+- Six untracked session-log files from earlier Apr 16 sessions (0100, 1215, 1502 rounds of agenda+minutes) committed as `ba5b955` then pushed. `internal_docs/Ideas/` (unrelated content drafts) left untracked.
 
 ## Scope boundary
 
@@ -54,5 +54,5 @@ Three extractions from `tools/esacp.py`, strict pure-refactor. No behavioural ch
 - `main` at `6f04733` (PR #205 merge commit), local in sync with origin.
 - Local branch `fix/194-vpn-observability-primitives` retained per `feedback_keep_merged_branches`.
 - Open Gen 3 issues: #195 (Phase 7), #196 (Phase 8), #197 (Phase 9). All other Phase 1-6 issues closed.
-- `docs/Ideas/` remains untracked — deferred for user review (content drafts, not engineering).
+- `internal_docs/Ideas/` remains untracked — deferred for user review (content drafts, not engineering).
 - `tools/esacp.py` at 883 (target ≤150, gap −733). `tools/api.py` at 907 (target ≤300). `tools/job_worker.py` at 305 (target ≤100).

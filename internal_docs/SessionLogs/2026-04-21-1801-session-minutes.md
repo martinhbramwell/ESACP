@@ -111,6 +111,6 @@ reference and merge commit.
 - PR: <https://github.com/martinhbramwell/ESACP/pull/274>
 - #262 validation comment: <https://github.com/martinhbramwell/ESACP/issues/262#issuecomment-4292130969>
 - Plan status edit: `~/.claude/plans/open-issues-purge.md` (Phase 1A ✅)
-- This minutes: `docs/SessionLogs/2026-04-21-1801-session-minutes.md`
-- Prior-session minutes: `docs/SessionLogs/2026-04-21-1528-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-21-1801-session-minutes.md`
+- Prior-session minutes: `internal_docs/SessionLogs/2026-04-21-1528-session-minutes.md`
   (purge-plan creation)

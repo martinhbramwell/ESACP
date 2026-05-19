@@ -1,13 +1,13 @@
 # Session Minutes — 2026-04-18 0652
 
-**Objective (declared at start):** Execute Acceptance Run 01 — UI saconsole destroy + rebuild, per `docs/SessionLogs/acceptance-matrix/01-ui-saconsole-destroy-rebuild.md`, on a fresh branch `accept/01-ui-saconsole` from `main`.
+**Objective (declared at start):** Execute Acceptance Run 01 — UI saconsole destroy + rebuild, per `internal_docs/SessionLogs/acceptance-matrix/01-ui-saconsole-destroy-rebuild.md`, on a fresh branch `accept/01-ui-saconsole` from `main`.
 
 **Objective outcome:** **Halted** at precondition inspection. Matrix restructured 8→7 runs (CLI-first); UI saconsole run eliminated by design. Two GitHub issues filed; plan + agendas + memory rewritten; all changes landed on `main` via PR (see close-out below).
 
 ## What happened
 
 1. **Session-start review**
-   - MEMORY.md + `docs/SessionLogs/2026-04-17-1702-next-agenda.md` loaded.
+   - MEMORY.md + `internal_docs/SessionLogs/2026-04-17-1702-next-agenda.md` loaded.
    - `bash platforms/kvm/sync_check.sh` → 46 ✅ / 8 ⚠️ / 3 ❌. Failures were the expected unprovisioned dev VMs (dev02, dev03, target5) — matches agenda precondition #3.
    - PR #221 (prior plan commit) already merged 2026-04-17T21:06:37Z; PR #218 (prior minutes) still OPEN, non-blocking. Cytoscape API ✅, UI ✅.
 
@@ -25,9 +25,9 @@
    - New order confirmed: 01 cli-saconsole-**rebuild** (dropped "destroy" from the name — the primitive is atomic backup → teardown → bootstrap replacement → mesh reattach, never a "destroyed and left" state).
    - Rebuild parameters confirmed: **blast radius** = saconsole-only (dev VMs untouched); **backup** = full qcow2 export (revert-capable); **history preservation** = none (fresh hub acceptable for now; post-v16 review tracked separately).
 
-4. **Docs/code/memory changes landed this session** — all on branch `docs/matrix-restructure-cli-first`:
+4. **Docs/code/memory changes landed this session** — all on branch `internal_docs/matrix-restructure-cli-first`:
    - `~/.claude/plans/acceptance-matrix-transport-parity.md` rewritten for 7-run CLI-first matrix (not checked into repo — lives in `~/.claude/plans/`).
-   - `docs/SessionLogs/acceptance-matrix/01-ui-saconsole-destroy-rebuild.md` — **deleted**.
+   - `internal_docs/SessionLogs/acceptance-matrix/01-ui-saconsole-destroy-rebuild.md` — **deleted**.
    - Seven agendas renumbered/renamed via `git mv`:
      - `05-cli-saconsole-destroy-rebuild.md` → `01-cli-saconsole-rebuild.md` (fully rewritten for atomic rebuild + Session A prerequisite)
      - `06-cli-vm-full-logichem-from-backup.md` → `02-cli-vm-full-logichem-from-backup.md`
@@ -62,5 +62,5 @@ See next-agenda `2026-04-18-0652-next-agenda.md` — Session A: build `platforms
 
 ## Sign-off
 
-- Branch: `docs/matrix-restructure-cli-first`
+- Branch: `internal_docs/matrix-restructure-cli-first`
 - PR: opened + merged before this file was committed as part of the same PR (verified via `gh pr view --json mergedAt`).

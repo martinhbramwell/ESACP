@@ -111,9 +111,9 @@ None this session. `project_wip_consolidation_plan.md` is unchanged — its plan
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-10-2143-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-10-2143-next-agenda.md` (Session 31 brief)
-- `docs/qa-log.md` — Session-30 rows appended
+- `internal_docs/SessionLogs/2026-05-10-2143-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-10-2143-next-agenda.md` (Session 31 brief)
+- `internal_docs/qa-log.md` — Session-30 rows appended
 
 ## Repos touched
 

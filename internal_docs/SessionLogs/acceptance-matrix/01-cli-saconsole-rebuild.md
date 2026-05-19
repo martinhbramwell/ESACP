@@ -23,7 +23,7 @@ If the script is not yet on `main`, this run cannot start; resolve the blocker f
 
 ## Parameter file
 
-`docs/SessionLogs/acceptance-matrix/params/01-cli-saconsole.yml`
+`internal_docs/SessionLogs/acceptance-matrix/params/01-cli-saconsole.yml`
 
 ```yaml
 run: "01"

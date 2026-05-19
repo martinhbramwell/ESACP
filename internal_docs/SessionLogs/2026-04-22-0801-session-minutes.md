@@ -1,7 +1,7 @@
 # Session Minutes — Phase 2C Umbrella-Branch Policy (#236)
 
 **Date:** 2026-04-22 ~07:55–08:00 EDT
-**Branch:** `docs/236-umbrella-branch-policy` (merged to `main` via `7482318`)
+**Branch:** `internal_docs/236-umbrella-branch-policy` (merged to `main` via `7482318`)
 **Issues closed:** #236 (1)
 **Issues opened:** none
 **PR:** #282 — merged 2026-04-22T11:55:17Z
@@ -63,7 +63,7 @@ call at planning time.
 
 ## PR + merge
 
-- Commit `4e94525` on `docs/236-umbrella-branch-policy` (GPG-signed,
+- Commit `4e94525` on `internal_docs/236-umbrella-branch-policy` (GPG-signed,
   verified). Pinentry succeeded first attempt.
 - PR #282 opened with `fixes #236` in the body.
 - Merged via `gh pr merge 282 --merge` (branch kept per
@@ -104,7 +104,7 @@ re-run with B03/B06 regeneration.
 
 ## File trail
 
-- Phase 2C commit: `4e94525` on `docs/236-umbrella-branch-policy`
+- Phase 2C commit: `4e94525` on `internal_docs/236-umbrella-branch-policy`
 - Merge commit: `7482318`
 - PR: <https://github.com/martinhbramwell/ESACP/pull/282>
 - Closed issue: <https://github.com/martinhbramwell/ESACP/issues/236>
@@ -114,6 +114,6 @@ re-run with B03/B06 regeneration.
 - New memory file: `memory/feedback_umbrella_branches.md`
 - Updated memory files: `memory/feedback_pr_merge_before_session_close.md`,
   `memory/feedback_issue_branch_session_discipline.md`
-- This minutes: `docs/SessionLogs/2026-04-22-0801-session-minutes.md`
-- Prior-session minutes: `docs/SessionLogs/2026-04-22-0700-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-22-0801-session-minutes.md`
+- Prior-session minutes: `internal_docs/SessionLogs/2026-04-22-0700-session-minutes.md`
   (Phase 2B #211 orphan orchestration audit)

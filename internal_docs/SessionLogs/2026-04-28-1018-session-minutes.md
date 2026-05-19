@@ -10,7 +10,7 @@
 
 ## Objective stated
 
-Step 2 of `~/.claude/plans/production-v14-migration-prep.md` — produce `docs/upgrade/CustomisationInventory_v13.md`. New GH issue filed at session start per 1:1:1 discipline.
+Step 2 of `~/.claude/plans/production-v14-migration-prep.md` — produce `internal_docs/upgrade/CustomisationInventory_v13.md`. New GH issue filed at session start per 1:1:1 discipline.
 
 ## What happened
 

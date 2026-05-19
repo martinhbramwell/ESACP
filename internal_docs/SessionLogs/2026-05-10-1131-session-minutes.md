@@ -51,9 +51,9 @@ No change required. The partial-overlap sub-shape executed as documented in `pro
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-10-1131-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-10-1131-next-agenda.md` (Session 27 brief)
-- `docs/qa-log.md` — Session 26 rows appended (2 rows)
+- `internal_docs/SessionLogs/2026-05-10-1131-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-10-1131-next-agenda.md` (Session 27 brief)
+- `internal_docs/qa-log.md` — Session 26 rows appended (2 rows)
 - `martinhbramwell/ESACP/issues/343` — closed with partial-overlap pointer comment
 - `martinhbramwell/ESACP/issues/358` — Session 26 progress comment posted (6 of 8)
 - `martinhbramwell/ce_sri/issues/5` — new destination issue (first non-setup issue on `ce_sri`)

@@ -82,9 +82,9 @@ This sub-task added one commit beyond the close-out (`678f009`): the audit-disch
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-10-1649-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-10-1649-next-agenda.md` (Session 30 brief)
-- `docs/qa-log.md` — Session 29 rows appended (one for Phase 2 batched verdict; one for follow-up Trigger 5 close; one for close-out push)
+- `internal_docs/SessionLogs/2026-05-10-1649-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-10-1649-next-agenda.md` (Session 30 brief)
+- `internal_docs/qa-log.md` — Session 29 rows appended (one for Phase 2 batched verdict; one for follow-up Trigger 5 close; one for close-out push)
 - `martinhbramwell/ESACP` — commit `a85cde0` (extension), close-out commit (this push)
 - `martinhbramwell/ESACP/issues/369` — CLOSED (`completed`)
 - `martinhbramwell/ESACP/issues/370` — OPEN (observational)

@@ -115,7 +115,7 @@ Operator asked: which approach best secures the saconsole future? Recording-side
 | `memory/feedback_bisect_before_hypothesizing.md` | NEW — feedback memory | (memory, not repo) |
 | `memory/MEMORY.md` | Added pointer; open-issue count 18→22 | (memory, not repo) |
 | `~/.claude/plans/open-issues-purge.md` | Sub-2 row ⏸; sub-2-prereq (#293) row; counts refreshed; first-move advanced | (plan, not repo) |
-| `docs/SessionLogs/2026-04-24-0841-session-minutes.md` | this file | main |
+| `internal_docs/SessionLogs/2026-04-24-0841-session-minutes.md` | this file | main |
 
 ## State handed to next session
 
@@ -150,7 +150,7 @@ Cut a direct-to-main branch for **#293**:
 
 ## File trail
 
-- Prior minutes: `docs/SessionLogs/2026-04-23-1352-session-minutes.md`
+- Prior minutes: `internal_docs/SessionLogs/2026-04-23-1352-session-minutes.md`
 - Purge plan: `~/.claude/plans/open-issues-purge.md` (Pre-Tier 0 section, sub-2 row + sub-2-prereq)
 - Memory: `memory/feedback_bisect_before_hypothesizing.md` (NEW)
 - Issue: [#292](https://github.com/martinhbramwell/ESACP/issues/292) (open; PR deferred)
@@ -158,4 +158,4 @@ Cut a direct-to-main branch for **#293**:
 - Issue: [#284](https://github.com/martinhbramwell/ESACP/issues/284) (open; diagnostic comment posted; superseded in scope by #293)
 - Comments: [#292 progress](https://github.com/martinhbramwell/ESACP/issues/292#issuecomment-4313198751) · [#284 diagnostic](https://github.com/martinhbramwell/ESACP/issues/284#issuecomment-4313196647)
 - Feat branch: `feat/playwright-wizard-generic-fixture` @ `f0b9bbc`
-- This minutes: `docs/SessionLogs/2026-04-24-0841-session-minutes.md`
+- This minutes: `internal_docs/SessionLogs/2026-04-24-0841-session-minutes.md`

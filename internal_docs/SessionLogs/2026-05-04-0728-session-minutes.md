@@ -89,7 +89,7 @@ Operator approved plan; deferred implementation to a fresh session for cleanline
 
 This was a diagnosis-only session. Triggers actually fired:
 
-- `gh issue create` (opened #343) — not a verdict trigger per `docs/qa-contract.md` §5.
+- `gh issue create` (opened #343) — not a verdict trigger per `internal_docs/qa-contract.md` §5.
 - `gh issue edit` (corrected #343 body) — not a trigger.
 - `gh issue comment` ×2 (edit-note on #343, G1 diagnosis on #343) — not triggers.
 - `Write` to `~/.claude/plans/`, `~/.claude/projects/.../memory/`, `MEMORY.md` — outside repo, not commit-bound.
@@ -99,8 +99,8 @@ No merge / push / destructive op / `gh issue close` triggers fired this session.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-04-0728-session-minutes.md` — this file
-- `docs/SessionLogs/2026-05-04-0728-next-agenda.md` — next-session agenda
+- `internal_docs/SessionLogs/2026-05-04-0728-session-minutes.md` — this file
+- `internal_docs/SessionLogs/2026-05-04-0728-next-agenda.md` — next-session agenda
 - `~/.claude/projects/.../memory/feedback_no_invented_commands.md` — already written mid-session
 - `~/.claude/projects/.../memory/MEMORY.md` — already updated mid-session with one new line
 - `~/.claude/plans/issue-343-sri-econnreset.md` — already written mid-session

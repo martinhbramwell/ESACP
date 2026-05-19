@@ -158,7 +158,7 @@ LogiSoluMemory:main now at `ae7166a`.
 
 ## QA verdicts batched
 
-See `docs/qa-log.md` rows for 2026-05-09 — Session 18 entries:
+See `internal_docs/qa-log.md` rows for 2026-05-09 — Session 18 entries:
 
 1. Trigger 3 — pre-push of seed commit `a8995e1` (1 file / 91
    insertions to fresh remote). Verdict approve. Notable: anti-rubber-
@@ -295,11 +295,11 @@ No deferred forward-tense promises remain.
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-09-0600-session-minutes.md` (this file —
+- `internal_docs/SessionLogs/2026-05-09-0600-session-minutes.md` (this file —
   initial commit `6054aa0`, corrective updates in subsequent
   audit-follow-up)
-- `docs/SessionLogs/2026-05-09-0600-next-agenda.md` (Session 19 brief)
-- `docs/qa-log.md` (Session 18 verdicts in `6054aa0` rows 61–63;
+- `internal_docs/SessionLogs/2026-05-09-0600-next-agenda.md` (Session 19 brief)
+- `internal_docs/qa-log.md` (Session 18 verdicts in `6054aa0` rows 61–63;
   post-close addendum + audit-follow-up rows 64–65 in `f0920b8`)
 - New repo `martinhbramwell/LogiSoluKnowBase` — created, one commit
   on `main` (`a8995e1` seed)

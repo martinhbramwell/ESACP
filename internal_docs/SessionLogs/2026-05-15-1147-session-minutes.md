@@ -62,7 +62,7 @@ Of the 8: **1** uses cross-schema introspection (the failing `delete_duplicate_i
 
 | Trigger | Invocation | Verdict | Notes |
 |---|---|---|---|
-| T1+T3 (combined, this ESACP session-close commit) | _pending — populated after verdict_ | _pending_ | ESACP doc-only direct-to-main per `docs/qa-contract.md` v2.1 §2.1 clause 3 |
+| T1+T3 (combined, this ESACP session-close commit) | _pending — populated after verdict_ | _pending_ | ESACP doc-only direct-to-main per `internal_docs/qa-contract.md` v2.1 §2.1 clause 3 |
 
 ## Counts at session end
 

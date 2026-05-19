@@ -14,7 +14,7 @@ Prove that a dev VM can be built through the Cytoscape UI into a bare ERPNext in
 
 ## Parameter file
 
-`docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml`
+`internal_docs/SessionLogs/acceptance-matrix/params/06-ui-pseudo-wizard.yml`
 
 ```yaml
 run: "06"
@@ -29,7 +29,7 @@ company:
   language: "en"
 admin_user:
   email: "admin@pseudo-co.example"
-backup_output_path: "docs/SessionLogs/acceptance-matrix/artefacts/B06-wizard.sql.gz"
+backup_output_path: "internal_docs/SessionLogs/acceptance-matrix/artefacts/B06-wizard.sql.gz"
 wait_budget_seconds: 1800
 ```
 

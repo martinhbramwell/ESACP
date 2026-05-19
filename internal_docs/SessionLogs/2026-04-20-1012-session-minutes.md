@@ -7,7 +7,7 @@
 
 ## Objective (entering)
 
-Resolve **#246** — rename + body-scrub the 5 acceptance-matrix agenda files under `docs/SessionLogs/acceptance-matrix/` — as the smallest, fastest item on the pre-Run-03 queue. First of three sessions the user triaged from the 2026-04-20 09:48 close-out reminders.
+Resolve **#246** — rename + body-scrub the 5 acceptance-matrix agenda files under `internal_docs/SessionLogs/acceptance-matrix/` — as the smallest, fastest item on the pre-Run-03 queue. First of three sessions the user triaged from the 2026-04-20 09:48 close-out reminders.
 
 ## Status
 
@@ -21,7 +21,7 @@ Resolve **#246** — rename + body-scrub the 5 acceptance-matrix agenda files un
 |---|---|---|
 | D1 | Triage of the 7 post-Run-02 reminders — resolve all before Run 03? | No. Split into 3 sessions: (1) #246 this session, (2) new "byte-identical destroy" issue + fix, (3) #234 folding reminders 3+5. Reminders 2 and 6 non-actionable (see D2) |
 | D2 | Reminders 2 (#250) and 6 (accept-01 hardening) — mark "resolved/non-actionable" in MEMORY? | No. #250 is already tracked as an open GH issue; accept-01 hardening is already recorded in the 2026-04-20 09:48 minutes (commit `750d97f`). MEMORY scope confirmation only, no edits |
-| D3 | Session-log carve-out — scrub `docs/SessionLogs/*-minutes.md` pointers to the 2 renamed files? | No. Per #239 PR #242, `docs/SessionLogs/**` is the historical carve-out. Only the 5 matrix-agenda files are "future-work"; session minutes are frozen |
+| D3 | Session-log carve-out — scrub `internal_docs/SessionLogs/*-minutes.md` pointers to the 2 renamed files? | No. Per #239 PR #242, `internal_docs/SessionLogs/**` is the historical carve-out. Only the 5 matrix-agenda files are "future-work"; session minutes are frozen |
 | D4 | Live SUT pointer at `accept-02-cli-full-company-specific.spec.js:17` — update? | Yes. Strictly outside the #246 "plans/memory/agendas" acceptance text, but it is a live comment pointing at a renamed path. Updated in the same PR |
 | D5 | Memory pointers — `feedback_no_real_client_names.md` illustrative placeholder + `feedback_compound_cmd_hook.md` hook-filename | Left as-is. The first is the rule's example token; the second is the on-disk filename tracked by #243 |
 
@@ -44,7 +44,7 @@ Resolve **#246** — rename + body-scrub the 5 acceptance-matrix agenda files un
 
 ## Acceptance (from #246)
 
-- `grep -ri 'logichem' docs/SessionLogs/acceptance-matrix/` → **zero hits** ✅
+- `grep -ri 'logichem' internal_docs/SessionLogs/acceptance-matrix/` → **zero hits** ✅
 - No plan, memory, or other-agenda pointer left referencing the old filenames ✅
 - Landed before Run 03 begins (Run 03 separately blocked by #234) ✅
 
@@ -80,7 +80,7 @@ None.
 
 ## Findings NOT filed (with reason)
 
-- **`docs/SessionLogs/*-minutes.md` historical references to the old agenda filenames** — per #239 PR #242 carve-out, session logs are frozen as written. Four files hit: `2026-04-20-0802-session-minutes.md`, `2026-04-19-1242-next-agenda.md`, `2026-04-19-0805-next-agenda.md`, `2026-04-18-0652-session-minutes.md`. Left as-is by design, captured explicitly in PR #252 body.
+- **`internal_docs/SessionLogs/*-minutes.md` historical references to the old agenda filenames** — per #239 PR #242 carve-out, session logs are frozen as written. Four files hit: `2026-04-20-0802-session-minutes.md`, `2026-04-19-1242-next-agenda.md`, `2026-04-19-0805-next-agenda.md`, `2026-04-18-0652-session-minutes.md`. Left as-is by design, captured explicitly in PR #252 body.
 
 ---
 

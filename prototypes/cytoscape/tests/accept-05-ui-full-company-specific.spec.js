@@ -15,8 +15,8 @@ import { BASE_URL, API_URL, waitForGraph, selectNode, clickInfoButton, waitForJo
  *   3. Fill hostname/nickname/IPs/hypervisor/zone → submit → wait for job.
  *
  * Plan:    ~/.claude/plans/acceptance-matrix-transport-parity.md
- * Agenda:  docs/SessionLogs/acceptance-matrix/05-ui-vm-full-company-specific-from-backup.md
- * Params:  docs/SessionLogs/acceptance-matrix/params/05-ui-full-company-specific.yml
+ * Agenda:  internal_docs/SessionLogs/acceptance-matrix/05-ui-vm-full-company-specific-from-backup.md
+ * Params:  internal_docs/SessionLogs/acceptance-matrix/params/05-ui-full-company-specific.yml
  *
  * Parity partner: Run 02 (CLI). Canary asserted verbatim for transport parity.
  *
@@ -29,7 +29,7 @@ const __dirname  = path.dirname(__filename)
 const PROJECT_ROOT = path.resolve(__dirname, '../../..')
 const PARAM_PATH = path.join(
   PROJECT_ROOT,
-  'docs/SessionLogs/acceptance-matrix/params/05-ui-full-company-specific.yml'
+  'internal_docs/SessionLogs/acceptance-matrix/params/05-ui-full-company-specific.yml'
 )
 const BUILD_SECRETS_PATH = path.join(PROJECT_ROOT, 'config/build_secrets.sops.yml')
 

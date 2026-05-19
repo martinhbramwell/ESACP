@@ -45,13 +45,13 @@ GPG-signed; good signature. Two files:
 
 ### Staged for commit 2 (un-committed — see Blocker below)
 
-- **D2a** — `docs/qa-contract.md` (new, 151 lines, 10 sections)
+- **D2a** — `internal_docs/qa-contract.md` (new, 151 lines, 10 sections)
 - **D2b** — CLAUDE.md pointer (4-line addition inside Anti-Spiral Enforcement block, after Known-Violations table)
-- **D4** — `docs/qa-log.md` (new, 50 lines, seed only)
+- **D4** — `internal_docs/qa-log.md` (new, 50 lines, seed only)
 
 ### Done outside repo (D3)
 
-`~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/feedback_enumerate_mechanisms_before_committing.md` — "Structural enforcement layer (ESACP #341)" paragraph updated from "being built" to "**ACTIVE 2026-05-03**" with links to agent file + `docs/qa-contract.md` + `docs/qa-log.md`. Memory dir is operator-private; no commit.
+`~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/feedback_enumerate_mechanisms_before_committing.md` — "Structural enforcement layer (ESACP #341)" paragraph updated from "being built" to "**ACTIVE 2026-05-03**" with links to agent file + `internal_docs/qa-contract.md` + `internal_docs/qa-log.md`. Memory dir is operator-private; no commit.
 
 ---
 
@@ -65,7 +65,7 @@ GPG-signed; good signature. Two files:
 
 **Verbatim agent reply (smoke #1):** *None — the invocation never reached an agent. Two attempts both returned the same error.*
 
-**Per `docs/qa-contract.md` §5 failure-fallback:** agent invocation error → trigger 1 (commits) is fail-open with mandatory note; triggers 2–5 (merge / push / destroy / issue close) are fail-closed.
+**Per `internal_docs/qa-contract.md` §5 failure-fallback:** agent invocation error → trigger 1 (commits) is fail-open with mandatory note; triggers 2–5 (merge / push / destroy / issue close) are fail-closed.
 
 This commit topology requires a push (trigger 3, hard-block, fail-closed) to land minutes on main. Therefore: **session closes without committing or pushing the staged changes or the minutes/agenda files.** Files left untracked for next session.
 
@@ -75,10 +75,10 @@ This commit topology requires a push (trigger 3, hard-block, fail-closed) to lan
 
 | # | Trigger | Action | Verdict | Outcome | Notes |
 |---|---|---|---|---|---|
-| — | 1 (commit) | bootstrap commit `bcebe2d` | n/a | proceeded | Bootstrap exception per plan §4.4 + `docs/qa-contract.md` §6 — agent file itself cannot be QA'd by an agent that does not yet exist. |
+| — | 1 (commit) | bootstrap commit `bcebe2d` | n/a | proceeded | Bootstrap exception per plan §4.4 + `internal_docs/qa-contract.md` §6 — agent file itself cannot be QA'd by an agent that does not yet exist. |
 | — | 1 (commit) | commit 2 (D2a + D2b + D4) | **agent-unreachable** | aborted (deferred to next session) | Two invocation attempts; both returned `Agent type 'esacp-qa' not found`. Fail-closed because session-log push to main is also pending and is hard-block trigger 3. |
 
-These rows seed `docs/qa-log.md` at next session-close batching.
+These rows seed `internal_docs/qa-log.md` at next session-close batching.
 
 ---
 
@@ -87,10 +87,10 @@ These rows seed `docs/qa-log.md` at next session-close batching.
 | Path | State | What |
 |---|---|---|
 | `CLAUDE.md` | modified, staged | D2b pointer line |
-| `docs/qa-contract.md` | new, staged | D2a |
-| `docs/qa-log.md` | new, staged | D4 |
-| `docs/SessionLogs/2026-05-03-1717-session-minutes.md` | new, untracked | this file |
-| `docs/SessionLogs/2026-05-03-1717-next-agenda.md` | new, untracked | next-session agenda |
+| `internal_docs/qa-contract.md` | new, staged | D2a |
+| `internal_docs/qa-log.md` | new, staged | D4 |
+| `internal_docs/SessionLogs/2026-05-03-1717-session-minutes.md` | new, untracked | this file |
+| `internal_docs/SessionLogs/2026-05-03-1717-next-agenda.md` | new, untracked | next-session agenda |
 
 Branch tip: `bcebe2d` on `feat/esacp-qa-agent`. `main` unchanged.
 

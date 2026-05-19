@@ -79,7 +79,7 @@ This session touched no controller code (operational migration on dev02 only). N
 
 ## Reads for the next session
 
-- These minutes: `docs/SessionLogs/2026-04-27-1030-session-minutes.md`
+- These minutes: `internal_docs/SessionLogs/2026-04-27-1030-session-minutes.md`
 - New memory: `memory/feedback_check_tool_actual_cli_before_following_agenda.md`
 - Re-framed issues: #306 (forward-looking), #307 (production residue inventory)
 - Stockroom-ladder plan: `~/.claude/plans/stockroom-ladder.md`

@@ -29,7 +29,7 @@
 
 3. **validate_observability.py decision** — kept as standalone measurement harness (not state-mutation; pure assertion), documented in `tools/CLAUDE.md` under a new "Standalone harnesses" section. Rule recorded: harnesses that only measure may stay single-file; harnesses that mutate state must be pipeline primitives.
 
-4. **Live doc scrub** — `README.md`, `docs/SystemOverview.md`, `docs/BuildOutProcedure.md` swapped stale command references for `./tools/esacp.py provision <host>`. `SETUP_GUIDE.md` got a historical-status banner (Stage 1 / VBox-era body preserved as record). Historical artifacts left untouched (`design_docs/`, `platforms/vbox/`, `Stage 1.5 completion checklist.md`, `docs/SessionLogs/`).
+4. **Live doc scrub** — `README.md`, `internal_docs/SystemOverview.md`, `internal_docs/BuildOutProcedure.md` swapped stale command references for `./tools/esacp.py provision <host>`. `SETUP_GUIDE.md` got a historical-status banner (Stage 1 / VBox-era body preserved as record). Historical artifacts left untouched (`design_docs/`, `platforms/vbox/`, `Stage 1.5 completion checklist.md`, `internal_docs/SessionLogs/`).
 
 5. **Cytoscape e2e acceptance** — `run-topology-test dev01 lifecycle` passed (~29 min provision + destroy). Jobs `3493734c` (provision) and `4e37318f` (destroy) both completed `done`. Mutated config files (`hosts_map.yml`, `group_vars/all.yml`, `keys.sops.yml`, `inventory/kvm.yml`) restored post-e2e so only the refactor landed.
 

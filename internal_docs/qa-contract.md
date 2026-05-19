@@ -2,7 +2,7 @@
 
 **Issue:** [#341 — feat(qa): esacp-qa subagent — pre-commit/merge/push verdict layer](https://github.com/martinhbramwell/ESACP/issues/341)
 **Agent file:** [`.claude/agents/esacp-qa.md`](../.claude/agents/esacp-qa.md)
-**False-positive / false-negative log:** [`docs/qa-log.md`](qa-log.md)
+**False-positive / false-negative log:** [`internal_docs/qa-log.md`](qa-log.md)
 **Memory rule the agent enforces structurally:** [`feedback_enumerate_mechanisms_before_committing.md`](../../.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/feedback_enumerate_mechanisms_before_committing.md) *(memory-dir path; not in repo)*
 
 This document is the **single source of truth** for the trigger contract. CLAUDE.md carries a one-line pointer here. The plan file `~/.claude/plans/esacp-qa-agent.md` is implementation history; this doc supersedes it for live operation.
@@ -43,7 +43,7 @@ If any condition fails, T1 and T3 are invoked separately.
 
 The invocation prompt is labeled `Trigger 1+3 (combined pre-commit + pre-push)` and includes both the staged diff (T1 input) and the push target (T3 input). The verdict trailer carries `hard_block: true` (inheriting the T3 hard-block scope; T1's advisory scope is subsumed). On `reject`, the parent does not commit; on `approve-with-conditions`, the parent addresses conditions before commit.
 
-Codified from S33+ practice. Pre-S33 rows in `docs/qa-log.md` show the historical separate-invocation pattern.
+Codified from S33+ practice. Pre-S33 rows in `internal_docs/qa-log.md` show the historical separate-invocation pattern.
 
 ### 2.2 T2 advisory carve-out
 
@@ -117,9 +117,9 @@ Two failure modes:
 | Agent invocation errors (tool unavailable, schema mismatch) | **Fail-closed** — do not proceed; surface error to operator; stop. | **Fail-open with mandatory note** — proceed but log "agent unreachable" in the parent's response so operator sees the gap. |
 | Agent returns malformed verdict (no trailer block, contradictory fields) | **Fail-closed** — same as invocation error. | **Fail-open with mandatory note** — same as invocation error. |
 
-Both failure-mode paths must also append a row to `docs/qa-log.md` at session-close batching.
+Both failure-mode paths must also append a row to `internal_docs/qa-log.md` at session-close batching.
 
-**"Malformed verdict" defined narrowly** (clarification per #367): a verdict whose substantive answer (`approve` / `approve-with-conditions` / `reject`) is unclear or self-contradictory. Flag inconsistencies on an unambiguous verdict — e.g. `hard_block: false` on an `approve` verdict for a Trigger 2–5 action — are NOT malformed for fail-closed purposes. The parent reads the substantive answer and proceeds. The `hard_block` flag determines override semantics on `reject` only; on `approve`, the flag has no operational effect. Note such inconsistencies once in `docs/qa-log.md` if useful, but do not treat them as fail-closed events and do not build escalation watches around them in isolation.
+**"Malformed verdict" defined narrowly** (clarification per #367): a verdict whose substantive answer (`approve` / `approve-with-conditions` / `reject`) is unclear or self-contradictory. Flag inconsistencies on an unambiguous verdict — e.g. `hard_block: false` on an `approve` verdict for a Trigger 2–5 action — are NOT malformed for fail-closed purposes. The parent reads the substantive answer and proceeds. The `hard_block` flag determines override semantics on `reject` only; on `approve`, the flag has no operational effect. Note such inconsistencies once in `internal_docs/qa-log.md` if useful, but do not treat them as fail-closed events and do not build escalation watches around them in isolation.
 
 ---
 
@@ -128,10 +128,10 @@ Both failure-mode paths must also append a row to `docs/qa-log.md` at session-cl
 The first commits that create the agent itself cannot be QA'd by an agent that doesn't yet exist. Specifically the bootstrap commits in branch `feat/esacp-qa-agent` (#341 implementation):
 
 - D1 — `.claude/agents/esacp-qa.md` (the agent file itself)
-- D2a — `docs/qa-contract.md` (this document)
+- D2a — `internal_docs/qa-contract.md` (this document)
 - D2b — `CLAUDE.md` pointer line
 - D3 — memory cross-ref update in `feedback_enumerate_mechanisms_before_committing.md`
-- D4 — `docs/qa-log.md` log seed
+- D4 — `internal_docs/qa-log.md` log seed
 
 These proceed under self-enforced rules + plan-locked design (`~/.claude/plans/esacp-qa-agent.md`). The first commit *after* the agent file lands on the branch routes through the agent — that is the first smoke test (#341 acceptance #3).
 
@@ -141,13 +141,13 @@ After the agent file is committed, the parent must reload subagents (`/agents` i
 
 ## 7. False-positive / false-negative log
 
-`docs/qa-log.md` records verdicts that turned out to be wrong (false positives = unnecessarily rejected; false negatives = approved when it shouldn't have been) and operator overrides. Batched at session-close (one append per session alongside minutes), bounded and predictable churn.
+`internal_docs/qa-log.md` records verdicts that turned out to be wrong (false positives = unnecessarily rejected; false negatives = approved when it shouldn't have been) and operator overrides. Batched at session-close (one append per session alongside minutes), bounded and predictable churn.
 
-Log row template lives in `docs/qa-log.md` itself. Goal: surface skip incidents and verdict-quality drift; if recurrence rate matches the original "3 regressions in 36 hours" pattern that triggered #341, escalate to v2 hook-based enforcement.
+Log row template lives in `internal_docs/qa-log.md` itself. Goal: surface skip incidents and verdict-quality drift; if recurrence rate matches the original "3 regressions in 36 hours" pattern that triggered #341, escalate to v2 hook-based enforcement.
 
 ### 7.1 Rolling-window recalibration audit
 
-At each Session-25 boundary — where session-count is read from the ESACP session-log rows in `docs/qa-log.md` only, not summed across other-bucket sessions — the parent runs a rolling-window analysis on the **most-recent 50 ESACP qa-log rows**. For each trigger type, compute the combined `approve-with-conditions` + `reject` rate. If that rate falls below **10%** for any trigger, surface the finding to the operator with a contract-revision recommendation (further carve-out, downgrade to advisory, or retirement).
+At each Session-25 boundary — where session-count is read from the ESACP session-log rows in `internal_docs/qa-log.md` only, not summed across other-bucket sessions — the parent runs a rolling-window analysis on the **most-recent 50 ESACP qa-log rows**. For each trigger type, compute the combined `approve-with-conditions` + `reject` rate. If that rate falls below **10%** for any trigger, surface the finding to the operator with a contract-revision recommendation (further carve-out, downgrade to advisory, or retirement).
 
 The audit is **detection-only**: surfacing does not auto-mutate the contract. The parent files an issue + recommendation; the operator decides whether to revise.
 

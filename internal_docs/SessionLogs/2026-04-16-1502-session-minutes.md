@@ -112,4 +112,4 @@ Phase 5 extracts VM power endpoints, memory guard, and Packer build orchestratio
   - `_strip_ansi` at line 348, `_filter_ansible_line` at 352 — → `tools/pipeline/stages/common/ansible_output.py`
   - `cmd_verify_vpn` at line 660 (ends ~731) — → `tools/pipeline/orchestration/verify_vpn.py`
   - `_get_grafana_creds` at 732, `cmd_validate_observability` at 758 — → `tools/pipeline/orchestration/observability_creds.py`
-- Untracked session-log + docs/Ideas/ files on main are pre-existing from prior sessions — not this session's concern, intentionally not committed.
+- Untracked session-log + internal_docs/Ideas/ files on main are pre-existing from prior sessions — not this session's concern, intentionally not committed.

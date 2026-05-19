@@ -136,7 +136,7 @@ it's not on the branch.
 
 ### On `main` (this minutes commit)
 
-`docs/SessionLogs/2026-04-22-1903-session-minutes.md` + updates to
+`internal_docs/SessionLogs/2026-04-22-1903-session-minutes.md` + updates to
 `memory/*` (which live outside the repo in `~/.claude/projects/.../memory/`).
 
 ## Acceptance verification
@@ -188,5 +188,5 @@ it's not on the branch.
 - Closed: <https://github.com/martinhbramwell/ESACP/issues/225>
 - New memory: `feedback_mission_priority_check.md`
 - Updated memory: `MEMORY.md` (short-term priority + critical rules + issue ledger)
-- This minutes: `docs/SessionLogs/2026-04-22-1903-session-minutes.md`
-- Prior session minutes: `docs/SessionLogs/2026-04-22-1418-session-minutes.md` (Phase 3A wizard bundle)
+- This minutes: `internal_docs/SessionLogs/2026-04-22-1903-session-minutes.md`
+- Prior session minutes: `internal_docs/SessionLogs/2026-04-22-1418-session-minutes.md` (Phase 3A wizard bundle)

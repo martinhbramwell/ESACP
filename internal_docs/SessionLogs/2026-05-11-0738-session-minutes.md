@@ -114,9 +114,9 @@ No verdict-format defects this session — tenth clean session in a row. esacp-q
 - `MEMORY.md` (one-line index pointer)
 
 **ESACP (this session-close commit)**:
-- `docs/SessionLogs/2026-05-11-0738-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-11-0738-next-agenda.md` (Session 32 agenda)
-- `docs/qa-log.md` (three Session-31 verdict rows + this session-close row)
+- `internal_docs/SessionLogs/2026-05-11-0738-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-11-0738-next-agenda.md` (Session 32 agenda)
+- `internal_docs/qa-log.md` (three Session-31 verdict rows + this session-close row)
 
 ## Issues touched
 

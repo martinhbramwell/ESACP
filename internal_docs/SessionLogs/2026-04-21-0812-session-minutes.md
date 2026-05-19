@@ -135,4 +135,4 @@ dev01 was absent at baseline (attempt 1's destroy succeeded), so the spec's idem
 
 ## Next
 
-Matrix Run 06 — UI pseudo-company wizard (parity partner: Run 03 CLI). Agenda: `docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md`. Starting state: dev01 running full-company-specific from Run 05 backup; Run 06 destroys it first.
+Matrix Run 06 — UI pseudo-company wizard (parity partner: Run 03 CLI). Agenda: `internal_docs/SessionLogs/acceptance-matrix/06-ui-vm-pseudo-company-wizard-creates-backup.md`. Starting state: dev01 running full-company-specific from Run 05 backup; Run 06 destroys it first.

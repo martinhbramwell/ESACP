@@ -89,7 +89,7 @@ The G1 hypothesis (Node-version mismatch) was **walked back** mid-session; root 
 
 ## QA verdict log
 
-Today's signal-worthy entries appended to `docs/qa-log.md`:
+Today's signal-worthy entries appended to `internal_docs/qa-log.md`:
 
 - 1 advisory override (Co-Author trailer model-identity false positive — recurring subagent context confusion)
 - 2 surprising-good-catches (sed banned-pattern violation, Mighty real-name violation — both genuine misses by parent)

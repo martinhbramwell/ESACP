@@ -8,7 +8,7 @@
 
 ### 1. Session-start review
 
-- Read MEMORY.md; read `docs/SessionLogs/2026-04-17-1649-next-agenda.md`.
+- Read MEMORY.md; read `internal_docs/SessionLogs/2026-04-17-1649-next-agenda.md`.
 - Ran `bash platforms/kvm/sync_check.sh`: 44 ✅ / 10 ⚠️ / 3 ❌. The 3 failures (WG-ping to `dev02`, `dev03`, `target5`) are expected per the agenda — unprovisioned VMs. No regression.
 - Listed 16 open issues via `gh issue list`.
 - Proposed Stage 2.x planning objective.
@@ -45,7 +45,7 @@ Both tagged `refactor`, scheduled after the matrix closes.
 ### 5. Planning deliverables
 
 - Plan file: `~/.claude/plans/acceptance-matrix-transport-parity.md` (local home, not under the repo).
-- Agenda files (8, under the repo): `docs/SessionLogs/acceptance-matrix/NN-*.md`.
+- Agenda files (8, under the repo): `internal_docs/SessionLogs/acceptance-matrix/NN-*.md`.
 - Memory entries (local home):
   - `memory/project_acceptance_matrix.md` — project context for future sessions.
   - `memory/feedback_sut_frozen_tests_unlimited.md` — the SUT-frozen / test-code-unlimited rule.
@@ -53,8 +53,8 @@ Both tagged `refactor`, scheduled after the matrix closes.
 
 ### 6. Git / PR
 
-- Discovered previous session's PR **#218** still open on branch `docs/2026-04-17-1649-phase9-minutes`. Did not touch that branch.
-- Branched fresh from `main` as `docs/acceptance-matrix-plan`.
+- Discovered previous session's PR **#218** still open on branch `internal_docs/2026-04-17-1649-phase9-minutes`. Did not touch that branch.
+- Branched fresh from `main` as `internal_docs/acceptance-matrix-plan`.
 - Committed the 8 agendas as a single signed commit `28c7d3a`.
 - Pushed; opened **PR #221**: `docs: acceptance matrix plan — 8 agendas for UI/CLI transport-parity runs`.
 - PR #221 state at the time of writing these minutes: **OPEN, MERGEABLE, `mergedAt: null`** — session not yet closed per `feedback_pr_merge_before_session_close.md`.
@@ -74,5 +74,5 @@ Both tagged `refactor`, scheduled after the matrix closes.
 ## State handed to next session
 
 - 8 agendas committed and on PR #221 pending merge.
-- Once #221 merges, the next 1:1:1 session picks up Acceptance Run 01 per `docs/SessionLogs/acceptance-matrix/01-ui-saconsole-destroy-rebuild.md`.
+- Once #221 merges, the next 1:1:1 session picks up Acceptance Run 01 per `internal_docs/SessionLogs/acceptance-matrix/01-ui-saconsole-destroy-rebuild.md`.
 - Previous session's PR #218 remains open and will be resolved on its own track.

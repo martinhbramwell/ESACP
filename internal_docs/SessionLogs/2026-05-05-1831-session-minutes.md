@@ -158,9 +158,9 @@ QA-log rows appended in same commit as these minutes.
 
 In ESACP doc-sweep commit (this commit on main):
 
-- `docs/SessionLogs/2026-05-05-1831-session-minutes.md` — this file
-- `docs/SessionLogs/2026-05-05-1831-next-agenda.md` — Session 11 agenda
-- `docs/qa-log.md` — appended Session 10 verdicts
+- `internal_docs/SessionLogs/2026-05-05-1831-session-minutes.md` — this file
+- `internal_docs/SessionLogs/2026-05-05-1831-next-agenda.md` — Session 11 agenda
+- `internal_docs/qa-log.md` — appended Session 10 verdicts
 
 In LogiSoluValidations (PR #1 — `playwright-regression-suite/discovery-sweep`):
 

@@ -68,9 +68,9 @@ This file + Session 29 agenda + qa-log Session 28 row. Single Trigger-1+3 verdic
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-10-1437-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-10-1437-next-agenda.md` (Session 29 brief)
-- `docs/qa-log.md` — Session 28 close-out row appended
+- `internal_docs/SessionLogs/2026-05-10-1437-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-10-1437-next-agenda.md` (Session 29 brief)
+- `internal_docs/qa-log.md` — Session 28 close-out row appended
 - `martinhbramwell/LogiSoluKnowBase` — new branch `umbrella/erpnext-idiomatic-refactor` on origin
 - `martinhbramwell/LogiSoluKnowBase/issues/{4,5,6,7,8,9,10}` — 7 new Plan B Phase issues filed
 - `martinhbramwell/ESACP/issues/353` — Plan B execution umbrella cross-reference comment posted

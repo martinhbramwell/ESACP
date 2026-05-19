@@ -14,8 +14,8 @@ import { BASE_URL, API_URL, waitForGraph } from './helpers.js'
  * asserts post-rebuild convergence.
  *
  * Plan:    ~/.claude/plans/acceptance-matrix-transport-parity.md
- * Agenda:  docs/SessionLogs/acceptance-matrix/01-cli-saconsole-rebuild.md
- * Params:  docs/SessionLogs/acceptance-matrix/params/01-cli-saconsole.yml
+ * Agenda:  internal_docs/SessionLogs/acceptance-matrix/01-cli-saconsole-rebuild.md
+ * Params:  internal_docs/SessionLogs/acceptance-matrix/params/01-cli-saconsole.yml
  *
  * saconsole lifecycle is CLI-only by design (`feedback_saconsole_cli_only.md`).
  * This run has no UI parity partner; its unique matrix contribution is
@@ -27,7 +27,7 @@ const __dirname  = path.dirname(__filename)
 const PROJECT_ROOT = path.resolve(__dirname, '../../..')
 const PARAM_PATH = path.join(
   PROJECT_ROOT,
-  'docs/SessionLogs/acceptance-matrix/params/01-cli-saconsole.yml'
+  'internal_docs/SessionLogs/acceptance-matrix/params/01-cli-saconsole.yml'
 )
 
 function loadParams() {

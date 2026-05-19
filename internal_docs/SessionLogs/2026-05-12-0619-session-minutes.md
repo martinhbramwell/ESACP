@@ -160,9 +160,9 @@ Mixing all three in one session works when substrate-model is settled, but isn't
 
 ## Files at session-end
 
-- `docs/SessionLogs/2026-05-12-0619-session-minutes.md` (this file)
-- `docs/SessionLogs/2026-05-12-0619-next-agenda.md` (Session 37 introspection-and-review brief)
-- `docs/qa-log.md` — Session 36 rows appended (5 Trigger verdicts + this session-close row)
+- `internal_docs/SessionLogs/2026-05-12-0619-session-minutes.md` (this file)
+- `internal_docs/SessionLogs/2026-05-12-0619-next-agenda.md` (Session 37 introspection-and-review brief)
+- `internal_docs/qa-log.md` — Session 36 rows appended (5 Trigger verdicts + this session-close row)
 - `~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/feedback_production_20260404_readonly.md` — new memory entry
 - `~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/feedback_dev_vms_are_disposable.md` — new memory entry
 - `~/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/project_phase3_redis_rq_decision.md` — new memory entry
@@ -182,7 +182,7 @@ Mixing all three in one session works when substrate-model is settled, but isn't
 
 ## QA invocations (this session)
 
-5 verdicts (+1 forthcoming session-close row): Trigger 1+3 `approve-with-conditions` (3 conditions, all addressed pre-commit); Trigger 2 `approve` (all prior conditions verified); Trigger 5 on LSKB#5 `approve-with-conditions` (status-accuracy fix); Trigger 5 on LSKB#4 attempt 1 `reject` (count-discrepancy surprising-good-catch); Trigger 5 on LSKB#4 attempt 2 `approve-with-conditions` (execution-vs-classification disclosure + LSKB#5 closure ordering). Details in `docs/qa-log.md` Session 36 rows.
+5 verdicts (+1 forthcoming session-close row): Trigger 1+3 `approve-with-conditions` (3 conditions, all addressed pre-commit); Trigger 2 `approve` (all prior conditions verified); Trigger 5 on LSKB#5 `approve-with-conditions` (status-accuracy fix); Trigger 5 on LSKB#4 attempt 1 `reject` (count-discrepancy surprising-good-catch); Trigger 5 on LSKB#4 attempt 2 `approve-with-conditions` (execution-vs-classification disclosure + LSKB#5 closure ordering). Details in `internal_docs/qa-log.md` Session 36 rows.
 
 ## Operator-decided sequencing notes
 

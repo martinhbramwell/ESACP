@@ -18,7 +18,7 @@ One DNS update instead of hunting hardcoded IPs across sessions.
    - `ansible/CLAUDE.md`
    - `ansible/site-kvm.yml`
    - `platforms/kvm/prepare_hypervisor.sh`
-   - `docs/PrepareHypervisor.md`
+   - `internal_docs/PrepareHypervisor.md`
    - `platforms/kvm/bootstrap_saconsole.sh`
 
 3. **Update 2 memory files**:

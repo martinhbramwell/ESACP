@@ -24,7 +24,7 @@ Bucket-survey: `session_buckets.txt` still empty — surveys quiescent. Carry-fo
 
 Operator approved the section title and the sequencing ("LogiSoluMemory first, then ESACP") before Phase 2 began.
 
-Branch `docs/358-memory-three-bucket-framing` off LogiSoluMemory `main` at `bd21eca`. Edited six files + MEMORY.md:
+Branch `internal_docs/358-memory-three-bucket-framing` off LogiSoluMemory `main` at `bd21eca`. Edited six files + MEMORY.md:
 
 | File | Edit shape |
 |---|---|
@@ -54,13 +54,13 @@ Squash-merge with `--delete-branch=false` (per `feedback_keep_merged_branches.md
 
 ### Phase 3 — ESACP PR #376 (item 6)
 
-Branch `docs/358-claude-three-bucket-section` off ESACP `main` at the latest tip (post-Session-31 close).
+Branch `internal_docs/358-claude-three-bucket-section` off ESACP `main` at the latest tip (post-Session-31 close).
 
 Edited `CLAUDE.md`: collapsed lines 5+7 (LogiSoluMemory standup + BaRe bucket-1 associate paragraphs — content subsumed by new section) into a single one-line pointer to the new section near the top. Added the new "## Three-Bucket Architecture & Bespoke App Repos" section between Session Protocol and Current State.
 
 New section content: three-bucket table, BaRe bucket-1 associate subsection, LogiSoluMemory sibling-artifact subsection, "where issues live by app" mapping table, four migration operations (consolidation / migration / tracker-redirect / methodology-stays) with link to executable pattern memory file, three discipline mechanisms, naming-and-privacy posture. File: 248 → 304 lines (+59 / -3).
 
-**Trigger 1 (pre-commit, advisory)**: QA invocation `a50329a68d558a2ed`. Verdict `approve-with-conditions`. Single substantive condition: the new section's discipline mechanism 1 originally read "`esacp-qa` hard-blocks otherwise (Trigger 1)" — factually wrong (Trigger 1 is advisory, hard-blocks are Triggers 2–5 per `docs/qa-contract.md` §2). Fixed before commit: now reads "advisory on Trigger 1 (commits), hard-block on Triggers 2–5 (merge / push / destructive ops / issue close)." This is a substantive content-correctness catch — exactly the anti-rubber-stamp role of the QA agent.
+**Trigger 1 (pre-commit, advisory)**: QA invocation `a50329a68d558a2ed`. Verdict `approve-with-conditions`. Single substantive condition: the new section's discipline mechanism 1 originally read "`esacp-qa` hard-blocks otherwise (Trigger 1)" — factually wrong (Trigger 1 is advisory, hard-blocks are Triggers 2–5 per `internal_docs/qa-contract.md` §2). Fixed before commit: now reads "advisory on Trigger 1 (commits), hard-block on Triggers 2–5 (merge / push / destructive ops / issue close)." This is a substantive content-correctness catch — exactly the anti-rubber-stamp role of the QA agent.
 
 Commit `6e6d9c5` GPG-signed.
 
@@ -76,7 +76,7 @@ Squash-merge. Merge commit `b52de7f`, `mergedAt: 2026-05-11T14:12:50Z`.
 
 `fixes #358` in commit body of PR #376 → GitHub auto-closed #358 at `2026-05-11T14:12:52Z` (2 seconds after merge). State `closed`, `state_reason: completed`.
 
-**No Trigger 5 invocation**: per `docs/qa-contract.md` §2, Trigger 5 fires on the explicit `gh issue close` command. Auto-close via `fixes` keyword is a different mechanism. The Trigger 2 verdict on PR #376 had already cross-checked all 8 closure-checklist items as discharged before approving the merge.
+**No Trigger 5 invocation**: per `internal_docs/qa-contract.md` §2, Trigger 5 fires on the explicit `gh issue close` command. Auto-close via `fixes` keyword is a different mechanism. The Trigger 2 verdict on PR #376 had already cross-checked all 8 closure-checklist items as discharged before approving the merge.
 
 Closing comment posted on #358 with both commit hashes + final closure-checklist disposition + all 6 Session-32 QA invocation IDs: [issuecomment-4421510810](https://github.com/martinhbramwell/ESACP/issues/358#issuecomment-4421510810).
 
@@ -138,7 +138,7 @@ CLAUDE.md root + the six rewritten memory files now make three-bucket positionin
 
 - This minutes file (`2026-05-11-1013-session-minutes.md`)
 - Session 33 next-agenda (`2026-05-11-1013-next-agenda.md`)
-- `docs/qa-log.md` — Session 32 verdicts appended (6 substantive rows + this session-close row)
+- `internal_docs/qa-log.md` — Session 32 verdicts appended (6 substantive rows + this session-close row)
 - One ESACP main commit (this session-close commit)
 
 ## Wall-clock

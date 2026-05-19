@@ -4,7 +4,7 @@
 **Branch:** `accept/03-cli-pseudo-wizard`
 **PR:** #257 — merged via local GPG-signed merge commit `ad27d48` at 2026-04-20T20:05:01Z
 **Issue:** #256 — closed `state=completed` at 2026-04-20T20:05:01Z
-**Agenda reference:** the fix scope is driven by #256 directly; Run 03 exit state follows `docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md`.
+**Agenda reference:** the fix scope is driven by #256 directly; Run 03 exit state follows `internal_docs/SessionLogs/acceptance-matrix/03-cli-vm-pseudo-company-wizard-creates-backup.md`.
 
 ## Objective
 

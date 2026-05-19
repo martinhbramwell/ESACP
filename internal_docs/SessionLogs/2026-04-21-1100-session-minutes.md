@@ -85,4 +85,4 @@ First `git commit -S` attempt timed out at pinentry (agent not warmed this sessi
 - Merge commit: `c0ce2ce` on `main`
 - PR #269: https://github.com/martinhbramwell/ESACP/pull/269
 - #267 cross-ref comment: https://github.com/martinhbramwell/ESACP/issues/267#issuecomment-4289567784
-- Prior halt minutes: `docs/SessionLogs/2026-04-21-1033-session-minutes.md`
+- Prior halt minutes: `internal_docs/SessionLogs/2026-04-21-1033-session-minutes.md`

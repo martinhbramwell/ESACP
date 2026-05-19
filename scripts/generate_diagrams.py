@@ -48,19 +48,19 @@ def main():
     
     parser.add_argument(
         "--architecture",
-        default="docs/architecture.yml",
+        default="internal_docs/architecture.yml",
         help="Path to architecture.yml"
     )
     
     parser.add_argument(
         "--template",
-        default="docs/templates/mermaid.j2",
+        default="internal_docs/templates/mermaid.j2",
         help="Path to Jinja2 template"
     )
     
     parser.add_argument(
         "--output",
-        default="docs/diagrams/architecture.mmd",
+        default="internal_docs/diagrams/architecture.mmd",
         help="Output path for Mermaid file"
     )
     
