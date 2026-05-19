@@ -50,6 +50,19 @@ Objective met, then expanded mid-session into a Pages-site initiative (ESACP#402
 |---|---|---|
 | [ESACP#401](https://github.com/martinhbramwell/ESACP/issues/401) | **filed** — saconsole unreachable | New |
 | [ESACP#402](https://github.com/martinhbramwell/ESACP/issues/402) | **filed** — Pages site v1 | New |
+| [ESACP#400](https://github.com/martinhbramwell/ESACP/issues/400) | suspension-status comment | Pointer (post-audit) |
+| [ce_sri#10](https://github.com/martinhbramwell/ce_sri/issues/10) | block-chain-extension comment | Pointer (post-audit) |
+| [LSKB#15](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/15) | block-chain-extension comment | Pointer (post-audit) |
+
+## Pointer-comments posted (added post-close-audit)
+
+The initial S57 close-out commit (`05254e5`) did not post pointer comments on the three GH issues whose state changed this session. The session-close audit caught the gap. Comments posted retroactively:
+
+- ESACP#400 — [Audit suspended for duration of ESACP#402](https://github.com/martinhbramwell/ESACP/issues/400#issuecomment-4488665987)
+- ce_sri#10 — [Block chain extended (S57 close-out)](https://github.com/martinhbramwell/ce_sri/issues/10#issuecomment-4488666195)
+- LSKB#15 — [Block chain extended (S57 close-out)](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/15#issuecomment-4488666412)
+
+This is exactly the failure mode that [`feedback_narration_not_action.md`](https://github.com/martinhbramwell/LogiSoluMemory/blob/main/feedback_narration_not_action.md) names: *new findings about existing GH issues go into the issue as a comment immediately, not into minutes/agendas. Minutes reference issues; they do not replace issue comments.* Caught by the audit, not by in-session discipline. Recurrence to monitor.
 
 ## Memory files written
 
