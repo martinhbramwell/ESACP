@@ -1,9 +1,11 @@
 ---
 layout: home
-title: "ESACP — When the only developer leaves"
 ---
 
-# When the only developer leaves
+<div style="text-align: center; margin: 2.5em 0 2em;">
+  <h1 style="font-size: 6em; margin: 0; line-height: 1; letter-spacing: 0.02em;">ESACP</h1>
+  <p style="font-size: 1.6em; color: #555; margin: 0.4em 0 0; font-style: italic;">When your only developer leaves!!</p>
+</div>
 
 A small family-owned business in our region runs a comprehensive business management system — the kind that handles inventory, billing, payroll, taxes, customer routes, all of it. It was built up over years by a single developer who customised it deeply, to fit how this particular business actually works.
 
