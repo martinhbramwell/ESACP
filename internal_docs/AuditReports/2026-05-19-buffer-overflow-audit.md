@@ -918,3 +918,356 @@ violation. No new commits to any of the three since the plan landed.
 
 **No Stage 2 execution this session.** Stage 2 (Plan-B phase mapping)
 starts S63 at the earliest, per Sub-step 4 of the S62 agenda.
+
+---
+
+## Stage 2 — Plan-B phase mapping (S63)
+
+**Question answered**. Across the 8-phase Plan B
+([ESACP#353](https://github.com/martinhbramwell/ESACP/issues/353)),
+where are recent sessions actually operating? Are phase boundaries
+respected, or has scope crept across phases?
+
+**Trigger context**. Memo order 1→6 (operator S60). Audit window S11 =
+2026-05-06 → present (S62 = 2026-05-20). One S60/S61 observation lands
+here: **Obs 2** (Plan-B current locus — LSKB#15/#16 paused;
+Phases 1/2/3/5/6 status not re-verified at Step 1).
+
+### Sub-step 1 — Mandatory grep gate (universal)
+
+| Grep | Hits | Read |
+|---|---:|---|
+| `grep -rl 'Plan B\|idiomatic_refactor' memory/` | 15 | Memos: `project_erpnext_idiomatic_refactor.md` (master plan), `project_phase3_redis_rq_decision.md`, `project_phase4_bespoke_app_placement.md`, `project_sales_partner_commissions_redesign.md`, `project_wip_consolidation_plan.md`, `project_buffer_overflow_audit_plan.md`, `project_bucket_2_migration_pattern.md`, `project_cloudstack_deferred_until_v16.md`, `project_logisolu_validations.md`, `project_plan_b_remaining_roadmap.md` (archive), plus 4 feedback memos (`feedback_dev_vms_are_disposable.md`, `feedback_bespoke_apps_single_responsibility.md`, `feedback_check_existing_wip_before_fresh_work.md`, `feedback_consultant_not_peer_engineer.md`) + `MEMORY.md` index. Plan-B vocabulary is durable across 15 memory files, not parked in a single memo. |
+| `grep -rl 'project_erpnext_idiomatic_refactor' memory/` | 8 | Direct cross-references: 5 Plan-B project memos + `feedback_dev_vms_are_disposable.md` + `MEMORY.md` + `project_buffer_overflow_audit_plan.md`. Master-plan link is well-fanned. |
+| `grep -rln 'Phase [1-8]' internal_docs/SessionLogs/` | 188 | Hits span 2026-03-31 → 2026-05-20. Note: regex matches generic "Phase N" tokens used in pipeline-stage and gen-3 contexts too — Plan-B phase mentions are a subset. Audit-window subset (since 2026-05-06): partitioned per-phase in Sub-step 2 below. |
+| `grep -rln 'LSKB#\|#353' internal_docs/SessionLogs/` | 98 | First in-window hit: `2026-05-07-0748-*` (Plan B Phase 4 antecedent discussion). Continuous through 2026-05-20. LSKB# and #353 vocabulary is load-bearing context for every post-S33 session. |
+
+Gate **passes**: all four sweeps return hits in expected ranges; no cold
+spot. Notable caveat on grep 3 (the `Phase [1-8]` regex): high hit count
+includes non-Plan-B "Phase" tokens — Sub-step 2 partitions properly by
+LSKB-issue and phase-specific keywords (`fixture_equivalent`,
+`Custom DocPerm`, `discardable_core_edit`, `redis/rq`,
+`sales_partner_commissions`, `master/detail`, `catalogue triage`,
+`es-EC`, `route_planner`, `returnable`).
+
+### Sub-step 2 — Per-phase compliance pass (8 phases)
+
+**Ground-truth source**. LSKB + ce_sri close-state in window — every
+Plan-B execution row tracks via a `refactor(Plan B Phase N):` or
+`design/feat(Plan B Phase N):` issue title. Plus pre-bucket-migration
+ESACP rows (#356/#357) that landed before #358 migrated execution to
+LSKB.
+
+#### Phase 1 — Replace 18 `fixture_equivalent_core_edit` with Custom Fields
+
+**Memo summary** (`project_erpnext_idiomatic_refactor.md`): replace 18
+`fixture_equivalent_core_edit` patches with declarative Custom Fields on
+dev02; low risk (behaviour-equivalent by audit verdict).
+
+**Sessions that touched the phase**:
+
+| Session date | Issue | Work |
+|---|---|---|
+| 2026-05-09 | ESACP#356 closed | Pre-bucket-migration: 14 fixture_json Custom Fields replaced on dev02 |
+| 2026-05-09 | ESACP#357 closed | Pre-bucket-migration: 3 Custom DocPerm v14_patch_script entries ported (Phase 1B, see below) |
+| 2026-05-11 | ce_sri#6 closed | 11 ce_sri-routed Custom Fields consolidated onto main (wip-consolidation companion) |
+| 2026-05-11 | LSKB#2 closed | Post-#358 re-filed Phase 1 execution row, closed via the same upstream work |
+
+**Status**: **DONE**.
+
+**Scope-creep**: None. Bucket-migration footprint (ESACP#356 → LSKB#2,
+ESACP#357 → LSKB#3) is intentional Operation-2 migration per
+`project_bucket_2_migration_pattern.md`, not phase-bypass.
+
+---
+
+#### Phase 1B — Custom DocPerm v14_patch_script entries
+
+**Memo summary**: 3 Custom DocPerm patches → bespoke-app patches (sibling
+to Phase 1; appears in catalogue as `human_review` but is mechanically
+Phase 1-class).
+
+**Sessions that touched the phase**:
+
+| Session date | Issue | Work |
+|---|---|---|
+| 2026-05-09 | ESACP#357 closed | 3 Custom DocPerm entries ported (pre-bucket-migration) |
+| 2026-05-11 | LSKB#3 closed | Post-#358 re-filed Phase 1B row; ce_sri commit `b22e263 fixes LSKB#3` |
+
+**Status**: **DONE**.
+
+**Scope-creep**: None.
+
+---
+
+#### Phase 2 — Drop 10 `discardable_core_edit` + 2 debug-print human_review entries
+
+**Memo summary**: drop the 10 discardable patches plus the 2 debug-print
+litter entries on `frappe/model/delete_doc.py` + `frappe/model/document.py`.
+Low risk.
+
+**Sessions that touched the phase**:
+
+| Session date | Issue | Work |
+|---|---|---|
+| 2026-05-12 | LSKB#4 closed | 10 discardable + 2 debug-print entries dropped on dev02 |
+| (open) | LSKB#11 open | Staged drift promotions — `custom_scripts, property_setter, translations` |
+
+**Status**: **PARTIAL** — initial Phase-2 scope (12 entries) done;
+follow-on drift-promotion row (LSKB#11) open.
+
+**Scope-creep instance**: LSKB#11 expands Phase 2 from the original
+12-item discardable-patch list to include three additional drift
+categories (`custom_scripts`, `property_setter`, `translations`).
+Verdict: **mid-execution scope-expansion**, cleanly captured as a
+separate row (not bundled into LSKB#4 retroactively). Per Phase-2's
+general intent ("drift cleanup before substrate-apply") this is an
+honest discovery, not a discipline violation. Corrective measure: none
+required; LSKB#11 is the canonical home and is properly scoped under
+Phase 2 governance.
+
+---
+
+#### Phase 3 — `requirements.txt` redis/rq pin override decision
+
+**Memo summary**: decide keep / match-stock / defer-to-V15+; resolved
+2026-05-11 as **match V14 stock** (`redis~=3.5.3` + `rq~=1.8.0` on V13,
+`rq frappe-fork` on V14+); applied at substrate rebuild, not as
+immediate edit (PRODUCTION_20260404 is read-only).
+
+**Sessions that touched the phase**:
+
+| Session date | Issue | Work |
+|---|---|---|
+| 2026-05-12 | LSKB#5 closed | Decision documented in `project_phase3_redis_rq_decision.md`; LSKB#5 close-comment points there |
+
+**Status**: **DONE** (decision-only; vendoring carries to substrate
+rebuild per `project_phase3_redis_rq_decision.md` "Verification caveat"
+section).
+
+**Scope-creep**: None.
+
+---
+
+#### Phase 4 — Sales Partner Customer Item Commissions master/detail
+
+**Memo summary**: master/detail DB-resident redesign + retire `Asignar
+Producto a Campo`. Medium risk. Per Premises amended S40 (2026-05-12),
+substrate re-targeted to local KVM; LSKB#6 epic scope-trimmed into a
+sub-issue ladder (LSKB#12 → LSKB#16). Per Premises amended S41
+(2026-05-12), patch + Server Script install hooks live in new dedicated
+`sales_partner_commissions` app (bucket-2, LSKB tracker).
+
+**Sessions that touched the phase**:
+
+| Session date | Issue | Work |
+|---|---|---|
+| 2026-05-09 | ESACP#354 closed | Doc note on Server Script misleading event names (pre-bucket-migration; later re-filed as LSKB#1) |
+| 2026-05-12 | ESACP#385 closed | Chronology amendment: Phase 4 substrate CloudStack → local KVM |
+| 2026-05-12 | ESACP#386 closed | Bespoke-app placement decision: new `sales_partner_commissions` app |
+| 2026-05-12 | LSKB#12 closed | Final master/detail DocType design — `Sales Partner Commission Item` child table |
+| 2026-05-13 | LSKB#17 closed | `sales_partner_commissions` repo standup (empty Frappe app skeleton) |
+| 2026-05-13 | LSKB#19 closed | Currency re-freeze — `commission_rate` Percent → Currency (S42 escape-clause triggered) |
+| 2026-05-13 | LSKB#13 closed | V14 migration patch authored — walks column-explosion into master/detail rows |
+| 2026-05-13 | LSKB#14 closed | Server Script rewrites against master/detail shape |
+| 2026-05-15 | LSKB#20 closed | Substrate-readiness — dev02 bench-version drift assessment vs PRODUCTION_20260404 |
+| (paused) | LSKB#15 open | **PAUSED** — apply Phase 4 changes on local KVM substrate (restore + bench migrate end-to-end) |
+| (paused) | LSKB#16 open | **PAUSED** — verify commission calc parity on representative orders (downstream of #15) |
+| (open) | LSKB#18 open | `user_data_fields` boilerplate cleanup in `sales_partner_commissions/hooks.py` (chore) |
+| (open) | LSKB#1 open | Misleading event names — doc note (re-filed from ESACP#354) |
+| (open) | LSKB#6 open | Phase 4 parent epic — remains open until all sub-issues land + substrate-apply verified |
+
+**Status**: **IN-PROGRESS / PAUSED**. Design, repo, migration patch,
+Server Script rewrites, currency re-freeze, substrate-readiness all
+landed by 2026-05-15 (S48). Substrate-apply (LSKB#15) + parity-verify
+(LSKB#16) **paused since** 2026-05-15. Pause origin: S56 (2026-05-18)
+surfaced ce_sri#10 fixture collision blocking substrate-apply; ESACP#400
+audit chartered S57 specifically to assess whether to resume directly
+or interleave corrective measures.
+
+**Scope-creep instances**:
+
+1. **LSKB#15 / LSKB#16 / LSKB#18 / LSKB#19 / LSKB#20 (Phase 4 sub-issue
+   ladder)** — per Premises amended S40, LSKB#6 was deliberately
+   scope-trimmed into a sub-issue ladder (LSKB#13 migration-patch,
+   LSKB#14 Server Scripts, LSKB#15 substrate-apply, LSKB#16
+   parity-verify). LSKB#17 (repo standup), LSKB#18 (`user_data_fields`
+   chore), LSKB#19 (currency re-freeze from S42 escape clause), LSKB#20
+   (substrate-readiness infra) all filed deliberately under Phase-4
+   governance. **Verdict**: **planned sub-issue ladder, not
+   scope-creep.** Each sub-issue honours 1:1:1 discipline.
+2. **ce_sri#10 (Custom Field collision, surfaced S56)** — bucket-3
+   fixture bug with Plan-B Phase 4 substrate-apply interlock (blocks
+   LSKB#15). Properly bucket-routed (bucket-3 not bucket-2); flagged as
+   #400-trigger; ESACP#400 audit chartered to assess. **Verdict**:
+   **interlock discovery, not scope-creep.** Phase 4 substrate-apply
+   has a legitimate bucket-3 dependency the original chronology did
+   not enumerate; honest find.
+
+**Bypass detection**: none. Sub-issues #12 (design) → #17 (repo) → #19
+(currency re-freeze) → #13 (migration patch) → #14 (Server Scripts) →
+#20 (substrate-readiness) → #15 (substrate-apply, paused) → #16
+(parity-verify, paused) executed in correct dependency order per the
+amended ladder. Phase 4 design + code landed **before** substrate-apply
+— honours the "smaller scaffolds larger" no-rework sequencing principle
+(`feedback_no_rework_sequencing.md`).
+
+---
+
+#### Phase 5 — DB-resident customisation catalogue triage (22 TBDs)
+
+**Memo summary**: document the 22 DB-resident customisation TBDs in
+`audit/customizations_catalogue.yml`. Low risk; documentation pass.
+
+**Sessions that touched the phase**:
+
+| Session date | Issue | Work |
+|---|---|---|
+| 2026-05-07 | ESACP#312 closed | Customisation inventory for production v13 — antecedent of LSKB#7 |
+| 2026-05-12 | LSKB#7 closed | 22 DB-resident TBDs documented (catalogue triage) |
+
+**Status**: **DONE**.
+
+**Scope-creep**: None.
+
+---
+
+#### Phase 6 — `es-EC → es` language aliasing (eliminate `erpnext/translations/es.csv` core edit)
+
+**Memo summary**: replace the `es.csv` in-place core edit with
+ERPNext-native language aliasing. Low risk.
+
+**Sessions that touched the phase**:
+
+| Session date | Issue | Work |
+|---|---|---|
+| 2026-05-07 | ESACP#339 closed | Language alias map for translation promotion (pre-Plan-B framing; later superseded) |
+| 2026-05-12 | LSKB#8 closed | `es-EC → es` aliasing implemented; ce_sri commit `924ff2e fixes LSKB#8` |
+
+**Status**: **DONE**.
+
+**Scope-creep**: None.
+
+---
+
+#### Phase 7 — Eliminate `route_planner` (port additions to DB-resident DocTypes / Custom Fields)
+
+**Memo summary**: smaller of the two app-eliminations (empty `hooks.py`);
+surfaces app-elimination strategy learning before Phase 8's harder port.
+
+**Sessions that touched the phase**:
+
+| Session date | Issue | Work |
+|---|---|---|
+| 2026-05-11 | ESACP#371 closed | Track(wip-consolidation): route_planner Phase 1 pilot — Custom Field consolidation (pre-Plan-B pilot, distinct from elimination) |
+| (none in window for the elimination itself) | LSKB#9 open | Not started |
+
+**Status**: **NOT STARTED**.
+
+**Scope-creep**: None. ESACP#371 was a wip-consolidation pilot (Track A
+of `project_wip_consolidation_plan.md`), not Phase 7 elimination; the
+two are distinct workstreams.
+
+**Bypass**: Phase 7 is parallel-safe with Phase 4 design per Plan-B
+chronology amendment S12 (smaller-scaffolds-larger sub-rule). Not
+starting Phase 7 while Phase 4 is in-progress is **acceptable** — Plan
+B does not require Phase 7 to run in parallel; only permits it.
+
+---
+
+#### Phase 8 — Eliminate `returnable` / `BtlMng` (port `hook_tasks.py` to DB-resident Server Scripts)
+
+**Memo summary**: ~200-line `hook_tasks.py` port + safe_exec sandbox
+question for file-I/O logging. Medium risk.
+
+**Sessions that touched the phase**:
+
+| Session date | Issue | Work |
+|---|---|---|
+| 2026-05-11 | ESACP#377 closed | Track(consolidation): `returnable (BtlMng)` wip-consolidation Phase 2 staged drift promotions (pre-elimination wip-cleanup) |
+| 2026-05-11 | ESACP#378 closed | hosts_map / bucket_definitions correction — `martinhbramwell/returnable` → `martinhbramwell/BtlMng` rename |
+| (none in window for the elimination itself) | LSKB#10 open | Not started |
+
+**Status**: **NOT STARTED**.
+
+**Scope-creep**: None. ESACP#377/#378 are wip-consolidation + repo-rename
+prep; the actual elimination (port `hook_tasks.py` to Server Scripts) has
+not started.
+
+**Bypass**: same as Phase 7. Parallel-safe with Phase 4 per memo; not
+running yet is acceptable.
+
+### Sub-step 3 — Phase-status summary
+
+| Phase | Status | Execution rows | Gating |
+|---|---|---|---|
+| 1 | **DONE** | LSKB#2 + ESACP#356 + ce_sri#6 | — |
+| 1B | **DONE** | LSKB#3 + ESACP#357 | — |
+| 2 | **PARTIAL** | LSKB#4 done; **LSKB#11 open** (staged drift promotions) | LSKB#11 parallel-safe — not gating Phase 4 |
+| 3 | **DONE** (decision-only; vendor at substrate rebuild) | LSKB#5 | — |
+| 4 | **IN-PROGRESS / PAUSED** | LSKB#12/#17/#19/#13/#14/#20 done; **LSKB#15/#16 paused**; LSKB#18, LSKB#1, LSKB#6 open | **LSKB#15 is the gating execution row**; blocked by ce_sri#10 + the #400 audit verdict |
+| 5 | **DONE** | LSKB#7 + ESACP#312 | — |
+| 6 | **DONE** | LSKB#8 + ESACP#339 | — |
+| 7 | **NOT STARTED** | LSKB#9 | Parallel-safe; awaiting capacity |
+| 8 | **NOT STARTED** | LSKB#10 | Parallel-safe; awaiting capacity |
+
+**Drift items + corrective measures**:
+
+| # | Drift type | Phase | Item | Corrective measure |
+|---:|---|---|---|---|
+| 1 | Scope-expansion (acceptable) | Phase 2 | LSKB#11 expands Phase 2 from 12-item discardable list to include `custom_scripts, property_setter, translations` | **None required.** Honest mid-execution discovery; cleanly captured as separate row not bundled into LSKB#4. Recommend ratifying as Phase-2-extended in `project_erpnext_idiomatic_refactor.md` next memo touch. |
+| 2 | Interlock discovery (acceptable) | Phase 4 | ce_sri#10 Custom Field collision blocks LSKB#15 substrate-apply | **#400 audit chartered** for this. Consolidation session (Step 3, S6X) decides resume-direct vs interleave-fixes via Go/No-go on Epoch 2 (options A/B/C in audit-report Step 3). |
+| 3 | Pause-class (decision pending) | Phase 4 | LSKB#15 substrate-apply + LSKB#16 verify paused since 2026-05-15 (~5 days at S63) | Resume decision **deferred to #400 consolidation session** (Step 3, S6X). Stage 2 does not pre-decide. |
+
+**No discipline violations found.** Sub-issue ladder for Phase 4 honors
+1:1:1 per row. No bundling of phases across single sessions. No bypass
+of gating phases. Pre-bucket-migration ESACP rows (#312, #339, #354,
+#356, #357, #371, #377, #378, #385, #386) all migrated cleanly or
+remain legitimately on ESACP as methodology / chronology / wip-cleanup
+work.
+
+### Sub-step 4 — Obs 2 verdict (S60 observation)
+
+**Obs 2 — Plan-B current locus**: LSKB#15/#16 paused; Phases 1/2/3/5/6
+status not re-verified at Step 1.
+
+**Stage 2 verdict**:
+
+- **Phases 1, 1B, 3, 5, 6**: all **DONE**, verified via LSKB issue close
+  dates (2026-05-11 → 2026-05-12) and supporting commits.
+- **Phase 2**: **PARTIAL** — initial 12-item Phase-2 scope done
+  (LSKB#4); follow-on drift-promotions row (LSKB#11) open and
+  parallel-safe.
+- **Phase 4**: **IN-PROGRESS / PAUSED** — most sub-issues done
+  (design, repo, migration patch, Server Scripts, currency re-freeze,
+  substrate-readiness); substrate-apply (LSKB#15) + parity-verify
+  (LSKB#16) paused since 2026-05-15.
+- **Phases 7, 8**: **NOT STARTED** — parallel-safe; awaiting capacity.
+
+**Plan-B locus is precisely Phase 4 substrate-apply (LSKB#15).** The
+pause is well-understood (ce_sri#10 interlock surfaced S56) and properly
+held pending the #400 audit's consolidation-session resumption decision
+(Step 3). Obs 2 closed; no fresh corrective measure ordered at Stage 2.
+
+### Stage 2 close
+
+**Drift items requiring corrective measures**: none operational this
+session. Three drift entries logged in Sub-step 3 table; entries 1 and
+2 are acceptable-by-class; entry 3 is properly deferred to the #400
+consolidation session.
+
+**Carry-forward to Stage 6** (M&V alignment): Phase 4 IN-PROGRESS state
+is mission-aligned (eliminating schema-as-data anti-patterns advances
+the AI-introspectable / family-operable mission per
+`mission_vision.md`). Stage 6 will categorise the Phase-4-shipped work
+against mission properties.
+
+**Carry-forward to consolidation session** (Step 3, S6X):
+
+- Decide LSKB#15 resume strategy (options A/B/C in audit-report Step 3).
+- Ratify LSKB#11 as Phase-2-extended in
+  `project_erpnext_idiomatic_refactor.md` next memo touch (low-priority
+  memo refresh, not Stage 2's job).
+
+**No Stage 3 execution this session.** Stage 3 (Memory hit-rate) starts
+S64 at the earliest, per Sub-step 4 of the S63 agenda.
