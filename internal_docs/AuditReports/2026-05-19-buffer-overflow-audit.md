@@ -514,3 +514,293 @@ Stage 1 carries 2 observations; Stage 6 carries 2; Stages 2 and 5 carry
 1 each. Stages 3 and 4 carry none from S60 — neither stage is an
 empty-corpus stage, both still have well-defined audit surfaces from
 the universal corpus.
+
+---
+
+## Stage 1 — Bucket-placement compliance (S62)
+
+**Question answered**. Across all six tracked repos
+([ESACP#358](https://github.com/martinhbramwell/ESACP/issues/358) prescription),
+do open issues, in-window `main` commits, and live branches sit in the
+bucket each is supposed to sit in?
+
+**Trigger context**. Memo order 1→6 (operator S60). Audit window
+S11 = 2026-05-06 → present. Two S60/S61 observations land here:
+**Obs 1** (bucket discipline broadly holding) and
+**Obs 5** (ESACP +1 issue drift vs S59 expected — catalog-coverage
+candidate if it recurs).
+
+### Sub-step 1 — Mandatory grep gate (universal)
+
+| Grep | Hits | Read |
+|---|---:|---|
+| `grep -rl bucket_definitions memory/` | 2 | `MEMORY.md` (index) + `session_buckets.txt` (per-controller surveys config). Bucket definitions file itself is canonical. |
+| `grep -rl 'bucket-[123]' memory/` | 12 | Wide coverage: `bucket_definitions.md`, `project_bare_bucket_1_association.md`, `project_bucket_2_migration_pattern.md`, `project_wip_consolidation_plan.md`, `project_phase4_bespoke_app_placement.md`, `project_sales_partner_commissions_redesign.md`, `project_logisolu_validations.md`, `project_erpnext_idiomatic_refactor.md`, plus four `feedback_*` memos. Bucket vocabulary is durable, not parked in a single memo. |
+| `grep -rln '#358\|#359' internal_docs/SessionLogs/` | 50 | First hit `2026-05-08-1630` (S14); continuous from S14 onward. Bucket framing is the load-bearing context for every post-#358 session. |
+| `grep -rln 'wip/' internal_docs/SessionLogs/` | 57 | Spans 2026-03-31 → 2026-05-19. Pre-#358 mentions track wip-discovery (S13); post-#358 mentions track the consolidation plan + the two surviving wip refs in bucket-3. |
+
+### Sub-step 2 — Live branches scan (Discipline #3 corpus)
+
+Branches enumerated on every bucket tracker + Plan-B associated repos
+referenced in `project_wip_consolidation_plan.md`:
+
+| Repo | Bucket | Live `wip/*` | Pre-/post-#358 |
+|---|---|---|---|
+| ESACP | 1 | none | n/a |
+| BaRe | 1-associate | none | n/a |
+| LSKB | 2 | none | n/a |
+| LogiSoluValidations | 2-validations | none | n/a |
+| ce_sri | 3 | `wip/2026-03-25` | **pre-#358** — documented in plan |
+| ce_sri_svc | 3 | `wip/2026-03-31` | **pre-#358** — documented in plan |
+| route_planner (Plan-B Phase 7 eliminate target) | 2 (LSKB-governed) | `wip/2026-03-31`, `phase-1-fixture-equivalent`, `feat/371-wip-consolidation-phase-1` | **pre-#358** — documented in plan; `feat/371-*` is a consolidation sub-branch (compliant) |
+| returnable (Plan-B Phase 8 eliminate target) | 2 (LSKB-governed) | repo not enumerable via current `gh` auth (404 on `martinhbramwell/returnable`) | flagged below |
+
+`returnable` 404 is a **secondary finding**, not a Stage 1 drift item:
+the canonical reference for tenant-app repo locations is
+`hosts_map.yml`/`tenant_business_apps` per #379 hosts-map correction.
+`martinhbramwell/returnable` was renamed to `martinhbramwell/BtlMng` per
+commit `6910f48` (`#379`). The grep-gate confirms the audit window saw
+that rename. Item logged for Stage 5 (1:1:1 discipline) cross-reference,
+not Stage 1 drift.
+
+### Sub-step 3 — Per-bucket compliance passes
+
+#### Pass 1 — Bucket 1: ESACP (43 open issues; ~90 in-window `main` commits)
+
+**Issues table** (drift evaluation against bucket-1 scope =
+"Generic AI-assisted ERP-maintenance toolkit. Pipelines, Cytoscape
+control plane, observability, QA verdict layer, `sync_check`, audit
+framework"):
+
+| # | Title (truncated) | Topic class | Bucket fit |
+|---:|---|---|---|
+| 48 | Registrar credentials backup + family access | infra/DNS/operator | ✅ 1 |
+| 65 | Grafana-embedded control plane authn/authz | control plane | ✅ 1 |
+| 138 | saconsole phone-home VM auto-registration | saconsole | ✅ 1 |
+| 153 | Google OAuth redirect URIs for staging VPS hostnames | infra | ✅ 1 |
+| 156 | saconsole on recycled Android tablet (LineageOS) | saconsole | ✅ 1 |
+| 157 | WireGuard self-enrollment via staging slave | infra | ✅ 1 |
+| 187 | esacp.py extract legacy commands into pipeline wrappers | pipeline | ✅ 1 |
+| 219 | cytoscape decompose main.js (2013 lines) | control plane | ✅ 1 |
+| 223 | observability metrics history retention post-V16 | observability | ✅ 1 |
+| 235 | CLI/API transport parity gap survey | dispatcher audit | ✅ 1 |
+| 240 | DNS zone migration iridium.blue → yourpublic.work | infra | ✅ 1 |
+| 241 | hosts_map.local.yml overlay for operator overrides | config infra | ✅ 1 |
+| 278 | sync_check dev01 carve-out still undocumented | sync_check | ✅ 1 |
+| 280 | re-implement chaos harness on KVM | chaos infra | ✅ 1 |
+| 302 | verify-stage_*.py provision_mode-aware | pipeline | ✅ 1 |
+| 306 | provisionGeneric should install hrms+payments by default | pipeline / generic substrate | ✅ 1 |
+| 307 | eval: install hrms+payments on company-specific v13 | tenant decision (label `decision`) | ⚠ **drift candidate** — see below |
+| 311 | KVM templates.yml per-role substrate | infra | ✅ 1 |
+| 328 | richer attribution for opaque-hash drift classes | audit framework | ✅ 1 |
+| 330 | Client/Server Script v14 API-compat (gated on V13→V14 trial) | audit methodology | ✅ 1 |
+| 331 | bespoke-app uv pip install crashes on Frappe v14 | pipeline / V14 trial | ✅ 1 |
+| 349 | stage-7 error reporter masks failures | pipeline bug | ✅ 1 |
+| 350 | stage-2 wireguard-tools apt-fetch tolerated | pipeline bug | ✅ 1 |
+| 351 | customisation_audit parameterise → LogiSoluValidations | governance | ✅ 1 |
+| 352 | LogiSoluValidations needs own size/QA governance | governance | ✅ 1 |
+| 353 | epic: Plan B refactor parent (methodology-stays) | methodology epic | ✅ 1 (methodology home; execution on LSKB per CLAUDE.md) |
+| 355 | V16+ Playwright wizard handler | pipeline | ✅ 1 |
+| 360 | split mission_vision.md (LogiSolu vs ESACP) | docs / methodology | ✅ 1 |
+| 361 | orphan local `umbrella/ladder-fixture` | branch hygiene | ✅ 1 (Stage 5 corpus) |
+| 365 | extract session-type policy to session-types.md | docs methodology | ✅ 1 |
+| 366 | repo-controlled YAML ontology for disambiguation | methodology | ✅ 1 |
+| 368 | parked-backlog regenerate from `gh issue list` | agenda methodology | ✅ 1 |
+| 370 | S29 Candidate A mis-scoped vs wip-consolidation prereqs | retrospective | ✅ 1 |
+| 374 | git-deploy wrapper on bespoke-app VMs | pipeline infra | ✅ 1 |
+| 375 | bespoke-app deploy keys + passphrase SOPS source-of-truth | secrets | ✅ 1 |
+| 383 | enroll Windows/Android tablet WG peers | infra | ✅ 1 |
+| 387 | Ansible SSH Host alias auto-add | pipeline | ✅ 1 |
+| 394 | packer scripts size-band decomposition | pipeline | ✅ 1 |
+| 395 | pyyaml 5.4.1 / Cython 3 packer bug | pipeline | ✅ 1 |
+| 396 | seed_iso.py hardcodes hasan_mighty.pub | pipeline / no-real-names | ✅ 1 |
+| 397 | bespoke-app deploy-key VM-side generation | secrets / pipeline | ✅ 1 |
+| 400 | epic: buffer-overflow audit (this audit) | audit framework | ✅ 1 |
+| 401 | saconsole 10.10.0.1 unreachable | saconsole infra bug | ✅ 1 |
+
+**ESACP#307 drift detail.** Body explicitly scopes work to
+"company-specific fully customized ERPNext v13 instances (master +
+replication slave)" — i.e. the tenant's *production* v13. Labelled
+`decision`. Per [bucket_definitions](../../[memory link]):
+
+- Bucket-2 (LSKB) is the home for "Operating-tenant business logic +
+  Plan B execution".
+- Bucket-1 retains methodology and generic-substrate work (#306 is the
+  matching bucket-1-fit twin: "provisionGeneric should install hrms +
+  payments by default").
+
+Two defensible interpretations:
+1. **Bucket-2 drift** — if the decision is "do we install hrms+payments
+   on *the tenant's* v13", that is a tenant-business decision; LSKB is
+   the home.
+2. **Bucket-1 methodology** — if the issue is reframed as "lab-evaluate
+   hrms+payments on a v13-with-tenant-customisations clone, decision
+   informs but does not execute against production", it stays bucket-1.
+
+Reading #307's body, framing (1) dominates (live HR data, production
+instance enumerated). Recommended corrective measure: re-file on LSKB,
+close ESACP#307 with pointer comment, per
+`project_bucket_2_migration_pattern.md` Operation 2 (migration).
+
+**S62 joint-review outcome**: operator approved migration. Executed
+this session:
+- Re-filed as **[LSKB#21](https://github.com/martinhbramwell/LogiSoluKnowBase/issues/21)** with body preserved verbatim + migration preamble + cross-link to bucket-1 twin ESACP#306.
+- ESACP#307 closed not-planned with pointer comment to LSKB#21.
+- Bucket-1 twin ESACP#306 remains here (generic-substrate scope).
+
+**ESACP commits-fixes table** (substantive `fixes #N` only;
+session-log close-out commits without `fixes` follow the docs-only
+direct-to-main carve-out per `qa-contract` §2.1 condition 2 and do not
+require an `issues` reference):
+
+| Commit | `fixes` target | Bucket of target | Drift |
+|---|---|---|---|
+| d08699e | ESACP#404 (Pages-site nav buttons) | 1 | ✅ |
+| 5946e2d / fbeb384 / 153b346 | ESACP#398 (MariaDB perf-schema) | 1 | ✅ |
+| e283716 | ESACP#392 (packer uv override) | 1 | ✅ |
+| 9ef1aa5 | ESACP#390 (packer FRAPPE_BRANCH) | 1 | ✅ |
+| e94e9a5 | ESACP#388 (packer-as-saconsole-dep) | 1 | ✅ |
+| 6910f48 | ESACP#378 (hosts_map BtlMng correction) | 1 | ✅ |
+| b52de7f | ESACP#358 (three-bucket doc landing) | 1 | ✅ |
+| 611c03e | ESACP#367 (qa-contract clarification) | 1 | ✅ |
+| 554ad24 | ESACP#382 (qa-contract repo-specific lane) | 1 | ✅ |
+| 0137977 | ESACP#380 (qa-contract risk-tier triggers) | 1 | ✅ |
+| ed73877 | ESACP#362 (CLAUDE.md trailer template) | 1 | ✅ |
+| abcdd02 | ESACP#363 (introspection-sidebar policy) | 1 | ✅ |
+
+All 12 substantive `fixes` targets are bucket-1 issues. **Zero
+commit-target drift on ESACP.**
+
+#### Pass 2 — Bucket 1-associate: BaRe (2 open issues; 1 in-window commit)
+
+| # | Title | Bucket fit |
+|---:|---|---|
+| 10 | docs: README should mention production-machine installability | ✅ 1-associate |
+| 8 | chore(bare): cleanup drift vs production + extend `envars.sh` | ✅ 1-associate |
+
+Single in-window commit `8653412 docs: add README declaring bucket-1
+association with ESACP-platform` carries `fixes #9` (BaRe intra-repo,
+bucket-1-associate target). ✅ No drift.
+
+#### Pass 3 — Bucket 2: LSKB (8 open issues; 1 in-window commit)
+
+| # | Title (truncated) | Bucket fit |
+|---:|---|---|
+| 1 | Sales Partner Commission Server Scripts misleading event names | ✅ 2 (tenant business) |
+| 6 | Plan B Phase 4 — Sales Partner Customer Item Commissions master/detail | ✅ 2 (Plan-B exec) |
+| 9 | Plan B Phase 7 — eliminate route_planner | ✅ 2 (Plan-B exec) |
+| 10 | Plan B Phase 8 — eliminate returnable | ✅ 2 (Plan-B exec) |
+| 11 | Plan B Phase 2 — staged drift promotions | ✅ 2 (Plan-B exec) |
+| 15 | Plan B Phase 4 substrate-apply on local KVM | ✅ 2 (Plan-B exec) |
+| 16 | verify Plan B Phase 4 commission calc parity | ✅ 2 (Plan-B verify) |
+| 18 | sales_partner_commissions user_data_fields cleanup | ✅ 2 (bespoke-app chore) |
+
+In-window commit `a8995e1 feat: seed LogiSoluKnowBase with three-bucket
+scaffold` — foundational seed; no precursor issue. Acceptable per
+seed-commit pattern. ✅ No drift.
+
+LSKB issues are predominantly closed via cross-repo `fixes` from
+`ce_sri` commits (Plan-B execution-on-ce_sri-repo pattern) — see Pass 5.
+
+#### Pass 4 — Bucket 2 (LogiSoluValidations) (2 open issues; 2 in-window commits)
+
+| # | Title | Bucket fit |
+|---:|---|---|
+| 5 | README cross-references describes BaRe as 'bespoke business-logic app' | ✅ 2-validations |
+| 4 | catalogue mis-describes Sales Partner Customer Item Commissions | ✅ 2-validations |
+
+Two in-window commits (`7e655fc` merge + `618811b` revise Spanish
+staffer section) — docs sweep, no `fixes` references. Acceptable per
+docs-only carve-out. ✅ No drift.
+
+#### Pass 5 — Bucket 3: ce_sri (6 open issues; 3 in-window commits)
+
+| # | Title (truncated) | Bucket fit |
+|---:|---|---|
+| 1 | fixSupervisor | ✅ 3 (ops dep) |
+| 2 | git clone martinhbramwell/ce_sri_svc.git | ✅ 3 (ops dep) |
+| 3 | Test viability of mailer key | ✅ 3 (ops dep) |
+| 4 | README incomplete after validateEnvironment.sh | ✅ 3 (docs / ops) |
+| 5 | dev01 lab egress to SRI Pruebas ECONNRESET vs prod | ✅ 3 (ops / SRI integration) |
+| 10 | bench migrate fails on Custom Field collision `forma_de_pago_preferida` | ✅ 3 (ce_sri fixtures); interlocks with LSKB#15 (Plan-B Phase 4); flagged as #400-trigger |
+
+**ce_sri commits-fixes table**:
+
+| Commit | `fixes` target | Bucket of target | Drift |
+|---|---|---|---|
+| 924ff2e | LSKB#8 (es-EC Translation overrides) | 2 (cross-bucket close) | ✅ — Plan-B execution pattern: tenant work executed on ce_sri repo closes the LSKB tracking issue |
+| b22e263 | LSKB#3 (Custom DocPerm v14_patch_script port) | 2 (cross-bucket close) | ✅ — same pattern |
+| dd7199e | ce_sri#7 (Phase 1 Custom Fields — intra-repo) | 3 | ✅ |
+
+All commit-fix targets correct under the Plan-B execution routing.
+**Zero drift on ce_sri.**
+
+#### Pass 6 — Bucket 3: ce_sri_svc (2 open issues; 0 in-window `main` commits)
+
+| # | Title | Bucket fit |
+|---:|---|---|
+| 1 | migrate babel-cli@6 → @babel/cli@7 + npm dep updates | ✅ 3 (ops dep) |
+| 4 | retry-with-backoff for queryAuthorization + exhaustion contract | ✅ 3 (ops / SRI) |
+
+No in-window `main` commits; one open feature branch
+(`fix/sri-node-version-probe-#343`) — naming follows `fix/<topic>-#<n>`,
+references ESACP#343 (presumably resolved cross-repo). One additional
+non-`wip/*` feature branch (`feat/sri-retry-with-backoff`) is the
+in-progress sub-branch for ce_sri_svc#4. Compliant with 1:1:1 +
+umbrella discipline. ✅ No drift.
+
+### Sub-step 4 — Drift summary
+
+| Bucket | Open issues (at Stage 1 start) | Drift candidates | Severity | Post-resolution count |
+|---|---:|---|---|---:|
+| 1 ESACP | 43 | 1 — ESACP#307 (tenant decision → bucket-2) | Soft — operator interpretation | 42 (#307 closed not-planned) |
+| 1-associate BaRe | 2 | 0 | — | 2 |
+| 2 LSKB | 8 | 0 | — | 9 (+1 — LSKB#21 migration target) |
+| 2-LogiSoluValidations | 2 | 0 | — | 2 |
+| 3 ce_sri | 6 | 0 | — | 6 |
+| 3 ce_sri_svc | 2 | 0 | — | 2 |
+| **Total** | **63** | **1** | **<2%** | **63 (net zero)** |
+
+**Commits-fix-target drift across all buckets: 0.**
+
+**Live-branch drift across all buckets:** 0 post-#358 violations. Two
+pre-#358 `wip/*` carry-overs on bucket-3 (`ce_sri/wip/2026-03-25`,
+`ce_sri_svc/wip/2026-03-31`) plus the Plan-B-associated
+`route_planner/wip/2026-03-31` remain as historical refs per
+`project_wip_consolidation_plan.md`. Their continued existence is
+expected; their continued *use* (any new commits to them) would be a
+violation. No new commits to any of the three since the plan landed.
+
+### Sub-step 5 — Discipline-mechanism verdicts
+
+| # | Mechanism | Verdict | Evidence |
+|---:|---|---|---|
+| 1 | Catalog coverage — every commit references an issue | **HOLDING** | All 12 substantive in-window ESACP commits + all 3 substantive ce_sri commits + 1 BaRe commit reference an issue via `fixes #N`. Session-log / audit-fix commits without `fixes` operate under the qa-contract §2.1 condition-2 docs-only direct-to-main carve-out (codified in S58/S59/S60/S61). Seed/foundational and docs-sweep commits (LSKB, LogiSoluValidations) lack `fixes` legitimately. Obs 5 (ESACP +1 issue drift) closed: the +1 is ESACP#401 (saconsole bug) — a properly-filed issue, not an untracked work item; catalog coverage operating correctly. |
+| 2 | Bucket-explicit session-start surveys | **HOLDING** | `session_buckets.txt` lives in `memory/` (LogiSoluMemory symlink), driving per-bucket surveys at session start since `a85cde0 feat(session-start): bucket-explicit per-bucket surveys at session start` (S29). S60/S61/S62 agendas + minutes all execute the survey pattern. **Minor**: `session_buckets.txt` not also at controller root — known S60 carry-forward, housekeeping-sidebar candidate; non-blocking. |
+| 3 | `wip/*` prohibition (forward) | **HOLDING** | Zero post-#358 `wip/*` branches across all six bucket trackers + Plan-B-associated repos. Pre-#358 carry-overs (3 known refs) remain frozen with no in-window commits — expected behavior per consolidation plan. |
+
+### Sub-step 6 — Observations closed by Stage 1
+
+| Obs | Outcome | Disposition |
+|---:|---|---|
+| 1 | **Confirmed.** Bucket discipline broadly holding: 62/63 open issues fit prescribed bucket; 1 soft candidate for operator interpretation; 0 commits-fix-target drift; 0 forward wip/* violations. | Stage 1 verdict = holding; carry ESACP#307 disposition to joint review. |
+| 5 | **Closed.** +1 ESACP issue drift S59→S60 explained by ESACP#401 filing (saconsole infra bug); properly catalogued. No catalog-coverage recurrence. | No further action; observation discharged. |
+
+### Stage 1 close
+
+**Drift items requiring corrective measures**:
+
+1. **ESACP#307 → LSKB#21** — **resolved this session** via Operation-2
+   migration. ESACP#307 closed not-planned with pointer; LSKB#21
+   carries the continuation. Bucket-1 twin ESACP#306 preserved on
+   ESACP for generic-substrate work.
+
+**Carry-forward to Stage 5** (1:1:1 / umbrella-branches policy):
+
+- Three pre-#358 `wip/*` carry-overs documented but unresolved
+  (`ce_sri/wip/2026-03-25`, `ce_sri_svc/wip/2026-03-31`,
+  `route_planner/wip/2026-03-31`). Consolidation per `project_wip_consolidation_plan.md`.
+- Local-only orphan `umbrella/ladder-fixture` (ESACP#361). Stage 5 home.
+
+**No Stage 2 execution this session.** Stage 2 (Plan-B phase mapping)
+starts S63 at the earliest, per Sub-step 4 of the S62 agenda.
