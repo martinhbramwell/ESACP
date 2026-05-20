@@ -517,6 +517,120 @@ the universal corpus.
 
 ---
 
+## Step 3 — Consolidation session spec (S62)
+
+The audit closes with a **consolidation session** scheduled to run
+immediately after Stage 6 — the +1 session that follows the six
+executable stages. Step 3 is the planning spec for that session,
+paralleling the Stage 1–6 spec blocks from Step 2. Drafted S62
+(2026-05-20) at operator request after the Stage 1 close-out, to
+make the entire audit lifecycle visible in one document.
+
+**Question answered**. What is the single ordered action plan that
+discharges ESACP#400's findings, and what is the next move —
+resume Epoch 2 (Plan B Phase 4 — LSKB#15) directly, or interleave
+corrective measures first?
+
+**Inputs (preconditions)**.
+- Audit report Stages 1–6 complete; each section carries its own
+  drift table + corrective-measure rows + discipline-mechanism verdict.
+- All migrations / new issues / pointer-comments produced during
+  Stages 2–6 landed on their respective trackers.
+- `memory/project_buffer_overflow_audit_plan.md` not yet updated with
+  audit-end retrospective.
+- ESACP#400 still open as the audit anchor; six stage-closure comments
+  on it (one per stage, S57/S58/S60/S61/S62 pattern continued through
+  S6X−1).
+
+**Mandatory grep gate** (universal, matching every stage):
+- `grep -n 'Stage [1-6] —' internal_docs/AuditReports/2026-05-19-buffer-overflow-audit.md` — locate the six executed stage sections; confirm each has a `Drift summary` + corrective-measure-row block.
+- `grep -rln '#400' internal_docs/SessionLogs/` — recover the full audit-trail of session-log mentions + cross-references.
+- `gh issue view 400 --comments` — recover the six stage-closure comments and the pre-#400 setup comments (S57/S58).
+
+**Method** (six sub-steps):
+
+1. **Drift-register consolidation.** Walk Stages 1–6 in order.
+   Extract every drift row into a single master register. Per entry:
+   `(source stage, drift type, corrective measure, current status [resolved-in-stage / pending], gating-class [blocks-Epoch-2 / parallel-safe / housekeeping])`.
+
+2. **Categorization pass.** Bucket the *pending* items by
+   corrective-measure type:
+   - Issue migrations (Operations 2/3/4 per `project_bucket_2_migration_pattern.md`)
+   - In-place memory/doc edits
+   - New issues to file (one per substantive item, not bundled)
+   - Process/discipline changes (CLAUDE.md amendments, `feedback_*` additions)
+   - Housekeeping (TRIVIAL_FIXES.md adds)
+
+3. **Sequencing pass.** Build a numbered action plan ordered by
+   gating-class: blocks-Epoch-2 first; then items unblocking specific
+   paused LSKB issues (#15, #16, #18, #21); then parallel-safe; then
+   housekeeping. Identify dependencies between items; mark any item
+   whose execution must precede another.
+
+4. **M&V realignment check.** Cross-reference the consolidated drift
+   findings against `memory/mission_vision.md`. For each pending
+   corrective measure, mark whether it advances a mission property
+   (low-fault, self-explanatory, AI-introspectable, family-operable)
+   or is discipline-only. Discipline-only fixes stay honestly labelled
+   — no promotion to "mission-critical" to inflate priority.
+
+5. **Joint review — Go/No-go on Epoch 2 resumption.** Three explicit
+   options for operator (`AskUserQuestion`):
+   - **A**. Resume Epoch 2 Phase 4 (LSKB#15) immediately after
+     consolidation closes; corrective measures interleave by priority.
+   - **B**. Run all blocks-Epoch-2 corrective measures first, then
+     resume Phase 4.
+   - **C**. Hybrid — run only the corrective measures Stage 2 (Plan-B
+     phase mapping) identified as actual Phase-4 blockers; defer the
+     rest to parallel sessions.
+
+6. **Close-out.**
+   - Append `## Consolidation — Drift register + action plan (S6X)`
+     section to this audit report (the deliverable).
+   - Update `memory/project_buffer_overflow_audit_plan.md` with the
+     audit-end retrospective: what the audit found that the planning
+     gate missed (the meta-finding — institutional learning).
+   - Close **ESACP#400** with pointer comment to the consolidation
+     section + the Epoch 2 resumption decision.
+   - File any new tracker issues identified by the action plan (one
+     per substantive item, not bundled).
+
+**Deliverable shape**.
+
+| Block | Form |
+|---|---|
+| Master drift register | Table — `(stage, type, measure, status, gating-class, M&V tie)` |
+| Action plan | Numbered list, priority-ordered, with dependency arrows |
+| Resumption decision | One paragraph recording the operator's A/B/C choice + rationale |
+| ESACP#400 closure | Closing comment URL on the issue |
+| Meta-finding | One-paragraph addition to `project_buffer_overflow_audit_plan.md` |
+
+**Out of scope** (defer to post-consolidation sessions):
+- Executing the corrective measures themselves — each is its own
+  1:1:1 session per discipline.
+- Epoch 2 Phase 4 execution (LSKB#15 substrate-apply resumption).
+- Retrospectives over Epoch 1 — different scope from the
+  buffer-overflow audit; not what #400 chartered.
+
+**Estimated wall-clock**. 90–120 min if Stage 2–6 outputs are clean;
+up to 180 min if consolidation surfaces unexpected cross-stage
+interactions (e.g., Stage 3 memory hit-rate findings overlap with
+Stage 5 1:1:1 findings on the same root cause).
+
+**Risks**:
+- If Stages 2–6 produce a corrective-measure count >20, the
+  categorization pass needs subdivision and the resumption decision
+  may split into "decide priority order" + "decide execution shape"
+  across two sub-sessions.
+- If a stage surfaces a finding that retroactively changes a closed
+  stage's verdict, consolidation must reopen that stage — adds 1
+  session.
+- The "no decision theatre on clerical work" rule still applies —
+  most housekeeping items should be batched into a single
+  TRIVIAL_FIXES.md update, not enumerated separately at consolidation.
+
+---
+
 ## Stage 1 — Bucket-placement compliance (S62)
 
 **Question answered**. Across all six tracked repos
