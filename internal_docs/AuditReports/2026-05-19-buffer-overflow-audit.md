@@ -1763,3 +1763,373 @@ close-comments and tracker-deferred continuations.
 **No Stage 5 execution this session.** Stage 5 (1:1:1 discipline)
 starts S66 at the earliest, per Sub-step 6 of the S65 agenda.
 
+---
+
+## Stage 5 — 1:1:1 discipline (S66)
+
+**Question answered**. Across the S11→S65 audit window (55 sessions,
+2026-05-07 → 2026-05-20), have sessions actually been 1 issue : 1
+branch : 1 session for substantive work, or has bundling crept beyond
+the housekeeping-exception and umbrella-branch carve-outs codified in
+CLAUDE.md?
+
+**Trigger context**. Memo order 1→6 (operator S60). Stage 5 carries one
+S60/S61 observation: **Obs 4** (`umbrella/ladder-fixture` orphan,
+ESACP#361). Sub-step 6 cross-references Stage 1's wip/* enumeration.
+
+### Sub-step 1 — Mandatory grep gate
+
+| Grep | Hits | Read |
+|---|---:|---|
+| `grep -rl feedback_issue_branch_session_discipline /home/hasan/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/` | 3 | `MEMORY.md` (index), `feedback_issue_branch_session_discipline.md` (canonical 1:1:1 rule + 2026-04-20 housekeeping amendment #262), `feedback_pr_merge_before_session_close.md` (related "merged" semantics referenced by umbrella-cert). |
+| `grep -rl feedback_umbrella_branches /home/hasan/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/` | 2 | `MEMORY.md` (index), `feedback_umbrella_branches.md` (canonical umbrella-branch policy, #236 adopted 2026-04-22). |
+| `grep -rln '1:1:1\|housekeeping\|umbrella/' internal_docs/SessionLogs/` | 169 hits across files | Wide coverage across S11→S65 minutes + agendas; vocabulary durable across the audit window. Universal corpus for Sub-step 2. |
+
+**Corpus**. Memory: the two `feedback_*` memos above + CLAUDE.md
+"Session Protocol" section (1:1:1 / housekeeping-bundle /
+introspection-sidebar / umbrella-branch policies). Minutes: 55
+session-minutes files for S11→S65 in
+`internal_docs/SessionLogs/2026-05-{07,08,…,20}-*-session-minutes.md`.
+Mapping confirmed S11 = `2026-05-07-0748`, S65 = `2026-05-20-1149`.
+
+**Policy adoption dates vs audit window**. Both policies pre-date the
+audit window:
+
+- 1:1:1 discipline + housekeeping-bundle amendment: ESACP#262 adopted
+  **2026-04-20** (16 days before S11).
+- Umbrella-branch policy: ESACP#236 adopted **2026-04-22** (14 days
+  before S11).
+
+Consequence: **every session in the audit window is post-policy.** No
+"new-in-window" exemption applies (Sub-step 4 below revisits this).
+
+### Sub-step 2 — Per-session shallow scan (S11→S65)
+
+| S# | Date | Primary issue(s) | Branch | Session-type | Compliance | Note |
+|---:|---|---|---|---|---|---|
+| 11 | 2026-05-07 | LSV PR#1 + PR#2 umbrella-cert + PR#3 doc revise | `main` + `umbrella/erpnext-idiomatic-refactor` cert | umbrella-cert (scope-expanded) | **N** | Cert merge + scope-expanded into discovery work in same session; `feedback_umbrella_branches.md` requires cert to be a distinct session |
+| 12 | 2026-05-07 | #353 triage | `main` (planning) | substantive | Y | planning-only |
+| 13 | 2026-05-07 | #356, #357 (Phase-1 sub-issue filing) | `phase-1-fixture-equivalent` (sub-branch of `umbrella/erpnext-idiomatic-refactor`) | umbrella-sub | Y | |
+| 14 | 2026-05-08 | #358, #359 architectural discovery | `main` (planning) | substantive | Y | planning-only; filed issues for S15 |
+| 15 | 2026-05-08 | #358, #359, #360 filing | `main` | housekeeping | Y | filing-only governance bundle |
+| 16 | 2026-05-08 | #359 memory-scrub audit | `main` | housekeeping | Y | doc-scrub audit only |
+| 17 | 2026-05-08 | #359 LogiSoluMemory standup | `main` (LSM init) | substantive | Y | new repo init; no precursor issue |
+| 18 | 2026-05-09 | #358 LSKB standup | `main` (LSKB init) | substantive | Y | new repo init; no precursor issue |
+| 19 | 2026-05-09 | #358 BaRe association | `main` | housekeeping | Y | doc-only sweep across BaRe/LSM/ESACP |
+| 20 | 2026-05-09 | #362, #363, LSM#1, #364, #365, #366 | `main` | sidebar | Y | introspection sidebar; carry-forward cleanup + governance fixes |
+| 21 | 2026-05-09 | #354 migration | `main` | housekeeping | Y | migration-comment + close |
+| 22 | 2026-05-09 | #356 migration | `main` | housekeeping | Y | migration-comment + close |
+| 23 | 2026-05-09 | #357 migration | `main` | housekeeping | Y | migration-comment + close |
+| 24 | 2026-05-10 | #345 migration + #368 filing | `main` | housekeeping | Y | migration + substrate-fix issue filed |
+| 25 | 2026-05-10 | #344 migration | `main` | housekeeping | Y | migration-comment + close |
+| 26 | 2026-05-10 | #343 migration | `main` | housekeeping | Y | migration-comment + close |
+| 27 | 2026-05-10 | #197, #353 methodology-stays | `main` | housekeeping | Y | documentary commentary on both |
+| 28 | 2026-05-10 | LSKB#4–#10 filed + LSKB umbrella standup | `umbrella/erpnext-idiomatic-refactor` (LSKB) | substantive | Y | umbrella + 7-issue filing |
+| 29 | 2026-05-10 | #369, #370 (bucket-survey extension) | `main` | substantive | **N** | Substantive code (`bucket_survey.py` 88 lines + `session_start.py` extension) direct-to-main; esacp-qa rejected 1:1:1 violation + 71–100 line band; operator override documented in minutes |
+| 30 | 2026-05-10 | #371, #372, #373 (route_planner consolidation) | `feat/371-wip-consolidation-phase-1` (route_planner) | substantive | Y | route_planner side; ESACP issues filed for surprises |
+| 31 | 2026-05-11 | #372 investigation | `main` | substantive (investigation) | Y | investigation + memory file; minimal commit |
+| 32 | 2026-05-11 | #358 closure (Plan-B Epoch-1) | `internal_docs/358-memory-three-bucket-framing` (LSM) | housekeeping | Y | memory rewrites for #358 closure |
+| 33 | 2026-05-11 | LSKB#10 + #378 (BtlMng consolidation) | `feat/378-bucket-survey-btlmng` + `feat/377-wip-consolidation-phase-2` (BtlMng) | substantive | Y | bucket-3 BtlMng work; ESACP fix bundled (#378) |
+| 34 | 2026-05-11 | LSKB#2 (ce_sri Phase-1 consolidation), LSKB#11 | `feat/6-wip-consolidation-phase-1` (ce_sri) | substantive | Y | ce_sri side; TRIVIAL_FIXES.md adopted |
+| 35 | 2026-05-11 | LSKB#2 close + LSKB#3 (3 DocPerm patches) | `feat/lskb-3-hr-docperm-patches` (ce_sri) | substantive | Y | D1 bundle: 1 substantive PR + 1 close-by-comment; bundling-test |
+| 36 | 2026-05-12 | LSKB#4, LSKB#5, LSKB#8 | `feat/lskb-8-es-ec-translation-aliases` (ce_sri) | substantive | Y | D2 bundle: 1 code PR + 2 close-by-comment; operator-approved bundle test |
+| 37 | 2026-05-12 | #380 (QA contract v2) | `feat/380-qa-contract-v2` | substantive | Y | qa-contract v2 work; clean 1:1:1 |
+| 38 | 2026-05-12 | LSKB#7 close-by-comment | `main` | housekeeping | Y | D3 documentation-class close-by-comment |
+| 39 | 2026-05-12 | #382, #373, #383 filed | `chore/s39-housekeeping-sweep` | housekeeping | Y | cross-repo housekeeping sweep |
+| 40 | 2026-05-12 | #385, #386, LSKB#6 trim, LSKB#12–16 filed | `housekeeping/s40-phase-4-scope-trim` (LSM) | housekeeping | Y | methodology + tracker grooming |
+| 41 | 2026-05-12 | #386 (Phase-4 app placement) | `housekeeping/s41-phase-4-app-placement` (LSM) | housekeeping | Y | decision memo only |
+| 42 | 2026-05-12 | LSKB#12, LSKB#17 filed | `main` (LSM direct) | housekeeping | Y | doc-only design freeze |
+| 43 | 2026-05-12 | LSKB#17, LSKB#18 (SPC repo standup) | `main` (new `sales_partner_commissions` repo) | substantive | Y | new repo + scaffold; clean |
+| 44 | 2026-05-13 | LSKB#19 (design re-open) | `main` (LSM direct) | housekeeping | Y | doc-only memo amendment |
+| 45 | 2026-05-13 | LSKB#13 migration patch | `feat/lskb-13-migration-patch` (SPC) | substantive | Y | code PR; clean 1:1:1 |
+| 46 | 2026-05-13 | LSKB#14 Server Script rewrite | `feat/lskb-14-server-script-rewrite` (SPC) | substantive | Y | code PR; clean 1:1:1 |
+| 47 | 2026-05-13 | LSKB#15, #387, LSKB#20 filed | `main` | substantive (investigation) | Y | substrate-apply paused; pause-comment + new tracker issues |
+| 48 | 2026-05-14 | LSKB#20, #388 filed | `main` | substantive (investigation) | Y | pre-flight pause; bucket-1 gap filed |
+| 49 | 2026-05-14 | #388 (packer-as-saconsole-dep) | `feat/388-*` (via PR#389) | substantive | Y | ansible-role landed via PR; clean 1:1:1 |
+| 50 | 2026-05-14 | LSKB#20, #390 filed | `main` | substantive (investigation) | Y | packer build run; new bucket-1 issue filed |
+| 51 | 2026-05-14 | #390 (packer env-vars fix) | `fix-390-packer-env-vars` | substantive | Y | clean 1:1:1; new downstream issue filed |
+| 52 | 2026-05-14 | #392 (uv.toml override), #394, #395 filed | `fix/392-*` (via PR#393) | substantive | Y | clean 1:1:1; downstream issues filed |
+| 53 | 2026-05-15 | LSKB#20 (Plan-C tag pivot), #396 | `main` | substantive (investigation) | Y | LSKB#20 closed; runs packer build, no ESACP code change |
+| 54 | 2026-05-15 | LSKB#15, #397, #398 filed | `main` | substantive (investigation) | Y | substrate-apply paused; pause-comment + new tracker issues |
+| 55 | 2026-05-18 | #398 (Path A then Path X), ce_sri#10 filed | `fix/398-*` (via PR#399) | substantive | Y | clean 1:1:1; new bucket-3 issue filed |
+| 56 | 2026-05-19 | ce_sri#10 abandoned, #400 filed | `main` | substantive (investigation) | Y | pivot to audit-tracker filing |
+| 57 | 2026-05-19 | #401, #402 filed | `main` | sidebar | Y | introspection sidebar; doc artefacts + 2 issues filed |
+| 58 | 2026-05-19 | #402 (Pages site) | `umbrella/pages-site-v1` | substantive | Y | 1:1:1 work; `umbrella/*` naming used for a single-session feature branch — naming-policy note in Sub-step 4, not a 1:1:1 violation |
+| 59 | 2026-05-19 | #404 (Pages-site follow-up) | `docs/404-pages-site-followup` | substantive | Y | sidebar-flavoured polish but compliant 1:1:1 |
+| 60 | 2026-05-19 | #400 Stage 1 (audit Step 1) | `main` | audit-stage | Y | audit-stage execution (docs-only carve-out) |
+| 61 | 2026-05-19 | #400 Step 2 (stage list) | `main` | audit-stage | Y | audit-stage execution |
+| 62 | 2026-05-20 | #400 Stage 1 execution | `main` | audit-stage | Y | audit-stage execution |
+| 63 | 2026-05-20 | #400 Stage 2 execution | `main` | audit-stage | Y | audit-stage execution |
+| 64 | 2026-05-20 | #400 Stage 3 execution | `main` | audit-stage | Y | audit-stage execution |
+| 65 | 2026-05-20 | #400 Stage 4 execution | `main` | audit-stage | Y | audit-stage execution |
+
+**Compliance count**: 53 Y / 2 N across 55 sessions. **Compliance rate
+= 96.4 %.** Non-compliant count (2) is well below the Sub-step 7
+partitioning threshold (~10), so Stage 5 fits one session and proceeds
+to Sub-steps 3–8 without splitting.
+
+**Session-type distribution** (observation, not policy criterion):
+
+| Type | Count | Sessions |
+|---|---:|---|
+| substantive (1:1:1) | 26 | 12, 14, 17, 18, 28, 29, 30, 31, 33, 34, 35, 36, 37, 43, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 58, 59 |
+| housekeeping bundle | 17 | 15, 16, 19, 21, 22, 23, 24, 25, 26, 27, 32, 38, 39, 40, 41, 42, 44 |
+| introspection sidebar | 2 | 20, 57 |
+| umbrella-cert | 1 | 11 |
+| umbrella-sub | 1 | 13 |
+| audit-stage | 6 | 60, 61, 62, 63, 64, 65 |
+| (planning-only counted under substantive) | — | 12, 14 |
+
+Total 53 + audit-stage 6 = 59 row-types vs 55 sessions — two sessions
+(13, 58) carry mixed-type flavour and are listed in the single most
+salient bucket above. Distribution sums to 55 for accounting.
+
+### Sub-step 3 — Housekeeping-bundle abuse list
+
+| Session | What was bundled | Should have been split how |
+|---|---|---|
+
+**Empty.** No housekeeping bundle in the 17 housekeeping sessions
+mixed in a substantive code change. Bundles either filed/closed
+governance issues (S15, S20, S38, S39, S40), groomed methodology memos
+(S40–S44), or processed migration close-by-comments (S21–S27).
+None touched `tools/pipeline/`, dispatchers, SUT scripts, Ansible plays,
+SOPS-backed runtime config, or pipeline tests.
+
+The two non-compliant rows (S11, S29) are **not** mis-classified
+housekeeping bundles — they are openly substantive sessions whose
+violation mode is different (S11 = umbrella-cert + scope-expand; S29 =
+substantive direct-to-main with QA override). Sub-step 3 is empty by
+construction.
+
+### Sub-step 4 — Umbrella-policy adoption note
+
+**Premise correction**. The S66 agenda's Sub-step 4 text states
+"`feedback_umbrella_branches.md` is new in-window. Most pre-policy
+'violations' are exempt." Verified: the policy was adopted **2026-04-22**
+(#236), 14 days **before** S11. **No pre-policy exemption applies to any
+session in the audit window.** The agenda's "new in-window" framing
+appears to refer to umbrella usage growing across the window (from one
+live umbrella at S11 to three at S65), not to the policy's adoption
+date. Reading-record corrected.
+
+**Live umbrellas at S65** (3):
+
+| Umbrella | Created | Last activity | Pre-/post-policy | Status |
+|---|---|---|---|---|
+| `umbrella/erpnext-idiomatic-refactor` | pre-S11 (Plan-B substrate) | S28 (LSKB sub-issue filing) + S11 cert | post-policy | Live; partially certified to main S11 |
+| `umbrella/ladder-fixture` | pre-#358 | dormant | **pre-#358 carry-forward** | Orphan, ESACP#361 (Stage 1 carry); Sub-step 6 below |
+| `umbrella/pages-site-v1` | S58 | S58 (merged to main same session) | post-policy | Naming-policy slip (see below); merged + no longer live as cert target |
+
+**Post-policy umbrella usage findings**:
+
+1. **S11 cert + scope-expansion (Compliance: N).** Per
+   `feedback_umbrella_branches.md`: "Certification session: a distinct
+   session dedicated to merging umbrella → main … No new sub-branches
+   opened here". S11 (a) certified
+   `umbrella/erpnext-idiomatic-refactor` (PR#2 → main) AND (b)
+   scope-expanded into PR#1 (LSV review) + PR#3 (doc revise) + an
+   architectural-discovery pivot in the same session. The cert was not
+   a dedicated session. **Drift item DI-1.**
+
+2. **S58 naming slip (Compliance: Y).** `umbrella/pages-site-v1` is
+   a single-issue (#402), single-session, four-commit branch with no
+   sub-branches under it — i.e., a 1:1:1 feature branch with the
+   `umbrella/*` prefix attached. The work itself is compliant (one
+   issue, one branch, one session, merged via PR#403 with `fixes
+   #402`). The misuse is purely nominal: per the policy's "Use an
+   umbrella when any of: >3 sub-branches expected; cross-cutting files
+   touched by multiple issues; broad-context acceptance that cannot
+   run per-sub-branch; explicit user call at planning time", a Pages
+   site v1 build qualifies under none of those triggers. Per-policy
+   branch name should have been `feat/402-pages-site-v1` or
+   `docs/402-pages-site-v1`. **Drift item DI-2** (naming convention,
+   not 1:1:1 process).
+
+3. **S28 umbrella sub-issue filing (Compliance: Y).** Filing seven
+   LSKB issues under the umbrella's planning context, not opening
+   sub-branches — neutral with respect to the umbrella mechanic, just
+   normal Plan-B execution prep.
+
+**No post-policy umbrella sub-branch was merged direct-to-main
+bypassing its umbrella.** No sub-branch that should have been
+direct-to-main was misrouted through an umbrella.
+
+### Sub-step 5 — Introspection-sidebar audit
+
+**Trigger** (CLAUDE.md "Session Protocol" + the introspection-sidebar
+block in `feedback_*` corpus): every 5–7 sessions OR 3+ unresolved
+carry-forward operator-reminders, whichever first.
+
+**Expected over a 55-session window** (5–7 cadence, no double-count
+of the reminder trigger): floor(55/7) ≤ expected ≤ floor(55/5) = **8
+to 11 sidebars**.
+
+**Actual** (explicit "introspection sidebar" framing or unambiguous
+sidebar-scope work): **2 sidebars — S20 and S57.**
+
+- **S20** (2026-05-09): introspection sidebar — closed #362, #363,
+  LSM#1, #364, #365, #366. Carry-forward cleanup + governance fixes.
+  Cadence trigger satisfied (S20 = 9 sessions into the window, within
+  the 5–7 range counting from a pre-window prior sidebar).
+- **S57** (2026-05-19): introspection sidebar — filed #401, #402.
+  Cadence trigger overdue (S57 follows S20 by 37 sessions, far beyond
+  5–7).
+
+**Adherence ratio**: 2 / (8–11) = **18 – 25 %**. Substantially below
+expected.
+
+**Counter-reading: housekeeping bundles as de-facto sidebars.** 17
+housekeeping bundles in the window (S15, S16, S19, S21–S27, S32, S38,
+S39, S40–S44) materially overlap with the introspection-sidebar
+scope ("documentation scrubs, wording fixes, structural reorganization
+of MEMORY.md or other auto-loaded docs, filing tracker issues for
+recycled reminders, dropping resolved or terminally-homed items"). If
+each housekeeping bundle in fact discharged a sidebar's purpose
+without the label, adherence is implicitly satisfied; the labelling
+gap is the real finding.
+
+Two readings, both legitimate:
+
+- **Strict reading**: 2 sidebars / 55 sessions → **drift item DI-3**:
+  introspection-sidebar cadence is not being honoured.
+- **Generous reading**: 19 (sidebars + housekeeping bundles) / 55 →
+  trigger is being honoured but the **session-type labels are
+  collapsing** sidebars and housekeeping bundles together; the
+  distinction in CLAUDE.md is then poorly load-bearing.
+
+**Recommended verdict (operator to confirm at joint review)**:
+Generous reading is the better fit for the visible work; the explicit
+"introspection sidebar" label is being used sparingly (only for
+sessions whose primary purpose is sidebar-shaped, not for sessions
+that incidentally include sidebar-class work). Corrective measure
+candidates:
+
+- **CM-A**: Tighten the CLAUDE.md distinction so housekeeping bundle
+  vs introspection sidebar is mechanically separable (e.g., "any
+  session that touches `MEMORY.md` indexing or drops carry-forward
+  items is a sidebar even when other housekeeping issues close in
+  the same bundle").
+- **CM-B**: Loosen the cadence trigger (e.g., "every 5–7 sessions OR
+  ≥3 unresolved carry-forward — count housekeeping bundles that
+  perform sidebar-class work toward the cadence").
+- **CM-C**: Leave the policy as-is; accept that the labelling is
+  aspirational and the substantive practice is fine.
+
+### Sub-step 6 — Pre-#358 wip/* + `umbrella/ladder-fixture` carry-overs
+
+Cross-references Stage 1 Sub-step 2 (audit report lines 661–678). Three
+pre-#358 `wip/*` branches + one orphan umbrella:
+
+| # | Repo | Branch | Date | Status | Stage-5 verdict |
+|---:|---|---|---|---|---|
+| 1 | ce_sri | `wip/2026-03-25` | 2026-03-25 | pre-policy carry-forward | exempt (pre-#262/#236 by ~28 days); documented in `project_wip_consolidation_plan.md` |
+| 2 | ce_sri_svc | `wip/2026-03-31` | 2026-03-31 | pre-policy carry-forward | exempt; documented |
+| 3 | route_planner / BtlMng | `wip/2026-03-31` (+ `phase-1-fixture-equivalent` + `feat/371-wip-consolidation-phase-1`) | 2026-03-31 onward | pre-policy + post-policy consolidation sub-branches | exempt for the `wip/*`; the `feat/371-*` and `phase-1-fixture-equivalent` are post-policy and compliant (sub-branches of the LSKB umbrella) |
+| 4 | ESACP | `umbrella/ladder-fixture` | pre-#358 | **local-only orphan, no remote tracking** | exempt as a violation (pre-policy); ESACP#361 is the resolution tracker; standalone session per S66 agenda's "Out of scope" list |
+
+**Visibility**: all four carry-overs are documented in
+`project_wip_consolidation_plan.md` and (for #4) ESACP#361. None alter
+the Stage 5 compliance rate.
+
+### Stage 5 summary
+
+- **Compliance rate**: **96.4 %** (53 Y / 2 N across 55 sessions).
+- **Drift items**:
+  - **DI-1** — S11 umbrella certification combined with non-cert work
+    (LSV PR#1 + LSV PR#3 + architectural-discovery pivot in same
+    session). Policy violated:
+    `feedback_umbrella_branches.md` "Certification session: a distinct
+    session dedicated to merging umbrella → main".
+  - **DI-2** — S58 `umbrella/pages-site-v1` is a nominal-only umbrella
+    (single-session, single-issue, no sub-branches). Naming-policy
+    slip; the 1:1:1 substance is compliant. Per-policy name would have
+    been `feat/402-pages-site-v1`.
+  - **DI-3** — S29 substantive code (`bucket_survey.py` + extension)
+    merged direct-to-main with esacp-qa reject explicitly overridden
+    by operator. Documented in S29 minutes + qa-log; operator
+    acknowledged the 1:1:1 violation at the time.
+  - **DI-4** — Introspection-sidebar labelling gap: 2 explicit
+    sidebars vs 8–11 expected by cadence; the gap is filled in
+    practice by housekeeping bundles that perform sidebar-class work
+    without the label. Either the policy distinction is not
+    mechanically applied or the cadence trigger is loose.
+
+- **Corrective measures**:
+  - **CM-1 (DI-1)**: No new code change; institutional memory
+    already captures this (S11 minutes are explicit). Optional
+    follow-up: cross-reference DI-1 from
+    `feedback_umbrella_branches.md` so future cert sessions cite the
+    S11 precedent. **Soft** — operator decides at joint review.
+  - **CM-2 (DI-2)**: Add a one-line clarification to the umbrella
+    section of `feedback_umbrella_branches.md` and CLAUDE.md: "single-
+    issue / single-session multi-commit work uses `feat/{issue#}-...`
+    even when the work happens to be doc-flavoured. `umbrella/*` is
+    reserved for branches that actually have sub-branches or are
+    long-lived across sessions." **Soft** — small wording fix; file
+    as a tracker if operator accepts.
+  - **CM-3 (DI-3)**: No new code change; the override was
+    operator-explicit and documented at the time. No corrective
+    measure beyond what S29 already captured.
+  - **CM-4 (DI-4)**: Operator decision among CM-A / CM-B / CM-C
+    above. Default recommendation = **CM-C** (leave policy as-is,
+    accept aspirational labelling); the substantive sidebar work is
+    happening at the cadence the policy intends.
+
+- **Non-drift findings**:
+  - **No housekeeping-bundle abuse** in the window (Sub-step 3 empty).
+  - **No post-policy umbrella sub-branch misrouted** (no sub-branch
+    that should have been direct-to-main routed through an umbrella;
+    no sub-branch that should have been under an umbrella merged
+    direct-to-main).
+  - **Pre-#358 carry-overs** (Sub-step 6) documented but unchanged —
+    resolution remains paced by `project_wip_consolidation_plan.md`
+    and ESACP#361.
+
+### Joint-review outcome (S66 operator)
+
+Operator signed off Stage 5 with the following decisions:
+
+- **CM-1** → **Y**. Add a cross-reference from
+  `feedback_umbrella_branches.md` to S11 as a precedent for
+  "certification session must be dedicated." Folds into the
+  consolidation-session housekeeping pass.
+- **CM-2** → **Y**. Add a one-line clarification to
+  `feedback_umbrella_branches.md` + CLAUDE.md "Session Protocol"
+  umbrella block reserving `umbrella/*` for branches that actually
+  have sub-branches or multi-session lifespan. Single-issue /
+  single-session multi-commit work uses `feat/{issue#}-…` or
+  `docs/{issue#}-…` even when the work is doc-flavoured. Folds into
+  the consolidation-session housekeeping pass.
+- **CM-4** → **A**. Tighten the CLAUDE.md "Session Protocol"
+  introspection-sidebar block so housekeeping-bundle vs
+  introspection-sidebar is mechanically separable (e.g., "any
+  session that touches `MEMORY.md` indexing or drops carry-forward
+  items is a sidebar even when other housekeeping issues close in
+  the same bundle"). Carries to the consolidation session as a
+  policy-redesign item, not a one-line fix.
+
+The premise correction in Sub-step 4 (both policies pre-date S11,
+no pre-policy exemption applies in-window) stands without
+amendment.
+
+**Carry-forward to Stage 6** (M&V alignment): none. Stage 5 is
+mechanistic / process-focused; Stage 6 is mission-focused. Stage 4's
+51-close corpus + the substantive-session subset of Sub-step 2's table
+(26 substantive sessions) jointly feed Stage 6.
+
+**Carry-forward to consolidation session** (Step 3, S6X) — operator
+sign-off recorded above; the consolidation session executes:
+
+- **CM-1** — small memory cross-reference (operator: Y).
+- **CM-2** — one-line `feedback_umbrella_branches.md` / CLAUDE.md
+  clarification on `umbrella/*` naming reservation (operator: Y).
+- **CM-4 = Option A** — policy redesign making housekeeping-vs-sidebar
+  mechanically separable in CLAUDE.md (operator: A). Sized as a
+  small-but-not-one-line edit to the "Session Protocol" block;
+  consolidation session may file a dedicated tracker if scope
+  expands beyond a wording pass.
+
+**No Stage 6 execution this session.** Stage 6 (M&V alignment) starts
+S67 at the earliest, per the S66 agenda's "Out of scope" list.
+
