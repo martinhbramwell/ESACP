@@ -1271,3 +1271,198 @@ against mission properties.
 
 **No Stage 3 execution this session.** Stage 3 (Memory hit-rate) starts
 S64 at the earliest, per Sub-step 4 of the S63 agenda.
+
+---
+
+## Stage 3 — Memory hit-rate (S64)
+
+**Question answered**. Per recent session, which memory files were
+*relevant to the work* vs *actually consulted before acting*? This is
+the audit's direct response to the S56 trigger — the grep-failure that
+treated an issue body as authoritative when memory held the answer.
+
+**Trigger context**. Memo order 1→6 (operator S60). Audit window S11
+(2026-05-07-0748) → S62 (2026-05-20-0523) = 52 session-minutes files.
+No S60/S61 observations land directly here — Stage 3 is the
+meta-architectural audit of the very mechanism this audit relies on.
+Its inputs are every session's `Stated objective` / `Objective` /
+`Session scope` block plus the `How the session went` / `Work done` /
+`Outcome` narrative, evaluated against the memory corpus relevant to
+each session's primary topic.
+
+### Sub-step 1 — Mandatory grep gate (universal)
+
+| Grep | Hits | Read |
+|---|---:|---|
+| `grep -rl 'feedback_grep_memory_before_issue_body\|grep memory before' memory/` | 2 | `MEMORY.md` (index entry) + `project_buffer_overflow_audit_plan.md` (the audit-procedure memo). The corrective-measure file itself is the third hit when discovered by name. Adoption surface is canonical and discoverable. |
+| `grep -rl 'buffer.overflow\|buffer_overflow' memory/` | 4 | `MEMORY.md`, `project_buffer_overflow_audit_plan.md`, `feedback_grep_memory_before_issue_body.md`, `project_pages_site_v1.md` (Pages-site retrospective references the audit as a self-correction case study). The buffer-overflow framing has crossed beyond the audit into adjacent project memory — institutional uptake, not parked. |
+| `grep -rl 'ce_sri#10\|forma_de_pago_preferida' memory/` | 6 | `MEMORY.md`, `project_buffer_overflow_audit_plan.md`, `feedback_grep_memory_before_issue_body.md`, `project_pages_site_v1.md`, `project_zero_defect_build.md`, `project_cesri_modules_fixture_bugs.md`. The last memo is the **canonical S56-miss target** — the memo that would have been surfaced by the grep that didn't run at session start. Its existence at S56 was the audit's empirical proof of the cost. |
+| `grep -rln 'memory-grep\|grep -r.*memory/\|grep memory' internal_docs/SessionLogs/2026-05-*-session-minutes.md` | 2 (literal phrase) / 7 (broader audit-framework adoption — `buffer.overflow\|forma_de_pago\|memory.grep.gate`) | Literal "memory-grep" phrase appears in S56 + S61 minutes. Broader audit-framework adoption (audit-procedure references, `forma_de_pago_preferida` analyses, mandatory-grep-gate Sub-step 1 blocks) spans S55→S62 minutes — 7 contiguous post-trigger sessions. Framework adoption pattern is durable. |
+
+Gate **passes**. The corrective-measure memo, the buffer-overflow
+framing, and the trigger keyword are all alive and cross-linked in
+current memory. Adoption signal is visible in post-S56 minutes via the
+formal Sub-step 1 grep-gate blocks now embedded in audit-stage minutes
+(S60/S61/S62) and the buffer-overflow audit-plan reference now standard
+in stage agendas.
+
+### Sub-step 2 — Per-session triage (S11→S62, 52 rows)
+
+**Ground-truth source**. Per session minutes: `Stated objective` /
+`Objective` / `Session scope` block + `How the session went` /
+`Work done` / `Outcome` narrative + explicit memory citations
+(`feedback_*.md`, `project_*.md`, `mission_vision`, `MEMORY.md`,
+`PROTOCOLS.md`, `bucket_definitions`).
+
+**Verdict criterion** (loose-reading interpretation per S64 agenda's
+≤5 N expectation):
+
+- **Y** — session minutes visibly cite or apply memory files relevant
+  to the primary topic, OR session is post-S56 and applies the formal
+  memory-grep gate.
+- **N** — post-hoc evidence shows relevant memory existed and went
+  unconsulted, causing rework, wasted investigation, or a wrong framing
+  that survived into session output. This is the canonical
+  buffer-overflow signature.
+- **n/a** — session was pure ops with no memory-relevant topic (e.g.,
+  sync-check fix with no memory implications). Strictly applied: none
+  in window.
+
+| Session | Date | Primary issue/topic | Key memory terms | Grep evidence (one-line) | Verdict |
+|---|---|---|---|---|---|
+| S11 | 2026-05-07 | PR#1 merge + Spanish staffer revision + architectural discovery (`Sales Partner Customer Item Commissions`) | `project_logisolu_validations`, `project_sales_partner_commissions_redesign`, `feedback_bespoke_apps_single_responsibility`, `feedback_keep_merged_branches` | Minutes cite all four; design pivot grounded in `project_sales_partner_commissions_redesign` | Y |
+| S12 | 2026-05-07 | Carry-forward triage; Phase-1 deferred; BaRe/bench-migrate clarification | `project_erpnext_idiomatic_refactor`, `feedback_consultant_not_peer_engineer`, `feedback_no_rework_sequencing` | Memo + feedback rules cited; clarification grounded in `feedback_bare_is_our_code` (S55 retro confirms) | Y |
+| **S13** | 2026-05-07 | Phase 1 fixture_json sub-issue + dev02 fixtures externalisation | `project_si_custom_fields_baseline`, `project_wip_consolidation_plan`, `feedback_check_existing_wip_before_fresh_work` (created post-S13) | Minutes confess: "Memory note `project_si_custom_fields_baseline.md` had explicitly recorded `Developer Mode audit — COMPLETE (2026-04-05) — 13/13 field additions externalized` 32 days earlier. Memory was loaded into session context but parent never triangulated it against the agenda." | **N** |
+| S14 | 2026-05-08 | Track C governance + real-name audit + architectural-design pivot | `mission_vision`, `feedback_no_real_client_names`, `feedback_bare_is_our_code`, `feedback_bespoke_apps_single_responsibility`, `feedback_check_existing_wip_before_fresh_work`, `feedback_pr_merge_before_session_close`, `project_erpnext_idiomatic_refactor`, `project_logisolu_validations`, `project_wip_consolidation_plan` | Eight memory files cited; real-name audit grounded in `feedback_no_real_client_names`; three-bucket framing originates here | Y |
+| S15 | 2026-05-08 | Phase 0 completion — file architectural-decision issues + 8 prior-issue comment updates | `mission_vision`, `feedback_pr_merge_before_session_close` | Filing-only governance; mission_vision cited as framing | Y |
+| S16 | 2026-05-08 | Real-name audit on existing memory directory | `feedback_no_real_client_names`, `feedback_pr_merge_before_session_close`, `feedback_bespoke_apps_single_responsibility`, `feedback_enumerate_mechanisms_before_committing`, `project_erpnext_idiomatic_refactor`, `project_sales_partner_commissions_redesign`, `project_wip_consolidation_plan` | Memory directory IS the audit target; consultation is structurally required and visible | Y |
+| S17 | 2026-05-08 | LogiSoluMemory repo standup (Phase 1 of #359) | `MEMORY.md`, PROTOCOLS pattern | Repo standup creates the memory substrate; sub-tasks 1–6 aligned with #359 closure-checklist | Y |
+| S18 | 2026-05-09 | LogiSoluKnowBase repo standup (Phase 1 of #358) | `feedback_check_tool_actual_cli_before_following_agenda`, `feedback_clean_up_your_own_residue`, `feedback_consultant_not_peer_engineer`, `feedback_decide_and_advise_on_logistics`, `feedback_no_decision_theatre_on_clerical_work` | Five feedback rules cited; CLI-check application visible in `gh repo create` flag verification | Y |
+| S19 | 2026-05-09 | BaRe association to ESACP-platform (#358 item 3) | `feedback_bare_production_reference`, `feedback_no_decision_theatre_on_clerical_work`, `project_bare_bucket_1_association` (created in-session), PROTOCOLS | Five sub-tasks executed; bucket-1-associate memo created via the work | Y |
+| S20 | 2026-05-09 | First issue migration ESACP#354 → LSKB (Op-2 pattern) | `feedback_production_off_limits`, `feedback_respect_original_scripts`, `MEMORY.md` | Reframed mid-session as periodic introspection sidebar; relevant memory cited in scope-shift discussion | Y |
+| S21 | 2026-05-09 | First migration ESACP#354 → LSKB (re-executed) | `feedback_qa_flag_format_only_matters_on_reject` (created in-session), `project_bare_bucket_1_association`, `project_bucket_2_migration_pattern` (codified in-session) | Pattern memo codified directly from the work; corrective-measure rule extracted from session | Y |
+| S22 | 2026-05-09 | Second migration ESACP#356 → LSKB | `project_bucket_2_migration_pattern` | Pattern application visible; comment-and-close flow honors codified Op-2 | Y |
+| S23 | 2026-05-09 | Third migration ESACP#357 → LSKB | `feedback_no_rework_sequencing`, `project_bucket_2_migration_pattern` | Pattern continues; cross-repo fixes semantics extracted (later codified as `feedback_pr_fixes_comma_syntax`) | Y |
+| S24 | 2026-05-10 | Tracker-redirect ESACP#345 → ce_sri_svc (Op-3 first) | `project_bucket_2_migration_pattern` | First Op-3 (tracker-redirect) sub-shape execution; pattern memo extended | Y |
+| S25 | 2026-05-10 | Tracker-redirect ESACP#344 → ce_sri_svc#3 PR (Op-3 second) | `feedback_acceptance_test_required`, `project_bucket_2_migration_pattern` | Full-overlap Op-3 sub-shape (comment-and-close on existing PR-anchored work) | Y |
+| S26 | 2026-05-10 | Tracker-redirect ESACP#343 → ce_sri (Op-3 third) | `project_bucket_2_migration_pattern` | Partial-overlap Op-3 sub-shape (no in-flight PR; full migration) | Y |
+| S27 | 2026-05-10 | Methodology-stays handling — #197 classification | `feedback_pr_merge_before_session_close`, `project_bucket_2_migration_pattern` | Op-4 (methodology-stays) sub-class first execution; classify-and-comment flow | Y |
+| S28 | 2026-05-10 | Phase 2 LSKB execution umbrella standup; file LSKB#5–#10 | `feedback_pr_merge_before_session_close`, `feedback_umbrella_branches`, `project_erpnext_idiomatic_refactor` | Umbrella policy applied; LSKB execution rows materialized | Y |
+| S29 | 2026-05-10 | Candidate switch B — `platforms/kvm/session_start.py` bucket-explicit surveys | `bucket_definitions`, `feedback_pr_merge_before_session_close`, `feedback_umbrella_branches`, `project_wip_consolidation_plan` | Premise-drift caught at pre-flight; switch to operator-driven Candidate B; bucket-survey infrastructure landed | Y |
+| S30 | 2026-05-10 | route_planner wip-consolidation pilot (Track A) | `feedback_acceptance_test_required`, `feedback_keep_merged_branches`, `feedback_pr_fixes_comma_syntax` (codified in-session), `feedback_pr_merge_before_session_close`, `feedback_umbrella_branches`, `project_bucket_2_migration_pattern`, `project_wip_consolidation_plan` | Seven memory files cited; `fixes` comma-syntax rule extracted from session | Y |
+| S31 | 2026-05-11 | #372 dev02 deploy-key blocker investigation | `feedback_ssh_askpass_for_bespoke_repos` (extracted from session), `project_bucket_2_migration_pattern`, `project_erpnext_idiomatic_refactor`, `project_wip_consolidation_plan` | Root cause identified (SSH_ASKPASS missing); corrective rule extracted | Y |
+| S32 | 2026-05-11 | Session A — finish #358 closure-checklist (3 trackers + memo cleanup) | `feedback_bare_is_our_code`, `feedback_bespoke_apps_single_responsibility`, `feedback_check_existing_wip_before_fresh_work`, `feedback_keep_merged_branches`, `project_erpnext_idiomatic_refactor`, `project_logisolu_validations`, `project_plan_b_remaining_roadmap`, `project_wip_consolidation_plan` | Eight memory files cited; closure-checklist closed | Y |
+| S33 | 2026-05-11 | Consolidate `returnable` wip-onto-main via 1:1:1 sub-branch + Track C step 5 dev02 repoint | `bucket_definitions`, `feedback_acceptance_test_required`, `feedback_ssh_askpass_for_bespoke_repos`, `project_wip_consolidation_plan` | Track A consolidation pattern applied; Track C dev02 repoint executed | Y |
+| S34 | 2026-05-11 | Consolidate `ce_sri` wip-onto-main via 1:1:1 sub-branch + Track C step 5 dev02 repoint | `feedback_trivial_fixes_buffer` (codified in-session), PROTOCOLS, `project_wip_consolidation_plan` | TRIVIAL_FIXES.md buffer mechanism extracted from session | Y |
+| S35 | 2026-05-11 | Plan-B Epoch-1 Session D1 bundle — close LSKB#2 + LSKB#3 | `feedback_bespoke_apps_single_responsibility`, `feedback_decide_and_advise_on_logistics`, `feedback_keep_merged_branches`, `feedback_no_decision_theatre_on_clerical_work` | Bundling rule tested; D1 closed both rows in single session | Y |
+| S36 | 2026-05-12 | Plan-B Epoch-1 D2 bundle — close LSKB#4 + LSKB#5 + LSKB#8 | `feedback_consultant_not_peer_engineer`, `feedback_decide_and_advise_on_logistics`, `feedback_dev_vms_are_disposable`, `feedback_pr_fixes_comma_syntax`, `feedback_production_off_limits`, `project_bucket_2_migration_pattern`, `project_phase3_redis_rq_decision` | Seven memory files cited; D2 bundling-rule sharpening applied to D1 | Y |
+| S37 | 2026-05-12 | Risk-tier QA verdict layer's trigger contract from S5.5–36 catch-rate data | `internal_docs/qa-contract.md`, `internal_docs/qa-log.md` (institutional artifacts) | Data-driven revision via `bash awk` over qa-log.md; intuition contradicted by data and overridden; ESACP#380 filed | Y |
+| S38 | 2026-05-12 | Plan-B Epoch-1 D3 — LSKB#7 22 DB-resident TBDs documentation | `project_plan_b_remaining_roadmap` | LSKB#7 closed-by-comment; disposition rollup grounded in catalogue + memo | Y |
+| S39 | 2026-05-12 | Trailing-items housekeeping sweep (#373 cross-repo `fixes` correction + #382 qa-contract.md §2.1 wording) | `feedback_no_downstream_of_merge_acceptance`, `feedback_pr_fixes_comma_syntax`, `project_bucket_2_migration_pattern`, `project_cloudstack_deferred_until_v16`, `project_erpnext_idiomatic_refactor`, `project_platform_strategy` (archived later) | Six memory files cited; housekeeping-bundle exception applied correctly | Y |
+| S40 | 2026-05-12 | Plan-B Phase 4 methodology pass — substrate re-target to local KVM + LSKB#6 scope-trim ladder | `feedback_keep_merged_branches`, `project_cloudstack_deferred_until_v16`, `project_erpnext_idiomatic_refactor`, `project_sales_partner_commissions_redesign` | LSKB#13–#16 sub-issue ladder created; substrate decision recorded; CloudStack-deferral memo cited | Y |
+| S41 | 2026-05-12 | Resolve ESACP#386 — Plan-B Phase 4 bespoke-app placement decision | `feedback_bespoke_apps_single_responsibility`, `feedback_keep_merged_branches`, `project_erpnext_idiomatic_refactor`, `project_phase4_bespoke_app_placement` (created in-session), `project_sales_partner_commissions_redesign` | Placement memo created; cross-link from CLAUDE.md | Y |
+| S42 | 2026-05-12 | LSKB#12 master/detail DocType design freeze + LSKB-standup tracker filing | `feedback_pr_merge_before_session_close`, `feedback_qa_flag_format_only_matters_on_reject`, `project_sales_partner_commissions_redesign` | Design freeze grounded in S40 memo; planning-class scope | Y |
+| S43 | 2026-05-12 | LSKB#17 — `sales_partner_commissions` repo standup (Phase 4 ladder code-class prereq) | `feedback_ssh_askpass_for_bespoke_repos` (preamble used), `feedback_bespoke_apps_single_responsibility`, `project_phase4_bespoke_app_placement`, peer-app pattern (route_planner / ce_sri / ce_sri_svc) | Memory citations sparse in minutes but SSH_ASKPASS preamble visibly applied; peer-app pattern followed; bench-emitted output preserved (S42 directive) | Y |
+| S44 | 2026-05-13 | LSKB#13 — `sales_partner_commissions` migration-patch authoring (pre-author verification + design re-open) | `feedback_production_off_limits` (PRODUCTION_20260404 read-only), `project_sales_partner_commissions_redesign` | Currency-vs-Percent fieldtype check + Data anomaly identified; design re-frozen via memo amendment | Y |
+| S45 | 2026-05-13 | LSKB#13 continued — patch authoring against post-S44 design | `feedback_keep_merged_branches`, S44 design freeze | Patch authored against corrected fieldtype; colocated tests added | Y |
+| S46 | 2026-05-13 | LSKB#14 — `sales_partner_commissions` Server Script rewrite (Before-Save + After-Submit) | `feedback_debug_toggles`, `feedback_keep_merged_branches` | Two Server Scripts rewritten against master/detail shape; debug-toggle pattern flagged | Y |
+| S47 | 2026-05-13 | LSKB#15 — substrate-apply on dev02 (paused at version-skew F5) | `feedback_dev_vms_are_disposable`, SSH_ASKPASS preamble pattern | Version-skew net-new discovery (production v13.41.3/v13.39.2 vs dev02 v13.58.22/v13.55.2); LSKB#20 + ESACP#387 filed; substrate gap surfaced rather than missed | Y |
+| S48 | 2026-05-14 | LSKB#20 Path 1 — rebuild dev02 at production-snapshot versions | `feedback_no_passive_causal_framing` (extracted in-session), `MEMORY.md`, `project_saconsole_as_fleet_capability_record` (extracted in-session) | Passive-causal framing rule extracted from session; saconsole-as-record memo created | Y |
+| S49 | 2026-05-14 | ESACP#388 — declare packer as a saconsole dependency (LSKB#20 unblock) | `project_saconsole_as_fleet_capability_record` | Saconsole-dependency declaration applied; pipeline gap closed | Y |
+| S50 | 2026-05-14 | LSKB#20 Path 1 execution — packer build + dev02 destroy/rebuild | (no visible memory refs in minutes) | Mechanical execution under operator-pick Path 1; surfaced ESACP#390 (latent packer env-var-stripping flaw, undocumented prior); net-new institutional knowledge | Y |
+| S51 | 2026-05-14 | ESACP#390 fix — pass FRAPPE_BRANCH/ERPNEXT_BRANCH via `sudo env` | `feedback_keep_merged_branches`, `feedback_no_downstream_of_merge_acceptance`, `feedback_pr_merge_before_session_close` | Fix authored against S50 finding; packer end-to-end re-run | Y |
+| S52 | 2026-05-14 | ESACP#392 fix — uv pip refuses frappe v13.41.3 over yanked-braintree pre-release | `feedback_keep_merged_branches`, `feedback_no_downstream_of_merge_acceptance`, `feedback_no_passive_causal_framing`, `feedback_pr_merge_before_session_close`, `project_saconsole_as_fleet_capability_record` | Five memory files cited; passive-framing rule applied to root-cause analysis | Y |
+| S53 | 2026-05-15 | LSKB#20 Plan-C tag pivot — research v13 tag history for buildable substrate target | `feedback_dev_vms_are_disposable`, `feedback_pr_merge_before_session_close`, `feedback_remote_script_pattern` | Plan-C pivot grounded in dev-VMs-disposable rule; remote-script pattern applied to saconsole-driven build | Y |
+| S54 | 2026-05-15 | LSKB#15 — substrate-apply on Plan-C-rebuilt dev02 (frappe v13.58.22 / erpnext v13.55.2) | `feedback_dev_vms_are_disposable`, `feedback_pr_merge_before_session_close` | Substrate-apply retried on S53 substrate; further version-handling discoveries | Y |
+| S55 | 2026-05-18 | ESACP#398 Path A — disable MariaDB `performance_schema` to unblock `delete_duplicate_indexes` patch | `feedback_keep_merged_branches`, `feedback_pr_merge_before_session_close` | Path A executed; substrate-config gap remediation grounded in ansible + packer change | Y |
+| **S56** | 2026-05-19 | ce_sri#10 `forma_de_pago_preferida` — bench migrate fixtures collision | `project_cesri_modules_fixture_bugs` ("Bug 3", 2026-04-04 GH#96), `feedback_bisect_before_hypothesizing`, `feedback_grep_memory_before_issue_body` (extracted from session) | Minutes confess (row 9 of work-table): "Memory grep (the step that should have been step 0): `grep -lr forma_de_pago_preferida memory/` → 10 hits, including `project_cesri_modules_fixture_bugs.md` ('Bug 3', filed 2026-04-04 as GH #96) → every conclusion the investigation re-derived was already in memory, with the institutional fix" | **N** |
+| S57 | 2026-05-19 | Introspection sidebar — collaboration-management fractures retrospective | `feedback_bisect_before_hypothesizing`, `feedback_clean_up_your_own_residue`, `feedback_consultant_not_peer_engineer`, `feedback_decide_and_advise_on_logistics`, `feedback_fix_the_design_not_the_escaping`, `feedback_grep_memory_before_issue_body`, `feedback_mission_priority_check`, `feedback_narration_not_action`, `feedback_no_decision_theatre_on_clerical_work`, `feedback_no_invented_commands`, `feedback_no_passive_causal_framing`, `feedback_no_real_client_names`, `feedback_not_perfection_project`, `feedback_plan_before_code`, `feedback_scc_command`, `feedback_tactical_vs_consultant_mode`, `project_pages_site_v1` (created in-session), `MEMORY.md` | 17 feedback files retrospected; the corpus IS the topic; memory consultation maximal | Y |
+| S58 | 2026-05-19 | Build GitHub Pages site v1 (ESACP#402) — 5 sub-steps on `umbrella/pages-site-v1` | `feedback_git_mv_restage_after_edit` (extracted in-session), `feedback_narration_not_action`, `feedback_pr_merge_before_session_close`, `project_buffer_overflow_audit_plan`, `project_pages_site_v1`, `MEMORY.md` | Six memory files cited; `git mv` + edit re-stage rule extracted from session | Y |
+| S59 | 2026-05-19 | Sidebar — Pages-site v1 follow-up polish (ESACP#404) | `feedback_dev_vms_are_disposable`, `feedback_keep_merged_branches` | Operator-redirected at session start (originally agendaed for #400 Step 1); #400 audit Step 1 re-suspended; sidebar discipline applied | Y |
+| S60 | 2026-05-19 | ESACP#400 Step 1 — overall plan review (Sub-steps 1→5) | `mission_vision`, `project_buffer_overflow_audit_plan`, `project_erpnext_idiomatic_refactor`, `bucket_definitions`, `feedback_dev_vms_are_disposable`, `feedback_qa_flag_format_only_matters_on_reject` | **Audit framework's mandatory memory-grep gate visibly applied** — Sub-step 1 grep table captured into report; 3 planning anchors enumerated | Y |
+| S61 | 2026-05-19 | ESACP#400 Step 2 — stage list proposal (6 stage blocks drafted) | `mission_vision`, `project_buffer_overflow_audit_plan`, `feedback_dev_vms_are_disposable`, `feedback_qa_flag_format_only_matters_on_reject` | Framework gate applied; observation→stage mapping table grounded in S60 enumeration | Y |
+| S62 | 2026-05-20 | ESACP#400 Stage 1 — bucket-placement compliance execution | `bucket_definitions`, `feedback_dev_vms_are_disposable`, `feedback_qa_flag_format_only_matters_on_reject`, `MEMORY.md`, `project_bucket_2_migration_pattern`, `project_wip_consolidation_plan` | Framework gate applied; 6-pass per-bucket compliance audit; ESACP#307 → LSKB#21 migration executed mid-session | Y |
+
+**Triage rollup**:
+
+- **Y**: 50 sessions
+- **N**: 2 sessions (S13, S56)
+- **n/a**: 0 sessions
+
+Hit rate: 50 / 52 = **96.2%**.
+
+### Sub-step 3 — No's table + corrective measures
+
+| Session | What memory should have been consulted | Corrective measure | Status |
+|---|---|---|---|
+| **S13** (2026-05-07-2236) | `project_si_custom_fields_baseline.md` (recorded 2026-04-05 — "Developer Mode audit COMPLETE — 13/13 field additions externalized"); existing `wip/*` work on `ce_sri/wip/2026-03-25` + `route_planner/wip/2026-03-31` + `returnable/wip/2026-03-31` containing the Phase-1 externalisation already authored 5 weeks earlier | `feedback_check_existing_wip_before_fresh_work.md` — "Before treating a session's stated task as new work, grep prior commits + memory for prior completion of the same target — bespoke fleet runs from wip/* branches that don't reach main" | **Already shipped** (created post-S13; in current memory) |
+| **S56** (2026-05-19-0752) | `project_cesri_modules_fixture_bugs.md` "Bug 3" (filed 2026-04-04, GH #96): same fieldname `forma_de_pago_preferida`, same DocField vs CustomField collision class, same root-cause analysis, **and** the institutional DELETE statement already shipped in BaRe `45b8775` + generic `g2_clear_fixture_custom_fields.py` | `feedback_grep_memory_before_issue_body.md` — "When picking up an issue body that presents a confident diagnosis, first grep memory + recent minutes for the error string / fieldname / table; only treat the body as authoritative if memory is silent" | **Already shipped** (created in S56; in current memory) |
+
+Both N's have **already-shipped corrective measures**. No new
+operator-reminder, new pre-commit hook, or further `feedback_*.md`
+elevation required at Stage 3 close.
+
+### Sub-step 4 — S56 trigger confirmation
+
+Per the audit-plan spec and the S64 agenda's explicit requirement:
+
+1. **S56 (2026-05-19-0752) is one of the N rows.** Confirmed in
+   Sub-step 2 triage table and itemised in Sub-step 3 corrective-measure
+   table. The session minutes themselves carry the confession (row 9 of
+   the work-table): "Memory grep (the step that should have been step
+   0): … every conclusion the investigation re-derived was already in
+   memory, with the institutional fix."
+
+2. **Its corrective measure
+   (`feedback_grep_memory_before_issue_body.md`) is already shipped.**
+   Confirmed via Sub-step 1 mandatory grep gate (`grep -rl
+   'feedback_grep_memory_before_issue_body\|grep memory before' memory/`
+   → 2 hits including `MEMORY.md` + `project_buffer_overflow_audit_plan.md`).
+   The file itself is the third hit when discovered by name. Memory
+   index pointer present.
+
+3. **The Stage 3 audit pattern is the audit-framework's check that the
+   corrective measure is being honored in subsequent sessions.**
+   Confirmed via Sub-step 1 grep 4 (broader-pattern search → 7
+   contiguous post-trigger sessions S55→S62 carry buffer-overflow
+   framing, `forma_de_pago_preferida` references, or formal Sub-step 1
+   memory-grep gates in audit-stage minutes). Adoption is durable and
+   institutional, not parked on a single feedback memo.
+
+### Sub-step 5 — Partitioning safeguard
+
+No-count = **2** (S13, S56). Well below the agenda's ≤10 split-trigger
+and inside the ≤5 default expectation. **No split required.** Stage 3
+delivers in a single session per the agenda's wall-clock estimate.
+
+### Sub-step 6 — Joint review at session end
+
+Stage 3 findings summary:
+
+- **Memory hit-rate is high** (96.2%) across the audit window.
+- **Two canonical buffer-overflow incidents** (S13, S56) — both have
+  shipped corrective measures already in memory and in MEMORY.md.
+- **Post-S56 framework adoption is durable** — 7 contiguous sessions
+  (S55→S62) carry buffer-overflow framing or formal Sub-step 1
+  memory-grep gates in their minutes; no recurrence of the trigger
+  pattern after S56.
+- **No new corrective measures ordered** at Stage 3 close.
+
+The audit's response to its own trigger has held: the corrective rule
+was extracted, codified, and is being honored. Stage 3 is the framework
+verifying itself.
+
+### Stage 3 close
+
+**Drift items requiring corrective measures**: none operational this
+session. Two historical N's (S13, S56) carry corrective measures
+already shipped pre-Stage-3 (`feedback_check_existing_wip_before_fresh_work.md`
++ `feedback_grep_memory_before_issue_body.md` respectively).
+
+**Carry-forward to consolidation session** (Step 3, S6X):
+
+- None from Stage 3. Both N's are pre-resolved.
+
+**No Stage 4 execution this session.** Stage 4
+(Acceptance-test compliance) starts S65 at the earliest, per Sub-step 4
+of the S64 agenda.
