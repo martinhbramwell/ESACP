@@ -127,7 +127,7 @@ next-agenda).
   drift entries correctly classified as acceptable-by-class +
   deferred-to-consolidation.
 - Conditions: none.
-- Commit: see Close state below.
+- Commit: `3048412` on `main`.
 
 ## Catalog coverage
 
