@@ -126,11 +126,21 @@ Findings presented for operator sign-off via AskUserQuestion:
 docs-only diff (audit-report Stage 3 section + S64 minutes + S65
 next-agenda).
 
-- Verdict: `<TBD on invocation>`.
+- Verdict: `approve` (`hard_block: true` — T3 hard-block scope per
+  qa-contract §2.1; flag inert on `approve` per
+  `feedback_qa_flag_format_only_matters_on_reject.md`).
 - Reasoning: three docs-only files under `internal_docs/` referencing
   the open anchor ESACP#400. Matches S58/S59/S60/S61/S62/S63 docs-only
   direct-to-main pattern codified in qa-contract §2.1 condition 2.
-- Commit: `<TBD>` on `main`.
+  Triage table arithmetic verified (52 rows, Y=50, N=2, 96.2%
+  hit-rate); both N-rows cross-reference correctly to already-shipped
+  corrective measures in both Sub-step 2 and Sub-step 3 tables;
+  commit message Conventional Commits + `Refs` (not `fixes` — anchor
+  stays open) + Co-Authored-By trailer; no real-name drift (Mighty +
+  hasan_mighty appear only in carry-forward TRIVIAL_FIXES / ESACP#396
+  descriptions of already-tracked issues, not new leakage).
+- Conditions: none.
+- Commit: `2ed7ab0` on `main`.
 
 ## Catalog coverage
 
