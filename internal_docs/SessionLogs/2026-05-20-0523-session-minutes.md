@@ -139,7 +139,7 @@ next-agenda).
   acceptable). The ESACP#307 → LSKB#21 migration is correctly
   documented in report + minutes.
 - Conditions: none.
-- Commit: `<filled by verdict-trail self-correction>` on `main`.
+- Commit: `2a4e314` on `main`.
 
 ## Catalog coverage
 
