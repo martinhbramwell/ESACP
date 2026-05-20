@@ -116,7 +116,7 @@ next-agenda).
   pattern established by precedent. No code paths touched, no banned
   patterns, no real names, no catalog-coverage gap.
 - Conditions: none.
-- Commit: `<filled at commit time>`.
+- Commit: `b863f5c` on `main`.
 
 ## Catalog coverage
 
