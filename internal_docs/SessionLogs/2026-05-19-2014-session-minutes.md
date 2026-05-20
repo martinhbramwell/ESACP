@@ -101,7 +101,26 @@ Three operator decisions captured via `AskUserQuestion`:
 
 **T1+T3 (combined pre-commit + pre-push)** — invoked on the staged
 docs-only diff (audit report + minutes + agenda).
-[Verdict pending — to be appended before commit.]
+
+- Verdict: `approve` (`hard_block: true` — T3 hard-block scope
+  inherited per qa-contract §2.1; flag is inert on `approve` per
+  `feedback_qa_flag_format_only_matters_on_reject.md`).
+- Reasoning: three docs-only files under `internal_docs/` referencing
+  a single open anchor issue (ESACP#400) via `Refs:` keyword.
+  Direct-to-main matches the established ESACP session-close
+  convention codified in qa-contract §2.1 condition 2. Conventional
+  Commits format correct, Co-Authored-By trailer present, GPG signing
+  pattern established by precedent. No code paths touched, no banned
+  patterns, no real names, no catalog-coverage gap.
+- Conditions: none.
+- Commit: `ef4a66a` on `main`.
+
+**Verdict-trail self-correction (S60 follow-up)** — the line above was
+committed at `ef4a66a` reading `[Verdict pending — to be appended
+before commit.]`. Session-end audit caught the stale placeholder;
+fixed in a follow-up `docs(session-log)` commit on `main`. No
+operational effect (commit landed under an approved verdict regardless
+of whether the trail was filled in).
 
 ## Catalog coverage
 
