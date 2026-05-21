@@ -2133,3 +2133,489 @@ sign-off recorded above; the consolidation session executes:
 **No Stage 6 execution this session.** Stage 6 (M&V alignment) starts
 S67 at the earliest, per the S66 agenda's "Out of scope" list.
 
+---
+
+## Stage 6 — Mission-and-Vision alignment (S67)
+
+**Question**. Does shipped work in the audit window advance the
+self-repairing-platform mission stated in
+[`mission_vision.md`](../../.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/mission_vision.md),
+or has the execution surface drifted away from it?
+
+**Primary inputs**.
+- Stage 4 51-close corpus (audit-report lines ~1497–1762) — primary
+  categorisation surface.
+- Stage 5 substantive-session subset (26 of 55 in-window sessions) —
+  cross-reference for "every close-target maps to a substantive
+  session or housekeeping bundle."
+- S60 observations #3 (M&V mentions concentrated in two clusters)
+  and #6 (`mission_vision.md` staleness) — both home in Stage 6 per
+  Step 2 mapping table (audit-report lines 504–512).
+
+### Sub-step 1 — Mandatory grep gate
+
+| Grep | Hits | Read |
+|---|---:|---|
+| `grep -rl mission_vision /home/hasan/.claude/projects/-home-hasan-projects-Logichem-ESACP/memory/` | 8 | `MEMORY.md` (index), `mission_vision.md` (canonical), `feedback_no_manual_v14_cutover.md`, `context_domains.md`, `project_buffer_overflow_audit_plan.md`, `PROTOCOLS.md`, `feedback_consultant_not_peer_engineer.md`, `project_erpnext_idiomatic_refactor.md`. Cross-link fan-out is healthy at the memory level — both Plan-B execution memo and audit-procedure memo cite the canonical M&V doc. |
+| `grep -rln 'mission\|vision\|ERPNext MCP\|self-repair' internal_docs/SessionLogs/` (loose, per agenda) | 277 of 384 (72%) | **Loose form is noise-dominated.** `provision` (170 files) and `commission` (81 files) inflate the count by ~250. See word-boundary correction below. |
+| `grep -rln -wE 'mission\|vision\|self-repair' internal_docs/SessionLogs/` (word-boundary correction) | 23 of 384 (6%) | True signal corpus — sessions where the mission/vision/self-repair vocabulary appears as a whole word, not as a substring inside `provision`/`commission`/`revision`/`supervisor`. |
+| `grep -rln 'ERPNext MCP' internal_docs/SessionLogs/` | 3 of 384 (0.8%) | Three sessions in the entire log history mention "ERPNext MCP" by name: `2026-04-19-1159-session-minutes`, `2026-05-19-1130-next-agenda`, `2026-05-20-1659-next-agenda` (this session's agenda). The mission's core technical artefact is essentially absent from execution-level minutes. |
+| `grep -rln 'mission_vision' internal_docs/SessionLogs/` (literal filename) | 14 of 384 (3.6%) | Cluster: S39–S41 (project_pages_site_v1 planning), S58–S59 (Stage-1/Stage-2 audit prep), S60–S67 (this audit). Outside the audit window and the Pages-site planning window, `mission_vision.md` is rarely cited at session level. |
+| `grep -rln 'self-repair' internal_docs/SessionLogs/` (literal) | 4 of 384 (1.0%) | Four sessions reference "self-repair" by name: `2026-04-15-2300-session-minutes`, `2026-05-12-0619-next-agenda`, `2026-05-12-0619-session-minutes`, `2026-05-19-2104-session-minutes`. Sparse. |
+
+**Corpus** (Stage 6 working set).
+- Memory: `mission_vision.md`, `feedback_mission_priority_check.md`,
+  `feedback_not_perfection_project.md`, `project_generic_site_purpose.md`,
+  `project_pages_site_v1.md` (per agenda Pre-flight #6); plus the 8
+  memory files containing `mission_vision` references for cross-check.
+- Minutes: 55 session-minutes files for S11→S65 (same window as
+  Stage 4 / Stage 5).
+- Issues: Stage 4's 51-close corpus.
+
+**Gate verdict — pass with caveat**.
+- **Pass**: M&V canonical document is cross-linked from 7 other memory
+  files (8 total grep hits including MEMORY.md), including the
+  audit-procedure memo itself and the consultant-mode feedback memo.
+  Memory-level cross-reference fan-out is healthy.
+- **Caveat (deferred to Sub-step 4 cluster analysis)**: at the
+  session-log execution surface, mission vocabulary is sparse (6%
+  word-boundary, 1% for `self-repair`, 0.8% for `ERPNext MCP`). The
+  agenda-specified loose grep (72%) is misleading — it captures
+  `provision`/`commission` as accidental substring matches, not
+  genuine mission-vocabulary use. **This sparsity is consistent with
+  S60 observation #3** ("M&V mentions concentrated in two clusters;
+  sparse at execution level") and feeds the Sub-step 4 cluster
+  analysis directly. It is not, on its own, a drift finding — many
+  substantive sessions do mission-advancing work without naming the
+  mission. The categorisation in Sub-step 3 tests whether the *work*
+  (not the vocabulary) advances the mission.
+
+**Grep-noise finding** (methodology-improvement candidate): the
+audit-report Stage 6 spec at line 448 specified
+`grep -rln 'mission\|vision\|ERPNext MCP\|self-repair'` without
+word boundaries. For future Stage-6-class audits, the spec should
+use `-wE 'mission|vision|self-repair'` (or equivalent) plus a
+separate literal grep for `ERPNext MCP`. Noted here; not raised as a
+corrective measure (single-use audit spec; corrective measures track
+to executable behaviour changes, not in-document method notes).
+
+### Sub-step 2 — Categorisation methodology
+
+**Mission-property definitions** (operationalised from `mission_vision.md`):
+
+- **ERPNext MCP advance** — directly reduces `in_place_core_edit`, moves
+  DB-resident customisations to source-controlled bespoke apps, or
+  otherwise makes AI-assisted ERP access more reliable / reachable /
+  capable.
+- **Self-repair advance** — improves the running system's ability to
+  recover itself (backup/restore, observability that triggers action,
+  runtime watchdog) or to explain its state to a non-technical operator.
+- **Persistent records / tutorial generation** — durable institutional
+  knowledge that helps family + staff use the system without a
+  developer. Includes customisation inventories, naming conventions,
+  Server Script catalogues.
+- **Substrate / pipeline / portability** — infrastructure that exists
+  so the mission-aligned work is possible: build pipeline, dev fleet,
+  CI/CD discipline, QA verdict layer, organisational architecture.
+  Allowed but should not dominate.
+- **Unrelated** — work that does not advance any mission property and
+  is not substrate for one.
+
+**Decision rules used to resolve borderline calls** (transparency for
+future re-audits):
+
+- *Development-process discipline ≠ runtime self-repair.* Mechanisms
+  that prevent the AI from losing thread between sessions (Discipline
+  #2 surveys, three-bucket architecture, LSM memory repo, qa-contract
+  amendments) classify as **Substrate** — they enable mission work
+  but do not deliver runtime recovery capability.
+- *Customisation inventory ≠ MCP advance.* An inventory becomes
+  Persistent records; the MCP advance category is reserved for work
+  that materially reduces the customisation surface or enables MCP
+  reasoning at runtime.
+- *Generic-site / Pages-site work* classifies by *driving intent in
+  this audit window*. The S58–S59 Pages work was driven by
+  `project_pages_site_v1.md` (external outreach), not by
+  `project_generic_site_purpose.md` (portability testing). Classified
+  **Unrelated** with note that a portability-testing framing would
+  have classified them Substrate.
+- *Plan-B Phase work* classifies as **ERPNext MCP advance** when the
+  shipped artifact reduces `in_place_core_edit` count (catalogues
+  count: cataloguing a customisation is the prerequisite to MCP
+  reasoning about it). Plan-B substrate-only work (repo standup,
+  memo amendments, redis/rq decision, localisation infra) classifies
+  as **Substrate**.
+- *Backup/restore declaration (BaRe#9)* classifies as **Self-repair
+  advance** even though the README is declarative — the close
+  formalises BaRe as the canonical institutional self-repair tool,
+  which is the substantive change.
+
+**Headline tally** (per Sub-step 3 table below):
+
+| Category | Count | % of 51 |
+|---|---:|---:|
+| ERPNext MCP advance | 8 | 15.7% |
+| Self-repair advance | 1 | 2.0% |
+| Persistent records / tutorial | 2 | 3.9% |
+| **Mission-advancing subtotal** | **11** | **21.6%** |
+| Substrate / pipeline / portability | 38 | 74.5% |
+| Unrelated | 2 | 3.9% |
+
+**Sub-step 4 advance flag**: non-mission-advancing (substrate +
+unrelated) = 78.4%. Exceeds the 30% threshold from the agenda by
+~2.6×; **Sub-step 4 cluster analysis is mandatory**.
+
+### Sub-step 3 — Categorisation table
+
+51 rows, ordered by bucket then by close-class (preserving Stage 4
+ordering). Mission-property column uses abbreviations:
+**MCP** = ERPNext MCP advance · **SR** = Self-repair advance ·
+**PR** = Persistent records / tutorial · **Sub** = Substrate / pipeline
+/ portability · **U** = Unrelated.
+
+#### Bucket 1 — ESACP (37 closes)
+
+##### Migration / supersession (13)
+
+| # | Issue | Title (truncated) | Mission | Justification |
+|---:|---:|---|:-:|---|
+|  1 | #284 | Industry→Company race (Plan-A wizard-replay) | Sub | Plan-A path superseded by Plan-B; close is cleanup of a retired execution surface. |
+|  2 | #285 | B06 cold-system regen (Plan-A wizard-replay) | Sub | Same as #284. |
+|  3 | #290 | Español/Mexico locale fail (Plan-A wizard-replay) | Sub | Same as #284. |
+|  4 | #292 | Playwright en/Canada fixture (Plan-A wizard-replay) | Sub | Same as #284. |
+|  5 | #296 | HTTP 499 race (Plan-A wizard-replay) | Sub | Same as #284. |
+|  6 | #297 | welcome-modal multi-Next race (Plan-A wizard-replay) | Sub | Same as #284. |
+|  7 | #354 | Server Script event-name doc → LSKB#1 | PR | Durable institutional record of Server Script naming convention migrated to a more stable tracker; this is exactly the "persistent records of development process" category. |
+|  8 | #356 | Phase 1 fixture_json → LSKB#2 | Sub | Tracker re-homing of a Plan-B execution work-item; the work itself is MCP-advance (counted under LSKB#2) but the close is a migration of bookkeeping. |
+|  9 | #357 | Phase 1B Custom DocPerm → LSKB#3 | Sub | Same as #356. |
+| 10 | #345 | ce_sri_svc retry-with-backoff exhaustion → ce_sri_svc#3 | Sub | Op-3 tracker migration; ce_sri_svc work is V14-precondition infra. |
+| 11 | #344 | ce_sri_svc retry-with-backoff transient → ce_sri_svc | Sub | Same as #345. |
+| 12 | #343 | dev01 lab egress ECONNRESET → ce_sri#5 | Sub | Same as #345. |
+| 13 | #307 | hrms+payments eval → LSKB#21 | Sub | Tracker re-homing of bucket-2 evaluation work; bucket-2 evaluation itself is substrate-grade for MCP enablement. |
+
+##### Code / infra (11)
+
+| # | Issue | Close | Class | Mission | Justification |
+|---:|---:|---|---|:-:|---|
+| 14 | #369 | `a85cde0` S29 | feat — bucket surveys | Sub | Discipline #2 mechanism (bucket-explicit session-start surveys). Prevents Session-13 failure mode where AI loses thread between sessions — development-process discipline, not runtime self-repair. |
+| 15 | #371 | route_planner PR#1 S30 | track — wip-consolidation pilot | Sub | Pre-#358 wip-branch consolidation; institutional hygiene. |
+| 16 | #372 | LSM PR#2 S31 | bug — dev02 deploy-key | Sub | Pipeline plumbing fix on dev fleet substrate. |
+| 17 | #373 | LSM `1d3fce8` S39 | chore(memory) — fixes-keyword correction | Sub | Memory-tooling correction; institutional process. |
+| 18 | #377 | BtlMng PR#1 S33 | chore — BtlMng wip-consolidation | Sub | Wip-consolidation Phase 2; pre-#358 hygiene. |
+| 19 | #378 | `6910f48` S33 | chore(hosts) — BtlMng rename | Sub | Hosts-map cleanup; latent fix during #377 pre-flight. |
+| 20 | #388 | `e94e9a5` S49 | infra(saconsole) — packer dep | Sub | Saconsole / fleet-build infrastructure. |
+| 21 | #390 | PR#391 S51 | bug(packer) — env-var stripping | Sub | Build-pipeline correctness. |
+| 22 | #392 | PR#393 S52 | bug(packer) — uv override for yanked deps | Sub | Build-pipeline correctness. |
+| 23 | #398 | PR#399 S55 | bug(substrate) — MariaDB perf-schema | Sub | Substrate runtime fix on the dev DB layer. |
+| 24 | #404 | PR#405 S59 | feat(pages) — slideshow nav + QR-code | U | Pages-site outreach surface (per `project_pages_site_v1.md`); non-tech external audience, hidden agenda = invite municipal interest. Not mission-aligned, not substrate for it. |
+
+##### Docs / decision / methodology (13)
+
+| # | Issue | Close | Class | Mission | Justification |
+|---:|---:|---|---|:-:|---|
+| 25 | #312 | manual S12 | docs — customisation inventory | PR | Customisation inventory landed at LogiSoluValidations + #353; institutional durable record of what makes this ERP non-stock. Persistent record by mission-category definition. |
+| 26 | #339 | manual S12 | feat(audit) — language alias map | Sub | Audit tooling, superseded by #353 Phase 6 ownership. |
+| 27 | #358 | `b52de7f` S32 | decision — three-bucket architecture | Sub | Organisational architecture preventing Session-13 failure; development-process discipline, not runtime self-repair. |
+| 28 | #359 | manual S17 | decision — LogiSoluMemory private repo | Sub | Memory-infrastructure decision; institutional. |
+| 29 | #362 | `ed73877` S20 | docs — CLAUDE.md trailer Opus 4.6→4.7 | Sub | Process housekeeping. |
+| 30 | #363 | `abcdd02` S20 | docs — introspection-sidebar session-type | Sub | CLAUDE.md policy addition; process meta. |
+| 31 | #364 | manual S32 | chore(audit-hook) — pre-close audit-grep timing | Sub | Audit-hook timing meta; process discipline. |
+| 32 | #367 | `611c03e` S20 | chore(qa-contract) — §5 malformed-verdict semantics | Sub | QA-contract clarification; process meta. |
+| 33 | #380 | PR#381 S37 | chore(qa) — risk-tier triggers | Sub | QA-contract amendment; process meta. |
+| 34 | #382 | PR#384 S39 | chore(qa) — §2.1 condition 2 broaden | Sub | QA-contract amendment; process meta. |
+| 35 | #385 | manual S40 | docs(chronology) — Phase 4 substrate re-target | Sub | Plan-B chronology amendment; substrate-side bookkeeping. |
+| 36 | #386 | manual S41 | arch — Phase 4 bespoke-app placement | Sub | Plan-B architectural decision (`sales_partner_commissions` placement); precursor to MCP-advance LSKB#12/#13/#14 work. |
+| 37 | #402 | PR#403 S58 | feat(pages) — Pages site v1 | U | Same as #404: outreach surface for external (non-tech) audience; not substrate for mission. |
+
+#### Bucket 1-associate — BaRe (1 close)
+
+| # | Issue | Close | Class | Mission | Justification |
+|---:|---:|---|---|:-:|---|
+| 38 | #9 | `8653412` | docs(README) — bucket-1 association | SR | BaRe = backup/restore = canonical institutional self-repair tool. README declaration formalises its mission-role; backup/restore IS direct runtime-recovery capability. |
+
+#### Bucket 2 — LSKB (12 closes)
+
+| # | Issue | Close | Class | Mission | Justification |
+|---:|---:|---|---|:-:|---|
+| 39 | #2 | manual S35 | Plan-B Phase 1 — 14 fixture_json Custom Fields | MCP | Eliminates 14 in_place_core_edit blockers by routing to source-controlled bespoke apps (11→ce_sri, 2→route_planner, 1 discarded). Direct MCP advance. |
+| 40 | #3 | ce_sri PR#8 S35 | Plan-B Phase 1B — 3 Custom DocPerm patches | MCP | Eliminates 3 in_place_core_edit blockers by porting to ce_sri. Direct MCP advance. |
+| 41 | #4 | manual S36 | Plan-B Phase 2 — 12 patches (classification-only) | MCP | Catalogues 12 vendored-Frappe patches with per-entry strategy field; cataloguing is the MCP-reasoning prerequisite. Execution deferred to CloudStack Epoch-2 substrate standup (per LSKB#11 continuation). |
+| 42 | #5 | manual S36 | Plan-B Phase 3 — redis/rq decision | Sub | Infrastructure decision (match V14 stock 3.5.3/1.8.0); enables V14 cutover but does not directly reduce in_place_core_edit count. |
+| 43 | #7 | manual S38 | Plan-B Phase 5 — 22 DB-resident TBDs catalogue | MCP | Catalogues 22 DB-resident TBDs with per-entry disposition keep/move/port/patch/drop. Catalogue is the MCP-reasoning surface. |
+| 44 | #8 | ce_sri `924ff2e` S36 | Plan-B Phase 6 — es-EC aliasing | Sub | Localisation infrastructure; precursor for V14 but does not itself reduce in_place_core_edit count. |
+| 45 | #12 | manual S42 | Plan-B Phase 4 design | MCP | Sales_partner_commissions bespoke-app placement design; the structural template for moving in_place_core_edit cases to bespoke apps. Direct MCP advance. |
+| 46 | #13 | sales_partner_commissions cross-repo S45 | Plan-B Phase 4 migration patch | MCP | Migrates customisations to bespoke app + colocated tests; direct in_place_core_edit reduction. |
+| 47 | #14 | sales_partner_commissions cross-repo S46 | Plan-B Phase 4 Server Script rewrites | MCP | Server Script rewrites against master/detail shape land in source-controlled bespoke app; direct MCP advance. |
+| 48 | #17 | sales_partner_commissions cross-repo S43 | chore — repo standup | Sub | Empty Frappe app skeleton; precursor substrate to LSKB#12/#13/#14 MCP-advance work. |
+| 49 | #19 | LSM `bd31a50` cross-repo S44 | Plan-B Phase 4 currency re-freeze | Sub | Design-memo amendment (Currency fieldtype + Data anomaly handling); substrate-side bookkeeping. |
+| 50 | #20 | manual S53 | infra — substrate-readiness | Sub | Pin-discipline chain verified end-to-end; substrate-build discipline. |
+
+#### Bucket 3 — ce_sri (1 close)
+
+| # | Issue | Close | Class | Mission | Justification |
+|---:|---:|---|---|:-:|---|
+| 51 | #6 | PR#7 `dd7199e` S34 | Plan-B Phase 1 — 11 ce_sri-routed Custom Fields onto main | MCP | Receives 11 of LSKB#2's routed Custom Fields onto ce_sri/main; eliminates 11 in_place_core_edit blockers. Direct MCP advance. |
+
+**Bucket 2 (LogiSoluValidations): 0 closes in window.**
+**Bucket 3 (ce_sri_svc): 0 closes in window.**
+
+### Sub-step 4 — Cluster analysis (substrate + unrelated)
+
+**Trigger**. Substrate (74.5%) + Unrelated (3.9%) = 78.4% non-mission-
+advancing. Far exceeds the agenda's 30% drift threshold; cluster
+analysis is mandatory.
+
+**Test**. Per agenda: sub-cluster the non-mission-advancing items;
+identify whether they form a coherent "system maintaining itself"
+loop (acceptable) or a "yak-shave" pattern (drift).
+
+**Operational definitions**:
+- *System-maintaining-itself loop* — work that is one-time
+  (foundational decision, migration, retirement), enables downstream
+  mission-aligned work, or is convergent (each instance stabilises a
+  recurring class so the class stops recurring).
+- *Yak-shave pattern* — work that proliferates without convergence,
+  generates more of itself, or is not load-bearing for any
+  downstream mission-aligned work.
+
+#### Cluster table (38 substrate items + 2 unrelated)
+
+| Cluster | Items | n | % of 38 sub | Verdict | Reason |
+|---|---|---:|---:|---|---|
+| A — Plan-A wizard-replay retirement | #284, #285, #290, #292, #296, #297 | 6 | 15.8% | Acceptable | One-time cleanup of retired Plan-A execution surface; all share `reopen anchor #355`. Strategy-pivot hygiene. |
+| B — Plan-B execution tracker migration | #356, #357, #307 | 3 | 7.9% | Acceptable | One-time post-#358 re-homing of Plan-B work to LSKB; ESACP-cleanup, not recurring. |
+| C — Bucket-3 ce_sri/ce_sri_svc migration | #345, #344, #343 | 3 | 7.9% | Acceptable | One-time post-#358 re-homing of ce_sri/ce_sri_svc bugs to their own trackers. |
+| D — Wip-branch consolidation hygiene | #371, #377, #378 | 3 | 7.9% | Acceptable | Pre-#358 wip-branch consolidation (per `project_wip_consolidation_plan.md`); multi-phase but bounded by the plan. |
+| E — Pipeline & build infrastructure | #372, #388, #390, #392, #398 | 5 | 13.2% | Acceptable | Substrate that mission-aligned work runs on. Pipeline-fix rate is low (5 across 55 sessions ≈ 0.09/session); not divergent. |
+| F — QA/process verdict-layer amendments | #367, #364, #380, #382 | 4 | 10.5% | Acceptable (convergent) | All four amendments land S20→S39. Zero further qa-contract amendments in S40→S65 (26 subsequent sessions). Verdict layer reached stable state mid-window — textbook convergence. |
+| G — Memory / discipline tooling | #369, #373, #339 | 3 | 7.9% | Acceptable | Discipline #2 mechanism + memory-tooling fixes + retirement of #353-superseded audit tooling. One-time. |
+| H — Institutional architecture | #358, #359, #363 | 3 | 7.9% | Acceptable | Three-bucket architecture + LSM private repo + introspection-sidebar policy. Foundational decisions that prevent Session-13 failure mode; landed early window (S17, S20, S32) with no re-decision in subsequent sessions. |
+| I — Plan-B architectural & chronology | #385, #386 | 2 | 5.3% | Acceptable | Plan-B Phase 4 chronology + bespoke-app placement decisions; directly precursor to MCP-advance LSKB#12/#13/#14 work that lands later. |
+| J — LSKB substrate | LSKB#5, #8, #17, #19, #20 | 5 | 13.2% | Acceptable | Plan-B Phase 3/6 infra + sales_partner_commissions repo standup + currency re-freeze memo + substrate-readiness Pin discipline. All load-bearing for the 7 LSKB MCP-advance closes. |
+| K — Housekeeping micro-fix | #362 | 1 | 2.6% | Acceptable | One-off CLAUDE.md trailer correction; no recurrence in window. |
+| **Unrelated — Pages site v1** | #402, #404 | 2 | (4% of 51) | **See below** | Bounded micro-initiative S58–S59 driven by `project_pages_site_v1.md`. |
+
+#### Per-cluster yak-shave test
+
+- **No cluster shows divergence.** No cluster grew session-over-session
+  without convergence. Cluster F (QA amendments) is the most-watched
+  candidate — it landed 4 amendments S20→S39 but went silent S40→S65.
+  Verdict layer stabilised; not a yak-shave.
+- **No cluster is load-light** for downstream mission work. Each
+  substrate cluster is traceable to mission-aligned dependents:
+  Cluster A retires the path that Cluster I + the LSKB Phase-4 trio
+  replace; Cluster H establishes the discipline that prevents the
+  Session-13 failure that motivated #358; Cluster J's LSKB substrate
+  is directly load-bearing for LSKB#12/#13/#14.
+- **All substrate clusters are "system maintaining itself" loops**
+  under the operational definition.
+
+#### Unrelated cluster — Pages site v1
+
+Two items: #402 (Pages site v1, S58), #404 (slideshow nav + QR, S59).
+Coherent micro-initiative driven by `project_pages_site_v1.md`.
+
+**Mission alignment test**:
+- The Pages site v1 audience is "non-tech economic-development" per the
+  driving memo; hidden agenda = "invite municipal/Chamber interest in
+  scaling AI-assisted ERP-maintenance locally."
+- `mission_vision.md` (per the canonical statement) describes a
+  family-owned business mission: "maintain and enhance their heavily
+  customised ERPNext system without depending on any single developer."
+- The Pages-site initiative therefore points to a *mission expansion*
+  (from single-tenant family-business toolkit → multi-tenant /
+  municipal-scale offer) that is not stated in `mission_vision.md`.
+
+**Yak-shave vs. mission-expansion test**:
+- The Pages-site work is *bounded* (2 closes, 2 sessions) and
+  *coherent* (single driving memo, single deliverable).
+- It is not load-bearing for any in-window mission-aligned work.
+- But it is also not classically yak-shave (proliferating without
+  convergence) — it's a deliberate micro-initiative with stated intent.
+
+**Disposition**: Pages-site work is **mission-adjacent / expansion-
+candidate**, not drift. Whether to bring it inside `mission_vision.md`
+is a Sub-step 5 question (Observation #6 resolution: R-B candidate).
+
+#### Sub-step 4 overall verdict
+
+**No drift detected** despite 78.4% non-mission-advancing surface.
+
+Three findings carry forward:
+
+1. **Substrate dominance is justified per-cluster but high in aggregate.**
+   Every substrate item is load-bearing for downstream mission-aligned
+   work; no cluster shows divergence; verdict-layer cluster (Cluster F)
+   demonstrably converged mid-window. The 78.4% figure is consistent
+   with an audit window dominated by Plan-B-execution substrate work
+   that enables (rather than substitutes for) MCP-advance work.
+
+2. **Mission-advance throughput is bounded by Plan-B phase cadence.**
+   11 mission-aligned closes (22%) over ~14-day window ≈ 0.78
+   mission-advance/day. Phase 4 (LSKB#12/#13/#14) accounted for 3 of
+   the 11; Phase 1/1B/2/5 (LSKB#2/#3/#4/#7 + ce_sri#6) for 5 more.
+   Throughput is gated by phase definition, not by substrate burden.
+
+3. **Pages-site initiative is mission-adjacent.** Does not register as
+   drift. Surfaces a mission-statement question (R-B candidate for
+   Sub-step 5).
+
+### Sub-step 5 — S60 Observation #6 resolution
+
+**Observation #6** (from Step 1, audit-report line 511):
+`mission_vision.md` 60d old; pre-dates Plan B amendments — staleness
+refresh-trigger candidate.
+
+**Test**. Read current `mission_vision.md` against the Plan-B-era
+understanding accumulated in the audit window. Does the canonical
+mission statement need amendment, or is the execution surface
+adequately downstream of the unchanged mission?
+
+**Audit-window content vs. canonical mission**:
+
+| Mission claim | Plan-B-era observation | Consistent? |
+|---|---|:-:|
+| "Self-repairing modification and maintenance platform" | BaRe institutional declaration (BaRe#9); MariaDB perf-schema substrate (#398); Pin discipline (LSKB#20). All advance the self-repair surface. | ✓ Consistent |
+| "Self-explanatory — operable by non-technical family members" | Tutorial/persistent-records work is sparse in window (2/51 = 4%); MCP-advance work (8/51) does not yet surface to a non-tech operator UI. | ⚠ Behind, not contradicted |
+| "Backed by persistent records of the development process and MCP connectors" | Three-bucket architecture (#358), LSM private repo (#359), introspection-sidebar policy (#363), QA verdict layer (#367/#380/#382): the persistent-records discipline has *intensified* in window. | ✓ Consistent (over-delivered) |
+| "ERPNext MCP is the core of the mission" | 8 MCP-advance closes are all Plan-B Phase work (eliminating in_place_core_edit). MCP work itself (writing the ERPNext MCP server, exercising it through the AI) has not landed in window. | ⚠ Behind, not contradicted |
+| "The system is not complete and not intended to be. It grows with the business." | Plan-B is explicitly multi-phase, multi-epoch; LSKB#21 (hrms+payments), Phase 7/8, V13→V14 trial all parked / queued. Growth posture intact. | ✓ Consistent |
+| Audience: family-owned manufacturing business | Pages-site v1 (#402, #404) targets non-tech *external* audience (municipal/Chamber), not family/staff. **First in-window instance of work targeting an audience outside the canonical mission.** | ✗ Surfaces audience-scope question |
+
+**Plan-B-era additions absent from canonical text** (candidates for an
+amendment block, if R-B chosen):
+- DB-resident customisations are acceptable; only `in_place_core_edit`
+  blocks V14 (per `feedback_db_resident_customisations_acceptable.md`).
+- V14 cutover is the gating event for MCP feasibility (PLan-B's whole
+  raison d'être).
+- Three-bucket architecture (ESACP-platform / LogiSoluKnowBase /
+  LogiSoluMemory) — institutional structure preventing Session-13
+  failure mode (#358).
+- BaRe institutional self-repair (#9) — backup/restore declared as
+  bucket-1 associate.
+
+**Resolution selection**:
+
+**R-A chosen** — Mission is still accurately stated; only the execution
+surface needs realignment (no canonical-memo edit required).
+
+Reasoning:
+- Sub-step 4 verdict was "no drift detected." The mission is being
+  pursued; substrate is load-bearing for downstream mission work.
+- Plan-B-era additions are *downstream specifics* of the mission, not
+  amendments to it. They live correctly in
+  `project_erpnext_idiomatic_refactor.md`, `bucket_definitions.md`,
+  `feedback_db_resident_customisations_acceptable.md`,
+  `project_bare_bucket_1_association.md`. The mission stays abstract;
+  the specifics live in topical memos.
+- The "Behind, not contradicted" rows (non-tech UI surface,
+  ERPNext-MCP-server execution) are throughput observations, not
+  mission-statement defects. Mission still describes the destination;
+  execution still tracks toward it.
+- The Pages-site audience-scope question is the *one* place the
+  mission statement is at risk. **But the work is bounded (2 closes,
+  S58–S59) and the in-window verdict is "mission-adjacent, not drift."**
+  Single-bounded-instance is below the threshold for amending the
+  canonical mission.
+
+**R-B not chosen** — would add Plan-B-era specifics to canonical text;
+specifics belong in topical memos. Amending the mission with
+phase-specific framing risks coupling the canonical doc to the
+current epoch (Plan-B), which is itself a Plan-A successor — the
+canonical mission should outlast both.
+
+**R-C not chosen** — ESACP#360 (split mission_vision into LogiSolu-M&V
++ ESACP-M&V) stays parked. The multi-tenant split is premature: the
+single Pages-site initiative (2 closes) is the only in-window evidence
+of multi-tenant intent; #383 (tablet WG enrollment), Phase 7/8 work,
+and any LogiSoluValidations governance maturation precede a clean
+split. **Recommendation: revisit R-C when (a) a second-tenant
+engagement is concrete, or (b) the Pages-site work expands beyond the
+S58–S59 bounded micro-initiative.**
+
+**Observation #6 status**: **RESOLVED — mission is not stale.**
+`mission_vision.md` accurately describes the destination; the
+execution surface is converging toward it, not drifting away. The
+60-day age is not a defect; it reflects the mission's intended
+abstraction level.
+
+**Carry-forward to consolidation session**: optional single-line
+amendment to `mission_vision.md` adding a cross-link footer
+("Current execution surface: see `project_erpnext_idiomatic_refactor.md`
+for Plan-B status; see `bucket_definitions.md` for institutional
+architecture") — operator-decision at consolidation session. Sized as
+a one-line edit, not a rewrite.
+
+### Sub-step 6 — Partitioning safeguard
+
+**Trigger conditions** (per agenda): split Stage 6 if (a)
+categorisation surface >~100 items OR (b) "unrelated" cluster requires
+drill-in beyond shallow categorisation.
+
+| Condition | Threshold | Actual | Triggered? |
+|---|---:|---:|:-:|
+| Categorisation surface | >100 | 51 | No |
+| Unrelated cluster requires deep drill-in | qualitative | 2 items, single coherent micro-initiative, shallow row sufficed | No |
+| Substrate clusters required deep drill-in | qualitative | 11 clusters, single-row verdict each | No |
+
+**Verdict — no split required.** Stage 6 executed in one session as
+planned.
+
+### Sub-step 7 — Joint review at session end (S67 operator)
+
+**Sub-step 4 + 5 + 6 verdicts presented; operator sign-off recorded:**
+
+| Decision | Operator call | Notes |
+|---|:-:|---|
+| Stage 6 verdict: **no drift detected** | Accept | Substrate 75% justified per-cluster; all 11 substrate clusters classified "system-maintaining-itself"; QA-amendments cluster demonstrably converged S20→S39. |
+| Observation #6 resolution: **R-A** (mission still accurate; no canonical-memo edit) | Accept | Plan-B-era specifics belong in topical memos, not canonical mission. |
+| ESACP#360 split (LogiSolu-M&V + ESACP-M&V): **stays parked** | Accept | Multi-tenant evidence insufficient (single Pages-site initiative, 2 closes). |
+| Pages-site framing: **mission-adjacent, no corrective action** | Accept | Bounded micro-initiative; flag for awareness, not drift. |
+| Cross-link footer in `mission_vision.md`: originally optional, **promoted to required** for consolidation session | Accept (Y) | Operator surfaced the upcoming `on_boarding` branch use case (S68): a fresh Claude on a Win-11 controller will develop new-user onboarding functionality. That work derives user-facing onboarding from the Claude-internal canonical mission; the footer becomes load-bearing for the deriving party, not just a navigational nicety. |
+| New carry-forward: **`mission_vision.md` is memory-resident, not repo-resident** | Add to consolidation backlog | End-users encountering ESACP for the first time never see `mission_vision.md` (it sits in the private memory dir, symlinked from LogiSoluMemory). The on_boarding branch (S68+) will need to author a *repo-resident, tenant-free* user-facing mission/orientation doc derived from the canonical. **Scoping question for on_boarding session, not a Stage 6 corrective measure.** |
+
+### Stage 6 final summary
+
+**Mission-alignment verdict: NO DRIFT.**
+
+- 51-close corpus categorised: 22% directly mission-advancing, 75%
+  substrate (all justified), 4% unrelated (bounded Pages-site
+  micro-initiative).
+- 78.4% non-mission-advancing surface exceeded the 30% drift threshold,
+  triggered mandatory cluster analysis (Sub-step 4), which found all
+  11 substrate clusters to be "system-maintaining-itself" loops with
+  no yak-shave patterns and the most-watched cluster (QA-contract
+  amendments) demonstrably convergent.
+- Observation #6 (M&V staleness) resolved as R-A: mission is still
+  accurately stated; only the navigation surface around it benefits
+  from a one-line cross-link footer (consolidation-session work).
+- Two soft findings (informational, no immediate action):
+  (a) non-tech UI surface and ERPNext-MCP-server execution are *behind*
+  mission, not contradicting it;
+  (b) Pages-site initiative is mission-adjacent, surfacing an
+  audience-scope question that the upcoming `on_boarding` branch will
+  address.
+
+**Corrective measures**:
+
+| CM | Sized | Target session |
+|---|---|---|
+| CM-6-A: add one-line cross-link footer to `mission_vision.md` ("Current execution surface: see `project_erpnext_idiomatic_refactor.md` for Plan-B status; see `bucket_definitions.md` for institutional architecture; see `project_bare_bucket_1_association.md` for self-repair") | Single edit | Consolidation session (S69+, after on_boarding-branch S68) |
+
+**Carry-forward to consolidation session** (joins Stage 5 CM-1/CM-2/CM-4=A):
+
+1. **CM-6-A** (above) — `mission_vision.md` footer.
+2. **On_boarding-branch scoping flag** (informational; not a CM
+   because the on_boarding branch will own it): the new branch (S68)
+   must author a repo-resident, tenant-free user-facing
+   mission/orientation doc; consolidation session may want to ratify
+   whether the on_boarding branch's user-facing mission doc satisfies
+   ESACP#360's split intent (and therefore allows #360 to close
+   `not_planned` with pointer to the on_boarding deliverable) or whether
+   #360 stays parked as a separate concern.
+
+**Audit closure status**: ESACP#400 remains OPEN through S68 (on_boarding
+branch creation, dedicated session) and lands at S69+ consolidation
+session, which executes Step 3 with carry-forwards from Stages 4, 5,
+and 6.
+
