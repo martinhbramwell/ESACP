@@ -94,7 +94,7 @@ Job types: `provision`, `provision_generic`, `refresh`, `destroy`, `build_templa
 
 ## esacp.py — Unified Lab CLI
 
-`./tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands. 13 subcommands routed through `tools/cli/*.py` per-command dispatchers.
+`./tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands. 14 subcommands routed through `tools/cli/*.py` per-command dispatchers.
 
 Non-obvious behaviours:
 - `provisionVM` Ansible output filter: shows PLAY headers, ✓ ok, ★ changed, ❌ fatal, RECAP only (filter lives in `tools/pipeline/stages/common/ansible_output.py`; orchestrator is `tools/pipeline/orchestration/ansible_provision.py`)
@@ -102,6 +102,7 @@ Non-obvious behaviours:
 - `buildVM`: uses `virsh vol-create-as` + `virsh vol-upload` for seed ISO — not `sudo cp` (hangs in uvicorn threads)
 - `snapShotVM`: KVM-only; dispatcher calls `pipeline/orchestration/snapshot_ops.py` (local virsh). Standalone `platforms/kvm/snapshot.py` still exists for operator use (revert/delete/start/state) per `internal_docs/BuildOutProcedure.md`.
 - `destroyVM` (legacy, local libvirt only): uses `tools/pipeline/orchestration/local_vm_teardown.py` for inspect + teardown; not to be confused with `destroy` which runs the full `macro/destroy.py`
+- `applySubstrateMigration` (#418): bundles `g1_seed_patch_log.py` + `g2_clear_fixture_custom_fields.py` + `bench migrate` over SSH on a lab VM. Use for LSKB#15-style bespoke-app migration tests on already-restored production data — closes the bypass that caused two cascading failures in S54/S55. Dispatcher calls `tools/pipeline/orchestration/substrate_apply.py`. See `tools/vm_scripts/README.md` for the protection catalogue.
 
 ## diagnose.py — Remote VM Process Diagnostics
 
