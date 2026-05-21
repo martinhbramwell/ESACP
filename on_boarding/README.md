@@ -21,6 +21,14 @@ here.
 | [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) | Conduct rules, process rules, and repo-resident guard-rail pointers — your behavioural contract on this branch |
 | [`README.md`](README.md) | This file — kit index + first-session checklist |
 
+## Working docs (under `docs/`)
+
+These are written by Junior (the on_boarding-branch Claude) as work proceeds. The kit files above are operator-authored orientation; the files below are Junior's outputs. Read them when the kit or your operator refers you to them.
+
+| File | What it gives you |
+|---|---|
+| [`docs/session-discipline.md`](docs/session-discipline.md) | Cadence rules for this branch — 1:1:N issue bundling, sub-branch flow, acceptance test for docs, QA verdict layer, parent-project precedence |
+
 ## First-session checklist (zero-knowledge Claude)
 
 Run this on first checkout of the `on_boarding` branch.
@@ -35,6 +43,7 @@ Run this on first checkout of the `on_boarding` branch.
    - [`ORIENTATION.md`](ORIENTATION.md) — what you're building and for whom
    - [`POINTERS.md`](POINTERS.md) — where the existing material lives
    - [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) — how you're expected to behave
+   - [`docs/session-discipline.md`](docs/session-discipline.md) — the cadence rules (1:1:N, branch flow, acceptance test, QA layer)
 
 3. **Read the universal sections of the root `CLAUDE.md`** —
    `POINTERS.md` flags which sections to read and which to skip as
