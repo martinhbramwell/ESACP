@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-"""
-esacp — ESACP unified lab management CLI
+"""ESACP unified lab management CLI.
 
-13 subcommands for building, provisioning, and validating the ESACP KVM lab.
-Business logic lives in ``tools/cli/`` and ``tools/pipeline/``; this file is a
-thin argparse + dispatch layer (per CLAUDE.md anti-spiral rules).
-
-Usage: ``./tools/esacp.py <subcommand> [options]`` — ``--help`` lists everything.
+Thin argparse + dispatch layer; business logic lives in ``tools/cli/`` and
+``tools/pipeline/`` per CLAUDE.md anti-spiral rules. Use ``--help`` for the
+subcommand list.
 """
 
 import argparse
@@ -16,9 +13,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools.cli import (
-    add_host, build_vm, clear_known_hosts, confirm_prerequisites, destroy,
-    destroy_vm, display_configuration, provision, provision_generic,
-    provision_vm, snapshot_vm, validate_keys, validate_observability, verify_vpn,
+    add_host, apply_substrate_migration, build_vm, clear_known_hosts,
+    confirm_prerequisites, destroy, destroy_vm, display_configuration,
+    provision, provision_generic, provision_vm, snapshot_vm, validate_keys,
+    validate_observability, verify_vpn,
 )
 from tools.cli._common import console, load_config, kvm_hosts
 
@@ -38,9 +36,10 @@ DISPATCH = {
     "validateObservability": validate_observability.run,
     "snapShotVM":            snapshot_vm.run,
     "displayConfiguration":  display_configuration.run,
+    "applySubstrateMigration": apply_substrate_migration.run,
 }
 
-VM_COMMANDS = {"destroyVM", "buildVM", "provisionVM", "provision", "provisionGeneric", "destroy", "snapShotVM"}
+VM_COMMANDS = {"destroyVM", "buildVM", "provisionVM", "provision", "provisionGeneric", "destroy", "snapShotVM", "applySubstrateMigration"}
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -56,6 +55,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     add_host.add_subparser(sub)
     provision_generic.add_subparser(sub)
+    apply_substrate_migration.add_subparser(sub)
 
     for name, help_text in (
         ("destroyVM",   "Destroy a KVM VM and all its storage"),
