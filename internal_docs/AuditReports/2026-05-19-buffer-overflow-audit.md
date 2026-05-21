@@ -2619,3 +2619,94 @@ branch creation, dedicated session) and lands at S69+ consolidation
 session, which executes Step 3 with carry-forwards from Stages 4, 5,
 and 6.
 
+---
+
+## Step 3 — Consolidation outcome (S69, 2026-05-21)
+
+The consolidation session executed the four carry-forward corrective
+measures as a single housekeeping-bundle (CLAUDE.md governance: each CM
+filed as its own GitHub issue; PR closes all four via `fixes` keyword in
+the commit body).
+
+### Master drift register (consolidated)
+
+| Stage | CM | Surface | File(s) touched | Operator | Status | Issue | Landed in |
+|---|---|---|---|:-:|---|---|---|
+| 5 | CM-1 (DI-1) | S11 cert-session-dedication precedent cross-link | `memory/feedback_umbrella_branches.md` | Y (S66) | resolved S69 | ESACP#408 | LogiSoluMemory `a1cc659` |
+| 5 | CM-2 (DI-2) | `umbrella/*` naming reservation | `memory/feedback_umbrella_branches.md` + `CLAUDE.md` | Y (S66) | resolved S69 | ESACP#409 | LogiSoluMemory `a1cc659` + this PR |
+| 5 | CM-4 (DI-4) = Option A | Mechanical separator for housekeeping-bundle vs introspection-sidebar | `CLAUDE.md` | A (S66) | resolved S69 | ESACP#410 | this PR |
+| 6 | CM-6-A (Obs #6 R-A) | `mission_vision.md` cross-link footer | `memory/mission_vision.md` | Y (S67, required) | resolved S69 | ESACP#411 | LogiSoluMemory `a1cc659` |
+
+CMs from Stages 1, 2, 3 (no drift / no CM) and CM-3 (S29 already
+operator-documented at the time) carry no Step 3 work. CM-5 (Stage 6
+informational soft findings: non-tech UI surface and ERPNext-MCP
+behind-mission, Pages-site audience-scope flag) carries no S69 action —
+both home in the `on_boarding` branch's user-facing mission doc work
+(S69+ fresh-Win-11-Claude scope).
+
+### Categorisation (Step 3 Sub-step 2)
+
+All four pending CMs fell into the same two-bucket combination:
+**in-place memory/doc edits** + **process/discipline change (CLAUDE.md)**.
+Zero issue migrations, zero new tracker issues identified by the action
+plan beyond the four CM-issues themselves, zero TRIVIAL_FIXES additions.
+Sequencing pass (Sub-step 3) collapsed because all four CMs are
+independent (no inter-CM dependencies) and all parallel-safe (no CM
+gates Epoch-2 resumption).
+
+### M&V realignment check (Step 3 Sub-step 4)
+
+| CM | M&V tie | Mission property advanced |
+|---|---|---|
+| CM-1 | Discipline-only | Institutional memory continuity (Plan-B execution depends on cert-session dedication being durably citable). |
+| CM-2 | Discipline-only | Naming-convention clarity for `git branch --list` enumeration; no mission property advanced. |
+| CM-4 | Discipline-only | Mechanical sidebar/bundle separability strengthens self-introspection discipline; indirectly supports "AI-introspectable" property. |
+| CM-6-A | **Mission-advancing** | Self-explanatory navigation surface from the canonical mission doc to live execution memos. Directly load-bearing for `on_boarding` fresh-Claude derivation (S67 promotion rationale). |
+
+No promotion of discipline-only CMs to "mission-critical."
+
+### Go/No-go on Epoch 2 resumption (Step 3 Sub-step 5)
+
+Deferred to joint review at session end (Sub-step 6 of this consolidation
+section). The audit identified zero blocks-Epoch-2 CMs, so all three
+operator options (A/B/C) collapse to the same execution shape:
+**resume Epoch 2 Phase 4 (LSKB#15) without interleaving prerequisites**.
+The Step 3 spec's A/B/C question was framed under the assumption that
+blocks-Epoch-2 items might surface; none did.
+
+### Meta-finding (Step 3 Sub-step 6 close-out)
+
+The audit-end retrospective landed in
+`memory/project_buffer_overflow_audit_plan.md` (LogiSoluMemory commit
+`a1cc659`). Four institutional-learning points: (1) the S56 trigger was
+a single incident, not a pattern; (2) the existing verdict layer +
+sync_check + memory-grep gate are appropriately sized for substantive
+drift, surface drift is best caught by periodic introspection-sidebars;
+(3) Stage 6's NO-DRIFT verdict is the substantive deliverable, not the
+CM list — schedule a Stage-6-equivalent every ~50 substantive closes
+regardless of trigger; (4) multi-session audit is appropriate for "is
+the system drifting," single-session post-mortem for "did I skip a
+step once" — S56 was the latter masquerading as the former.
+
+### Risks (Step 3 spec, retrospective check)
+
+- ">20 CMs needing sub-division": **did not materialise** — final CM
+  count was 4. No sub-session split needed.
+- "Retroactive verdict change in a closed stage": **did not occur** —
+  Step 3 did not surface any finding that retroactively changed a
+  closed stage's verdict.
+- "Decision theatre on clerical work": **avoided** — all four CMs
+  bundled into one housekeeping commit; no per-CM AskUserQuestion
+  ritual.
+
+### Deliverables produced (Step 3 spec, deliverable shape)
+
+- **Master drift register**: above table.
+- **Action plan**: implicit — all four CMs landed in this S69 bundle;
+  no further numbered list needed.
+- **Resumption decision**: deferred to operator at session-close (the
+  audit identified no blocks; trivial decision shape).
+- **ESACP#400 closure**: progress comment + close pending operator
+  sign-off at S69 close.
+- **Meta-finding**: in `project_buffer_overflow_audit_plan.md` per above.
+
