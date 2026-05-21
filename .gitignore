@@ -90,6 +90,10 @@ internal_docs/diagrams/*.png
 local_settings.yml
 override.yml
 
+# Per-controller signal — operator-touched to trigger Cloudflare MCP token
+# refresh on next Cld.sh launch. One-shot: consumed by Cld.sh on success.
+.needs-cf-mcp
+
 # Backup files
 *.bak
 *.backup
