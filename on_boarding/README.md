@@ -1,0 +1,102 @@
+# `on_boarding/` — starting kit
+
+This directory is the starting kit for developing **new-operator
+onboarding material** for ESACP. The kit was scoped and stocked on
+the parent project's Session 68 (2026-05-20) under issue
+[ESACP#406](https://github.com/martinhbramwell/ESACP/issues/406). It
+is the substrate the next Claude Code session — working from a fresh
+Windows 11 controller with no prior project context — will pick up
+from.
+
+The kit is small on purpose. Four files orient you; the actual
+onboarding material is what you (the fresh Claude) will build from
+here.
+
+## Files in this kit
+
+| File | What it gives you |
+|---|---|
+| [`ORIENTATION.md`](ORIENTATION.md) | What ESACP is, who it's for, what this branch is for, the four-stage end-user journey the onboarding material must cover, scope (in/out) |
+| [`POINTERS.md`](POINTERS.md) | Map into ESACP's existing repo-resident technical surface — which sections of which files are universal, which are tenant-specific |
+| [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) | Conduct rules, process rules, and repo-resident guard-rail pointers — your behavioural contract on this branch |
+| [`README.md`](README.md) | This file — kit index + first-session checklist |
+
+## First-session checklist (zero-knowledge Claude)
+
+Run this on first checkout of the `on_boarding` branch.
+
+1. **Confirm you're on the right branch and it's clean.**
+   ```bash
+   git branch --show-current   # expect: on_boarding
+   git status                  # expect: clean
+   ```
+
+2. **Read the kit in order.**
+   - [`ORIENTATION.md`](ORIENTATION.md) — what you're building and for whom
+   - [`POINTERS.md`](POINTERS.md) — where the existing material lives
+   - [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) — how you're expected to behave
+
+3. **Read the universal sections of the root `CLAUDE.md`** —
+   `POINTERS.md` flags which sections to read and which to skip as
+   tenant-specific.
+
+4. **State your objective.** One sentence. One objective per session.
+   See the Session Protocol in the root `CLAUDE.md`.
+
+5. **Ask the operator** the following before producing any onboarding
+   material:
+   - What's the operator's hardware posture (their controller machine,
+     their target hypervisor, their cloud-VPS plan)?
+   - Are they actually new to ESACP, or are they testing the
+     onboarding material with prior knowledge?
+   - Which of the four end-user stages do they want covered first?
+
+6. **File a GitHub issue on `martinhbramwell/ESACP`** for the first
+   piece of onboarding work before you write any of it. Bug workflow
+   discipline applies to feature work too: issue first, then code,
+   then `fixes #N` in the commit message.
+
+## What's NOT in this kit and why
+
+- **No tenant-specific material.** No tenant identifiers, no real
+  hostnames, no bespoke-app references, no fleet data. The branch's
+  audience is zero-knowledge; the kit reflects that.
+- **No memory-dir dependencies.** The parent project keeps Claude's
+  behavioural memory in a separate private repo, symlinked into
+  Claude's runtime memory directory. You don't have it, end-users
+  won't have it, and nothing on this branch may depend on it.
+- **No turnkey onboarding material yet.** S68 (the session that
+  created this kit) was scoping + scaffolding only. The actual
+  onboarding material is your job from here.
+
+## Working agreements with the operator
+
+- **One objective per session.** If a second concern surfaces while
+  you're working on the first, file it as an issue and return to the
+  primary objective.
+- **Conventional Commits, GPG-signed, with the co-author trailer.**
+  See `CLAUDE.md` §"Commit Conventions".
+- **Pull requests merge into the `on_boarding` branch.** This branch
+  merges into `main` only when the operator decides the onboarding
+  material has reached a deliverable state. Do not merge to `main`
+  yourself.
+- **The QA verdict layer applies.** Invoke the `esacp-qa` agent
+  before any commit / merge / push / destructive op / issue close,
+  and act on its verdict.
+
+## Reporting back
+
+When you finish a session's work, leave the operator a short status
+note. What you produced, what's next, what's blocking. Two sentences
+is usually enough. The operator does not need a transcript — they
+can read the diff. They need the outcome and the next handle.
+
+## Pointers to upstream project state
+
+- Issue tracker: `martinhbramwell/ESACP` on GitHub
+- Branch policy: see `CLAUDE.md` §"Session Protocol" (umbrella vs.
+  1:1:1 vs. housekeeping bundle)
+- This branch's originating issue: [ESACP#406](https://github.com/martinhbramwell/ESACP/issues/406)
+- This branch's originating agenda:
+  `internal_docs/SessionLogs/2026-05-20-2034-next-agenda.md`
+  (read as historical context; do not adopt as your own agenda)
