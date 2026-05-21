@@ -29,6 +29,7 @@ These are written by Junior (the on_boarding-branch Claude) as work proceeds. Th
 |---|---|
 | [`docs/session-discipline.md`](docs/session-discipline.md) | Cadence rules for this branch — 1:1:N issue bundling, sub-branch flow, acceptance test for docs, QA verdict layer, parent-project precedence |
 | [`docs/SESSIONS.md`](docs/SESSIONS.md) | One-line session log — one row per session, append-only. Read to see what prior sessions on this branch produced |
+| [`docs/qa-log.md`](docs/qa-log.md) | Junior-side QA verdict log — notable `esacp-qa` verdicts from this branch's sessions. Brevity-protocol-curated. Companion to (not duplicate of) `internal_docs/qa-log.md` |
 
 ## First-session checklist (zero-knowledge Claude)
 
