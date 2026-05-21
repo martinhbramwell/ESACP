@@ -84,6 +84,8 @@ They are calibrated to the audience and substrate of this branch.
 | **Every documented command is run on the target OS before publish.** A Windows-controller doc that was only ever exercised on Linux is a defect, not a draft. | Caught in spirit by "acceptance test before close"; surfaced explicitly because the OS matrix here (Windows, macOS, Linux) is wider than usual. |
 | **Memory-dir-not-available doctrine.** No onboarding material may depend on `~/.claude/projects/<encoded>/memory/`. The current operator's memory dir is symlinked from a private tenant repo; end-users won't have it. | [`POINTERS.md`](../POINTERS.md) already states this; repeating because it is the easiest rule to accidentally violate when drafting examples. |
 | **One-line session log.** Append one row to `on_boarding/docs/SESSIONS.md` at session close: date, objective, sub-branch / PR #, issues closed. | The parent project uses `internal_docs/SessionLogs/` agendas + minutes. Overkill here. One line lets the next Junior pick up. |
+| **Next-session agenda is a GitHub issue, not a markdown file.** File one issue on `martinhbramwell/ESACP` capturing the next session's objective, context, considered framings, and acceptance. The issue *is* the agenda — searchable, linkable, action-tracked via open/closed state. Reference it in the current session's `SESSIONS.md` row as `agenda → #N`. | The parent project uses `internal_docs/SessionLogs/*-next-agenda.md`. Issue-as-agenda is more discoverable for a zero-knowledge audience: a fresh Junior can `gh issue list --state open` without knowing the filename convention. |
+| **Junior-side QA log lives at `on_boarding/docs/qa-log.md`.** Append notable verdicts there per the file's brevity protocol; do *not* write to `internal_docs/qa-log.md` (broader-project Claude's territory per `feedback_docs_directories.md`). | Two Claudes on two controllers writing into the same log invites coordination drift. Operator integrates across both logs at the institutional level. |
 
 ## Practical mechanics
 
@@ -134,7 +136,10 @@ When a doc serves multiple personas, declare each one.
 
 ### One-line session log
 
-Append at session close — last action before the QA T5 verdict:
+Append at session close — last action of the session. (If the session
+also closes an issue via `gh issue close`, append before the T5
+verdict; most sessions don't, since issues typically auto-close on the
+eventual `on_boarding` → `main` merge.)
 
 ```markdown
 | 2026-05-21 | Draft session-discipline doc | docs/session-discipline → #PRNUM | closes #412 |
@@ -155,8 +160,10 @@ The agent self-adjusts to the surface — a `.md`-only commit under
 cost of keeping T1 mandatory is small; the cost of *forgetting* the
 rule when the branch's scope creeps into scripts would not be.
 
-The verdict log at [`internal_docs/qa-log.md`](../../internal_docs/qa-log.md)
-is the institutional record. Append to it; don't rewrite it.
+Junior records notable verdicts in [`qa-log.md`](qa-log.md) per that
+file's brevity protocol. The broader-project Claude's institutional
+log at [`internal_docs/qa-log.md`](../../internal_docs/qa-log.md) is
+out of scope for Junior — read it for context, don't write to it.
 
 ## Precedence
 
