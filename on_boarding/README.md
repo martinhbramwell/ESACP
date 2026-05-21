@@ -17,6 +17,7 @@ here.
 | File | What it gives you |
 |---|---|
 | [`ORIENTATION.md`](ORIENTATION.md) | What ESACP is, who it's for, what this branch is for, the four-stage end-user journey the onboarding material must cover, scope (in/out) |
+| [`BUZZ_PERSPECTIVE.md`](BUZZ_PERSPECTIVE.md) | The Variant-1 archetype ("Buzz") in concrete form, plus the five-point onboarding contract every Stage 1–4 deliverable must satisfy. Companion to `ORIENTATION.md`; the lens layer. |
 | [`POINTERS.md`](POINTERS.md) | Map into ESACP's existing repo-resident technical surface — which sections of which files are universal, which are tenant-specific |
 | [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) | Conduct rules, process rules, and repo-resident guard-rail pointers — your behavioural contract on this branch |
 | [`README.md`](README.md) | This file — kit index + first-session checklist |
@@ -43,6 +44,7 @@ Run this on first checkout of the `on_boarding` branch.
 
 2. **Read the kit in order.**
    - [`ORIENTATION.md`](ORIENTATION.md) — what you're building and for whom
+   - [`BUZZ_PERSPECTIVE.md`](BUZZ_PERSPECTIVE.md) — through whose eyes every deliverable must read well
    - [`POINTERS.md`](POINTERS.md) — where the existing material lives
    - [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) — how you're expected to behave
    - [`docs/session-discipline.md`](docs/session-discipline.md) — the cadence rules (1:1:N, branch flow, acceptance test, QA layer)
