@@ -2,7 +2,7 @@
 
 Read this once at the start of your first session on this branch, and
 again whenever you're about to commit, merge, push, or close an issue.
-It is the *cadence* layer. [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) is the
+It is the *cadence* layer. [`AI_GUARDRAILS.md`](../AI_GUARDRAILS.md) is the
 *conduct* layer. If they ever appear to conflict, conduct wins.
 
 ## Why this file exists
@@ -14,7 +14,7 @@ those rules earned its place by costing a session when it was absent.
 
 This branch is lighter. The work is documentation, walkthroughs, and
 small scripts that streamline a new operator's path through the four
-stages in [`ORIENTATION.md`](ORIENTATION.md). The blast radius of a
+stages in [`ORIENTATION.md`](../ORIENTATION.md). The blast radius of a
 mistake is "a paragraph reads badly" — easy to revert via `git`.
 
 So the parent project's full ceremony would be theatre here. This file
@@ -80,10 +80,10 @@ They are calibrated to the audience and substrate of this branch.
 
 | Addition | Why |
 |---|---|
-| **Name the persona each doc serves.** Frontmatter or first line declares the [`ORIENTATION.md`](ORIENTATION.md) variant (Variant 1 greenfield consolidation, Variant 2 maintainer-dependent customisation) and an archetype (e.g. "Win-11 controller + QuickBooks operator, mobile-first, never opened a terminal"). | Without an explicit persona declaration, every doc drifts toward the *author's* mental model — which is us, not them. |
+| **Name the persona each doc serves.** Frontmatter or first line declares the [`ORIENTATION.md`](../ORIENTATION.md) variant (Variant 1 greenfield consolidation, Variant 2 maintainer-dependent customisation) and an archetype (e.g. "Win-11 controller + QuickBooks operator, mobile-first, never opened a terminal"). | Without an explicit persona declaration, every doc drifts toward the *author's* mental model — which is us, not them. |
 | **Every documented command is run on the target OS before publish.** A Windows-controller doc that was only ever exercised on Linux is a defect, not a draft. | Caught in spirit by "acceptance test before close"; surfaced explicitly because the OS matrix here (Windows, macOS, Linux) is wider than usual. |
-| **Memory-dir-not-available doctrine.** No onboarding material may depend on `~/.claude/projects/<encoded>/memory/`. The current operator's memory dir is symlinked from a private tenant repo; end-users won't have it. | [`POINTERS.md`](POINTERS.md) already states this; repeating because it is the easiest rule to accidentally violate when drafting examples. |
-| **One-line session log.** Append one row to `on_boarding/SESSIONS.md` at session close: date, objective, sub-branch / PR #, issues closed. | The parent project uses `internal_docs/SessionLogs/` agendas + minutes. Overkill here. One line lets the next Junior pick up. |
+| **Memory-dir-not-available doctrine.** No onboarding material may depend on `~/.claude/projects/<encoded>/memory/`. The current operator's memory dir is symlinked from a private tenant repo; end-users won't have it. | [`POINTERS.md`](../POINTERS.md) already states this; repeating because it is the easiest rule to accidentally violate when drafting examples. |
+| **One-line session log.** Append one row to `on_boarding/docs/SESSIONS.md` at session close: date, objective, sub-branch / PR #, issues closed. | The parent project uses `internal_docs/SessionLogs/` agendas + minutes. Overkill here. One line lets the next Junior pick up. |
 
 ## Practical mechanics
 
@@ -140,22 +140,22 @@ Append at session close — last action before the QA T5 verdict:
 | 2026-05-21 | Draft session-discipline doc | docs/session-discipline → #PRNUM | closes #412 |
 ```
 
-`on_boarding/SESSIONS.md` lives next to this file. Header row only; no
+`on_boarding/docs/SESSIONS.md` lives next to this file. Header row only; no
 prose between entries.
 
 ## QA verdict layer
 
 T1 commits · T2 merges · T3 pushes · T4 destructive ops · T5 issue
 closes. All five mandatory on this branch, no carve-outs for doc-only
-diffs. The agent is at [`.claude/agents/esacp-qa.md`](../.claude/agents/esacp-qa.md)
-and the contract at [`internal_docs/qa-contract.md`](../internal_docs/qa-contract.md).
+diffs. The agent is at [`.claude/agents/esacp-qa.md`](../../.claude/agents/esacp-qa.md)
+and the contract at [`internal_docs/qa-contract.md`](../../internal_docs/qa-contract.md).
 
 The agent self-adjusts to the surface — a `.md`-only commit under
 `on_boarding/` clears far faster than a `tools/pipeline/` commit. The
 cost of keeping T1 mandatory is small; the cost of *forgetting* the
 rule when the branch's scope creeps into scripts would not be.
 
-The verdict log at [`internal_docs/qa-log.md`](../internal_docs/qa-log.md)
+The verdict log at [`internal_docs/qa-log.md`](../../internal_docs/qa-log.md)
 is the institutional record. Append to it; don't rewrite it.
 
 ## Precedence
@@ -166,6 +166,6 @@ modification, the QA verdict contract), **the parent rule wins**. This
 file relaxes *cadence*, never *conduct*.
 
 If a rule here ever appears to conflict with the rest of the kit
-([`README.md`](README.md), [`ORIENTATION.md`](ORIENTATION.md),
-[`POINTERS.md`](POINTERS.md), [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md)),
+([`README.md`](../README.md), [`ORIENTATION.md`](../ORIENTATION.md),
+[`POINTERS.md`](../POINTERS.md), [`AI_GUARDRAILS.md`](../AI_GUARDRAILS.md)),
 the kit wins and this file is the bug — file an issue.
