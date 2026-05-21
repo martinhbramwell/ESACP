@@ -19,6 +19,7 @@ here.
 | [`ORIENTATION.md`](ORIENTATION.md) | What ESACP is, who it's for, what this branch is for, the four-stage end-user journey the onboarding material must cover, scope (in/out) |
 | [`POINTERS.md`](POINTERS.md) | Map into ESACP's existing repo-resident technical surface — which sections of which files are universal, which are tenant-specific |
 | [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) | Conduct rules, process rules, and repo-resident guard-rail pointers — your behavioural contract on this branch |
+| [`SESSION_DISCIPLINE.md`](SESSION_DISCIPLINE.md) | Cadence rules for this branch — what stays load-bearing, what relaxes vs. the parent project, branch-specific additions, practical mechanics |
 | [`README.md`](README.md) | This file — kit index + first-session checklist |
 
 ## First-session checklist (zero-knowledge Claude)
@@ -35,6 +36,7 @@ Run this on first checkout of the `on_boarding` branch.
    - [`ORIENTATION.md`](ORIENTATION.md) — what you're building and for whom
    - [`POINTERS.md`](POINTERS.md) — where the existing material lives
    - [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) — how you're expected to behave
+   - [`SESSION_DISCIPLINE.md`](SESSION_DISCIPLINE.md) — the cadence rules (1:1:N, branch flow, acceptance test, QA layer)
 
 3. **Read the universal sections of the root `CLAUDE.md`** —
    `POINTERS.md` flags which sections to read and which to skip as
