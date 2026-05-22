@@ -31,6 +31,15 @@ These are written by Junior (the on_boarding-branch Claude) as work proceeds. Th
 | [`docs/session-discipline.md`](docs/session-discipline.md) | Cadence rules for this branch — 1:1:N issue bundling, sub-branch flow, acceptance test for docs, QA verdict layer, parent-project precedence |
 | [`docs/SESSIONS.md`](docs/SESSIONS.md) | One-line session log — one row per session, append-only. Read to see what prior sessions on this branch produced |
 | [`docs/qa-log.md`](docs/qa-log.md) | Junior-side QA verdict log — notable `esacp-qa` verdicts from this branch's sessions. Brevity-protocol-curated. Companion to (not duplicate of) `internal_docs/qa-log.md` |
+| [`docs/stage-2-triage.md`](docs/stage-2-triage.md) | The Stage-2 friction-list triage (Session 2): six items from #415 sorted into Bucket 1 / 2 / 3 by Buzz-relevance, plus the hybrid-shape decision (bootstrap script + wizard prompts + browser-driven signups) |
+
+## Executable kit (under `tools/`)
+
+Scripts Buzz (or an operator on Buzz's behalf) is expected to run. Each is idempotent; safe to re-run.
+
+| File | What it does |
+|---|---|
+| [`tools/bootstrap.py`](tools/bootstrap.py) | Stage-2 v0 — installs the no-credential half of the controller toolkit (`pinentry-curses`, `keychain`, `age`, `gh`, `sops`) and configures GPG cache TTL + `~/.bashrc` lines for `GPG_TTY` and `keychain`. Targets Ubuntu 22.04+ / WSL2 Ubuntu. Invoke: `./on_boarding/tools/bootstrap.py`. Closes [#431](https://github.com/martinhbramwell/ESACP/issues/431). |
 
 ## First-session checklist (zero-knowledge Claude)
 
