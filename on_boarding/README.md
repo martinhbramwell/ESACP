@@ -32,6 +32,7 @@ These are written by Junior (the on_boarding-branch Claude) as work proceeds. Th
 | [`docs/SESSIONS.md`](docs/SESSIONS.md) | One-line session log — one row per session, append-only. Read to see what prior sessions on this branch produced |
 | [`docs/qa-log.md`](docs/qa-log.md) | Junior-side QA verdict log — notable `esacp-qa` verdicts from this branch's sessions. Brevity-protocol-curated. Companion to (not duplicate of) `internal_docs/qa-log.md` |
 | [`docs/stage-2-triage.md`](docs/stage-2-triage.md) | The Stage-2 friction-list triage (Session 2): six items from #415 sorted into Bucket 1 / 2 / 3 by Buzz-relevance, plus the hybrid-shape decision (bootstrap script + wizard prompts + browser-driven signups) |
+| [`docs/entry-architecture-notes.md`](docs/entry-architecture-notes.md) | Exploratory architecture (Session 3): how Buzz gets from "tapped Get Started on the Pages site" to "Essex is building a controller." Covers the corrected Junior/Buzz/Essex role model, the PWA + CF Worker + cloud-VM stack, the trust-progression sequencing (cloud rental → demonstrated value → walled garden), the Minecraft framing, the current gap inventory, and the holes still to address. **Thinking document — pre-decision.** |
 
 ## Executable kit (under `tools/`)
 
