@@ -22,6 +22,13 @@ zone_domains:
 #   KVM:   virbr0 IP (192.168.122.10) — stable, internal to the host.
 #   vbox:  hub's bridged LAN IP — set in ansible/group_vars/vbox.yml since
 #          it varies by LAN. Leave blank here; group_vars overrides.
+#
+# target_frappe_major: optional per-host integer (13 / 14 / 15 / 16 / …).
+#   The frappe major version this host is being prepared for. Absent ⇒ 13
+#   (default, matches packer-baked v13-era image). When ≥ 16, the
+#   `frappe_substrate_v16` ansible role installs Python 3.14, Node 24,
+#   and pkg-config (see ESACP#445). Tracks substrate readiness for
+#   incremental V16 cutover (see [[end-state-v16-lts-current-stack]]).
 
 groups:
 
@@ -107,6 +114,7 @@ groups:
       backend: kvm
       hypervisor: toshiba
       vm_role: dev:unspecified
+      target_frappe_major: 16
       ansible_groups:
         - kvm
         - targets

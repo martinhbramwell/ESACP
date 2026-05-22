@@ -64,6 +64,11 @@ def build_inventory(data: dict) -> dict:
             }
             if attrs.get("ansible_connection"):
                 hv["ansible_connection"] = attrs["ansible_connection"]
+            # Surface the per-host target frappe major to ansible so the
+            # frappe_substrate_v16 role can no-op on V13/V14/V15 hosts
+            # (ESACP#445).
+            if "target_frappe_major" in attrs:
+                hv["target_frappe_major"] = attrs["target_frappe_major"]
             # Remote-hosted VMs are on a hypervisor virbr0; controller cannot
             # route there directly — ProxyJump through the hypervisor is required.
             hypervisor = attrs.get("hypervisor")
