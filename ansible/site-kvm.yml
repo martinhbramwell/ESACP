@@ -85,6 +85,10 @@
     - docker
     - mariadb
     - nginx_ui
+    # frappe_substrate_v16 self-gates on target_frappe_major >= 16 so
+    # it is a no-op on V13/V14/V15 targets (ESACP#445).
+    - role: frappe_substrate_v16
+      tags: [frappe_substrate_v16]
 
 # ── Play 5: WireGuard spoke — controller (this host, runs locally) ─────────
 - name: WireGuard spoke — controller
