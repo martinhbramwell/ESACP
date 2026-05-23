@@ -206,7 +206,7 @@ is the bar.
 If this file ever appears to conflict with the rest of the kit
 ([`README.md`](README.md), [`ORIENTATION.md`](ORIENTATION.md),
 [`POINTERS.md`](POINTERS.md), [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md),
-[`docs/session-discipline.md`](docs/session-discipline.md)), the kit
+[`internal_docs/session-discipline.md`](internal_docs/session-discipline.md)), the kit
 wins and this file is the bug — file an issue.
 
 If it ever appears to conflict with the parent project's global conduct
