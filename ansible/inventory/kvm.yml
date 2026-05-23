@@ -40,6 +40,7 @@ all:
           wg_role: spoke
           vm_name: dev02
           display_name: dev02
+          target_frappe_major: 16
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
     development:
       hosts:

@@ -1,0 +1,23 @@
+---
+# frappe_substrate_v16 — defaults
+#
+# Pins for the V16-era frappe substrate. See ESACP#445.
+#
+# Python: frappe 16.x pyproject declares requires-python = ">=3.14,<3.15".
+# Node:   frappe 16.x package.json declares engines.node = ">=24".
+
+frappe_substrate_v16_python_pkg: "python3.14"
+frappe_substrate_v16_python_extra_pkgs:
+  - "python3.14-dev"
+  - "python3.14-venv"
+
+# NodeSource setup script — major-version specific URL.
+# 24 is the V16-era pin; bump in lock-step with frappe's engines.node.
+frappe_substrate_v16_node_major: 24
+frappe_substrate_v16_nodesource_setup_url: "https://deb.nodesource.com/setup_{{ frappe_substrate_v16_node_major }}.x"
+
+# deadsnakes PPA name used by ansible.builtin.apt_repository.
+# 22.04 (jammy) does not ship Python 3.14; deadsnakes is the established
+# source. On 24.04+ this may be replaced by the system python3.14 package
+# when one becomes available — re-evaluate in the packer-template session.
+frappe_substrate_v16_deadsnakes_ppa: "ppa:deadsnakes/ppa"

@@ -9,6 +9,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-cf-mcp-refresh
+if [[ -f .needs-cf-mcp ]]; then
+  cf-mcp-refresh && rm -f .needs-cf-mcp
+fi
 
 claude --chrome
