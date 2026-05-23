@@ -22,17 +22,17 @@ here.
 | [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) | Conduct rules, process rules, and repo-resident guard-rail pointers — your behavioural contract on this branch |
 | [`README.md`](README.md) | This file — kit index + first-session checklist |
 
-## Working docs (under `docs/`)
+## Working docs (under `internal_docs/`)
 
 These are written by Junior (the on_boarding-branch Claude) as work proceeds. The kit files above are operator-authored orientation; the files below are Junior's outputs. Read them when the kit or your operator refers you to them.
 
 | File | What it gives you |
 |---|---|
-| [`docs/session-discipline.md`](docs/session-discipline.md) | Cadence rules for this branch — 1:1:N issue bundling, sub-branch flow, acceptance test for docs, QA verdict layer, parent-project precedence |
-| [`docs/SESSIONS.md`](docs/SESSIONS.md) | One-line session log — one row per session, append-only. Read to see what prior sessions on this branch produced |
-| [`docs/qa-log.md`](docs/qa-log.md) | Junior-side QA verdict log — notable `esacp-qa` verdicts from this branch's sessions. Brevity-protocol-curated. Companion to (not duplicate of) `internal_docs/qa-log.md` |
-| [`docs/stage-2-triage.md`](docs/stage-2-triage.md) | The Stage-2 friction-list triage (Session 2): six items from #415 sorted into Bucket 1 / 2 / 3 by Buzz-relevance, plus the hybrid-shape decision (bootstrap script + wizard prompts + browser-driven signups) |
-| [`docs/entry-architecture-notes.md`](docs/entry-architecture-notes.md) | Exploratory architecture (Session 3): how Buzz gets from "tapped Get Started on the Pages site" to "Essex is building a controller." Covers the corrected Junior/Buzz/Essex role model, the PWA + CF Worker + cloud-VM stack, the trust-progression sequencing (cloud rental → demonstrated value → walled garden), the Minecraft framing, the current gap inventory, and the holes still to address. **Thinking document — pre-decision.** |
+| [`internal_docs/session-discipline.md`](internal_docs/session-discipline.md) | Cadence rules for this branch — 1:1:N issue bundling, sub-branch flow, acceptance test for docs, QA verdict layer, parent-project precedence |
+| [`internal_docs/SESSIONS.md`](internal_docs/SESSIONS.md) | One-line session log — one row per session, append-only. Read to see what prior sessions on this branch produced |
+| [`internal_docs/qa-log.md`](internal_docs/qa-log.md) | Junior-side QA verdict log — notable `esacp-qa` verdicts from this branch's sessions. Brevity-protocol-curated. Companion to (not duplicate of) the root-level [`internal_docs/qa-log.md`](../internal_docs/qa-log.md) |
+| [`internal_docs/stage-2-triage.md`](internal_docs/stage-2-triage.md) | The Stage-2 friction-list triage (Session 2): six items from #415 sorted into Bucket 1 / 2 / 3 by Buzz-relevance, plus the hybrid-shape decision (bootstrap script + wizard prompts + browser-driven signups) |
+| [`internal_docs/entry-architecture-notes.md`](internal_docs/entry-architecture-notes.md) | Exploratory architecture (Session 3): how Buzz gets from "tapped Get Started on the Pages site" to "Essex is building a controller." Covers the corrected Junior/Buzz/Essex role model, the PWA + CF Worker + cloud-VM stack, the trust-progression sequencing (cloud rental → demonstrated value → walled garden), the Minecraft framing, the current gap inventory, and the holes still to address. **Thinking document — pre-decision.** |
 
 ## Executable kit (under `tools/`)
 
@@ -57,7 +57,7 @@ Run this on first checkout of the `on_boarding` branch.
    - [`BUZZ_PERSPECTIVE.md`](BUZZ_PERSPECTIVE.md) — through whose eyes every deliverable must read well
    - [`POINTERS.md`](POINTERS.md) — where the existing material lives
    - [`AI_GUARDRAILS.md`](AI_GUARDRAILS.md) — how you're expected to behave
-   - [`docs/session-discipline.md`](docs/session-discipline.md) — the cadence rules (1:1:N, branch flow, acceptance test, QA layer)
+   - [`internal_docs/session-discipline.md`](internal_docs/session-discipline.md) — the cadence rules (1:1:N, branch flow, acceptance test, QA layer)
 
 3. **Read the universal sections of the root `CLAUDE.md`** —
    `POINTERS.md` flags which sections to read and which to skip as

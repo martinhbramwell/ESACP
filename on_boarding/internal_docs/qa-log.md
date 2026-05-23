@@ -6,11 +6,17 @@ verdicts produced by Junior on this branch. Scoped narrowly to the
 `on_boarding` branch and its sub-branches.
 
 Why separate from `internal_docs/qa-log.md`: the directory convention
-([memory `feedback_docs_directories.md`](#)) reserves `internal_docs/`
-for the broader-project Claude. Junior's outputs go under
-`on_boarding/docs/`. Two Claudes on two controllers writing into one
-file invites coordination drift; the operator integrates across both
-logs.
+([memory `feedback_docs_directories.md`](#)) reserves the root
+`internal_docs/` for the broader-project Claude. Junior's working notes
+live under `on_boarding/internal_docs/` (and Junior's published Jekyll
+source under `on_boarding/docs/`). Two Claudes on two controllers
+writing into one file invites coordination drift; the operator
+integrates across both logs.
+
+Note: historical verdict rows below may reference the prior path
+`on_boarding/docs/` — that was the location before the Session-4 rename
+landed (PR for #461). Those references are accurate for their commit
+context and are not retroactively edited.
 
 ## Brevity protocol
 
