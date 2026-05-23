@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page.title | default: site.title }}</title>
+  <meta name="description" content="{{ site.description }}">
+  <link rel="stylesheet" href="{{ '/assets/css/chat.css' | relative_url }}">
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <h1>{{ page.title | default: site.title }}</h1>
+      {% if page.subtitle %}<p class="subtitle">{{ page.subtitle }}</p>{% endif %}
+    </header>
+    <section class="chat">
+      {{ content }}
+    </section>
+    <footer class="page-footer">
+      <p>Static mock — no chatbot wired up yet. See
+        <code>on_boarding/internal_docs/entry-architecture-notes.md</code>
+        for the live-chat architecture this page seeds.</p>
+    </footer>
+  </main>
+</body>
+</html>
