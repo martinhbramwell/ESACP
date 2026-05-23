@@ -23,6 +23,10 @@ PATCHES_TO_SKIP = [
         "frappe.patches.v12_0.delete_duplicate_indexes  # 2022-12-15",
         "queries session_status table which doesn't exist in production backup",
     ),
+    (
+        "erpnext.patches.v16_0.make_workstation_operating_components #1",
+        "ESACP#444: upstream doc.save() on submitted Workstation halts V15→V16",
+    ),
 ]
 
 

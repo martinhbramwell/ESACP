@@ -208,6 +208,7 @@
   "tools/pipeline/upgrade_v14/test_switch_to_v14_cmd.py": 44,
   "tools/pipeline/upgrade_v14/test_verify.py": 35,
   "tools/pipeline/upgrade_v14/verify.py": 42,
+  "tools/vm_scripts/g1_seed_patch_log.py": 77,
   "tools/vm_scripts/install_specific/__init__.py": 14,
   "tools/vm_scripts/u6_dedup_smoke_test.py": 70
 }
