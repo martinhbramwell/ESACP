@@ -1,0 +1,37 @@
+title: "ESACP — onboarding"
+description: >-
+  Chat-bubble mock of a Buzz_000 walkthrough — the static-UX preview
+  that seeds the future PWA + Cloudflare-Worker chatbot described in
+  on_boarding/internal_docs/entry-architecture-notes.md.
+
+# No remote theme. The page is hand-written HTML; the layout in
+# _layouts/default.html is intentionally minimal — chat-bubble surface
+# only, no nav/footer/sidebar.
+theme:
+
+# Local-serve only. base_url stays empty so localhost links work.
+url: ""
+baseurl: ""
+
+# Quiet the build a little.
+quiet: false
+incremental: false
+
+# Markdown engine — kramdown is jekyll's default; explicit for clarity.
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Sass / SCSS. style: compressed for the CSS asset; sourcemaps off.
+sass:
+  style: compressed
+  sourcemap: never
+
+# Exclude generator / vendor noise from the build.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - .bundle/
+  - README.md
