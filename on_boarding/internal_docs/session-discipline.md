@@ -148,6 +148,45 @@ eventual `on_boarding` → `main` merge.)
 `on_boarding/internal_docs/SESSIONS.md` lives next to this file. Header row only; no
 prose between entries.
 
+### Closeout-PR backfill workflow
+
+Session closeout PRs carry a circular-reference problem: the closeout
+commit's SESSIONS row and qa-log summary row need to cite the closeout
+PR's own number, which doesn't exist until the PR is opened. The
+established workflow handles this in two distinct precedents that
+**must not be conflated**:
+
+**Precedent 1 — T1+T3 skip on the closeout commit itself.** The closeout
+commit (which writes the SESSIONS row + qa-log entries) leaves `PR #TBD`
+placeholders in the cells that would have cited its own PR. T1 and T3 on
+*this commit specifically* are skipped, because the inputs (the PR
+number) don't exist at commit time. T2 on the closeout PR's merge and
+T5 on any issues that PR closes still apply normally. Reference:
+Session-3 `7a66f4d`, Session-5 `c155c62`.
+
+**Precedent 2 — the backfill commit is its own sub-branch + PR.** Once
+the closeout PR has merged and its number is known, a *separate* commit
+substitutes `PR #TBD` → `#NNN` in the two cells. This backfill commit
+goes through the full sub-branch + T1 + commit + T3 + push + PR + T2 +
+merge cycle. It does **not** inherit the T1+T3 skip from precedent 1.
+By backfill time, the PR number is the entire content of the change —
+there is no longer any reason to skip QA gates. Reference: Session-5
+backfill = PR [#471](https://github.com/martinhbramwell/ESACP/pull/471).
+
+The skips are different because precedent 1's skip is structural (inputs
+don't exist) while precedent 2's would be merely procedural-shortcut
+(inputs do exist; we'd just be skipping for convenience). Session 6
+(2026-05-24) introduced commit `87e1043` directly to `on_boarding`,
+mistakenly applying precedent 1's skip to a precedent-2 commit. The
+content was correct but the discipline drifted; this section codifies
+the distinction so future Junior catches the shape before committing.
+
+**Mechanical check before committing**: if the diff touches only
+`PR #TBD → #NNN` substitutions in `SESSIONS.md` and/or `qa-log.md`, and
+you are about to commit directly to `on_boarding` (no sub-branch), STOP.
+Cut a `docs/session-N-pr-backfill` sub-branch first and route the change
+through a PR.
+
 ## QA verdict layer
 
 T1 commits · T2 merges · T3 pushes · T4 destructive ops · T5 issue
