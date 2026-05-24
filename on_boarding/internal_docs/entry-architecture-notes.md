@@ -145,6 +145,14 @@ local or cloud:
 
 #### Pattern A — Local companion (Buzz's machine hosts the controller)
 
+> **Superseded by §8 (Session-6, 2026-05-24).** The bridge-via-forked-repo
+> handoff in §8.5 removes the "ESACP-shipped installer on Buzz's box"
+> requirement entirely. The privileged install Buzz performs is **Claude
+> Code from Anthropic**, not an ESACP binary — trust handoff to Anthropic,
+> not to us. No code-signing surface, no PowerShell ExecutionPolicy
+> friction we'd have to engineer around. Pattern A is retained below for
+> historical context but is no longer the live design.
+
 - The PWA generates a pairing code or one-line install command.
 - Buzz runs it once (PowerShell on Win10, Terminal on macOS/Linux).
 - A *companion process* installs on Buzz's box — Claude Code (full
@@ -161,6 +169,16 @@ cost). On macOS: notarisation; on Linux: distro packaging.
 **Net**: real engineering surface, real trust ask of Buzz.
 
 #### Pattern B — Cloud companion (a remote VM hosts the controller)
+
+> **Decoupled from the bridge by §8 (Session-6, 2026-05-24).** The
+> cloud-VM provisioning and the chat→Claude-Code bridge are now
+> *separate* concerns. Once Buzz is running Claude Code locally
+> post-bridge (§8.5), *Claude Code* drives the VM-provisioning dialog
+> with Buzz interactively, using Buzz's own provider credentials in his
+> own terminal. The PWA does not need to broker cloud credentials. The
+> §4 cloud-VM-as-controller value proposition stays intact; what
+> changes is who orchestrates it (Claude Code post-bridge, not the
+> PWA pre-bridge).
 
 - The PWA holds (or brokers) a scoped credential against a cloud
   provider — typically pasted by Buzz from his own provider
@@ -224,6 +242,16 @@ cloud) doing the privileged work.
 ---
 
 ## 4. The cloud-VM-as-controller variant (operator-favoured exploration, 2026-05-22)
+
+> **§8 update (Session-6, 2026-05-24)**: the cloud-VM stays as a real
+> deployment target, but it is no longer the *first* artefact the bridge
+> hands Buzz to. The bridge in §8.5 hands Buzz to **Claude Code running
+> in his own ESACP fork**; *Claude Code* then drives whatever Stage-3
+> environment the Mode-A profile pointed at — cloud VM (this §4),
+> local Hyper-V (Phase C of §4.3), or any other shape that emerges.
+> The "rental-bike economics" pitch from §4.2 still holds; what shifts
+> is that the orchestrator of the rental-bike step is Buzz's Claude
+> Code instance, not the PWA.
 
 ### The proposition
 
@@ -366,9 +394,36 @@ trust-building phase.
   anonymous-with-token as the least-threatening default. Account
   creation deferred.
 - **Laptop-side companion form** (Claude Code vs. ESACP-specific
-  lightweight agent) — *can't honestly decide until iteration #1
-  shows what laptop-side Essex actually needs to do*. Decision
-  deferred.
+  lightweight agent) — *resolved by §8 (Session-6, 2026-05-24)*:
+  Claude Code, in Buzz's own ESACP fork. The "ESACP-specific
+  lightweight agent" branch is dropped — building a parallel
+  agent would re-introduce the Trojan-horse surface §8.5 was
+  designed to avoid.
+- **Doorway choice (§8.3)** — URL-redirect to `claude.ai/new?q=...` /
+  MCP-connector on Buzz's claude.ai / PWA+CF-Worker with operator's
+  key. Pick-any-two-of-three property over {free for Buzz,
+  transcript visibility for operator, free for operator}. Worker
+  doorway is the working assumption pending Mode-A iteration #1.
+- **Transcript pipeline transport (§8.4)** — CF R2 currently
+  leading; webhook-over-WireGuard to LAN box a viable alternative
+  reusing existing mesh; IPFS rejected as over-engineered for
+  the actual use case.
+- **MCP-connector free-tier availability** — open question. Not
+  blocking unless the MCP doorway gets picked. If it is picked,
+  current claude.ai pricing/feature docs need a verification pass.
+- **Landing-page diagram + video production (§8.7)** — required
+  trust artefacts, not yet started. Diagram is the Minecraft
+  "zone" view (§5 lens). Video splits into an evergreen ~90-sec
+  overview and per-provider deep-dives accepted as semi-disposable.
+- **Cross-branch artefact graduation (§8.8)** — on_boarding-designed
+  artefacts (diagram, video, eventually the production PWA + Worker)
+  need a pattern for promotion to root `docs/` (Senior's gh-pages
+  territory). No precedent yet; will get one when the first
+  artefact is ready to graduate.
+- **Anthropic partnership credits** — long-shot business-development
+  ask separate from architecture. "ESACP as last-mile onboarding
+  funnel for claude.ai" pitch. Doesn't change the design; could
+  subsidize Worker-path tokens during a launch phase.
 
 ---
 
@@ -460,7 +515,366 @@ optimisation for Buzzes who don't want a monthly bill.
 
 ---
 
-## 8. What this document is *not*
+## 8. Session-6 architectural consolidation (2026-05-23/24)
+
+This § is a *checkpoint*, not a decision. Session 6 opened with the
+agenda "continue the entry-page build (Path B)" — the local-dev-proxy
+escalation of the static chat-bubble mock shipped in Session 5. Within
+a few exchanges the operator surfaced the credit-abuse concern with
+running the operator's API key in user-runnable code, and the session
+pivoted from build-execution to architectural reassessment. The
+material below is the consolidated thinking from that pivot. It
+extends §§1–7 above; where it supersedes earlier framing the
+references are inline (Pattern A footnote, §4 update, "Decisions not
+yet pinned" tail).
+
+Source for §8: the Session-6 conversation transcript. Memory entries
+captured separately as needed.
+
+### 8.1 The credit-abuse forcing function
+
+Path B as originally drafted in `project_onboarding_entry_page_plan.md`
+described "a small local process [that] holds operator's Anthropic API
+key, page calls localhost." The operator's reading — "as an open source
+project giving any user access to all code, won't running the Claude
+agent in the user's system give them free use of my credits for any
+purpose they want?" — exposed that **the production architecture had
+never actually been chosen**, only the dev-iteration tool had been
+sketched. Path B is dev-only and safe as scoped (the key lives in the
+operator's shell env, not in the repo); but the question pointed at
+the deeper unanswered one: what is Path C, and how is *it* safe?
+
+The forcing function was healthy. It revealed that committing
+implementation effort to Path B as a step *toward* Path C was premature
+— the production architecture wasn't picked, the credit-abuse defenses
+weren't designed, and the prompt-engineering work that Path B would
+have produced is portable across multiple production targets anyway.
+The pivot kept the Mode-A prompt work valid as a *future* deliverable
+and moved the immediate session to architectural decision-space.
+
+### 8.2 The free-tier-API-with-visibility question (closed)
+
+**Question**: is there any productized form of "Buzz uses Claude for
+free, and the operator has visibility into Buzz's conversations"?
+
+**Answer**: no.
+
+- `api.anthropic.com` has no free tier. Pay-per-token from token one.
+  Sign-up credits and hackathon credits exist sporadically but are
+  not a sustained offer.
+- `claude.ai` (consumer) has a free tier, but accounts are private to
+  their owner. No API key associated, no admin visibility, no way to
+  programmatically provision one for Buzz.
+- Claude Team workspaces *do* give admin visibility — but at ~$30/seat/
+  month per Buzz, paid by the operator. Operationally bizarre, and
+  destroys the rental-bike economics that make the §4 sequencing work.
+- There is no "Sign in with Anthropic" OAuth shipped by Anthropic, so
+  the pattern "Buzz authenticates against his own claude.ai from your
+  widget, you ride along" is closed.
+
+The trade-space collapses to a pick-any-two-of-three over {free for
+Buzz, transcript visibility for operator, free for operator}. §8.3
+maps the three feasible doorways onto that trade-space.
+
+### 8.3 The three doorways trade-table
+
+| Doorway | Buzz pays | Operator pays | Operator sees transcripts? | Setup friction for Buzz |
+|---|---|---|---|---|
+| **3a — URL-redirect** (`claude.ai/new?q=...` with a pre-filled prompt pointing at an ESACP persona doc on gh-pages) | Claude free tier | $0 | ❌ No — transcript lives on Buzz's account | Lowest (one click) |
+| **3b — MCP-connector** (Buzz adds an ESACP MCP server to his claude.ai) | Claude (tier TBD) | Server hosting only | Partial — only the tool-call traffic the MCP server is asked to handle, not the message-level conversation | Medium (add connector, claude.ai tier may need to be paid) |
+| **2 — PWA + CF Worker** (Buzz uses chat widget on gh-pages, Worker holds operator's API key) | Nothing pre-handoff (VPS later) | API tokens, with cost-control engineering | ✅ Full — Worker is MITM and tees the stream | Lowest (just chat) |
+
+**The Worker doorway (2) is the only one that gives the full
+transcript property cleanly.** It is also the only one where the
+operator pays per-token chat costs; that's the trade. The MCP path
+captures partial signal; the URL-redirect captures none. Mode-A
+discovery, which is the most useful traffic to capture for the
+prompt-improvement flywheel (§8.6), is also tightly bounded
+(~10–20 structured turns per Buzz) — which makes the Worker's
+cost-control engineering tractable.
+
+Doorways are not mutually exclusive long-term. A mature ESACP could
+offer all three as separate front doors: 3a for the casually curious,
+3b for users who already have claude.ai and want to integrate, 2 for
+users who arrive cold. The trade-table above is for *picking the first
+doorway to build*, not for picking the only one that will ever exist.
+
+### 8.4 The Worker-tees-transcripts pipeline
+
+When the Worker doorway is used, the Worker is a MITM between the
+PWA and `api.anthropic.com`. Every request and response pair is
+available for teeing. The shape:
+
+```
+PWA (gh-pages, Buzz's browser)
+    │
+    │  HTTPS, anonymous-with-token
+    ▼
+CF Worker (operator-controlled)
+    ├─►  POST api.anthropic.com/v1/messages  ──►  response
+    │                                              │
+    │  tee (transcript, profile-so-far, headers)  │
+    ▼                                              ▼
+Storage backend                            (response returned to PWA)
+    │
+    ▼
+Operator LAN box
+    │  Claude curates: extract durable bits, redact PII, version
+    ▼
+GitHub knowledge base (commit, public repo, content-addressed by git)
+```
+
+**Choice of storage backend** (one open question): the contenders
+considered and their fit —
+
+- **CF R2** (S3-compatible, generous free tier). Simplest. Worker
+  writes objects, LAN box pulls on schedule or via webhook on object
+  creation. Private by default. Operationally one moving part.
+  **Currently leading.**
+- **Webhook over the existing WireGuard mesh** to the LAN box.
+  Real-time, no intermediate storage. Reuses infra the project
+  already operates (`sync_check.sh` §14 et al.). Slight reliability
+  risk if the LAN box is down at write-time — would need at least
+  a small Worker-side queue.
+- **IPFS** (operator-floated). Technically doable via Pinata /
+  web3.storage HTTP API from the Worker. Public-by-default is the
+  problem — Buzz's transcripts include business-sensitive info, so
+  encryption-before-pinning is required, which puts key management
+  back into scope. Also: pin durability, discovery (LAN box needs
+  to know which CIDs to pull), operational overhead. **Rejected as
+  over-engineered for the actual use case**; the audit-trail
+  property IPFS would have provided forms naturally at the git-commit
+  boundary downstream anyway (git is content-addressed; the public
+  repo is the immutable record).
+
+**Privacy and consent** (transport-agnostic): capturing Buzz's
+transcript at all requires an explicit disclosure on the entry page.
+"We keep your conversation; curated, anonymised bits become public
+training material in this repo; here's how to opt out." Without that,
+the storage tech doesn't matter — the model is wrong. The disclosure
+is text on the landing page, no architecture impact, but a hard
+prerequisite before live capture.
+
+### 8.5 The bridge-via-forked-repo
+
+The operator's framing of this section, verbatim: *"the real design
+'genius' has to be the shortest possible bridge between an initial
+pre-canned Q & A session handled by the CF worker to ===> Buzz
+installing his own Claude Code in an ESACP forked directory, where we
+can pick up the conversation without being a trojan horse."*
+
+This is a *third* handoff pattern beyond §2's Pattern A (local
+installer) and Pattern B (cloud companion). It supersedes both by
+removing the privileged-code-on-Buzz's-machine surface they each
+required.
+
+**Shape**:
+
+1. PWA + Worker conduct Mode-A discovery with Buzz (~10–20 turns).
+   Worker accumulates the structured profile (hardware/network/
+   software/business need) + key Mode-B exchanges.
+2. At handoff time, the Worker serializes the conversation state
+   into a markdown file — call it `.esacp-session.md` for now —
+   formatted to be readable by Claude Code as initial context.
+3. Buzz is handed a short install sequence:
+   *install Claude Code from Anthropic → fork ESACP onboarding repo
+   → clone → run `claude` in the cloned dir.*
+4. Claude Code on first invocation reads the session file (and the
+   forked repo's CLAUDE.md / agent-skill scaffolding); Essex
+   continues from the profile, same voice, same context. Buzz's
+   first turn with Claude Code reads as continuation, not restart.
+
+**Why this is the design genius**:
+
+- **No Trojan horse.** The only privileged install Buzz performs is
+  *Claude Code from Anthropic* — trust handoff to Anthropic, not to
+  ESACP. The repo Buzz clones is *public open-source on GitHub* —
+  trust handoff to GitHub. Both are trust relationships Buzz
+  needs anyway if he's going to use Claude at all. No ESACP-built
+  installer, no Authenticode certificate, no PowerShell
+  ExecutionPolicy fight.
+- **Cost cliff-down at the bridge.** The Worker only pays for the
+  Mode-A phase — bounded, rate-limit-able, budget-cap-able. Past
+  the bridge, Buzz's Claude subscription pays everything. The
+  credit-abuse defenses (per-IP rate limit, per-session token
+  budget, daily-spend circuit-breaker) only have to survive a
+  bounded workload, which is engineering-tractable.
+- **Conversation continuity via the filesystem, not an API.** Same
+  Essex persona file used by Worker also lives in the forked repo;
+  same Mode-B examples; same competence-boundary rules. Claude
+  Code reading the persona file produces the *same* Essex Buzz was
+  talking to in the browser. No protocol invention; markdown + git.
+- **The fork is the durable artefact.** Buzz's business-specific
+  configuration accumulates in his fork over time. He owns it. He
+  can inspect every commit. If he wants to contribute back, normal
+  open-source PR flow; if not, fine. There is no covert sync from
+  his machine to ESACP's repo; the only path from his fork to
+  anywhere is an explicit PR he opens. Privacy posture and open-
+  source ethos line up.
+
+**Mechanisms for the bridge itself** (decreasing convenience,
+decreasing engineering complexity):
+
+- **GitHub App + OAuth-during-Q&A**: Worker has a registered GitHub
+  App. During Mode-A, Buzz OAuths it once. At handoff, Worker
+  creates Buzz's fork programmatically and pushes the session
+  profile as a commit at HEAD. Buzz clones, runs `claude`, profile
+  is already there. Zero side-channel; everything in git from the
+  start. **Cleanest end-state.** Cost: one real OAuth ask mid-Q&A
+  (familiar but real).
+- **Worker writes to a signed URL, Buzz fetches at install**:
+  Worker writes profile to a token-scoped R2 object. Returns Buzz
+  a 4-line install snippet — fork via web, clone,
+  `curl <signed-url> > .esacp-session.md`, `claude`. One side
+  channel (R2), expires fast, no OAuth. Cost: Buzz copy-pastes a
+  multi-line snippet.
+- **Worker emails Buzz the profile + instructions**: lowest-tech,
+  highest-touch. Operator now has Buzz's email; Buzz has to
+  context-switch to mail. Reasonable fallback for Buzzes who
+  prefer email-y workflows.
+
+**Risks worth naming honestly**:
+
+- *Buzz must install Claude Code.* This is the load-bearing trust
+  step in the whole architecture. Anthropic owns this trust ask;
+  ESACP rides it but can't lower it. For the BUZZ_PERSPECTIVE
+  low-tech-comfort archetype, the *install* is probably easier
+  than *the terminal afterwards* — the Mode-A Q&A could include
+  a "comfortable with PowerShell / Terminal?" question and route
+  no-answers toward a more guided path (potentially the cloud-VM
+  route from §4, where Claude Code runs on the VM and Buzz
+  interacts via something more guided than a raw terminal).
+- *Claude Code requires a Claude subscription.* This is now the
+  single obligatory subscription pre-handoff (the VPS is post-
+  handoff if §4's cloud route is chosen). Down from the operator's
+  earlier "two subscriptions" worry.
+- *The Mode-A → Claude-Code pickup must feel seamless.* If
+  `claude` opens and Essex says "Hi, I just read your profile —
+  you're the heirloom-moving operation in Eastern Ontario, you
+  mentioned QuickBooks, let's start where we left off" — magic.
+  If it says "Hello, how can I help?" — broken trust. Engineering:
+  a small CLAUDE.md skeleton in the fork + the profile markdown is
+  enough; the Mode-B Essex prompt the Worker used is reused verbatim
+  in the repo so the voice is continuous.
+
+### 8.6 The prompt-improvement flywheel
+
+Curated Mode-A transcripts (from §8.4's pipeline) drive a feedback
+loop that operates on **two axes simultaneously**:
+
+1. **Shortening the bridge** — Mode-A becomes more efficient over
+   iterations: fewer turns to reach a high-quality profile,
+   conditional branches that skip questions Buzz already answered
+   implicitly, better handling of "I don't know" responses, smarter
+   archetype detection.
+2. **Enriching the destination** — the same curated learnings update
+   the CLAUDE.md / agent-skill that ships in the forked repo, the
+   Mode-B example exchanges, the system prompt the post-bridge
+   Buzz-Code-Essex inherits. So Buzz lands in a *better-prepared*
+   Claude Code session each iteration, not just a shorter
+   pre-arrival.
+
+The flywheel is *prompt engineering driven by transcript analysis*,
+**not literal model fine-tuning**. The corpus trains the operator's
+prompt-writing (or the operator-with-Claude-curation's), not the
+model itself. This matters because "training corpus" in §1 can
+suggest fine-tuning, which is a much bigger commitment (custom model
+hosting, eval pipeline, labeled data). What this architecture
+actually has is faster: instant iteration, no model retraining,
+every improvement ships the next session.
+
+### 8.7 Landing-page artefacts: diagram + video
+
+Two trust-builder artefacts the operator named as required for the
+production landing page. Both must be *beautiful* in the operator's
+phrasing — appealing, comforting, impressive. Both function as the
+"well-lit zone" promise of §5 made *visible* before Buzz commits to
+the chat.
+
+**The diagram** is the Minecraft zone view, not the blueprint. It
+shows the components Buzz is about to engage with — his machine,
+his Claude Code, his cloud VPS, his domain, his SSL cert, his
+Cloudflare account, his GitHub account, his Anthropic account,
+ERPNext, BaRe, Cytoscape, the MCP servers — and how they fit
+together. The design challenge is *legibility*: clean, sparse,
+labeled, no clip-art-shadow-gradients-pretending-to-be-modern. The
+kind of diagram that lands in five seconds: *"oh, that's what all
+the pieces are, and they fit together like that."* If Buzz comes
+away thinking "okay, someone has thought this through," the diagram
+has done its job; if he comes away thinking "what fresh complexity
+is this," it hasn't.
+
+**The video** has a real maintenance commitment because provider
+UIs change. Practical split:
+
+- **One short evergreen overview** (~60–90 sec). The diagram coming
+  to life, voice-over describing the zone. Brand/trust artefact.
+  *No provider UIs shown* → doesn't go stale → high production
+  value pays off long-term. **This is the one that needs to be
+  beautiful.**
+- **Per-provider deep-dive videos** (~3–5 min each). Explicitly
+  versioned and dated ("Cloudflare setup, recorded 2026-Q1").
+  Accepted to go stale; re-recorded annually or whenever a
+  provider changes meaningfully. Lower production value; screen-
+  capture + voice-over is fine.
+- **The interactive setup flow itself** is the *real* tutorial.
+  Either Claude-in-Chrome driving provider signups on Buzz's
+  behalf, or Claude Code post-bridge guiding Buzz through them in
+  plain language. The videos are *previews* of what Buzz is
+  signing up for; the actual setup is automated when Buzz arrives.
+
+**Claude-in-Chrome as setup-walkthrough method** is a fit because
+the *video* shows Claude-in-Chrome doing the click-by-click. Buzz
+then has three menu options for his actual setup:
+
+- Install Claude-in-Chrome, watch it drive provider signups on his
+  behalf (highest convenience, real trust ask on the extension).
+- Watch the video, do it manually with the video as guide (slowest,
+  lowest trust ask, works universally).
+- Skip to Claude Code post-bridge and ask it for plain-language
+  instructions tailored to his archetype.
+
+The video *demonstrates* the method that's then *available* to
+Buzz. Artefact and tool point at each other; that's a coherent
+loop.
+
+### 8.8 The cross-branch artefact-graduation question
+
+The landing page Buzz actually sees lives at root `docs/` (Senior's
+GitHub Pages territory). The Session-5 chat-bubble mock and the
+forthcoming diagram + video work happen in `on_boarding/docs/`
+(Junior's local-only Jekyll source, per the directory convention
+captured in memory). At some point the on_boarding-designed
+artefacts have to **graduate** to the public site.
+
+There is no pattern for this graduation yet. It's a Senior↔Junior
+coordination point per `feedback_chain_of_command_cross_branch.md`:
+on_boarding produces a candidate artefact, files an issue against
+main proposing the promotion, main-side Claude reviews and merges
+the file into root `docs/` (with whatever site-build adjustments
+the public Jekyll source needs).
+
+This is a discipline question more than an architecture question
+and is worth solving the first time an artefact is actually ready
+to graduate — likely the evergreen overview video or the network
+diagram, whichever lands first. Solving it before the first
+artefact exists would be premature; flagging it now is the right
+move.
+
+### 8.9 Why this checkpoint is filed now, not at decision time
+
+The session pivoted enough that the architectural picture is
+materially larger than it was at Session 5 close. If this thinking
+is not captured in the kit before the next context compression or
+session end, it will have to be reconstructed from the transcript,
+which is expensive and error-prone. The discipline is: capture the
+*thinking*, defer the *decision*. §§8.1–8.8 above are thinking;
+no decision is taken here. The "Decisions not yet pinned" list at
+the end of §4 has been extended with the new open questions.
+
+---
+
+## 9. What this document is *not*
 
 - Not a decision to build any of the above today.
 - Not a commitment to any specific provider, platform, or
