@@ -62,14 +62,25 @@ invisible engine is ESACP's. Buzz never wonders who did what.
 ### 2. Visibly safe
 
 Each action is explained in business terms *before* it happens.
-Cover four things, every time:
+Cover four things, every time — the **What/Why/Who/Cost framing
+pattern** is the named, canonical form of this rule and is referenced
+by name elsewhere in the kit (e.g.,
+[`internal_docs/entry-architecture-notes.md`](internal_docs/entry-architecture-notes.md)
+§10.7 Mode-A persona doc structure):
 
 | | |
 |---|---|
 | **What** | What the action does, in one sentence, in business language. |
 | **Why** | Why Buzz needs it — anchored to his actual problem, not generic best practice. |
 | **Who** | Which third party is involved (vendor name, role) and what they will know about him. |
-| **What it costs** | Free / cents / dollars / dollars-per-month, with a worst-case ceiling. |
+| **What it costs** ("Cost") | Free / cents / dollars / dollars-per-month, with a worst-case ceiling. |
+
+Session 5's `on_boarding/docs/index.md` instantiates the pattern in
+Essex's voice as a worked example (the chat-bubble mock's Essex
+turns thread What/Why/Who/Cost through each action they narrate to
+Buzz_000). Other Stage 1–4 deliverables should reuse the *pattern*
+(four fields, this order, one sentence each) rather than copy
+specific phrasings — the latter belongs to the deliverable's voice.
 
 No black-box "trust me" steps. If an action cannot pass this test, it
 is not ready to be shown to Buzz — re-design it or split it.

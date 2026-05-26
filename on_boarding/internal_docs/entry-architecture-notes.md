@@ -399,18 +399,31 @@ trust-building phase.
   lightweight agent" branch is dropped — building a parallel
   agent would re-introduce the Trojan-horse surface §8.5 was
   designed to avoid.
-- **Doorway choice (§8.3)** — URL-redirect to `claude.ai/new?q=...` /
-  MCP-connector on Buzz's claude.ai / PWA+CF-Worker with operator's
-  key. Pick-any-two-of-three property over {free for Buzz,
-  transcript visibility for operator, free for operator}. Worker
-  doorway is the working assumption pending Mode-A iteration #1.
-- **Transcript pipeline transport (§8.4)** — CF R2 currently
-  leading; webhook-over-WireGuard to LAN box a viable alternative
-  reusing existing mesh; IPFS rejected as over-engineered for
-  the actual use case.
+- **Doorway choice** — **pinned in §10.1 (Session-7)**: Path A (3a,
+  URL-redirect to `claude.ai/new?q=...` with a pre-filled framing
+  message) is v0; Path B (Worker proxy) is the fallback if voluntary-
+  share rates kill the flywheel. §8.3's trade-table is the reasoning
+  trail.
+- **Transcript pipeline transport** — **pinned in §10.6 / §10.11
+  (Session-7)**: v0 is voluntary share-back into R2 (~20-line
+  write-only Worker), not the §8.4 MITM-tee architecture. CF R2 plus
+  one CF Worker is the entire backend. Webhook-over-WireGuard /
+  IPFS variants are reference material in §8.4 for the Path B
+  re-escalation.
 - **MCP-connector free-tier availability** — open question. Not
-  blocking unless the MCP doorway gets picked. If it is picked,
-  current claude.ai pricing/feature docs need a verification pass.
+  blocking — MCP doorway is not v0 (doorway pinned in §10.1) and
+  would only matter if a future multi-doorway design picks 3b. If
+  it is picked, current claude.ai pricing/feature docs need a
+  verification pass.
+- **Wyatt role** — **pinned in §10.8 (Session-7)**: new ERPNext
+  competitive-positioning role. Serves Essex (not user-facing);
+  v0 shape is a `WYATT_CONTENT.md` knowledge module Essex's Mode-A
+  prompt references inline. Memory update in
+  `project_roleplay_essex_buzz.md` lands in this same sub-branch.
+- **Re-identification mitigation in curation** — flagged in §10.11
+  as a curation-prompt design point for production-phase. Anonymized
+  business profiles can re-identify when location/scale specifics
+  remain; the curation prompt should explicitly de-specify both.
 - **Landing-page diagram + video production (§8.7)** — required
   trust artefacts, not yet started. Diagram is the Minecraft
   "zone" view (§5 lens). Video splits into an evergreen ~90-sec
@@ -578,6 +591,12 @@ maps the three feasible doorways onto that trade-space.
 
 ### 8.3 The three doorways trade-table
 
+> **§10 update (Session-7, 2026-05-25)**: doorway choice is now pinned —
+> **Path A (3a, URL-redirect) is v0**; **Path B (Worker proxy, 2) is the
+> fallback** if voluntary-share rates kill the §10.11 flywheel. See §10.1
+> for the full case. The trade-table below is retained for the reasoning
+> trail; the rows are no longer a live decision space.
+
 | Doorway | Buzz pays | Operator pays | Operator sees transcripts? | Setup friction for Buzz |
 |---|---|---|---|---|
 | **3a — URL-redirect** (`claude.ai/new?q=...` with a pre-filled prompt pointing at an ESACP persona doc on gh-pages) | Claude free tier | $0 | ❌ No — transcript lives on Buzz's account | Lowest (one click) |
@@ -600,6 +619,14 @@ users who arrive cold. The trade-table above is for *picking the first
 doorway to build*, not for picking the only one that will ever exist.
 
 ### 8.4 The Worker-tees-transcripts pipeline
+
+> **§10 update (Session-7, 2026-05-25)**: this pipeline is *replaced* in
+> the v0 Path A design by §10.11 (voluntary-share-back pipeline). The
+> Worker-as-MITM tee architecture below applies only if the design
+> escalates to the Path B fallback. The §10.6 storage-stack pin (R2-only
+> for v0, ~20-line write-only Worker) makes the §8.4 transport stack
+> below ~10× simpler in the actual v0; this section's analysis remains
+> the reference for the Path B re-escalation.
 
 When the Worker doorway is used, the Worker is a MITM between the
 PWA and `api.anthropic.com`. Every request and response pair is
@@ -874,7 +901,491 @@ the end of §4 has been extended with the new open questions.
 
 ---
 
-## 9. What this document is *not*
+## 10. Session-7 design refinement (2026-05-23/24/25)
+
+This § is a *consolidation*, building on §8's checkpoint. Session 7 was
+an extended planning conversation that worked through 12 architectural
+ambiguities for the doorway-3a + voluntary-share + bridge-via-forked-
+repo composite design first sketched in §8. The composite *pins* Path A
+as the v0 doorway and answers the open questions §§8.3, 8.4, 8.5, 8.6
+left in tension. Where §10 supersedes earlier framing the references
+are inline (§8.3 footnote, §8.4 footnote, §4 "Decisions not yet pinned"
+re-pins). The §10.0 status preamble is load-bearing — the rest of §10
+is read in light of it.
+
+Source for §10: the Session-7 conversation transcript, captured as a
+working draft in `on_boarding/tmp/session-7-design-refinement.md`
+during planning and promoted here at substantive sub-branch time.
+Memory entries captured separately as needed.
+
+### 10.0 Status and scope (load-bearing — read first)
+
+Per `project_prototype_phase_scope` memory: this work is
+**architecture-prototyping**, NOT production-quality content.
+Buzz_001, Buzz_002, Buzz_003 are test inputs for mechanism
+validation, not load-bearing personas. The prototype completes at
+bridge validation (Stage 3 of §10.10). Production-quality content
+(polished landing page, real diagram + video, full curation
+pipeline, external Buzz recruit) is months out.
+
+Decisions below are **architectural pins** for the prototype phase.
+Content-quality and copy decisions are explicitly deferred.
+
+### 10.1 Path A — pinned as v0
+
+The chosen design: doorway 3a (URL-redirect to free-tier claude.ai)
++ voluntary post-hoc transcript share + the §8.5 bridge-via-forked-
+repo. Each piece was individually present in §8; the **combination**
+is the new design.
+
+Shape:
+
+- Buzz arrives at our gh-pages landing page (prototype: a single
+  Jekyll page; production: polished with diagram + video).
+- A "Get Started" button opens free claude.ai with a pre-filled
+  framing message pointing at our gh-pages-hosted (or gist-hosted
+  for prototype) persona URL — see §10.2.
+- Claude in Buzz's session fetches the URL, adopts Essex, conducts
+  Mode-A discovery.
+- Buzz pays nothing (free tier), operator pays nothing (no
+  Anthropic API key custody).
+- At session end, Claude (in Buzz's session, on Buzz's tokens)
+  produces an anonymized summary; Buzz reviews; Buzz voluntarily
+  pastes it into a gh-pages submission widget AND drops a copy in
+  his fork.
+- The §8.5 bridge is unchanged: anonymized summary doubles as
+  `.esacp-session.md` for Claude Code on the post-handoff side.
+
+**Wins vs. Path B (Worker-as-Anthropic-proxy):**
+
+- **Zero operator cost forever** — no API tokens, no Worker upgrade
+  pressure, no surprise bills.
+- **No Anthropic API key custody anywhere** — the credit-abuse
+  problem doesn't exist because no operator credit funds the
+  pre-bridge conversation. The forcing function that drove the
+  Session-6 pivot is *resolved*, not engineered-around.
+- **Deeper trust handoff** — Buzz trusts claude.ai (most-trusted
+  Anthropic consumer surface) before he ever trusts ESACP infra.
+- **Better privacy posture** — anonymization is Buzz's act; he
+  sees and reviews what he sends; we never hold un-anonymized PII.
+- **The Worker shrinks ~10×** — from "Anthropic proxy + cost
+  controls + key custody + rate limits + circuit-breaker + teeing"
+  to a ~20-line write-only ingestion endpoint (see §10.6).
+
+**Losses (honest tradeoffs):**
+
+- **Free-tier rate limits** may cut long conversations. Mitigation:
+  design Mode-A as checkpointed segments — every ~5 turns Claude
+  offers an interim summary so Buzz can resume in a fresh chat.
+- **No real-time observability.** We see only what Buzz shares
+  post-hoc. Flywheel iteration latency goes up; prototype
+  iterations require manual operator + Junior debriefs rather than
+  live observation.
+- **Free-tier model variance.** Anthropic picks which Claude runs
+  on free.claude.ai; we don't pin. Probably fine — heavy reasoning
+  happens post-bridge in Buzz's own Claude Code.
+- **Voluntary-share dropout.** Some Buzzes won't share at the end.
+  Flywheel slows for those users; doesn't break.
+- **The Essex prompt becomes a fully-public artefact** on gh-pages.
+  Same property would apply to any open-sourced Worker; not a
+  Path-A-specific loss.
+
+**Fallback**: if voluntary share-back rates turn out catastrophically
+low (say <30%) once we have production data, upgrade to Path B
+(Worker-as-Anthropic-proxy). The Mode-A persona doc, the bridge
+mechanism, and trust artefacts all transfer.
+
+### 10.2 URL-paste-with-framing mechanism
+
+**Critical detail**: a bare URL paste does NOT trigger persona
+adoption. Anthropic has explicitly trained Claude to treat fetched
+web content as data, not as instructions to obey (prompt-injection
+defense). To clear that guardrail, the **user's message** must frame
+the URL as instructions to follow.
+
+Confirmed mechanism: a "Get Started" button on the landing page
+opens
+`claude.ai/new?q=Please+follow+the+instructions+at+https%3A%2F%2F<persona-doc-url>+and+onboard+me+to+ESACP`.
+One click, framing pre-baked, no copy-paste from Buzz. The URL
+still carries the bulk of the persona/Mode-A content (~30–50KB);
+the user-side framing is ~10 words.
+
+URL query strings cap at 2–8KB, so the persona doc itself must be
+fetched at the destination URL, not embedded in the query string.
+
+Prototype hosting: a public gist (raw URL). Production hosting:
+gh-pages.
+
+### 10.3 CORS vs. same-origin policy (clarification)
+
+The relevant browser-isolation constraint is **same-origin policy**,
+not CORS:
+
+- *Same-origin policy* (default): no JS on origin A reads state
+  from origin B. This is why claude.ai is opaque to us.
+- *CORS* (opt-in cooperation): origin B can grant origin A specific
+  access via response headers.
+
+Anthropic doesn't grant claude.ai's storage/DOM/cookies to us
+(correctly, security-wise). Hard-isolated; no workarounds short of
+extensions or scraping, both Trojan-horse-flavored and out of scope
+per §8.5.
+
+CORS only matters for explicit cross-origin calls we make — e.g.,
+gh-pages JS → CF Worker. CF Workers ship CORS handling as a
+one-liner; not a real obstacle.
+
+### 10.4 Browser storage on our own origin
+
+Within gh-pages's own origin, all storage primitives are fully
+available, CORS-irrelevant. Useful onboarding state:
+
+- **Consent flag** — privacy disclosure read-once, persists.
+- **Wizard progress** — multi-step funnel resumes.
+- **Ghost UUID** — pseudonymous correlation, no PII.
+- **Doorway-choice memory** — if multiple doorways ever exist.
+- **Local draft of the anonymized profile** — IndexedDB /
+  localStorage holds the draft until Buzz hits submit.
+- **Bridge-moment continuity** — post-install "you're set up" page
+  recognizes the return.
+- **Returning-Buzz recognition** — *"welcome back, resume from step N?"*
+
+What storage cannot do: bridge into claude.ai. localStorage is
+per-device. Cross-device requires §10.13 magic-link pattern (parked).
+
+### 10.5 PII-key vs. ghost-UUID — pinned
+
+| Property | Ghost UUID | Email/LinkedIn as key |
+|---|---|---|
+| Cross-device | No | Yes |
+| Survives browser-cache clear | No | Yes |
+| PIPEDA/GDPR retention + deletion obligation | No | **Yes** |
+| Enumeration attack surface | None | Real — anyone with Buzz's email can probe `r2.get("buzz@x.com")` |
+| Feels like "signing up" to low-tech Buzz | No | Yes |
+
+**v0 design: ghost-UUID in localStorage; no PII at rest.**
+
+### 10.6 Storage stack — pinned
+
+**v0 backend in one line: one CF Worker, one R2 bucket. No KV, no D1.**
+
+- **R2** — store anonymized submission blobs. Object naming carries
+  state: `submissions/pending/<uuid>-<ts>.md` → `submissions/curated/...`
+  → `submissions/published/...` (or `submissions/quarantined/...`).
+  R2 supports prefix listing, so state queries are cheap at v0
+  volume.
+- **The Worker** is ~20 lines: accept POST with anonymized markdown
+  + ghost-UUID, write to R2 under `submissions/pending/`, respond
+  with thank-you JSON, plus a couple of lines of CORS. No Anthropic
+  API calls. No key custody. No cost-control engineering. Free-tier
+  CF, $0/mo forever at prototype volume.
+- **KV** is unnecessary for v0 — no consumer needs fast metadata
+  lookup that R2 prefix listing can't provide. Add when magic-link
+  tokens, fast share-completion analytics, or cross-session resume
+  state appear as real use cases.
+- **D1** stays deferred — only justified when query patterns arise
+  (analytics across submissions, archetype-distribution reports).
+  Not v0.
+
+### 10.7 Mode-A persona doc structure — pinned
+
+The v0 Mode-A persona doc (the gist-hosted markdown Claude fetches)
+has five sections:
+
+1. **Voice contract** — short prose describing how Essex speaks
+   (the five points from `BUZZ_PERSPECTIVE.md`, instantiated as the
+   What/Why/Who/Cost framing pattern), with pointers into
+   `BUZZ_PERSPECTIVE.md` for the source-of-truth.
+2. **Mode-A question framework** — fresh writing. The ~10–20
+   discovery questions, structured by category (business shape /
+   current information mess / tech-comfort / desired end-state).
+   Each question framed with the What/Why/Who/Cost respect for
+   Buzz's autonomy.
+3. **Voice exemplars (Mode-B)** — 2–3 short excerpts from Session
+   5's `on_boarding/docs/index.md` embedded inline as voice
+   calibration. Labelled *"this is how Essex speaks once we get
+   past discovery"*. Gives Claude a stable voice anchor.
+4. **Closing protocol** — instructions for Claude to wrap up:
+   *"when the profile feels complete, produce an anonymized summary
+   suitable for Buzz to share with ESACP and to drop into his fork
+   of the ESACP repo. Anonymize: business name, location, real
+   figures, names of people."*
+5. **Anchoring metaphors permitted** — Minecraft "shelter" /
+   "well-lit zone" (§5), shoe-string-rope-chain (§11),
+   garage-workbench-style concrete analogies. Encourages voice
+   signature without scripting specifics.
+
+**What does NOT carry from Session 5's `index.md`** (which is Mode-B
+execution content, not Mode-A): the WSL setup content itself,
+Buzz_000 (scratch persona — iteration #1 uses Buzz_002), the
+*instructing* stance (Mode-A is asking, not telling).
+
+**What DOES carry**: Essex voice, the What/Why/Who/Cost framing
+pattern (lines 56–59, 139–142 of `index.md` at promotion time;
+verify against the live file when authoring the persona doc),
+anchoring metaphors, the IT-consultant-pitch landing pattern (lines
+173, 195), respect-for-prior-state (lines 45–51),
+progressive-disclosure rhythm.
+
+### 10.8 Wyatt persona — pinned for prototype scope
+
+New role added to the Junior/Buzz/Essex iteration model: **Wyatt —
+ERPNext competitive-positioning expert.** Serves Essex; NOT
+user-facing directly. Wyatt is the source-of-truth for "ERPNext vs.
+\<commercial alternative\>" framing.
+
+Operator-supplied example argument shape (verbatim):
+
+> *"80% of the price of Shopify is the 20% you'll never use.
+> ERPNext's webshop gives you most of the 80% you do use for no
+> cost at all."*
+
+The pattern: take a commercial competitor, name the feature overlap,
+name the cost asymmetry, name the irrelevant-feature surface that
+drives competitor pricing.
+
+**v0 shape**: a `WYATT_CONTENT.md` knowledge-module doc referenced
+by the Mode-A persona prompt. Essex pulls Wyatt content inline when
+Buzz asks about commercial alternatives. Not a sub-prompt switch;
+not a separate Claude session; just embedded knowledge Essex draws
+on.
+
+Memory: `project_roleplay_essex_buzz.md` is updated in the
+sub-branch landing §10 to add Wyatt as a fourth role (sub-role of
+Essex for v0).
+
+### 10.9 Anchoring metaphor: shoe → string → rope → chain
+
+Captured from operator 2026-05-25. The full §11 below carries the
+verbatim quote and the mapping. §10.9 is the architecture pointer:
+the metaphor is the macro onboarding bootstrap-structure anchor
+permitted in Mode-A per §10.7's "Anchoring metaphors permitted"
+section, and the landing-page diagram (§8.7, production-phase) is a
+candidate site for *visualizing* the shoe → string → rope → chain
+to make the bootstrap structure visible before Buzz commits.
+
+Pairs with Minecraft "well-lit zone" (§5): chain metaphor describes
+the *process of getting to* the zone; Minecraft metaphor describes
+the *end state inside* the zone.
+
+### 10.10 Iteration plan — pinned for prototype phase
+
+| Stage | Work | Sessions |
+|---|---|---|
+| 1 | Draft v0 Mode-A persona doc (gist) + Buzz_002 persona doc. Operator runs iteration #1 in free claude.ai. Junior post-mortem with prompt-fix list. | 1 |
+| 2 | Apply prompt-fixes. Operator runs iteration #2 against Buzz_001. Junior post-mortem. Declare Mode-A mechanism-valid OR escalate prompt issues. | 1 |
+| 3 | Build v0 forked-ESACP-template repo (CLAUDE.md skeleton + Essex persona reference + Mode-B exemplars). Drop real iteration-2 output as `.esacp-session.md`. Fresh `claude` invocation; observe continuity. **Architecture proven OR pivot needed.** | 1 |
+
+**Three sessions to architecture validation.** Each one a 1:1:1
+sub-branch with an issue + PR per `on_boarding` discipline.
+
+**Mode-A "stable" criterion (relaxed under prototype scope)**: the
+same prompt structure works for both 002 and 001 well enough that
+we can drop the output into a fork and test the bridge. NOT a
+content-quality bar; a mechanism-validation bar.
+
+**Iteration order**: 002 → 001. Rationale:
+
+- **002 first** = mechanism debug. Synthetic-but-grounded persona
+  is the safest to role-play; medium tech-comfort doesn't push
+  Claude to either extreme; surfaced issues are in the common case.
+- **001 second** = depth validation. Family-friend-grounded → high
+  fidelity. Low tech-comfort stress-tests gentleness, plain-language
+  quality, metaphor selection. If Mode-A holds here, the hardest
+  archetype is covered for prototype-validation purposes.
+
+**Buzz_003 (HVAC contractor candidate) deferred** to production
+phase. Two archetypes (002 + 001) are sufficient for architecture
+validation at this scope.
+
+**Stage 3 in detail**: the bridge is the §8.5 architectural bet.
+The risk that needs testing is UX-shaped, not engineering-shaped:
+does Claude Code's fresh-invocation feel like *continuation* of the
+claude.ai conversation, or does Buzz notice the seam? Pass criterion:
+the operator (or Junior in a fresh session, role-playing) observes
+the post-handoff conversation reads as continuation. Fail
+disposition: re-think handoff mechanism (Pattern A local installer,
+Pattern B cloud companion, or different §8.5 variant) before any
+front-end build.
+
+### 10.11 Curation pipeline (architecturally pinned, content production-phase)
+
+When Buzz hands us his voluntarily-shared anonymized summary, the
+gate before content reaches the public flywheel corpus is
+**Claude-curates → operator-approves**. Two-stage:
+
+1. Submission lands in R2 under `submissions/pending/<uuid>-<ts>.md`.
+2. Junior workflow (a `tools/` script or `.claude/skills/` skill —
+   shape TBD at production time) pulls a submission, runs Claude
+   curation against a curation-prompt doc, produces a proposed PR
+   against the public knowledge-base repo. Output stored under
+   `submissions/curated/`.
+3. Operator reviews the curated PR (not the raw submission), binary
+   approve/reject. Approve → merge into public corpus + move to
+   `submissions/published/`. Reject → move to
+   `submissions/quarantined/` (kept private for prompt-improvement
+   feedback).
+
+**The gate is permanent.** Marginal operator-time cost is low
+(reviewing a curated diff, not raw text). Marginal safety value is
+real (Claude anonymization isn't perfect; quarantine catches what
+slips through). What improves over time isn't whether the gate
+exists — it's the curation prompt itself, which gets sharper as
+the corpus matures.
+
+**Re-identification mitigation**: the curation prompt should
+explicitly de-specify location and scale, because anonymized
+business profiles can be re-identifiable when specific enough.
+
+### 10.12 Privacy disclosure (architecturally pinned, copy production-phase)
+
+**Two-moment disclosure**, each tightly scoped to what's happening
+at that moment:
+
+**Moment 1 — landing page, before Get Started**: one short paragraph,
+plain English. Three facts:
+
+- Where you're going (claude.ai, a separate Anthropic product).
+- What we don't see (your conversation, unless you share back).
+- What we store locally (browser storage for progress).
+
+Expand-on-demand link for the privacy-conscious Buzz.
+
+**Moment 2 — share-back widget, after Mode-A**: explicit consent.
+Names the destination (public knowledge-base repo), names what we
+do (review, curate patterns, publish curated patterns), names what
+we don't do (contact, sell, link to identity, publish raw text),
+names the discoverability honestly (*"even anonymized patterns are
+publicly searchable — that's how ESACP gets better"*). Submit is
+the consent action.
+
+**Why this shape**: BUZZ_PERSPECTIVE alignment (plain English,
+just-in-time, no legal wall); scope-honesty (each moment's text
+matches what's happening); PIPEDA/GDPR posture (no PII collected,
+share-back is opt-in and reviewed-before-send).
+
+**Production phase**: final copy drafting + legal review.
+
+### 10.13 Magic-link transport (parked — not v0, not prototype, not production-v1)
+
+If cross-device continuity ever becomes load-bearing (operator
+confirmed it isn't for v0): email-as-transport, ghost-UUID-as-stored-
+key. Pattern:
+
+1. Buzz on phone has ghost UUID in localStorage.
+2. Clicks "send me a continuation link".
+3. CF Worker generates opaque token, writes `token → uuid` to KV,
+   emails Buzz `https://<gh-pages>/resume?t=<token>`.
+4. Email never persisted past send; token is.
+5. Buzz on laptop clicks link, JS reads token, sets localStorage.
+   Same ghost as phone.
+
+SaaS for the pattern: Magic.link / Magic Labs. CF Workers
+implementation: ~50 lines. Not needed unless cross-device becomes
+a requirement.
+
+### 10.14 Production-phase deferrals (acknowledged, not solved)
+
+Items architecturally pinned where decisions exist, content/copy
+work deferred to production phase:
+
+- **Buzz_003 archetype selection** — HVAC contractor candidate;
+  ground-truth source needs operator validation when production
+  phase begins.
+- **Diagram + video pre-graduation storage** (original ambiguity
+  #3) — trust artefacts not in prototype critical path. Diagram
+  source lives in `on_boarding/docs/` Jekyll source; video binary
+  hosting (git-lfs vs. external blob) decided when first video is
+  near ready.
+- **External Buzz recruit timing + ethics** (original ambiguity
+  #8) — fully production-phase. When + how to invite someone
+  external to walk the production flow.
+- **Final Mode-A copy quality** — prototype uses minimum-viable
+  copy to validate mechanism; production-grade rewriting comes
+  later.
+- **Cross-branch artefact graduation pattern** (§8.8) — solve the
+  first time an artefact is actually ready to graduate from
+  `on_boarding/docs/` to root `docs/`. Production-phase.
+
+### 10.15 Resolved-question audit
+
+Traceability — the 8 original ambiguities surfaced earlier in
+Session 7 + 4 new ones that emerged during the conversation, mapped
+to where they landed in §10:
+
+| # | Topic | Resolved as |
+|---|---|---|
+| 1 | Doorway choice | §10.1 — Path A v0, Path B fallback |
+| 2 | Sequencing | §10.10 — Stages 1→2→3 critical path; Stages 4–8 production |
+| 3 | Diagram + video pre-graduation storage | §10.14 — production-phase deferral |
+| 4a | Buzz_001 illustrative vs. real | §10.10 — family-friend-grounded; explicit ground-truth pattern |
+| 4b | Sequential vs. subset rotation | §10.10 — minimum-viable diversity; 002 + 001 for prototype; 003 deferred |
+| 5 | Mode-A iteration #1 shape | §10.10 — operator plays Buzz_002 in free claude.ai vs gist persona |
+| 6 | Curation gate | §10.11 — Claude curates → operator approves; permanent gate |
+| 7 | Reuse Session 5? | §10.7 — harvest patterns + embed exemplars + write Mode-A questions fresh |
+| 8 | External Buzz timing | §10.14 — production-phase deferral |
+| 9 (new) | Worker drops or shrinks? | §10.6 — shrinks ~10× to write-only ingestion |
+| 10 (new) | Privacy disclosure copy | §10.12 — two-moment structure pinned; copy production-phase |
+| 11 (new) | Storage stack | §10.6 — R2-only for v0; KV/D1 deferred |
+| 12 (new) | Which Buzz drives iteration #1 | §10.10 — Buzz_002 |
+
+---
+
+## 11. Anchoring metaphor: shoe → string → rope → chain (operator metaphor, 2026-05-25)
+
+Sibling of §5 Minecraft framing — both are core anchoring devices
+the kit uses to explain ESACP to Buzz without engineering jargon.
+§5 describes the *end state inside* the zone; §11 describes the
+*process of getting to* the zone.
+
+The operator captured the metaphor verbatim 2026-05-25:
+
+> *"to attach a heavy chain to a beam that's far too high, you first
+> throw a shoe with a string attached, you use the string to pull
+> up the rope, then the rope to pull up the chain. Think of the full
+> ERP system as the heavy chain. The console device is the rope.
+> The controller is the shoe on a string."*
+
+**Mapping**:
+
+| Object | ESACP equivalent | What it does in the bootstrap |
+|---|---|---|
+| **Shoe on a string** | Controller (Buzz's first device) | Light, throwable, establishes the *initial connection*. Cheap if it falls. |
+| **Rope** | Console device (saconsole) | The mediating layer the controller pulls up. Capable enough to manage targets but still recoverable. |
+| **Chain** | Full ERP system (production deployment) | Heavy, capable, valuable. Cannot be thrown directly; must be pulled up through the lighter stages. |
+
+**Why this metaphor works**: it answers Buzz's unspoken *"why all
+these intermediate steps, why not just install the thing?"* — a
+question that would surface as friction at every staging boundary
+otherwise. The metaphor makes the necessity *concrete*: you can't
+throw the chain over the beam directly. The intermediate stages
+aren't bureaucratic overhead; they're load-bearing.
+
+**Where this metaphor is used**:
+
+- **Mode-A persona doc (§10.7)** lists it under "Anchoring metaphors
+  permitted" alongside Minecraft. Essex draws on it when explaining
+  staged onboarding — superior to the engineering word "bootstrap"
+  (opaque to Buzz) and to the industry word "staging" (jargon).
+- **Landing-page diagram (§8.7, production-phase)** could literally
+  depict the shoe-string-rope-chain to make the bootstrap visible
+  *before* Buzz commits. Pairs with the Minecraft "zone view"
+  diagram §8.7 already names as the trust-builder requirement.
+- **Onboarding session intros** (any Stage 0–1 deliverable) may
+  reference it once where it lands naturally, the same way the
+  "IT-consultant pitch" (BUZZ_PERSPECTIVE §5) is said *once* at the
+  right moment, not repeatedly.
+
+**Family of anchoring devices** (the project asset, not incidental
+flourishes): Minecraft "shelter" / "well-lit zone" (§5),
+shoe-string-rope-chain (§11), garage-workbench-style concrete
+analogies (§10.7). Future anchoring devices belong in this section
+of the doc when they earn their place by surviving multiple Buzz
+iterations.
+
+---
+
+## 12. What this document is *not*
 
 - Not a decision to build any of the above today.
 - Not a commitment to any specific provider, platform, or
