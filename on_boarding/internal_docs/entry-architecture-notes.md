@@ -1127,6 +1127,43 @@ anchoring metaphors, the IT-consultant-pitch landing pattern (lines
 173, 195), respect-for-prior-state (lines 45–51),
 progressive-disclosure rhythm.
 
+#### 10.7.1 v0 instantiation (Session 8, 2026-05-26)
+
+The first concrete instance of the §10.7 five-section structure
+landed in Session 8 against agenda #489 / sub-branch #493:
+
+- **In-repo source-of-truth**:
+  [`on_boarding/internal_docs/mode_a_persona_v0.md`](mode_a_persona_v0.md).
+  Edit here, then re-push to the gist (`gh gist edit <id> <path>`).
+- **Public gist** (raw URL for §10.2 URL-paste-with-framing):
+  `https://gist.githubusercontent.com/martinhbramwell/f00ad381b2dc3d9c0995108ad87d2e21/raw/mode_a_persona_v0.md`
+  (always-latest form — no commit-SHA in path, so gist edits
+  propagate without changing the pin).
+- **Operator framing-message template** for `claude.ai/new?q=…`
+  (one-click open from the future landing page; for prototype
+  iteration #1 the operator pastes this verbatim):
+
+  > Please follow the instructions at
+  > https://gist.githubusercontent.com/martinhbramwell/f00ad381b2dc3d9c0995108ad87d2e21/raw/mode_a_persona_v0.md
+  > and onboard me to ESACP.
+
+  URL-encoded form for the actual `?q=…` parameter:
+
+  ```
+  https://claude.ai/new?q=Please%20follow%20the%20instructions%20at%20https%3A%2F%2Fgist.githubusercontent.com%2Fmartinhbramwell%2Ff00ad381b2dc3d9c0995108ad87d2e21%2Fraw%2Fmode_a_persona_v0.md%20and%20onboard%20me%20to%20ESACP.
+  ```
+
+- **First test input**: Buzz_002, the small-condo-property-
+  management-firm archetype, lives at
+  [`on_boarding/archetypes/buzz_002.md`](../archetypes/buzz_002.md).
+  The operator role-plays Buzz_002 against the gist-fetched
+  persona; the resulting transcript feeds Session-8 deliverable 3
+  (Junior post-mortem + prompt-fix list).
+
+This pin is the *prototype* shape per §10.0 — mechanism-validation,
+not content-quality. Expect the gist content to evolve across
+iterations 1 → 2 → 3; the URL stays stable.
+
 ### 10.8 Wyatt persona — pinned for prototype scope
 
 New role added to the Junior/Buzz/Essex iteration model: **Wyatt —
