@@ -30,6 +30,7 @@
   "tools/cli/_common.py": 73,
   "tools/cli/add_host.py": 66,
   "tools/cli/apply_substrate_migration.py": 38,
+  "tools/cli/apply_v16_post_migrate_fixups.py": 44,
   "tools/cli/build_vm.py": 26,
   "tools/cli/clear_known_hosts.py": 27,
   "tools/cli/confirm_prerequisites.py": 67,
@@ -103,6 +104,8 @@
   "tools/pipeline/orchestration/test_hosts_map_remove.py": 57,
   "tools/pipeline/orchestration/test_hub_seed_iso.py": 57,
   "tools/pipeline/orchestration/test_substrate_apply.py": 80,
+  "tools/pipeline/orchestration/test_v16_post_migrate_fixups.py": 76,
+  "tools/pipeline/orchestration/v16_post_migrate_fixups.py": 69,
   "tools/pipeline/orchestration/verify_build_vm.py": 80,
   "tools/pipeline/orchestration/verify_vpn.py": 77,
   "tools/pipeline/orchestration/virsh.py": 15,
@@ -210,5 +213,6 @@
   "tools/pipeline/upgrade_v14/verify.py": 42,
   "tools/vm_scripts/g1_seed_patch_log.py": 77,
   "tools/vm_scripts/install_specific/__init__.py": 14,
+  "tools/vm_scripts/r3_disable_irs_1099_pf.py": 72,
   "tools/vm_scripts/u6_dedup_smoke_test.py": 70
 }
