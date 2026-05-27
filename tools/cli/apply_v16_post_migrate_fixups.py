@@ -1,8 +1,8 @@
-"""CLI: apply V13->V16 post-migrate fixups on a lab VM (#498, #480 child).
+"""CLI: apply V13->V16 post-migrate fixups on a lab VM (#480 umbrella).
 
-Thin dispatcher: build Config from hosts_map, call the primitive,
-format the result. Catalogue currently covers R3 (IRS 1099 Print Format
-disable). R1 and R6e.2 will plug into the same primitive when filed.
+Thin dispatcher: build Config from hosts_map, call the primitive, format
+the result. Catalogue: R1 Web Page 'home' (#486); R3 IRS 1099 PF disable
+(#498). R6e.2 (#496) + future #480 children plug into the same primitive.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from tools.pipeline.stages.common.config import build_config
 def add_subparser(sub) -> None:
     p = sub.add_parser(
         "applyV16PostMigrateFixups",
-        help="Run V13->V16 post-migrate fix-scripts (R3 today; extensible)",
+        help="Run V13->V16 post-migrate fix-scripts (R1+R3; extensible)",
     )
     p.add_argument("vm", help="Target VM (e.g. dev02)")
 

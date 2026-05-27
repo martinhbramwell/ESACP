@@ -26,6 +26,7 @@ invoke these scripts in the right order; raw bench commands bypass them.
 | `h4e_patch_parms.py` | `ce_sri_parms.json` carrying stale `erpnext_api.erpnext_api_key` after H4a regenerates keys — must be patched before `.env` rendering | `stages/stage_8_app_config/post_restart_config.sh:14` |
 | `poll_gunicorn.py` | Race condition between supervisor restart and the next stage's HTTP call — polls `/api/method/ping` until 200 | `stages/stage_8_app_config/{pre,post,generic}_restart_config.sh` |
 | `u6_dedup_smoke_test.py` | Read-only post-migrate assertion that `(dt, fieldname)` pairs in `tabDocField` ∪ `tabCustom Field` are deduplicated (ESACP#335) | operator-invoked smoke test |
+| `r1_recreate_web_page_home.py` | V13 `Homepage` singleton row survives V13→V16 migrate with no V16 render target (DocType upstream-deleted in V14+); recreates a `Web Page` with `route='home'` from runtime-salvaged `tabSingles` fields (ESACP#486, #480 child) | `pipeline/orchestration/v16_post_migrate_fixups.py` |
 | `r3_disable_irs_1099_pf.py` | Orphan `IRS 1099 Form` Print Format (Jinja template upstream-deleted) remaining invokable after V13→V16 migrate — sets `disabled=1` (ESACP#498, #480 child) | `pipeline/orchestration/v16_post_migrate_fixups.py` |
 | `install_specific/` | Site differentiation (ce_sri config, naming series, test data) — see `tools/CLAUDE.md` § install_specific | `stages/stage_8_app_config/{pre,post}_restart_config.sh` |
 
