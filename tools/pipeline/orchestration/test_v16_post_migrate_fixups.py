@@ -45,7 +45,7 @@ def test_both_fresh_apply_sets_changed():
     assert "home=created" in result.message and "disabled=1" in result.message
     cmds = [c.args[1] for c in s.call_args_list]
     assert all(s in cmds[0] for s in ("r1_recreate_web_page_home.py", "sudo -u erpadm", "/sites &&"))
-    assert "r3_disable_irs_1099_pf.py" in cmds[1]
+    assert all(s in cmds[1] for s in ("r3_disable_irs_1099_pf.py", "sudo -u erpadm", "/sites &&"))
 
 
 def test_both_idempotent_skip_no_change():

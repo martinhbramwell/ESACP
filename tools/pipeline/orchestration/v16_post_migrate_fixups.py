@@ -40,8 +40,13 @@ def _run_r1(config: Config, emit: Emit) -> TaskResult:
 
 
 def _run_r3(config: Config, emit: Emit) -> TaskResult:
-    cmd = (f"python3 {R3_SCRIPT} --bench-dir {config.bench_dir} "
-           f"--site {config.site_url}")
+    # Same invocation shape as _run_r1 (#503): bench venv + sudo + cwd at
+    # sites/ even though R3 only does raw mysql today — prevents the silent
+    # venv-mismatch trap if a future R3 edit (or copy-paste descendant)
+    # adds Frappe imports.
+    cmd = (f"sudo -u {config.erp_user} bash -c 'cd {config.bench_dir}/sites "
+           f"&& {config.bench_dir}/env/bin/python {R3_SCRIPT} "
+           f"--bench-dir {config.bench_dir} --site {config.site_url}'")
     return run_fix_script(config, emit, "R3", cmd,
                           R3_EXPECTED, R3_CHANGED_MARKER)
 
