@@ -22,8 +22,8 @@ description: >-
 <div class="pains pains-problem">
 
   <div class="pain">
-    <span class="tag pain-tag">The problem</span>
-    <h3>Your information lives in seven places.</h3>
+    <span class="tag pain-tag">A problem!</span>
+    <h3>Your information lives in a half dozen places.</h3>
     <p>
       Spreadsheets, the accounting app, marketplace dashboards, email
       threads, the binder by the printer, a notebook in your pocket.
@@ -33,7 +33,7 @@ description: >-
   </div>
 
   <div class="pain">
-    <span class="tag pain-tag">The problem</span>
+    <span class="tag pain-tag">Another problem!!</span>
     <h3>Half of every month is the same boring assembly job.</h3>
     <p>
       Invoices, monthly reports, AGM packets, quarterly compliance,
@@ -43,12 +43,12 @@ description: >-
   </div>
 
   <div class="pain">
-    <span class="tag pain-tag">The problem</span>
-    <h3>When someone leaves, half your business goes with them.</h3>
+    <span class="tag pain-tag">Yet another problem!!!</span>
+    <h3>When someone leaves, business knowledge goes with them.</h3>
     <p>
-      Years of how-we-do-things lives in one person's head. When they
+      Years of "how-we-do-things" lives in one person's head. When they
       walk out, the institutional memory walks out with them. The next
-      hire takes months to ramp because nothing is written down.
+      hire takes months to ramp up because nothing is written down.
     </p>
   </div>
 
@@ -63,7 +63,7 @@ description: >-
 <h2>What ESACP changes</h2>
 
 <p class="intro">
-  ESACP is a guided setup for ERPNext, the open-source business system
+  ESACP is a guided set up for ERPNext, the open-source business system
   that larger competitors have run since the 1990s. We give you the
   same backbone, on your terms, with an AI that helps you move in.
 </p>
@@ -104,14 +104,15 @@ description: >-
 
 </div>
 
-<p class="panel-cue"><a href="#how" class="panel-cue-link">&lsaquo; Curious how it actually gets installed?</a></p>
+<p class="panel-cue"><a href="#how" class="panel-cue-link">Curious how it actually gets installed?  &rsaquo;</a></p>
 
 </section>
 
 <section data-panel="how" id="how">
 
-<h2>How we get there &mdash; the chain on the girder</h2>
+<h2>How we get there &mdash; the age-old "chain on the girder" problem</h2>
 
+    <p>Analogy: </p>
 <blockquote class="chain-narrative">
   To attach a heavy chain to a beam that's far too high, you don't try
   to throw the chain. It's too heavy and it falls. You throw a
@@ -130,12 +131,12 @@ description: >-
     <h3>You talk to claude.ai about your business.</h3>
     <p>
       You tell it in general terms what your existing setup looks like
-      &mdash; what tools you use, what's painful, what you'd like to be
+      &mdash; what tools you use, what's painful, what you wish was
       different. It listens, asks short questions, and at the end gives
       you a written summary of where you stand. The summary is yours;
       it's also the starting point for stage 2.
     </p>
-    <p>
+    <p class="comment">
       Light, throwable, no commitment. No software on your machine. No
       money spent. About ten minutes. At the end you'll know whether
       ESACP is worth your time.
@@ -152,7 +153,7 @@ description: >-
       reads your stage-1 summary and walks you through every step
       toward stage 3.
     </p>
-    <p>
+    <p class="comment">
       Heavier than stage 1, but still recoverable. If anything goes
       sideways you back out and try again, without affecting anything
       else on your computer.
@@ -169,7 +170,7 @@ description: >-
       assistance &mdash; all in one place, with the system watching
       itself.
     </p>
-    <p>
+    <p class="comment">
       The heavy, valuable, finished thing. What stages 1 and 2 built up
       to.
     </p>
@@ -224,36 +225,39 @@ description: >-
 
   <div class="step">
     <div>
-      <h3>Paste in the Essex instructions.</h3>
+      <h3>Invite "Essex" into the chat.</h3>
       <p>
-        Click <strong>Set custom instructions</strong> on your new
-        project. In another browser tab, open
-        <a href="https://raw.githubusercontent.com/martinhbramwell/ESACP/on_boarding/on_boarding/internal_docs/mode_a_persona_v0.md">the
-        Essex instructions document</a>, press <code>Ctrl</code> + <code>A</code>
-        to select everything, then <code>Ctrl</code> + <code>C</code>
-        to copy. Back in the Project, paste into the instructions box.
-        Save.
+        Inside your new project, click <strong>New chat</strong>. In
+        the message box, paste this one line and press <strong>Send</strong>:
       </p>
+      <blockquote class="chain-narrative">
+        Claude, please read from this link
+        <code>https://bit.ly/A1B2c3</code> and take on the
+        &ldquo;Essex&rdquo; role as it explains.
+      </blockquote>
       <p class="why">
-        Why these instructions: they turn Claude into Essex &mdash; a
-        guide who knows exactly which questions to ask, in which order,
-        in business language. Without them you'd get general-purpose
-        Claude who doesn't know your context.
+        Who is Essex? Essex is a version of Claude who's been trained
+        on ESACP &mdash; an ESACP Expert. The link points to a public
+        page that tells Claude who Essex is and which questions Essex
+        should ask. Without it you'd get general-purpose Claude, who
+        doesn't know your context.
       </p>
     </div>
   </div>
 
   <div class="step">
     <div>
-      <h3>Start the conversation.</h3>
+      <h3>Answer Essex in plain language.</h3>
       <p>
-        Inside your project, click <strong>New chat</strong>. Type
-        <code>Hi.</code> and send. Essex will take it from there.
+        Within a few seconds, Essex will reply in character and ask
+        a first question or two about your business. Type your
+        answer normally and send.
       </p>
       <p class="why">
         What to expect: about ten minutes. Essex will ask five to ten
         short questions about how your business runs today &mdash; no
-        technical questions, no jargon. You answer in plain language.
+        technical questions, no jargon. Use whatever words you'd use
+        with a colleague.
       </p>
     </div>
   </div>
@@ -275,6 +279,26 @@ description: >-
     </div>
   </div>
 
+</div>
+
+<div class="essex-demo-note">
+  <p>
+    <strong>Stage 1 done.</strong> Your summary in hand is the
+    deliverable.
+  </p>
+  <p>
+    Stage 2 &mdash; installing ESACP on your own computer with
+    Claude Code as your guide &mdash; is under active construction.
+    The self-serve walkthrough will land on this page when it's
+    ready.
+  </p>
+  <p>
+    If you'd like to start Stage 2 sooner, email your summary to
+    <a href="mailto:CHANGE-THIS@example.com">CHANGE-THIS@example.com</a>
+    and we'll walk you through it personally. Or
+    <a href="https://github.com/martinhbramwell/ESACP">watch the
+    GitHub repo</a> to track progress.
+  </p>
 </div>
 
 <p class="panel-cue"><a href="#catch" class="panel-cue-link">Before you start &mdash; what's the catch? &rsaquo;</a></p>
@@ -307,15 +331,19 @@ description: >-
 
   <div class="caveat">
     <span class="tag caveat-tag">Cost</span>
-    <h3>Stages 1 and 2 are free. Stage 3 is not.</h3>
+    <h3>Stage 1 is free. Stages 2 and 3 cost something.</h3>
     <p>
       Stage 1 uses the free claude.ai tier &mdash; you'll bump into its
       message limits eventually, but a discovery conversation fits
-      comfortably inside them. Stage 2 runs on your own computer, so
-      again no money out. Stage 3 means real servers on the public
-      internet, and someone has to pay for them. Today that's you, at
-      the going rate for a small VPS &mdash; roughly the cost of a
-      streaming subscription.
+      comfortably inside them. Stage 2 needs Claude Code (Anthropic's
+      developer tool), which is metered: either an Anthropic Pro
+      subscription (about $20 a month) or pay-as-you-go API credits.
+      The work happens on your own computer; what you pay for is the
+      AI that guides you through it. Stage 3 adds a small "virtual private
+	  server" (VPS) on the public internet for the production system &mdash;
+	  about the cost of another streaming subscription. Both bills are
+	  monthly, both cancellable, and the amounts only run while you're
+	  actually using the thing.
     </p>
   </div>
 

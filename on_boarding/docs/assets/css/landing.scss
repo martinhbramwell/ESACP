@@ -52,7 +52,7 @@
   --accent-ink: #c8e2cf;
 
   --pain-tag: #d18f8f;
-  --gain-tag: #7fc89a;
+  --gain-tag: #d18f8f;
   --caveat-tag: #d6b27a;
 
   --code-bg: rgba(255, 255, 255, 0.08);
@@ -420,6 +420,10 @@ body.tabs-overflow .hamburger  { visibility: visible; pointer-events: auto; }
 .tag.pain-tag   { color: var(--pain-tag); }
 .tag.gain-tag   { color: var(--gain-tag); }
 .tag.caveat-tag { color: var(--caveat-tag); }
+
+  .comment {
+    font-style: italic;
+  }
 
 /* intro */
 
