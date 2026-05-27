@@ -188,6 +188,14 @@ html, body {
 body.tabs-overflow .tabs       { visibility: hidden; pointer-events: none; }
 body.tabs-overflow .hamburger  { visibility: visible; pointer-events: auto; }
 
+/* Hard rule: below 1024px always use the hamburger, even if the
+   five tab labels would technically fit. Keeps the topbar layout
+   predictable on tablets and small laptops. */
+@media (max-width: 1023px) {
+  .tabs      { visibility: hidden; pointer-events: none; }
+  .hamburger { visibility: visible; pointer-events: auto; }
+}
+
 /* theme toggle */
 
 .theme-toggle {
