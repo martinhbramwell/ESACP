@@ -107,7 +107,7 @@
   "tools/pipeline/orchestration/test_hub_seed_iso.py": 57,
   "tools/pipeline/orchestration/test_substrate_apply.py": 80,
   "tools/pipeline/orchestration/test_v16_post_migrate_fixups.py": 70,
-  "tools/pipeline/orchestration/v16_post_migrate_fixups.py": 62,
+  "tools/pipeline/orchestration/v16_post_migrate_fixups.py": 67,
   "tools/pipeline/orchestration/verify_build_vm.py": 80,
   "tools/pipeline/orchestration/verify_vpn.py": 77,
   "tools/pipeline/orchestration/virsh.py": 15,
