@@ -150,7 +150,7 @@ code:
 
 ## Carry-forward (unchanged from S80→S81→S82)
 
-- ESACP#440 (5th encounter; promoted ripe to "should be primary"
+- ESACP#440 (4th encounter; promoted ripe to "should be primary"
   in S83 agenda)
 - S71 minutes backfill decision
 - ESACP#426 / #427 — pending operator pickup
