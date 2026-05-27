@@ -356,22 +356,15 @@ description: >-
 
 </div>
 
-<p class="panel-cue"><a href="#start" class="panel-cue-link">&lsaquo; Still interested? Back to Getting Started</a></p>
-
-</section>
-
-<footer class="page-footer">
+<div class="essex-demo-note">
   <p>
     Curious what Essex sounds like once you're past discovery?
     <a href="essex-demo.html">See a worked example of a stage-2 conversation</a>
     &mdash; a static walkthrough where Essex helps a small-business
     owner set up the sandbox on a Windows 11 machine.
   </p>
-  <p>
-    The architecture this page seeds is documented in
-    <a href="https://github.com/martinhbramwell/ESACP/blob/on_boarding/on_boarding/internal_docs/entry-architecture-notes.md"><code>internal_docs/entry-architecture-notes.md</code></a>.
-  </p>
-  <p>
-    Source: <a href="https://github.com/martinhbramwell/ESACP">martinhbramwell/ESACP</a> on GitHub.
-  </p>
-</footer>
+</div>
+
+<p class="panel-cue"><a href="#start" class="panel-cue-link">&lsaquo; Still interested? Back to Getting Started</a></p>
+
+</section>

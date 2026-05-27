@@ -26,13 +26,16 @@
         <span class="brand-sub">onboarding</span>
       </a>
       <nav class="tabs" aria-label="Section tabs">
-        <button class="tab" data-tab="problem">The Problem</button>
-        <button class="tab" data-tab="why">Why ESACP?</button>
-        <button class="tab" data-tab="how">How it Works</button>
-        <button class="tab" data-tab="start">Getting Started</button>
-        <button class="tab" data-tab="catch">What&rsquo;s the Catch?</button>
+        <button class="tab" data-tab="problem" type="button">The Problem</button>
+        <button class="tab" data-tab="why" type="button">Why ESACP?</button>
+        <button class="tab" data-tab="how" type="button">How it Works</button>
+        <button class="tab" data-tab="start" type="button">Getting Started</button>
+        <button class="tab" data-tab="catch" type="button">What&rsquo;s the Catch?</button>
       </nav>
       <div class="controls">
+        <button class="hamburger" type="button" aria-label="Show all sections" aria-expanded="false" aria-controls="tabs-menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
         <button class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
           <svg class="icon-sun"  width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -43,6 +46,7 @@
         </div>
       </div>
     </div>
+    <div class="tabs-menu" id="tabs-menu" role="menu" hidden></div>
   </header>
 
   <main class="page">
@@ -52,27 +56,64 @@
       <button class="nav-arrow nav-prev" type="button" aria-label="Previous section" title="Previous">&lsaquo;</button>
       <button class="nav-arrow nav-next" type="button" aria-label="Next section" title="Next">&rsaquo;</button>
     </div>
+
+    <nav class="bottom-tabs" aria-label="Section tabs (bottom)"></nav>
+
+    <div class="bottom-meta">
+      <p>
+        The architecture this page seeds is documented in
+        <a href="https://github.com/martinhbramwell/ESACP/blob/on_boarding/on_boarding/internal_docs/entry-architecture-notes.md"><code>internal_docs/entry-architecture-notes.md</code></a>.
+      </p>
+      <p>
+        Source: <a href="https://github.com/martinhbramwell/ESACP">martinhbramwell/ESACP</a> on GitHub.
+      </p>
+    </div>
   </main>
 
   <script>
     (function () {
       var TABS = ['problem', 'why', 'how', 'start', 'catch'];
 
+      var $tabs        = document.querySelector('.tabs');
+      var $hamburger   = document.querySelector('.hamburger');
+      var $menu        = document.getElementById('tabs-menu');
+      var $bottomTabs  = document.querySelector('.bottom-tabs');
+      var $themeToggle = document.querySelector('.theme-toggle');
+
+      // Populate dropdown menu + bottom-tabs from the top tabs (single source of truth).
+      Array.prototype.forEach.call(document.querySelectorAll('.topbar .tab'), function (t) {
+        var label = (t.textContent || '').replace(/\s+/g, ' ').trim();
+
+        var menuItem = document.createElement('button');
+        menuItem.className = 'tab-menu-item';
+        menuItem.dataset.tab = t.dataset.tab;
+        menuItem.textContent = label;
+        menuItem.setAttribute('role', 'menuitem');
+        menuItem.setAttribute('type', 'button');
+        $menu.appendChild(menuItem);
+
+        var bottomBtn = document.createElement('button');
+        bottomBtn.className = 'tab tab-bottom';
+        bottomBtn.dataset.tab = t.dataset.tab;
+        bottomBtn.textContent = label;
+        bottomBtn.setAttribute('type', 'button');
+        $bottomTabs.appendChild(bottomBtn);
+      });
+
       function activate(id, opts) {
         opts = opts || {};
         if (TABS.indexOf(id) === -1) id = TABS[0];
 
-        document.querySelectorAll('.tab').forEach(function (btn) {
-          btn.classList.toggle('is-active', btn.dataset.tab === id);
-          btn.setAttribute('aria-selected', btn.dataset.tab === id ? 'true' : 'false');
+        Array.prototype.forEach.call(document.querySelectorAll('.tab, .tab-menu-item'), function (b) {
+          b.classList.toggle('is-active', b.dataset.tab === id);
         });
-        document.querySelectorAll('[data-panel]').forEach(function (panel) {
-          panel.classList.toggle('is-active', panel.dataset.panel === id);
+        Array.prototype.forEach.call(document.querySelectorAll('[data-panel]'), function (p) {
+          p.classList.toggle('is-active', p.dataset.panel === id);
         });
 
         var idx = TABS.indexOf(id);
-        document.querySelectorAll('.nav-prev').forEach(function (b) { b.disabled = idx <= 0; });
-        document.querySelectorAll('.nav-next').forEach(function (b) { b.disabled = idx >= TABS.length - 1; });
+        Array.prototype.forEach.call(document.querySelectorAll('.nav-prev'), function (b) { b.disabled = idx <= 0; });
+        Array.prototype.forEach.call(document.querySelectorAll('.nav-next'), function (b) { b.disabled = idx >= TABS.length - 1; });
 
         if (!opts.silent) {
           try { history.replaceState(null, '', '#' + id); } catch (e) {}
@@ -90,23 +131,40 @@
         activate(TABS[next], { scroll: true });
       }
 
-      // Wire tabs.
-      document.querySelectorAll('.tab').forEach(function (btn) {
-        btn.addEventListener('click', function () { activate(btn.dataset.tab, { scroll: true }); });
+      function setMenuOpen(open) {
+        $menu.hidden = !open;
+        if ($hamburger) $hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+
+      // Click delegation — tabs (top/bottom/menu) and in-page hash anchors.
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.tab, .tab-menu-item');
+        if (btn && btn.dataset.tab) {
+          activate(btn.dataset.tab, { scroll: true });
+          if (btn.classList.contains('tab-menu-item')) setMenuOpen(false);
+          return;
+        }
+        var a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (a) {
+          var id = a.getAttribute('href').slice(1);
+          if (TABS.indexOf(id) !== -1) {
+            e.preventDefault();
+            activate(id, { scroll: true });
+          }
+        }
       });
 
-      // Wire arrows (both top and bottom).
-      document.querySelectorAll('.nav-prev').forEach(function (b) {
+      // Arrows.
+      Array.prototype.forEach.call(document.querySelectorAll('.nav-prev'), function (b) {
         b.addEventListener('click', function () { step(-1); });
       });
-      document.querySelectorAll('.nav-next').forEach(function (b) {
+      Array.prototype.forEach.call(document.querySelectorAll('.nav-next'), function (b) {
         b.addEventListener('click', function () { step(1); });
       });
 
       // Theme toggle.
-      var toggle = document.querySelector('.theme-toggle');
-      if (toggle) {
-        toggle.addEventListener('click', function () {
+      if ($themeToggle) {
+        $themeToggle.addEventListener('click', function () {
           var current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
           var next = current === 'dark' ? 'light' : 'dark';
           document.documentElement.setAttribute('data-theme', next);
@@ -114,14 +172,54 @@
         });
       }
 
-      // Keyboard nav: left/right when not focused in an input.
+      // Hamburger toggle + outside-click + Esc.
+      if ($hamburger) {
+        $hamburger.addEventListener('click', function (e) {
+          e.stopPropagation();
+          setMenuOpen($menu.hidden);
+        });
+      }
+      document.addEventListener('click', function (e) {
+        if (!$menu.hidden && !$menu.contains(e.target) && e.target !== $hamburger) {
+          setMenuOpen(false);
+        }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !$menu.hidden) setMenuOpen(false);
+      });
+
+      // Keyboard arrow nav (skip when focused in an input).
       document.addEventListener('keydown', function (e) {
         if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
         if (e.key === 'ArrowLeft')  step(-1);
         if (e.key === 'ArrowRight') step(1);
       });
 
-      // Initial tab: hash > localStorage > first.
+      // Direct URL-hash edits (back/forward in some browsers also fire this).
+      window.addEventListener('hashchange', function () {
+        var id = location.hash.replace('#', '');
+        if (TABS.indexOf(id) !== -1) activate(id, { silent: true });
+      });
+
+      // Overflow detection — toggles body.tabs-overflow when the rightmost
+      // tab can't fit. Stable: hamburger reserves space always, so the
+      // measurement doesn't flip-flop on the transition.
+      function checkOverflow() {
+        if (!$tabs) return;
+        var overflow = ($tabs.scrollWidth - $tabs.clientWidth) > 2;
+        document.body.classList.toggle('tabs-overflow', overflow);
+      }
+      var rafId = 0;
+      window.addEventListener('resize', function () {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(checkOverflow);
+      });
+      if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+        document.fonts.ready.then(checkOverflow);
+      }
+      checkOverflow();
+
+      // Initial activate.
       var initial = (location.hash || '').replace('#', '');
       if (TABS.indexOf(initial) === -1) {
         try { initial = localStorage.getItem('esacp-tab') || TABS[0]; } catch (e) { initial = TABS[0]; }
