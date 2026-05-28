@@ -94,7 +94,7 @@ Job types: `provision`, `provision_generic`, `refresh`, `destroy`, `build_templa
 
 ## esacp.py — Unified Lab CLI
 
-`./tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands. 14 subcommands routed through `tools/cli/*.py` per-command dispatchers.
+`./tools/esacp.py <subcommand> [options]` — run from project root; `--help` lists all subcommands. 15 subcommands routed through `tools/cli/*.py` per-command dispatchers.
 
 Non-obvious behaviours:
 - `provisionVM` Ansible output filter: shows PLAY headers, ✓ ok, ★ changed, ❌ fatal, RECAP only (filter lives in `tools/pipeline/stages/common/ansible_output.py`; orchestrator is `tools/pipeline/orchestration/ansible_provision.py`)
@@ -103,6 +103,7 @@ Non-obvious behaviours:
 - `snapShotVM`: KVM-only; dispatcher calls `pipeline/orchestration/snapshot_ops.py` (local virsh). Standalone `platforms/kvm/snapshot.py` still exists for operator use (revert/delete/start/state) per `internal_docs/BuildOutProcedure.md`.
 - `destroyVM` (legacy, local libvirt only): uses `tools/pipeline/orchestration/local_vm_teardown.py` for inspect + teardown; not to be confused with `destroy` which runs the full `macro/destroy.py`
 - `applySubstrateMigration` (#418): bundles `g1_seed_patch_log.py` + `g2_clear_fixture_custom_fields.py` + `bench migrate` over SSH on a lab VM. Use for LSKB#15-style bespoke-app migration tests on already-restored production data — closes the bypass that caused two cascading failures in S54/S55. Dispatcher calls `tools/pipeline/orchestration/substrate_apply.py`. See `tools/vm_scripts/README.md` for the protection catalogue.
+- `applyV16PostMigrateFixups` (#480 umbrella): runs catalogued V13→V16 post-migrate fix-scripts on a lab VM. Catalogue: R1 = recreate `Web Page route='home'` from runtime-salvaged `tabSingles` Homepage singleton (`tools/vm_scripts/r1_recreate_web_page_home.py`, #486); R3 = disable orphan `IRS 1099 Form` Print Format (`tools/vm_scripts/r3_disable_irs_1099_pf.py`, #498). Dispatcher calls `tools/pipeline/orchestration/v16_post_migrate_fixups.py`. Per-script invocation + probe-parsing is factored into `fix_script_runner.run_fix_script()`. Extensible — R6e.2 (#496) and future #480 children plug in via the same helper.
 
 ## diagnose.py — Remote VM Process Diagnostics
 
