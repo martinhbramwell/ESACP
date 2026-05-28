@@ -232,7 +232,7 @@ description: >-
       </p>
       <blockquote class="chain-narrative">
         Claude, please read from this link
-        <code>https://bit.ly/A1B2c3</code> and take on the
+        <code>https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md</code> and take on the
         &ldquo;Essex&rdquo; role as it explains.
       </blockquote>
       <p class="why">
@@ -390,6 +390,11 @@ description: >-
     <a href="essex-demo.html">See a worked example of a stage-2 conversation</a>
     &mdash; a static walkthrough where Essex helps a small-business
     owner set up the sandbox on a Windows 11 machine.
+  </p>
+  <p>
+    Want background on what's being built and what's been learned
+    across 60+ sessions?
+    <a href="{{ '/learn-more/' | relative_url }}">Learn more about ESACP &rsaquo;</a>
   </p>
 </div>
 
