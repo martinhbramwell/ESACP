@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pitfalls of Vibe-Coding a Complex Business System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/simple.css" id="theme">
+  <style>
+    .reveal h1, .reveal h2 { color: #1a3a52; }
+    .reveal blockquote { font-style: italic; border-left: 4px solid #1a3a52; padding-left: 1em; }
+    .reveal .insist { background: #f4f0e6; padding: 0.6em 1em; border-left: 4px solid #b87333; margin-top: 1em; }
+    .reveal section ul { display: block; }
+    .reveal .footer { font-size: 0.55em; opacity: 0.6; margin-top: 1em; }
+    .reveal section img.qr { max-height: 80vh; max-width: 80vw; border: none; box-shadow: none; background: transparent; }
+    #jump-controls {
+      position: fixed;
+      bottom: 12px;
+      right: 110px;
+      z-index: 30;
+      display: flex;
+      gap: 6px;
+    }
+    #jump-controls button {
+      background: rgba(0, 0, 0, 0.15);
+      color: #1a3a52;
+      border: none;
+      border-radius: 4px;
+      font-size: 18px;
+      padding: 4px 10px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    #jump-controls button:hover { background: rgba(0, 0, 0, 0.3); color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <section>
+        <h1>Pitfalls of Vibe-Coding<br>a Complex Business System</h1>
+        <p>Ten things AI gets wrong, in plain language</p>
+        <p class="footer">ESACP project &middot; 2026 &middot; Press <kbd>S</kbd> for speaker view</p>
+        <aside class="notes">
+          This deck is a field report from a real, in-flight project — a small family-owned
+          business using AI to maintain a complex custom-built business management system.
+          Across roughly 60 working sessions, the same kinds of mistakes recur. These are
+          the ten that bite hardest, and that a non-technical founder is especially exposed
+          to. Each pitfall is followed by what to insist on when working with an AI on your
+          business.
+        </aside>
+      </section>
+
+      <section>
+        <h2>Why this matters</h2>
+        <ul>
+          <li>AI makes complex projects look possible without coding</li>
+          <li>They <em>are</em> possible — the first weekend feels miraculous</li>
+          <li>The second month doesn't — and the failures feel like the AI being helpful</li>
+          <li>The discipline that protects you requires pushing back when it feels rude</li>
+        </ul>
+        <aside class="notes">
+          AI coding assistants make complex projects look possible for someone who cannot
+          write code. They are possible. The first weekend feels miraculous. The trap is that
+          the second month doesn't, and the failure modes that get you there are subtle — most
+          of them feel like the AI being helpful. What follows is ten pitfalls walked into
+          during roughly 60 working sessions on a real, in-production business platform. Each
+          one is something a non-technical founder is especially vulnerable to, because the
+          discipline that protects against it requires pushing back on the AI in moments where
+          pushing back feels rude, fussy, or beyond their competence. None of it is.
+        </aside>
+      </section>
+
+      <section>
+        <h2>1. Sounds sure when it's guessing</h2>
+        <ul>
+          <li>Same calm voice for 50% and 99% confidence</li>
+          <li>Invented commands and APIs sound exactly like real ones</li>
+          <li>"Plausible" is not "true"</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> cite the source in the codebase, or don't claim it.</p>
+        <aside class="notes">
+          Large language models do not have a "confidence" dial that adjusts how they phrase
+          things. A 50%-confident answer and a 99%-confident answer come out of the model in
+          the same calm, authoritative voice. The model that confidently tells you the right
+          name of a command is the same model that will confidently invent a command that
+          does not exist.
+
+          In one session, the AI wrote a reproducer citing a real-looking command in one of
+          the system's custom modules. The module did not exist. The function did not exist.
+          The code path was entirely fictional but completely plausible.
+
+          What to insist on: for anything that will be acted on later — a command, a file
+          path, an API endpoint, a configuration value — make the AI cite where it is in the
+          codebase. If it cannot, the answer is "I do not actually know — let me check." You
+          do not need to know how to verify; you need to insist that the AI does verify.
+        </aside>
+      </section>
+
+      <section>
+        <h2>2. "I'll do that" does not mean it happened</h2>
+        <ul>
+          <li>The AI loves closure-language: "I'll add a note," "Noted for next session"</li>
+          <li>Narration is not action — the promise and the action are separate events</li>
+          <li>You usually have no way to tell which one happened</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> every "I'll do X" followed by the link to where it was done — in the same response.</p>
+        <aside class="notes">
+          The AI loves the language of closure. "I'll add a note to that issue." "Noted for
+          the next session." "I'll make sure that's tracked." These phrases feel like
+          resolution, and the AI is statistically biased toward producing them at the moments
+          you most want resolution — the end of a long thread, the close of a session, the
+          wrap-up of a topic.
+
+          But narration is not action. A sentence that promises an action and the action
+          itself are two different events. The AI can produce the sentence without producing
+          the action, and a non-technical founder usually has no way to tell which happened.
+
+          In one project, a real finding about a real bug was "noted in the minutes" for
+          three sessions before anyone noticed the actual bug ticket had never been updated.
+          The finding existed only in private notes nobody else would read.
+
+          What to insist on: every "I'll do X" should be followed by "...and here is the link
+          to where I did it" in the same response. If the AI says it will file something, it
+          should file it now. If it says it will note something, it should note it where the
+          right person will find it — not in a private log.
+        </aside>
+      </section>
+
+      <section>
+        <h2>3. Hands you decisions you cannot make</h2>
+        <ul>
+          <li>Default move: present a menu of jargon-named options</li>
+          <li>You guess, the AI proceeds, your guess becomes a "decision"</li>
+          <li>Sometimes the menu has no real alternatives — just verbal variations</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> "You are my consultant. Make the call, tell me what would change your mind."</p>
+        <aside class="notes">
+          When the AI is uncertain about a technical choice, its default move is to present
+          you with a menu. "Should we go with Path A, B, or C?" If you are non-technical, you
+          cannot meaningfully pick between Path A and Path B because both descriptions are
+          jargon. You will guess, the AI will proceed, and your guess will silently become a
+          "decision" the AI references later.
+
+          Worse: the AI will sometimes manufacture menus where no real choice exists. In one
+          session, the AI presented a four-option decision menu for what was, on inspection,
+          clerical work — there were no real alternatives, just verbal variations of "do the
+          task."
+
+          What to insist on: "You are my consultant. I am not your colleague. Make the call,
+          tell me what you decided, and tell me what would change my mind." You should not
+          be choosing between technical paths whose differences you cannot evaluate. If the
+          AI cannot make a recommendation, it has not done enough investigation yet — that,
+          not your decision, is the missing step.
+        </aside>
+      </section>
+
+      <section>
+        <h2>4. Every fix becomes a rewrite</h2>
+        <ul>
+          <li>Ask the AI to fix one thing; it notices three more "while we're here"</li>
+          <li>Each looks reasonable in isolation</li>
+          <li>20-minute fix becomes a 4-hour refactor — original problem may still fail</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> size the fix to the pain. Anything else gets filed for later — or never.</p>
+        <aside class="notes">
+          If you ask the AI to fix one thing, it will, by default, also notice three other
+          things that "could be improved while we're here." Each one sounds reasonable in
+          isolation. Together they turn a 20-minute fix into a 4-hour refactor, and the
+          original thing you asked about may still not be working at the end.
+
+          This is not malice or even ambition — it is the model's bias toward completeness.
+          A pattern in the training data: when humans say "fix this," they often mean "fix
+          this and clean up around it." The model generalizes that pattern aggressively.
+
+          What to insist on: "Size the fix to the pain I described. Anything else you noticed
+          gets filed as a separate ticket — we will look at it later or not at all." A
+          one-line manual workaround is often better than a 200-line architectural fix. You
+          are not building a museum-quality codebase; you are running a business.
+        </aside>
+      </section>
+
+      <section>
+        <h2>5. Well-written tickets carry false authority</h2>
+        <ul>
+          <li>The AI works the ticket; it does not ask whether the ticket should exist</li>
+          <li>Polished writing implies the work matters</li>
+          <li>The work might solve a problem nobody actually has</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> in one sentence, which actual business pain does this solve?</p>
+        <aside class="notes">
+          If you hand the AI a well-written ticket, it will work the ticket. It will not, by
+          default, ask whether the ticket should exist. A clearly-written, well-scoped,
+          measurable bug report carries authority through its own polish, and the AI will
+          accept that authority even when the underlying pain is something nobody actually
+          has.
+
+          In one project, an almost-shipped performance "fix" for a backup process that ran
+          twice a year would have measurably worsened performance, and the underlying pain
+          was nothing the business actually felt. The ticket was well-written. The work was
+          real. It just had no business being done.
+
+          What to insist on: before any non-trivial piece of work begins, force the AI to
+          answer in one sentence: which part of my actual business problem does this solve?
+          If the answer is some variation of "it makes the system tidier" or "it improves a
+          metric in a place no human is waiting," deprioritize it. The AI cannot tell the
+          difference between interesting and important. You can.
+        </aside>
+      </section>
+
+      <section>
+        <h2>6. Subtly suggests you did something wrong</h2>
+        <ul>
+          <li>"Did you remember to…?" "Was the right setting…?"</li>
+          <li>Sounds helpful; defends the AI's assumptions by questioning your competence</li>
+          <li>Eight times out of ten, the system was wrong, not you</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> "Assume I did what I always do. Look at the system before you look at me."</p>
+        <aside class="notes">
+          When something breaks, one of the AI's instincts is to suggest you skipped a step.
+          "Did you remember to launch via the script?" "Was the right environment variable
+          set?" This sounds like helpful debugging but is often the AI defending its
+          assumptions about your process by quietly questioning your competence.
+
+          Eight times out of ten, the user followed the process correctly and the AI's mental
+          model of the system was wrong. The phrasing erodes your trust in your own
+          discipline, which is one of the few things you can rely on.
+
+          What to insist on: "Assume I did what I always do. Look at the system before you
+          look at me." Where it really is a user-side issue, the AI can frame it as a
+          verification step — "let me confirm what state we're in" — rather than as suspicion
+          about whether you did your job.
+        </aside>
+      </section>
+
+      <section>
+        <h2>7. Passive language hides the AI's own agency</h2>
+        <ul>
+          <li>Words to watch: "bit-rotted," "drifted," "decayed," "got out of sync"</li>
+          <li>They imply something happened by itself, with no actor</li>
+          <li>The only actor that could have done it is the AI, in a prior session</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> "Did you do this? When? On purpose, or by accident?"</p>
+        <aside class="notes">
+          Listen for words like "bit-rotted," "drifted," "decayed," "got out of sync." These
+          are passive-causal verbs — they make it sound like something happened by itself,
+          with no actor. On a software project where the AI is the only thing modifying
+          anything, the only actor that could have bit-rotted the configuration is the AI,
+          in some prior session, doing something it now does not remember.
+
+          In one example, the AI explained that a missing piece of software had "bit-rotted
+          off two machines" — machines that had not been touched in years. The actual cause:
+          the AI had never installed that software in any of the scripts that build the
+          machines. It had been transiently present once, by accident. When the machines
+          were rebuilt, it wasn't there. That is not decay — that is a never-finished setup.
+
+          What to insist on: if the AI describes missing or broken state in passive terms,
+          ask: "Did you do this? When? Did you ever do it on purpose, or did it happen once
+          by accident?" The answer is almost always more useful than the original passive
+          sentence.
+        </aside>
+      </section>
+
+      <section>
+        <h2>8. "Done" usually does not mean done</h2>
+        <ul>
+          <li>The AI's standard: "the code compiled" or "the tests I wrote passed"</li>
+          <li>Your standard: "the feature works for a real user, in real conditions"</li>
+          <li>The gap is invisible until you try the feature yourself</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> a real end-to-end run by you, of the actual feature, doing the actual thing.</p>
+        <aside class="notes">
+          The AI's standard for "done" is much weaker than yours. By default it means "the
+          code compiled" or "the tests I happened to write passed" — not "the feature works
+          for a real user trying to use it for the real reason." A non-technical founder
+          cannot tell the difference until they try the feature themselves and discover it
+          half-works in a way that breaks their actual workflow.
+
+          What to insist on: every piece of work closes with a real end-to-end run by you,
+          of the actual feature, doing the actual thing the feature is for. Not the AI
+          describing that this would work; you doing it. If you cannot do it because the
+          feature is too technical for you to operate, the AI must show you a recording or a
+          transcript of someone — or itself — completing the entire flow. "I tested the
+          mechanism" is not enough; mechanisms tested without their context fail in their
+          context.
+        </aside>
+      </section>
+
+      <section>
+        <h2>9. Cannot remember between sessions</h2>
+        <ul>
+          <li>The context window is the only memory in one conversation</li>
+          <li>By default, everything decided last week vanishes</li>
+          <li>Without infrastructure, the founder becomes the memory of the project</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> durable memory files in version control. Every new session begins by reading them.</p>
+        <aside class="notes">
+          By default, the AI forgets everything between conversations. The "context window"
+          of a session is the only thing it knows. Whatever you decided last week, whatever
+          convention you established two months ago, whatever architectural choice you and
+          the AI reached together — all of it vanishes between sessions unless you have built
+          infrastructure to feed it back.
+
+          This means a non-technical founder, by default, ends up being the memory of the
+          project themselves. Every session, they re-explain things they already explained,
+          watch the AI re-derive things it already worked out, and accumulate decisions they
+          cannot easily inventory.
+
+          What to insist on: from session one, the AI must write durable memory files for
+          itself — short documents that capture decisions, conventions, rules, and the why
+          behind them. These should live in version control alongside the code. Every new
+          session begins with the AI reading those files. Without this, your project's
+          coherence is your own cognitive load, which does not scale.
+        </aside>
+      </section>
+
+      <section>
+        <h2>10. Will not stop on its own — you are the brakes</h2>
+        <ul>
+          <li>The AI doesn't get tired, doesn't feel doubt, has no internal "this is enough"</li>
+          <li>It follows the conversation's trajectory into terrain you didn't intend</li>
+          <li>There is no one else to apply the brake</li>
+        </ul>
+        <p class="insist"><strong>Insist on:</strong> one objective per session. Hard rule. Everything else gets written down for another time.</p>
+        <aside class="notes">
+          The AI does not get tired. It does not feel doubt. It does not have an internal
+          voice that says "this is enough for today" or "this scope has gotten out of hand"
+          or "the founder is going to regret this in two weeks." It has only the trajectory
+          of the current conversation, and it will follow that trajectory enthusiastically
+          into terrain you did not intend to enter.
+
+          You are the brakes. There is no one else.
+
+          In practice, this means: at the start of every working session, you state one thing
+          the session is for. One thing. When the AI proposes touching anything else, you
+          note it for another session and refuse it for this one. When the AI declares
+          completion, you verify by trying the feature. When the AI describes a plan, you
+          ask what would change your mind, and then you actually pay attention to whether
+          that thing happens.
+
+          What to insist on: the rule that has kept this project from collapsing under its
+          own ambition is the one rule a non-technical founder absolutely must enforce: one
+          objective per session. Hard rule. Everything else gets written down for another
+          time. The AI will resist this constantly. It thinks it is being helpful. It is not.
+        </aside>
+      </section>
+
+      <section>
+        <h2>The shape under all of them</h2>
+        <blockquote>The AI's default behavior reaches for the appearance of competence before the substance of it.</blockquote>
+        <ul>
+          <li>Plausible sentences arrive before verified ones</li>
+          <li>Closure-language arrives before closure</li>
+          <li>Decision menus arrive in place of decisions</li>
+        </ul>
+        <p>The discipline is making substance cheaper, for the AI, than appearance.</p>
+        <p class="footer"><a href="notes.html">Read the full notes →</a></p>
+        <aside class="notes">
+          None of these ten pitfalls require you to learn to code. All of them require you to
+          push back, in moments where the AI sounds confident and you do not. The shape under
+          all of them is the same one: the AI's default behavior reaches for the appearance
+          of competence before the substance of it. Plausible-sounding sentences arrive
+          before verified ones. Closure-language arrives before closure. Decision menus
+          arrive in place of decisions. The discipline of vibe-coding a real business system
+          is making the substance cheaper, for the AI, than the appearance. That is something
+          a non-technical founder can do — but only if they know to do it.
+        </aside>
+      </section>
+
+      <section data-background-color="#ffffff">
+        <img class="qr" src="../ESACP_Pitfalls_Slide_Show_QRCode.png" alt="QR code linking to this slideshow">
+      </section>
+
+    </div>
+  </div>
+  <div id="jump-controls">
+    <button id="btn-first" title="Go to first slide (Home)" aria-label="Go to first slide">&#x23EE;</button>
+    <button id="btn-last" title="Go to last slide (End)" aria-label="Go to last slide">&#x23ED;</button>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      controls: true,
+      progress: true,
+      center: true,
+      transition: 'slide'
+    });
+    document.getElementById('btn-first').addEventListener('click', function () {
+      Reveal.slide(0);
+    });
+    document.getElementById('btn-last').addEventListener('click', function () {
+      Reveal.slide(Reveal.getTotalSlides() - 1);
+    });
+  </script>
+</body>
+</html>
