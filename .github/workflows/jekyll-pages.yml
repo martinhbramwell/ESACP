@@ -1,0 +1,68 @@
+name: Jekyll Pages (on_boarding)
+
+# Builds the Jekyll landing page under on_boarding/docs/ and stages the
+# Mode-A persona doc as a raw .md alongside the built site, then deploys
+# to GitHub Pages. Per ESACP#505 (unblocks #497 — persona-doc raw-serve
+# moved from gist.githubusercontent.com after robots.txt block).
+#
+# Baseurl handling: Option A from #505 — local _config.yml stays at
+# baseurl: "" for ergonomic localhost serve; CI builds with the flag.
+
+on:
+  push:
+    branches:
+      - on_boarding
+    paths:
+      - 'on_boarding/docs/**'
+      - 'on_boarding/internal_docs/mode_a_persona_v0.md'
+      - '.github/workflows/jekyll-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: on_boarding/docs
+
+      - name: Build site
+        working-directory: on_boarding/docs
+        run: bundle exec jekyll build --baseurl "/ESACP"
+
+      - name: Stage persona doc alongside site
+        run: |
+          install -d on_boarding/docs/_site/persona
+          install -m 0644 on_boarding/internal_docs/mode_a_persona_v0.md \
+                          on_boarding/docs/_site/persona/mode_a_v0.md
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: on_boarding/docs/_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
