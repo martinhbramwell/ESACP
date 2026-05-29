@@ -55,7 +55,7 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 | POST | `/api/provision/erpnext-generic` | Generic deploy (no prod data) + wizard completion (record/replay/existing) |
 | GET | `/api/wizard/recordings` | List available Playwright wizard recordings (`recordings/wizard/*.spec.js`) |
 | GET | `/api/wizard/backups` | List golden backup files (`platforms/kvm/golden_backups/*.tgz`) |
-| POST | `/api/refresh/{host}` | Re-run stages 3–9 via `macro/refresh.py` (idempotent, over WireGuard) |
+| POST | `/api/refresh/{host}` | Re-run stages 3–9 via `macro/refresh.py` (idempotent, over WireGuard). Optional `?force=true` (#492) bypasses presence-based skip on stages 4+5 so template-only edits redeploy |
 | GET | `/api/health/{host}` | SSH checks: nginx (`systemctl is-active`), app (supervisorctl RUNNING count), db (mysql SELECT 1) |
 | GET | `/api/template/status` | Metadata for latest undifferentiated ERPNext image on toshiba |
 | POST | `/api/build/template` | Start background Packer build on hub (one at a time) |
@@ -75,7 +75,7 @@ Start: `uvicorn tools.api:app --port 8088 --reload` from project root. Will move
 - VM power actions (`/api/vm/{host}/start|stop|reboot`) are synchronous — no job/polling. Each dispatches to `tools/pipeline/orchestration/vm_power.py`; `start` first calls `memory_guard.check_memory()` (virsh nodeinfo + dominfo sums vs 2 GiB host reserve). HTTP 409 on insufficient RAM; HTTP 400 when a hub stop is rejected
 - **Jobs run as independent OS processes** (GH #37) — `tools/api/jobs.py` spawns `tools/job_worker.py` via `subprocess.Popen` with `start_new_session=True`. Child process survives uvicorn restart. Log → `/tmp/esacp-job-{id}.log`, status → `/tmp/esacp-job-{id}.status`, metadata → `/tmp/esacp-job-{id}.meta`. API endpoints read from these files (fully stateless)
 - `POST /api/provision/erpnext` delegates to `macro/provision.py` which runs stages 1–9 sequentially. Each stage has a verify-based idempotency gate — if all postconditions are already met, the stage is skipped. The final snapshot step runs unconditionally
-- `POST /api/refresh/{host}` delegates to `macro/refresh.py` which runs stages 3–9 (skipping VM creation and network). Same idempotency gates apply
+- `POST /api/refresh/{host}` delegates to `macro/refresh.py` which runs stages 3–9 (skipping VM creation and network). Same idempotency gates apply. Pass `?force=true` (#492) to bypass the gate on stages 4 (content delivery) and 5 (TLS) so an edited `templates/nginx_vhost.conf.j2`, `envars.sh.j2`, etc. redeploys to the VM. Stage 7 (data restoration) deliberately ignores `force` — it would re-restore from production backup and wipe lab state.
 - ce_sri secrets deployment, deploy keys, Cloudflare DNS, TLS certs, and all differentiation steps are now handled by pipeline stage units, not by api.py helpers
 - `erp_user` sourced from `ansible/group_vars/all.yml` (single source of truth)
 
