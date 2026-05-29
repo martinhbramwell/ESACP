@@ -44,7 +44,7 @@
   "tools/cli/provision.py": 44,
   "tools/cli/provision_generic.py": 75,
   "tools/cli/provision_vm.py": 28,
-  "tools/cli/snapshot_vm.py": 27,
+  "tools/cli/snapshot_vm.py": 28,
   "tools/cli/validate_keys.py": 26,
   "tools/cli/validate_observability.py": 30,
   "tools/cli/verify_add_host.py": 62,
