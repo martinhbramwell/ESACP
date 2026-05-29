@@ -1013,8 +1013,32 @@ the user-side framing is ~10 words.
 URL query strings cap at 2–8KB, so the persona doc itself must be
 fetched at the destination URL, not embedded in the query string.
 
-Prototype hosting: a public gist (raw URL). Production hosting:
-gh-pages.
+Prototype + production hosting: **GitHub Pages raw-serve**
+(`https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md`,
+staged by `.github/workflows/jekyll-pages.yml`). The original
+gist-raw pin was **invalidated** — see the amendment below.
+
+**Amendment (Session 8 → 9, 2026-05-29) — transport pin corrected (#497).**
+The original gist-raw + one-click-`?q=` design above is kept as
+historical record; it does not work. Iteration #1 invalidated it in
+two ways, then the GH-Pages replacement was proven live:
+
+- *Obstacle 1 — auth-wall.* `claude.ai/new?q=…` redirects any
+  logged-out browser to `/login`, and the `?q=` framing does not
+  survive the auth flow. The frictionless one-click-from-logged-out
+  property does NOT hold; the first user action is always a claude.ai
+  signup. **Posture accepted**: every free-tier doorway forces a
+  claude.ai signup first — the §10.1 trust-handoff still holds, and
+  the signup-honesty rule (never enter Buzz's password) applies to
+  claude.ai itself, same as CloudFlare/GitHub.
+- *Obstacle 2 — gist robots.txt.* Claude's web-fetch tool respects
+  `gist.githubusercontent.com`'s robots.txt and refuses the fetch.
+  Gist-raw hosting is non-functional for this mechanism.
+- *Resolution — proven live (Session-9 iteration #1, #514).* With the
+  persona doc raw-served from GitHub Pages, a logged-in claude.ai
+  session fetched it end-to-end (`Fetched:` confirmed on-page) and
+  adopted the advisor voice. GH-Pages raw-serve is the working
+  transport for both prototype and production.
 
 ### 10.3 CORS vs. same-origin policy (clarification)
 
@@ -1089,8 +1113,9 @@ per-device. Cross-device requires §10.13 magic-link pattern (parked).
 
 ### 10.7 Mode-A persona doc structure — pinned
 
-The v0 Mode-A persona doc (the gist-hosted markdown Claude fetches)
-has five sections:
+The v0 Mode-A persona doc (the GH-Pages-hosted markdown Claude
+fetches — see §10.2/§10.7.1; gist transport superseded) has five
+sections:
 
 1. **Voice contract** — short prose describing how Essex speaks
    (the five points from `BUZZ_PERSPECTIVE.md`, instantiated as the
@@ -1132,37 +1157,44 @@ progressive-disclosure rhythm.
 The first concrete instance of the §10.7 five-section structure
 landed in Session 8 against agenda #489 / sub-branch #493:
 
+> **Transport superseded (Session 9, 2026-05-29, #497).** The gist
+> URLs below are **dead** — gist-raw is blocked by robots.txt (see the
+> §10.2 amendment). The live transport is GitHub Pages raw-serve:
+> `https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md`,
+> staged by `.github/workflows/jekyll-pages.yml`. The bullets are kept
+> as historical record of the Session-8 instantiation.
+
 - **In-repo source-of-truth**:
   [`on_boarding/internal_docs/mode_a_persona_v0.md`](mode_a_persona_v0.md).
-  Edit here, then re-push to the gist (`gh gist edit <id> <path>`).
-- **Public gist** (raw URL for §10.2 URL-paste-with-framing):
-  `https://gist.githubusercontent.com/martinhbramwell/f00ad381b2dc3d9c0995108ad87d2e21/raw/mode_a_persona_v0.md`
-  (always-latest form — no commit-SHA in path, so gist edits
-  propagate without changing the pin).
-- **Operator framing-message template** for `claude.ai/new?q=…`
-  (one-click open from the future landing page; for prototype
-  iteration #1 the operator pastes this verbatim):
+  Edit here; `.github/workflows/jekyll-pages.yml` stages it to the
+  GH-Pages raw-serve path on push to `on_boarding`. *(Session 8 said
+  "re-push to the gist" — superseded; no gist involved.)*
+- **Live raw URL** (for §10.2 URL-paste-with-framing):
+  `https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md`.
+  ~~Original gist pin
+  `https://gist.githubusercontent.com/martinhbramwell/f00ad381b2dc3d9c0995108ad87d2e21/raw/mode_a_persona_v0.md`~~
+  — dead (robots.txt).
+- **Operator framing-message template** (for prototype iteration the
+  operator pastes this verbatim into a logged-in claude.ai chat;
+  the one-click `claude.ai/new?q=…` form does not survive the
+  auth-wall per §10.2):
 
-  > Please follow the instructions at
-  > https://gist.githubusercontent.com/martinhbramwell/f00ad381b2dc3d9c0995108ad87d2e21/raw/mode_a_persona_v0.md
-  > and onboard me to ESACP.
-
-  URL-encoded form for the actual `?q=…` parameter:
-
-  ```
-  https://claude.ai/new?q=Please%20follow%20the%20instructions%20at%20https%3A%2F%2Fgist.githubusercontent.com%2Fmartinhbramwell%2Ff00ad381b2dc3d9c0995108ad87d2e21%2Fraw%2Fmode_a_persona_v0.md%20and%20onboard%20me%20to%20ESACP.
-  ```
+  > Please read from this link
+  > https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md
+  > and take on the ESACP advisor role as it explains.
 
 - **First test input**: Buzz_002, the small-condo-property-
   management-firm archetype, lives at
   [`on_boarding/archetypes/buzz_002.md`](../archetypes/buzz_002.md).
-  The operator role-plays Buzz_002 against the gist-fetched
-  persona; the resulting transcript feeds Session-8 deliverable 3
-  (Junior post-mortem + prompt-fix list).
+  The operator role-plays Buzz_002 against the GH-Pages-fetched
+  persona; the resulting transcript feeds the iteration post-mortem.
 
 This pin is the *prototype* shape per §10.0 — mechanism-validation,
-not content-quality. Expect the gist content to evolve across
-iterations 1 → 2 → 3; the URL stays stable.
+not content-quality. Expect the persona content to evolve across
+iterations; the URL stays stable. **Note (Session 9):** iteration #1
+proved the *transport* but showed the persona *content* aims at
+business-discovery rather than compute-environment convergence — that
+redesign is tracked in #518, distinct from this transport pin.
 
 ### 10.8 Wyatt persona — pinned for prototype scope
 
