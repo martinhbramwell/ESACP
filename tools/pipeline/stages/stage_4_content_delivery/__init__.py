@@ -34,7 +34,7 @@ def run_stage_4(config: Config, emit: Emit) -> None:
         ssh_opts=config.ssh_opts,
         ssh_key=config.ssh_key,
     )
-    if all_passed(results):
+    if all_passed(results) and not config.force_refresh:
         emit("[OK] Stage 4 already satisfied — skipping")
         return
 

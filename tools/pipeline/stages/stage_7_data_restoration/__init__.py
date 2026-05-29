@@ -35,6 +35,9 @@ def run_stage_7(config: Config, emit: Emit) -> None:
         bench_dir=config.bench_dir,
         site_url=config.site_url,
     )
+    # Stage 7 deliberately ignores config.force_refresh — data restoration
+    # is destructive (re-restores from production backup, wiping any post-
+    # restore lab state). #492 scopes force to stages 4 + 5 only.
     if all_passed(results):
         emit("[OK] Stage 7 already satisfied — skipping")
         return

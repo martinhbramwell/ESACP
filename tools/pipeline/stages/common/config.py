@@ -48,6 +48,7 @@ def build_config(
     *,
     use_wg: bool = False,
     provision_mode: str = "restored",
+    force_refresh: bool = False,
 ) -> Config:
     """Construct an immutable Config for a pipeline run.
 
@@ -82,4 +83,5 @@ def build_config(
         ssh_key=str(Path.home() / ".ssh" / "hasan_mighty"),
         ssh_opts=ssh_opts,
         project_root=project_root,
+        force_refresh=force_refresh,
     )

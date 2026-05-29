@@ -42,7 +42,7 @@ def run_stage_5(config: Config, emit: Emit) -> None:
         site_url=config.site_url,
         domain=config.domain,
     )
-    if all_passed(results):
+    if all_passed(results) and not config.force_refresh:
         emit("[OK] Stage 5 already satisfied — skipping")
         return
 

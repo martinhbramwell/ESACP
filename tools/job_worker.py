@@ -53,7 +53,8 @@ def run_provision_generic(args: dict) -> None:
 def run_refresh(args: dict) -> None:
     from tools.pipeline.macro.refresh import run
     run(hostname=args["hostname"], host_cfg=args["host_cfg"],
-        project_root=str(PROJECT_ROOT), emit=emit)
+        project_root=str(PROJECT_ROOT), emit=emit,
+        force=args.get("force", False))
     emit("── Refresh complete ──")
 
 
