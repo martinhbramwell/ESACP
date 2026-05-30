@@ -281,3 +281,24 @@ deferred to next sidebar to preserve class purity.
 4. **Unresolved operator doubts** — operator's option-tree-frustration
    feedback noted and homed as carry-forward for next sidebar.
    Otherwise none lingering.
+
+## Post-close addendum
+
+After the close-batch commit (`cd049ae`) was pushed, operator surfaced
+the redundancy between the `UserPromptSubmit` session-close hook
+(`.claude/hooks/session_close_audit.sh`, prongs 1–3) and their personal
+"Standard SESSION END" template (4 prongs). Operator decision: extend
+the hook to cover prong 4 and retire the personal template.
+
+- **#524 filed** (chore: session_close_audit prong 4) → commit
+  `b577cf8` direct-to-main → #524 auto-closed
+  `2026-05-30T00:05:46Z`. T1+T3 esacp-qa verdict approve-with-
+  conditions (all conditions mechanical hygiene; discharged in
+  commit).
+- Hook now emits all four prongs; smoke-tested live.
+- S87 agenda's "extend hook to cover prong 4" housekeeping
+  candidate dropped in the same patch (this item no longer needs
+  doing).
+
+ESACP open count after post-close patch: 71 → 71 (+1 filed #524, -1
+auto-closed #524, net 0).
