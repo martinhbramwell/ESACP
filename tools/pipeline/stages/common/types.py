@@ -50,3 +50,8 @@ class Config:
     ssh_key: str
     ssh_opts: list[str]
     project_root: str
+
+    # Bypass verify-skip gates on stages 4 (content delivery) + 5 (TLS)
+    # so template-only edits redeploy (#492). Other stages — notably
+    # 7 (data restoration) — ignore this and keep presence-based idempotency.
+    force_refresh: bool = False

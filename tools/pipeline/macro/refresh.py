@@ -19,13 +19,23 @@ def run(
     host_cfg: dict,
     project_root: str,
     emit: Emit,
+    *,
+    force: bool = False,
 ) -> None:
     """Refresh an existing ERPNext VM by running stages 3–9.
 
     Uses WireGuard transport (VM already exists, WG is up).
     Raises RuntimeError on the first stage that fails.
+
+    When ``force=True`` (#492), stages 4 (content delivery) and 5 (TLS)
+    bypass their presence-based verify-skip gates so template-only edits
+    are redeployed. Other stages keep their normal idempotency — in
+    particular stage 7 (data restoration) is never force-rerun.
     """
-    config = build_config(hostname, host_cfg, project_root, use_wg=True)
+    config = build_config(hostname, host_cfg, project_root,
+                          use_wg=True, force_refresh=force)
+    if force:
+        emit("[WARN] force_refresh=True — stages 4+5 will bypass verify-skip gates")
 
     _STAGES: list[tuple[str, object]] = [
         ("Stage 3: Connectivity",       run_stage_3),

@@ -61,14 +61,18 @@ def start_provision_erpnext_generic(vm: NewGenericErpnextVM):
 
 
 @router.post("/api/refresh/{hostname}")
-def start_refresh(hostname: str):
-    """Re-run stages 3–9 on an existing VM via WireGuard (idempotent)."""
+def start_refresh(hostname: str, force: bool = False):
+    """Re-run stages 3–9 on an existing VM via WireGuard.
+
+    ``force=True`` bypasses per-stage presence-based verify-skip gates so
+    template-only edits actually redeploy (#492).
+    """
     host_cfg = get_host_or_404(hostname)
     if not host_cfg.get("wg_ip"):
         raise HTTPException(400, f"No WireGuard IP configured for '{hostname}'")
 
     job_id = str(uuid.uuid4())[:8]
     spawn_job("refresh", job_id, {
-        "hostname": hostname, "host_cfg": host_cfg,
+        "hostname": hostname, "host_cfg": host_cfg, "force": force,
     }, hostname=hostname)
     return {"job_id": job_id}
