@@ -187,6 +187,28 @@ you are about to commit directly to `on_boarding` (no sub-branch), STOP.
 Cut a `docs/session-N-pr-backfill` sub-branch first and route the change
 through a PR.
 
+### Carry-forward: the three-way split
+
+A next-session agenda issue (the agenda-as-issue convention above) ends
+with a **Carry-forward** section. Do **not** list those items under one
+flat heading — a single "carry-forward" label silently mixes three
+states that have three different fates, and the next Junior (or the
+operator) can't tell "done" from "dropped." Split them under three
+explicit sub-headings:
+
+| Bucket | Meaning | Fate |
+|---|---|---|
+| **Discharged** | Completed *after* the agenda was written — the agenda text is just stale (agendas are authored at the prior session's close, before that session's own backfill/cleanup lands). | Listed once for traceability, then **removed on the next cycle**. Never re-carried. |
+| **Deferred (tracked)** | An open issue, queued behind the current objective by the one-objective-per-session rule. Filed so it isn't lost — *not* abandoned. | Re-carried until the session that adopts it as its objective closes it. |
+| **Cross-branch (handed off)** | Lives in Senior / `main`-branch territory (root `CLAUDE.md`, `internal_docs/qa-log.md`, root docs). Junior **flags** it; Junior **cannot resolve** it from this branch. | Re-carried as a flag until Senior actions it; never converted to Junior work. |
+
+The point is that "complete or not?" must be answerable per item. An
+item under **Discharged** is complete (and is leaving). An item under
+**Deferred** is incomplete *by design* — queued, not unresolved. An
+item under **Cross-branch** is incomplete *because it isn't Junior's to
+close* — handed off, awaiting the other agent. If an item doesn't fit
+one of the three, it doesn't belong in carry-forward.
+
 ## QA verdict layer
 
 T1 commits · T2 merges · T3 pushes · T4 destructive ops · T5 issue
