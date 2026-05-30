@@ -19,8 +19,7 @@ TEMPLATE = (
     '    <div class="col-md-12 text-center">\n'
     '      <h1 class="display-4">{company}</h1>\n'
     '      <h3 class="text-muted my-4">{tag_line}</h3>\n'
-    '      <p class="lead">{description}</p>\n'
-    '    </div>\n  </div>\n</div>'
+    '      <p class="lead">{description}</p>\n    </div>\n  </div>\n</div>'
 )
 
 
@@ -63,7 +62,8 @@ def main():
         "title": company,
         "route": HOME_ROUTE,
         "published": 1,
-        "content_type": "Page Builder",
+        # "Rich Text" renders main_section; "Page Builder" => blank (#456)
+        "content_type": "Rich Text",
         "main_section": main_section,
     })
     doc.insert(ignore_permissions=True)
