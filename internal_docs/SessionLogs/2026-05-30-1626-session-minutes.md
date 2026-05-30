@@ -132,3 +132,35 @@ sidebar.
 HTTP 200 masked a user-visible blank page. The agenda's mandated browser
 check is what surfaced it. No new memory edit needed — the rule already
 encodes this; #480 R1 annotation records the concrete instance.
+
+## Post-close addendum (reconciliation) — #456 close was PREMATURE
+
+After this session's close batch was pushed (`f2c53d3`), operator review
+reopened #456. **Part 3 above and the SESSION END audit's "#456 closed"
+claim are superseded.**
+
+- **What was wrong**: PR#534 (content_type → Rich Text) fixed the blank
+  `<main>` but only reproduced the **hero text**. Operator's side-by-side
+  (dev01 V13 `/index` vs dev02 V16 `/home`) showed the V13 homepage is a
+  **dynamic erpnext template** (`erpnext/templates/pages/home.{py,html}`,
+  upstream-deleted in V16) assembling hero+Explore + a live **Blog/
+  Publications** feed + dynamic **Homepage Sections** (the "Acerca De" /
+  T&C+Privacy block). My salvage reproduced none of those.
+- **My error**: I rationalized the gap as "not pixel-parity, by R1
+  design" and closed — contradicting the V13↔V16 parity standard
+  (`feedback_v13_v16_verification_depth` sub-rule #1: **narrow fix ≠
+  closed defect**). This is a second concrete instance of that rule.
+- **#456 reopened** with full findings + V16 capability facts (orphaned
+  `tabHomepage`/`tabHomepage Section`/`tabBlog Post` data survives; Page
+  Builder is the V16 mechanism; `/all-products` has 0 items). Open scope
+  question homed in #456: **fidelity** (faithful vs pragmatic) + **bucket**
+  (faithful tenant homepage = bucket-2/LSKB business logic; ESACP R1 stays
+  the generic non-blank safety net).
+- **#536 filed** (future feature): brain-partitioned domain-expert
+  personas (Wyatt=ERPNext, Paco=networking, deferred) + FOSS-fork
+  contributor vision. NOT built.
+- **Counts corrected**: ESACP **75** open (73 at close +#456 reopened
+  +#536 filed); LSKB 12.
+- **Next**: S89 = the overdue introspection-sidebar (also decides #456
+  bucket/scheduling, picks up #533, and is the venue for the sub-rule-#1
+  memory reinforcement). See the S89 agenda.
