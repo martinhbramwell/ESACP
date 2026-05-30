@@ -167,7 +167,7 @@ internal_docs/                      # DiagramDesign.md, FailoverDesign.md, RUNBO
 All commits must:
 1. **Conventional Commits** format: `<type>[optional scope]: <description>`
 2. **GPG-signed** (`git commit -S`)
-3. **Co-author trailer**: `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`
+3. **Co-author trailer**: `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`
 4. **Update relevant CLAUDE.md** if the commit changes architecture, key files, stage status, or gotchas
 
 | Type | When |
