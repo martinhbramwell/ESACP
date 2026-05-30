@@ -1113,32 +1113,46 @@ per-device. Cross-device requires §10.13 magic-link pattern (parked).
 
 ### 10.7 Mode-A persona doc structure — pinned
 
-The v0 Mode-A persona doc (the GH-Pages-hosted markdown Claude
-fetches — see §10.2/§10.7.1; gist transport superseded) has five
-sections:
+> **Redesigned (#518, Session 10).** Sections 2 and 4 below were
+> rewritten from a *divergent business survey* into a *convergent
+> compute-environment install-planner*, and a hard dependency on two
+> raw-served spec sheets was added. The five-section skeleton and the
+> voice/exemplar/metaphor sections (1, 3, 5) carry forward unchanged.
+> The description below is the current (post-#518) truth; the original
+> business-discovery wording is preserved in git history.
 
-1. **Voice contract** — short prose describing how Essex speaks
+The Mode-A persona doc (the GH-Pages-hosted markdown Claude fetches —
+see §10.2/§10.7.1; gist transport superseded) has five sections:
+
+1. **Voice contract** — short prose describing how the advisor speaks
    (the five points from `BUZZ_PERSPECTIVE.md`, instantiated as the
    What/Why/Who/Cost framing pattern), with pointers into
-   `BUZZ_PERSPECTIVE.md` for the source-of-truth.
-2. **Mode-A question framework** — fresh writing. The ~10–20
-   discovery questions, structured by category (business shape /
-   current information mess / tech-comfort / desired end-state).
-   Each question framed with the What/Why/Who/Cost respect for
-   Buzz's autonomy.
+   `BUZZ_PERSPECTIVE.md` for the source-of-truth. *(Unchanged by #518.)*
+2. **Mode-A question framework** — the **compute-environment** question
+   set, structured by category (computer inventory / comfort &
+   capability / internet presence & hosting). The sole aim is to gather
+   the facts needed to place the controller and saconsole; questions
+   about the business, customers, money, or people are explicitly
+   **out of scope** — that is the trust-earning property. Each question
+   framed with the What/Why/Who/Cost respect for Buzz's autonomy.
 3. **Voice exemplars (Mode-B)** — 2–3 short excerpts from Session
    5's `on_boarding/docs/index.md` embedded inline as voice
    calibration. Labelled *"this is how Essex speaks once we get
-   past discovery"*. Gives Claude a stable voice anchor.
-4. **Closing protocol** — instructions for Claude to wrap up:
-   *"when the profile feels complete, produce an anonymized summary
-   suitable for Buzz to share with ESACP and to drop into his fork
-   of the ESACP repo. Anonymize: business name, location, real
-   figures, names of people."*
+   past discovery"*. Gives Claude a stable voice anchor. *(Unchanged
+   by #518.)*
+4. **Closing protocol** — instructions for Claude to **fetch the two
+   spec sheets** (controller + saconsole, §10.7.2) and produce a short
+   **install recommendation**: which machine is the controller, where
+   saconsole lives, the gaps to close, and the cost shape. Replaces the
+   prior "anonymized business profile" closing — because the
+   conversation never elicited business data, there is little to
+   anonymize; the closing protocol just enforces neutral machine
+   labels.
 5. **Anchoring metaphors permitted** — Minecraft "shelter" /
-   "well-lit zone" (§5), shoe-string-rope-chain (§11),
+   "well-lit zone" (§5), shoe-string-rope-chain (§11; now load-bearing
+   — controller=shoe, saconsole=rope, ERP=chain),
    garage-workbench-style concrete analogies. Encourages voice
-   signature without scripting specifics.
+   signature without scripting specifics. *(Unchanged by #518.)*
 
 **What does NOT carry from Session 5's `index.md`** (which is Mode-B
 execution content, not Mode-A): the WSL setup content itself,
@@ -1195,6 +1209,44 @@ iterations; the URL stays stable. **Note (Session 9):** iteration #1
 proved the *transport* but showed the persona *content* aims at
 business-discovery rather than compute-environment convergence — that
 redesign is tracked in #518, distinct from this transport pin.
+**Update (Session 10):** the #518 redesign landed — persona content is
+now the convergent install-planner (§10.7 as amended), with the two
+spec sheets in §10.7.2. The `/persona/mode_a_v0.md` URL is unchanged;
+only the content was rewritten.
+
+#### 10.7.2 Spec-sheet dependency (Session 10, #518/#530/#531)
+
+The convergent install-planner cannot recommend without reference data
+it fetches at conversation time (same URL-fetch mechanism as the
+persona doc). Two raw-served spec sheets, served **directly by Jekyll**
+as front-matter-less `.md` under `on_boarding/docs/specs/` (Jekyll
+copies front-matter-less files verbatim into `_site`, so they serve raw
+at `/specs/…`):
+
+- **Controller spec** — source
+  [`on_boarding/docs/specs/controller_v0.md`](../docs/specs/controller_v0.md)
+  → live `https://martinhbramwell.github.io/ESACP/specs/controller_v0.md`
+  (#530). Derived from `on_boarding/tools/bootstrap.py`.
+- **saconsole spec** — source
+  [`on_boarding/docs/specs/saconsole_v0.md`](../docs/specs/saconsole_v0.md)
+  → live `https://martinhbramwell.github.io/ESACP/specs/saconsole_v0.md`
+  (#531). Derived from the `virt-install` build figures (2 vCPU /
+  4 GiB / 20 GB / NAT).
+
+> **Mechanism note (Session 10).** These specs are served by Jekyll
+> from `on_boarding/docs/specs/`, **not** by an `install` step in
+> `.github/workflows/jekyll-pages.yml` (the way the persona doc is).
+> This is the deliberate in-territory sidestep: the workflow lives in
+> root (Senior) territory, so to keep the #518 redesign entirely within
+> `on_boarding/` the specs are placed where the existing
+> `on_boarding/docs/**` path-trigger already builds them — no root-file
+> edit. The durable fix (whether to keep this split or unify the two
+> serving mechanisms) is the boundary decision in **#533**.
+
+Both are **Level-2** hand-authored snapshots of their source-of-truth
+(see #518 for the deferred Level-3 generate-from-source step that would
+remove drift). The persona doc's §4 closing protocol instructs the
+advisor to fetch both before recommending.
 
 ### 10.8 Wyatt persona — pinned for prototype scope
 
