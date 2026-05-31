@@ -1,8 +1,8 @@
 ---
 layout: landing
-title: "ESACP — Turn scattered business operations into one understandable system"
+title: "Beaverdam — Turn scattered business operations into one understandable system"
 description: >-
-  ESACP helps owner-operated SMEs move gradually from spreadsheets,
+  Beaverdam helps owner-operated SMEs move gradually from spreadsheets,
   QuickBooks, Zoho, email, binders, and tribal knowledge toward one
   coherent open-source business system, with AI-guided setup and
   human engineering judgment built in.
@@ -11,7 +11,7 @@ description: >-
 <section data-panel="problem" id="problem">
 
 <header class="hero">
-  <p class="brand-tag">ESACP &mdash; the ERP System Administrator Control Panel</p>
+  <p class="brand-tag">Beaverdam &mdash; your ERP System Administrator Control Panel</p>
   <h1>You already do ERP.<br>But is it <i>systematic</i> ERP?</h1>
   <p class="tagline">
     You already <strong>P</strong>lan allocation of your scarce <strong>E</strong>nterprise <strong>R</strong>esources,
@@ -21,7 +21,7 @@ description: >-
     The data is there. The connecting tissue isn't.
   </p>
   <p class="tagline">
-    ESACP is a guided path from that scattered reality toward one coherent 
+    Beaverdam is a guided path from that scattered reality toward one coherent 
     source of truth for the whole business &mdash; introduced gradually,
     explained clearly, and designed so the company does not become dependent
     on one technical person forever.
@@ -71,7 +71,7 @@ description: >-
 
 </div>
 
-<p class="panel-cue">Recognise the pattern? <a href="#why" class="panel-cue-link">See what ESACP changes &rsaquo;</a></p>
+<p class="panel-cue">Recognise the pattern? <a href="#why" class="panel-cue-link">See what Beaverdam changes &rsaquo;</a></p>
 
 </section>
 
@@ -80,7 +80,7 @@ description: >-
 <h2>What changes when operations become understandable</h2>
 
 <p class="intro">
-	You hear wild stories about AI, both bad and good.  You can try to "vibe-code" your own ERP system, but AI has no <b>authentic</b> understanding of what it's doing.  <b>Will you?</b> Also, why re-invent the wheel? ESACP brings four decades of tight budget, big systems expertise towards training an AI to be <strong>your private, personal 24/365 ERP systems consultant</strong>.
+	You hear wild stories about AI, both bad and good.  You can try to "vibe-code" your own ERP system, but AI has no <b>authentic</b> understanding of what it's doing.  <b>Will you?</b> Also, why re-invent the wheel? Beaverdam brings four decades of tight budget, big systems expertise towards training an AI to be <strong>your private, personal 24/365 ERP systems consultant</strong>.
 </p>
 
 <ul class="pairing-list">
@@ -100,7 +100,7 @@ description: >-
 
 
 <p class="intro">
-  Work on ESACP began in a real family-owned biochemical factory ... ordinary small enterprise reality: operational
+  Work on Beaverdam began in a real family-owned biochemical factory ... ordinary small enterprise reality: operational
   knowledge scattered across accounting software, spreadsheets, documents,
   regulatory obligations, custom processes, and people&rsquo;s heads.
 </p>
@@ -170,7 +170,7 @@ description: >-
 </blockquote>
 
 <p>
-  ESACP uses the same idea. It does not begin by replacing your business system.
+  Beaverdam uses the same idea. It does not begin by replacing your business system.
   It begins by understanding the one you already have, even if that system is
   currently scattered across half a dozen tools and two people&rsquo;s memories.
 </p>
@@ -181,7 +181,7 @@ description: >-
     <p class="role">Stage 1 &mdash; the shoe on a string</p>
     <h3>A short AI-guided discovery conversation.</h3>
     <p>
-			We want to guide you towards installing ESACP in a safe, fenced-off sandbox on one of your computers.
+			We want to guide you towards installing Beaverdam in a safe, fenced-off sandbox on one of your computers.
 		</p>
     <p>
 	    The goal is clear and simple - figure out the best way to get you started using the computing power you already have and how confident you are in exploiting it.  So ...
@@ -204,7 +204,7 @@ description: >-
     <p class="role">Stage 2 &mdash; the rope</p>
     <h3>A safe local test environment.</h3>
     <p>
-      A test version of ESACP and ERPNext is introduced in an isolated environment,
+      A test version of Beaverdam and ERPNext is introduced in an isolated environment,
       with AI guidance explaining what is happening and why. The purpose is not to
       rush migration. The purpose is to let the business see structure before risking operations.
     </p>
@@ -220,7 +220,7 @@ description: >-
     <p>
       Selected business functions move into ERPNext: customers, orders, inventory,
       invoicing, workflows, reports, and the operating knowledge needed to keep them
-      reliable. ESACP adds the surrounding guidance, documentation, monitoring, and recovery discipline.
+      reliable. Beaverdam adds the surrounding guidance, documentation, monitoring, and recovery discipline.
     </p>
     <p class="comment">
       The goal is not fashionable software. The goal is a business that can be
@@ -253,14 +253,14 @@ description: >-
       </p>
       <p class="why">
         Why claude.ai: it gives you a simple place to run the first discovery
-        conversation. Nothing about ESACP touches your computer in stage 1.
+        conversation. Nothing about Beaverdam touches your computer in stage 1.
       </p>
     </div>
   </div>
 
   <div class="step">
     <div>
-      <h3>Create a Project. Call it &ldquo;ESACP Discovery&rdquo;.</h3>
+      <h3>Create a Project. Call it &ldquo;Beaverdam Discovery&rdquo;.</h3>
       <p class="time-hint">~30 seconds</p>
       <p>
         In claude.ai&rsquo;s left sidebar, click <strong>Projects</strong>, then
@@ -275,7 +275,7 @@ description: >-
 
   <div class="step">
     <div>
-      <h3>Invite the ESACP advisor into the chat.</h3>
+      <h3>Invite the Beaverdam advisor into the chat.</h3>
       <p class="time-hint">~10 seconds</p>
       <p>
         Inside your new project, click <strong>New chat</strong>. In the message
@@ -284,10 +284,10 @@ description: >-
       <blockquote class="chain-narrative">
         Claude, please read from this link
         <code>https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md</code>
-        and take on the ESACP advisor role as it explains.
+        and take on the Beaverdam advisor role as it explains.
       </blockquote>
       <p class="why">
-        What this does: the link tells Claude how the ESACP discovery conversation
+        What this does: the link tells Claude how the Beaverdam discovery conversation
         works and which questions to ask. Without it you get general-purpose Claude,
         which is helpful but not focused on this process.
       </p>
@@ -332,7 +332,7 @@ description: >-
     <strong>Stage 1 done.</strong> Your summary is the deliverable.
   </p>
   <p>
-    Stage 2 &mdash; installing a safe local ESACP test environment with Claude Code
+    Stage 2 &mdash; installing a safe local Beaverdam test environment with Claude Code
     as your guide &mdash; is under active construction. The self-serve walkthrough
     will land on this page when it is ready.
   </p>
@@ -373,7 +373,7 @@ description: >-
 
   <div class="caveat">
     <span class="tag caveat-tag">Scope</span>
-    <h3>ESACP does not replace business judgment.</h3>
+    <h3>Beaverdam does not replace business judgment.</h3>
     <p>
       The AI can ask better questions, organise messy answers, explain unfamiliar
       systems, and guide setup steps. It should not make business decisions for you.
@@ -405,7 +405,7 @@ description: >-
     <span class="tag caveat-tag">Lock-in</span>
     <h3>The direction is ownership, not hostage data.</h3>
     <p>
-      ERPNext is open-source. ESACP is being developed openly. The aim is that your
+      ERPNext is open-source. Beaverdam is being developed openly. The aim is that your
       data, configuration, documentation, and operating knowledge remain portable and
       understandable. If a tool cannot be explained or exited, it does not belong in the core path.
     </p>
@@ -416,7 +416,7 @@ description: >-
     <h3>The slow path is intentional.</h3>
     <p>
       A rushed ERP migration can damage a business faster than the old spreadsheet mess.
-      ESACP starts with discovery, then a test environment, then selected operational
+      Beaverdam starts with discovery, then a test environment, then selected operational
       migration. The point is controlled progress, not heroic big-bang transformation.
     </p>
   </div>
@@ -440,14 +440,14 @@ description: >-
 <h2>Who&rsquo;s doing this?</h2>
 
 <p class="intro">
-  ESACP is being built by <strong>Martin H. J. Bramwell</strong>, an independent
+  Beaverdam is being built by <strong>Martin H. J. Bramwell</strong>, an independent
   systems engineer and developer. The current work grows out of helping a small
   family-owned biochemical factory move from scattered operational information
   towards planning allocation of their scarce enterprise resources using ERPNext.
 </p>
 
 <p class="intro">
-  That matters because ESACP is not being invented from a whiteboard fantasy about
+  That matters because Beaverdam is not being invented from a whiteboard fantasy about
   &ldquo;SME digital transformation.&rdquo; It comes from the less glamorous reality:
   spreadsheets, accounting tools, custom processes, regulatory pressure, fragile
   knowledge transfer, and the need to keep the business running while improving it.

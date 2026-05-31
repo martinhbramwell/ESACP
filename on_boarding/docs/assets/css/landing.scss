@@ -102,19 +102,10 @@ html, body {
   line-height: 1;
 }
 
-.brand-mark {
-  font-family: var(--serif);
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.brand-sub {
-  font-size: 0.62rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-  margin-top: 0.15rem;
+.brand-logo {
+  display: block;
+  height: 44px;
+  width: auto;
 }
 
 /* tabs (top strip) */
@@ -678,9 +669,6 @@ body.tabs-overflow .hamburger  { visibility: visible; pointer-events: auto; }
     gap: 0.55rem;
   }
 
-  .brand-sub  { display: none; }
-  .brand-mark { font-size: 1.05rem; }
-
   .tab {
     padding: 0.5rem 0.55rem;
     font-size: 0.82rem;
@@ -736,7 +724,6 @@ body.tabs-overflow .hamburger  { visibility: visible; pointer-events: auto; }
 @media (max-width: 22rem) {
   /* very small (older smartphones, ~320px and below) */
   .topbar-inner { padding: 0.4rem 0.5rem; gap: 0.4rem; }
-  .brand-mark   { font-size: 0.95rem; }
   .page         { padding: 1.25rem 0.65rem 2.75rem; }
 
   .hamburger    { width: 2rem; height: 2rem; }
