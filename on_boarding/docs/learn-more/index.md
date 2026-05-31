@@ -1,10 +1,10 @@
 ---
 layout: default
-title: "ESACP — learn more"
+title: "Beaverdam — learn more"
 ---
 
 <div style="text-align: center; margin: 2.5em 0 2em;">
-  <h1 style="font-size: 6em; margin: 0; line-height: 1; letter-spacing: 0.02em;">ESACP</h1>
+  <h1 style="font-size: 6em; margin: 0; line-height: 1; letter-spacing: 0.02em;">Beaverdam</h1>
   <p style="font-size: 1.6em; color: #555; margin: 0.4em 0 0; font-style: italic;">When your only developer leaves!!</p>
 </div>
 
@@ -16,7 +16,7 @@ This is the common shape of a small business that uses powerful, customisable so
 
 ## What is being built
 
-ESACP — *ERP System Administrator Control Panel* — is a maintenance environment in which a much less specialised person can hold the knowledge that used to live in the head of one developer, with AI doing the heavy lifting.
+Beaverdam — an *ERP System Administrator Control Panel* (ESACP) — is a maintenance environment in which a much less specialised person can hold the knowledge that used to live in the head of one developer, with AI doing the heavy lifting.
 
 It is being built and operated right now, on a real business. Not a future product. Not a demo. In flight today, with a complete public record of every decision and every failure in the source repository.
 
@@ -48,7 +48,7 @@ This year crosses several milestones the small business needs:
 - Backup and restore that anyone — not just a developer — can operate.
 - A visual map of the running system that a non-developer can navigate.
 
-Beyond those: ESACP's design is generic. The current maintainer happens to know one particular business. The platform itself does not — it knows the *shape* of being a small business with a customised commercial-grade business system. That shape is reusable.
+Beyond those: Beaverdam's design is generic. The current maintainer happens to know one particular business. The platform itself does not — it knows the *shape* of being a small business with a customised commercial-grade business system. That shape is reusable.
 
 ## Reading more
 

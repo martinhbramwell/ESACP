@@ -1,6 +1,6 @@
 # saconsole compute-resource spec (v0)
 
-> **What this document is.** Reference data for the ESACP Mode-A
+> **What this document is.** Reference data for the Beaverdam Mode-A
 > advisor. When the advisor needs to decide whether the operator's
 > environment can **host saconsole** (and the sibling VMs it manages),
 > it fetches this sheet and reads off the concrete resource figures
