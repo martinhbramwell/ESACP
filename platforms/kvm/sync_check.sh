@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# sync_check.sh — KVM/Xubuntu (Mighty) platform sync check
+# sync_check.sh — KVM/Xubuntu (<controller>) platform sync check
 #
 # Run at the start of every session before doing any other work.
 # Objective: verify the toshiba-hosted ESACP estate matches expected state.
