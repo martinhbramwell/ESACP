@@ -11,7 +11,8 @@ description: >-
 <section data-panel="problem" id="problem">
 
 <header class="hero">
-  <p class="brand-tag">Beaverdam &mdash; your ERP System Administrator Control Panel</p>
+  <img class="hero-logo" src="{{ '/assets/images/beaverdam-logo.svg' | relative_url }}" alt="Beaverdam" width="2942" height="1799">
+  <p class="brand-tag">Your ERP System Administrator Control Panel</p>
   <h1>You already do ERP.<br>But is it <i>systematic</i> ERP?</h1>
   <p class="tagline">
     You already <strong>P</strong>lan allocation of your scarce <strong>E</strong>nterprise <strong>R</strong>esources,
@@ -20,14 +21,8 @@ description: >-
   <p class="tagline">
     The data is there. The connecting tissue isn't.
   </p>
-  <p class="tagline">
-    Beaverdam is a guided path from that scattered reality toward one coherent 
-    source of truth for the whole business &mdash; introduced gradually,
-    explained clearly, and designed so the company does not become dependent
-    on one technical person forever.
-  </p>
   <p class="audience-filter">
-    Built for owner-operators who've outgrown ad-hoc tools but can't justify commercial packages and an IT department.
+    Built for owner-operators who can't justify commercial packages and an IT department, who've outgrown ad-hoc tools and who lose sleep over a future day when maybe they can't be there anymore.
   </p>
   <p class="hero-cta">
     <a href="#start" class="cta-primary">Start with the 10-minute discovery step &rsaquo;</a>
@@ -106,15 +101,29 @@ description: >-
 </p>
 <p class="comment">It isn't a magic chatbot and it's not another dollars/user/month SaaS.</p>
 
-<h3>It's a guided adoption framework around a free and open-source (FOSS) business system called ERPNext.</h3>
+<h3>Official definition -- for nerds.</h3>
+<blockquote class="chain-narrative">
+  It's a guided adoption framework around a free and open-source (FOSS) business system called ERPNext.
+</blockquote>
 
 <p class="intro">
-  ERPNext will handle your sales, purchasing, inventory, manufacturing, accounting, service,
+What does that mean?  If some of that is new to you, good! You'll soon get it. For now it's our job to clarify. Read on...
+</p>
+
+  <p class="tagline">
+    Beaverdam is a guided path from scattered information toward one coherent 
+    source of truth for the whole business &mdash; introduced gradually,
+    explained clearly, and designed so the company does not become dependent
+    on one technical person forever.
+  </p>
+
+<p class="intro">
+  The centerpiece, ERPNext, will handle your sales, purchasing, inventory, manufacturing, accounting, service,
   HR, and much more in one fully integrated platform.  It can connect: complaint -> customer -> sales invoice -> sold item -> its defect -> its manufacturing step -> its component part -> purchase invoice -> supplier.
 </p>
 
 <p class="intro">
-	The embedded AI can explore a chain like that and tell you in plain language what happened and why ... but that's just one example.
+	The built in AI can explore a chain like that and tell you in plain language what happened and why ... but that's just one example.
 </p>
 
 
@@ -202,11 +211,9 @@ description: >-
 
   <div class="stage">
     <p class="role">Stage 2 &mdash; the rope</p>
-    <h3>A safe local test environment.</h3>
+    <h3>A safe local launcher environment.</h3>
     <p>
-      A test version of Beaverdam and ERPNext is introduced in an isolated environment,
-      with AI guidance explaining what is happening and why. The purpose is not to
-      rush migration. The purpose is to let the business see structure before risking operations.
+      We call this stage "the controller".  Using your previous description of your computing environment we explain to you how to get started with Claude Code (+/- $20/mth) in one of your machines.  You then paste your questionnaire result as a prompt to Claude.  With your approval, step by step, Claude will help you create the third stage, the full ERP development, staging and production platform.  Those steps would normally cost you thousands of $$$ in consulting fees, (because learning it all takes months!)
     </p>
     <p class="comment">
       Reversible by design. If it does not make sense, you stop before anything
@@ -218,9 +225,12 @@ description: >-
     <p class="role">Stage 3 &mdash; the chain</p>
     <h3>A real operating system for the business.</h3>
     <p>
-      Selected business functions move into ERPNext: customers, orders, inventory,
-      invoicing, workflows, reports, and the operating knowledge needed to keep them
-      reliable. Beaverdam adds the surrounding guidance, documentation, monitoring, and recovery discipline.
+      At your own speed and priority you move selected business functions into ERPNext: customers, orders, inventory,
+      invoicing, workflows, fixed-assets, and the operating knowledge needed to keep them
+      reliable. Beaverdam adds the surrounding guidance, documentation, monitoring, and recovery discipline.  The platform includes a very thorough monitoring system continuously inspecting your computers for impending problems.  It also gives you ways to develop and test new features off line before you put them into production.
+    </p>
+    <p>
+	  Finally, you don't actually do any of that yourself. You give goals to achieve to <i>Nick</i>, the platform expert and <i>Wyatt</i>, the ERP sheriff and <i>Paco</i>, the networking geek. They'll then beaver away 'til you get what you need.  They'll help explain, document, and organize your system, while you remain in full control.
     </p>
     <p class="comment">
       The goal is not fashionable software. The goal is a business that can be
@@ -275,7 +285,7 @@ description: >-
 
   <div class="step">
     <div>
-      <h3>Invite Nick, your Beaverdam Specialist Expert, into the chat.</h3>
+      <h3>Invite "Nick" into the chat. They'll be your Beaverdam expert guide.</h3>
       <p class="time-hint">~10 seconds</p>
       <p>
         Inside your new project, click <strong>New chat</strong>. In the message
@@ -284,12 +294,11 @@ description: >-
       <blockquote class="chain-narrative">
         Claude, please read from this link
         <code>https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md</code>
-        and take on the Beaverdam Specialist Expert role as it explains.
+        and take on the Beaverdam specialist expert role "Nick" as it explains.
       </blockquote>
       <p class="why">
         What this does: the link tells Claude how the Beaverdam discovery conversation
-        works and which questions to ask. Without it you get general-purpose Claude,
-        which is helpful but not focused on this process.
+        must work and which types of questions to ask. Without it you get general-purpose Claude, which is helpful but not focused on this process.
       </p>
     </div>
   </div>
@@ -299,9 +308,8 @@ description: >-
       <h3>Answer in plain language.</h3>
       <p class="time-hint">~5&ndash;10 minutes</p>
       <p>
-        Nick will ask short questions about how your business runs today:
-        the tools you use, where information is duplicated, where work gets stuck,
-        and what would hurt if one key person were unavailable.
+        Nick will ask short series of questions about your "computing capabilities": 1)
+        how confident you are with your computer, with rearranging your network, with connecting devices, and 2) how many and what kinds of devices you have under your control: Windows? MacOS? etc.
       </p>
       <p class="why">
         No technical vocabulary is required. Use the same words you would use with
@@ -447,10 +455,14 @@ description: >-
 </p>
 
 <p class="intro">
+  It raised the ugly, awkward question, "If the system fails and you're gone -- what the hell do we do?"
+</p>
+
+<p class="intro">
   That matters because Beaverdam is not being invented from a whiteboard fantasy about
   &ldquo;SME digital transformation.&rdquo; It comes from the less glamorous reality:
   spreadsheets, accounting tools, custom processes, regulatory pressure, fragile
-  knowledge transfer, and the need to keep the business running while improving it.
+  knowledge transfer, and the need to keep the business running while improving it and continuity if key people pop off.
 </p>
 
 <p>Earlier work, spanning many very different fields of expertise:</p>
