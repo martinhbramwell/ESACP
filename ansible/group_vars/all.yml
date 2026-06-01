@@ -28,6 +28,17 @@ wg_pubkey_dev03: "9joY/mn1ZrvczXKnF+L6qvP5M3cYFKgRTIOR0RDHHiA="
 wg_pubkey_target5: "8AFeP+XoqOyPTRNq6dINJxICREcixQ/wz7B1gZpdFRA="
 wg_pubkey_dev01: "ySQtN5mnR8+zEYM/Saxx/j9kO+nAq0liiLhtma/a3zw="
 wg_pubkey_dev02: "98Ht2/Cg08OSlPy11FJbpPoQhaK2nosu2e5vMx6WwXo="
+wg_pubkey_iconia: "XiykEtgWS7n6TnfpLYMznhGlofQKz/S8JbIgBcul61I="
+
+# ── External WireGuard peers (manually configured; ansible never connects) ──
+# Roaming/mobile devices that join the mesh as spokes but are NOT in the
+# ansible inventory (ansible_managed: false in hosts_map.yml, so excluded by
+# generate_inventory.py). The hub renders a [Peer] block for each from this
+# list. Keys live in config/wireguard/keys.sops.yml exactly like every other
+# peer; the PSK key is "<name>_<hub_key>". (ESACP#383)
+wg_external_peers:
+  - name: iconia
+    wg_ip: "10.10.0.20"
 
 # ── System configuration ───────────────────────────────────────────────────
 system_timezone: "America/New_York"

@@ -17,6 +17,15 @@ AllowedIPs          = {{ hostvars[host]['wg_ip'] }}/32
 # No Endpoint — {{ host }} initiates the connection to the hub.
 
 {% endfor %}
+{% for _peer in (wg_external_peers | default([])) %}
+# ── External peer: {{ _peer.name }} (manual / roaming) ─────────────────────
+[Peer]
+PublicKey           = {{ wg_keys[_peer.name].public_key }}
+PresharedKey        = {{ wg_keys.preshared_keys[_peer.name + '_' + hub_key] }}
+AllowedIPs          = {{ _peer.wg_ip }}/32
+# No Endpoint — {{ _peer.name }} initiates the connection to the hub.
+
+{% endfor %}
 {% else %}
 {% set _key = 'controller' if inventory_hostname in ['controller', 'localhost'] else inventory_hostname %}
 # ── Peer: {{ hub_display_name }} (hub) ────────────────────────────────────
