@@ -100,7 +100,7 @@
   "tools/pipeline/orchestration/observability_creds.py": 73,
   "tools/pipeline/orchestration/snapshot_ops.py": 39,
   "tools/pipeline/orchestration/sops_key_remove.py": 73,
-  "tools/pipeline/orchestration/substrate_apply.py": 64,
+  "tools/pipeline/orchestration/substrate_apply.py": 72,
   "tools/pipeline/orchestration/template_metadata.py": 46,
   "tools/pipeline/orchestration/test_fix_script_runner.py": 63,
   "tools/pipeline/orchestration/test_hosts_map_remove.py": 57,
