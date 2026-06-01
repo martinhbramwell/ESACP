@@ -275,7 +275,7 @@ description: >-
 
   <div class="step">
     <div>
-      <h3>Invite the Beaverdam advisor into the chat.</h3>
+      <h3>Invite Nick, your Beaverdam Specialist Expert, into the chat.</h3>
       <p class="time-hint">~10 seconds</p>
       <p>
         Inside your new project, click <strong>New chat</strong>. In the message
@@ -284,7 +284,7 @@ description: >-
       <blockquote class="chain-narrative">
         Claude, please read from this link
         <code>https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md</code>
-        and take on the Beaverdam advisor role as it explains.
+        and take on the Beaverdam Specialist Expert role as it explains.
       </blockquote>
       <p class="why">
         What this does: the link tells Claude how the Beaverdam discovery conversation
@@ -299,7 +299,7 @@ description: >-
       <h3>Answer in plain language.</h3>
       <p class="time-hint">~5&ndash;10 minutes</p>
       <p>
-        The advisor will ask short questions about how your business runs today:
+        Nick will ask short questions about how your business runs today:
         the tools you use, where information is duplicated, where work gets stuck,
         and what would hurt if one key person were unavailable.
       </p>
@@ -425,9 +425,9 @@ description: >-
 
 <div class="essex-demo-note">
   <p>
-    Curious what the advisor sounds like after discovery?
+    Curious what Nick sounds like after discovery?
     <a href="essex-demo.html">See a worked example of a stage-2 conversation</a>
-    where the advisor helps a small-business owner set up a sandbox on a Windows 11 machine.
+    where Nick helps a small-business owner set up a sandbox on a Windows 11 machine.
   </p>
 </div>
 

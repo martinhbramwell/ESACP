@@ -1,6 +1,6 @@
 # Controller package spec (v0)
 
-> **What this document is.** Reference data for the ESACP Mode-A
+> **What this document is.** Reference data for the Beaverdam Mode-A
 > advisor. When the advisor needs to assess whether one of the
 > operator's computers can serve as the **controller**, it fetches
 > this sheet and reads off the concrete requirements below. This is
@@ -49,7 +49,7 @@ Total download is roughly **25 MB**.
 | **pinentry-curses** | In-terminal prompt for your GPG password | Ubuntu's own package mirrors | free, ~200 KB |
 | **keychain** | Keeps SSH/GPG agents running so you type key passwords once per login | Ubuntu's own package mirrors | free, ~150 KB |
 | **age** | Modern file-encryption tool — keeps passwords/keys encrypted inside the code copy | Ubuntu's own package mirrors | free, ~2 MB |
-| **gh** | GitHub's command-line tool — lets ESACP manage your code copy on your behalf | GitHub (sees a download, not an identity until you sign in) | free, ~12 MB |
+| **gh** | GitHub's command-line tool — lets Beaverdam manage your code copy on your behalf | GitHub (sees a download, not an identity until you sign in) | free, ~12 MB |
 | **sops** | Secrets-encryption tool (CNCF) — keeps secrets encrypted at rest | GitHub (sees a download, not an identity) | free, ~10 MB |
 
 Config edits the installer makes:

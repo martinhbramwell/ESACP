@@ -1,7 +1,7 @@
 ---
 layout: default
-title: "Setting up ESACP on a Windows 11 machine"
-subtitle: "A first conversation between Buzz_000 and Essex. Static mock — no chatbot wired up yet."
+title: "Setting up Beaverdam on a Windows 11 machine"
+subtitle: "A first conversation between Buzz_000 and Nick, your Beaverdam Specialist Expert. Static mock — no chatbot wired up yet."
 ---
 
 <!--
@@ -14,7 +14,7 @@ subtitle: "A first conversation between Buzz_000 and Essex. Static mock — no c
     2. The one PowerShell line that imports it
     3. Visual branding so Buzz can tell ESACP's window apart
     4. Snapshot / revert posture (Minecraft "shelter")
-    5. The first prompt in the new shell + what Essex does next
+    5. The first prompt in the new shell + what Nick does next
 -->
 
 > **Audience:** Variant 1 greenfield (small business not yet on any ERP) ·
@@ -24,16 +24,16 @@ subtitle: "A first conversation between Buzz_000 and Essex. Static mock — no c
 <div class="turn buzz">
   <div class="speaker">Buzz</div>
   <div class="bubble" markdown="1">
-Hi. A friend told me ESACP could help me get my business onto one piece of software instead of the seven I'm using now. I've got a Windows 11 laptop. Where do I start?
+Hi. A friend told me Beaverdam could help me get my business onto one piece of software instead of the seven I'm using now. I've got a Windows 11 laptop. Where do I start?
   </div>
 </div>
 
 <div class="turn essex">
-  <div class="speaker">Essex</div>
+  <div class="speaker">Nick</div>
   <div class="bubble" markdown="1">
 Welcome, Buzz. The first thing we'll do is give your laptop a small, separate Linux room to work in — without touching anything you already have on Windows. The piece of Windows that lets us do this is called **WSL** (Windows Subsystem for Linux); it's free, it's made by Microsoft, and it ships with your laptop already.
 
-Think of it like adding a clean workbench to your garage. Your existing tools stay where they are; we just put the ESACP work on its own surface so nothing gets mixed up.
+Think of it like adding a clean workbench to your garage. Your existing tools stay where they are; we just put the Beaverdam work on its own surface so nothing gets mixed up.
 
 When you're ready, I'll walk you through the first command.
   </div>
@@ -47,7 +47,7 @@ Hold on — I already had someone install Ubuntu on this thing last year for a d
 </div>
 
 <div class="turn essex">
-  <div class="speaker">Essex</div>
+  <div class="speaker">Nick</div>
   <div class="bubble" markdown="1">
 Good catch, and the answer is *no, by design*. WSL lets you run several Linux installations side by side, each with its own name and its own files. We're going to create a brand-new one called **ESACP** and leave your existing Ubuntu completely alone.
 
@@ -70,7 +70,7 @@ Got it open. Now what?
 </div>
 
 <div class="turn essex">
-  <div class="speaker">Essex</div>
+  <div class="speaker">Nick</div>
   <div class="bubble" markdown="1">
 Two commands. The first one downloads Ubuntu 24.04 from Microsoft's catalogue:
 
@@ -92,7 +92,7 @@ Done. It said "Ubuntu-24.04 has been installed."
 </div>
 
 <div class="turn essex">
-  <div class="speaker">Essex</div>
+  <div class="speaker">Nick</div>
   <div class="bubble" markdown="1">
 Perfect. Now we'll make the ESACP-branded copy. Three lines:
 
@@ -116,7 +116,7 @@ There they are. So now I just open the ESACP one?
 </div>
 
 <div class="turn essex">
-  <div class="speaker">Essex</div>
+  <div class="speaker">Nick</div>
   <div class="bubble" markdown="1">
 Almost. One more thing first — let's make the ESACP window *look* different from the other one, so you never have to guess which is which. This is a one-time setup in **Windows Terminal** (the app with the multicoloured icon in your Start menu).
 
@@ -151,7 +151,7 @@ That's cute. Green window, ESACP. Got it. What if I mess everything up?
 </div>
 
 <div class="turn essex">
-  <div class="speaker">Essex</div>
+  <div class="speaker">Nick</div>
   <div class="bubble" markdown="1">
 That's the best question you've asked yet, and we have a clean answer.
 
@@ -182,7 +182,7 @@ OK. Snapshot taken. Now do I go in?
 </div>
 
 <div class="turn essex">
-  <div class="speaker">Essex</div>
+  <div class="speaker">Nick</div>
   <div class="bubble" markdown="1">
 Now you go in. Open the green **ESACP** tab in Windows Terminal. You'll see a prompt that looks something like this:
 
@@ -192,7 +192,7 @@ root@ESACP:~#
 
 You're inside the ESACP room. From here I'll start the actual setup — installing the small set of tools the platform needs (a key manager, a signing utility, GitHub's command-line client, and a couple of others). Every install will get the same *What / Why / Who / Cost* explanation you've seen so far, and you'll click "yes" to each one.
 
-An IT consultant would take weeks to wire up everything we're about to set up, and would charge you accordingly. ESACP has all of it in its training. We'll go through it together at your pace.
+An IT consultant would take weeks to wire up everything we're about to set up, and would charge you accordingly. Beaverdam has all of it in its training. We'll go through it together at your pace.
 
 When you're ready, type `whoami` and press Enter. We'll start there.
   </div>
