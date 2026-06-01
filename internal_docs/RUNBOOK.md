@@ -29,6 +29,9 @@ Stage 1.5 — Failure Injection & Observability Validation
    - [promtail\_stopped](#promtail_stopped)
    - [grafana\_stopped](#grafana_stopped)
 4. [Troubleshooting](#4-troubleshooting)
+5. [Enrolling a Mobile / Satellite Terminal (WireGuard + tmux)](#5-enrolling-a-mobile--satellite-terminal-wireguard--tmux)
+   - [Enroll a new WireGuard peer](#5a-enroll-a-new-wireguard-peer)
+   - [Attach a satellite mirrored terminal](#5b-attach-a-satellite-mirrored-terminal)
 
 ---
 
@@ -508,3 +511,64 @@ If a false positive occurs, verify group membership:
 ```bash
 ansible-inventory -i ansible/inventory/dev.yml --list | python3 -m json.tool | grep -A5 '"production"'
 ```
+
+---
+
+## 5. Enrolling a Mobile / Satellite Terminal (WireGuard + tmux)
+
+Mobile/roaming devices (a Windows tablet, a phone) join the mesh as **manual
+spokes** — `ansible_managed: false` in `hosts_map.yml`, so `generate_inventory.py`
+excludes them and Ansible never connects to them. The hub learns each one via the
+`wg_external_peers` list in `ansible/group_vars/all.yml`. (ESACP#383)
+
+### 5a. Enroll a new WireGuard peer
+
+1. **Generate keys** (from project root):
+   ```bash
+   bash config/wireguard/add_peer.sh <name>      # e.g. iconia
+   ```
+   Note the printed `wg_pubkey_<name>`.
+2. **Register the peer** in three files:
+   - `hosts_map.yml` → add under the `mobile:` group (`wg_ip`, `wg_role: spoke`,
+     `ansible_managed: false`). Pick a free `10.10.0.x` (≥ `.20` for mobile).
+   - `ansible/group_vars/all.yml` → add `wg_pubkey_<name>` and an entry under
+     `wg_external_peers` (`name` + `wg_ip`).
+   - (no inventory edit — `generate_inventory.py` skips unmanaged hosts; the
+     summary line confirms `[manual]`).
+3. **Apply the hub config** (renders the new `[Peer]` into saconsole's `wg0.conf`):
+   ```bash
+   cd ansible
+   ansible-playbook -i inventory/kvm.yml site-kvm.yml --limit saconsole --tags wireguard
+   ```
+4. **Build the client config** and transfer it securely to the device (it holds
+   the private key — never commit it):
+   ```bash
+   # produces ~/<name>-wg0.conf (mode 0600); Endpoint = toshy.iridium.blue:51820
+   ```
+   On **Windows**: install *WireGuard for Windows*, "Add Tunnel" → import the
+   `.conf`, activate. On the **home/office LAN** `toshy.iridium.blue` resolves
+   directly; from a foreign network you need a public DDNS name with UDP/51820
+   forwarded to the hypervisor (out of v1 scope).
+5. **Verify**: on the device, the tunnel shows a recent handshake;
+   `ping 10.10.0.1` (hub) and `ping 10.10.0.2` (controller) succeed. The standard
+   spoke config (`AllowedIPs = 10.10.0.0/24` + hub forwarding) gives full-mesh
+   reachability.
+
+### 5b. Attach a satellite mirrored terminal
+
+`Cld.sh` launches Claude Code inside a shared tmux session (`esacp`) by default.
+A second terminal attaches to the **same live session** and can drive it:
+
+```bash
+ssh you@10.10.0.2 -t 'tmux attach -t esacp'      # from the tablet, over WireGuard
+```
+
+- Both terminals render the same output and accept input (turn-taking — one
+  input stream).
+- `window-size largest` (set by `Cld.sh`) keeps the controller terminal full-size
+  when the smaller tablet attaches; the tablet shows a scrolled view of the larger
+  geometry.
+- `ESACP_NO_TMUX=1 ./Cld.sh` launches Claude Code directly, without the shared
+  session.
+- The tablet's SSH **public** key must be in the controller's
+  `~/.ssh/authorized_keys`.
