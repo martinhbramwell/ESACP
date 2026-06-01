@@ -330,6 +330,13 @@ body.tabs-overflow .hamburger  { visibility: visible; pointer-events: auto; }
   margin-bottom: 2.25rem;
   border-bottom: 1px solid var(--rule);
 
+  .hero-logo {
+    display: block;
+    width: clamp(150px, 24vw, 230px);
+    height: auto;
+    margin: 0 auto 0.9rem;
+  }
+
   h1 {
     font-family: var(--serif);
     font-size: clamp(2.2rem, 6vw, 3.2rem);
