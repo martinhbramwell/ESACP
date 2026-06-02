@@ -23,17 +23,25 @@ from tools.pipeline.stages.common.ssh import rsync_to_vm, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 
+def _emit_block(emit: Emit, label: str, text: str) -> None:
+    """Emit a captured stream in full, indented under *label*. No truncation —
+    the migrate output is the defect-capture signal a substrate trial exists for
+    (ESACP#447)."""
+    text = text.rstrip()
+    if not text:
+        return
+    emit(f"    {label}:")
+    for line in text.splitlines():
+        emit(f"      {line}")
+
+
 def _run_step(config: Config, emit: Emit, label: str, cmd: str, *, timeout: int = 600) -> bool:
     r = ssh_run(config, cmd, timeout=timeout)
-    if r.returncode == 0:
-        emit(f"  [OK] {label}")
-        return True
-    emit(f"  [FAIL] {label}: rc={r.returncode}")
-    if r.stdout.strip():
-        emit(f"    stdout: {r.stdout.strip()[-500:]}")
-    if r.stderr.strip():
-        emit(f"    stderr: {r.stderr.strip()[-500:]}")
-    return False
+    status = "OK" if r.returncode == 0 else f"FAIL: rc={r.returncode}"
+    emit(f"  [{status}] {label}")
+    _emit_block(emit, "stdout", r.stdout)
+    _emit_block(emit, "stderr", r.stderr)
+    return r.returncode == 0
 
 
 def apply_substrate_migration(config: Config, emit: Emit) -> TaskResult:

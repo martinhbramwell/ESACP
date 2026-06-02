@@ -153,6 +153,25 @@ groups:
       ansible_groups:
         - controller
 
+  # ── Mobile / roaming peers (manually configured WireGuard) ────────────────
+  # ansible_managed: false → excluded from the generated Ansible inventory;
+  # the hub learns these peers via `wg_external_peers` in group_vars/all.yml.
+  # Ansible never connects to them (Windows/Android, configured by hand). The
+  # standard spoke config (AllowedIPs 10.10.0.0/24 + hub forwarding) gives them
+  # full-mesh reachability. (ESACP#383)
+  mobile:
+    iconia:
+      hostname: iconia
+      display_name: "Iconia Tablet"
+      nickname: iconia
+      wg_ip: "10.10.0.20"
+      wg_role: spoke
+      ansible_managed: false
+      platform: windows
+      device_class: tablet
+      ansible_groups:
+        - mobile
+
   # ── Future groups — define now, activate by populating ────────────────────
   dev_group: {}
   stage_group: {}
