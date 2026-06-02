@@ -5,8 +5,14 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from tools.host_identity import DEFAULT_HYPERVISOR, HUB_VIRBR0_IP
 from tools.pipeline.stages.common.types import Config
+
+# Hub-transport helpers live in ssh_hub.py; re-exported here so existing
+# `from ...ssh import hub_ssh_run` / `saconsole_ssh_run` sites stay unchanged.
+from tools.pipeline.stages.common.ssh_hub import (  # noqa: F401
+    hub_ssh_run,
+    saconsole_ssh_run,
+)
 
 
 def _ssh_base(config: Config) -> list[str]:
@@ -61,23 +67,3 @@ def rsync_to_vm(
     return subprocess.run(
         cmd, capture_output=True, text=True, timeout=timeout,
     )
-
-
-def hub_ssh_run(
-    config: Config, cmd: str, *, timeout: int = 15,
-) -> subprocess.CompletedProcess[str]:
-    """Run *cmd* on the hub VM via ProxyJump through the hypervisor."""
-    hyp = config.hypervisor or DEFAULT_HYPERVISOR
-    return subprocess.run(
-        ["ssh",
-         "-o", f"ProxyJump={hyp}",
-         "-o", "StrictHostKeyChecking=no",
-         "-i", config.ssh_key,
-         f"you@{HUB_VIRBR0_IP}",
-         cmd],
-        capture_output=True, text=True, timeout=timeout,
-    )
-
-
-# Backward-compatible alias
-saconsole_ssh_run = hub_ssh_run
