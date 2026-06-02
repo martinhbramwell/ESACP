@@ -14,7 +14,7 @@ from pathlib import Path
 import yaml
 
 from tools.host_identity import DEFAULT_HYPERVISOR, ZONE_DOMAINS
-from tools.pipeline.stages.common.config import _ssh_transport
+from tools.pipeline.stages.common.config_helpers import _ssh_transport
 
 
 @dataclass(frozen=True)
