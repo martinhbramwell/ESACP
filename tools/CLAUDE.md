@@ -279,3 +279,21 @@ Verify functions serve three roles:
 - Reads `hosts_map.yml`, writes `ansible/inventory/kvm.yml`
 - Excludes non-kvm backends: `attrs.get("backend", "kvm") != "kvm"`
 - Injects `ansible_ssh_common_args: "-o ProxyJump=..."` for hosts with a `hypervisor` field
+
+## agenda_lint.py — Session-close carry-forward gate (#560)
+
+`./tools/agenda_lint.py [path]` — scans a next-agenda for `#N` refs, looks up
+each one's live ESACP tracker state, and flags any that is CLOSED yet left
+*bare* (no `done`/`closed`/`✅`/`~~` stamp on its line). With no arg it lints
+the latest `internal_docs/SessionLogs/*-next-agenda.md`. Exit 1 if any flagged
+— run it at session close before committing the next agenda. Guards the root
+cause of #483/#541 staleness: hand-copied status that re-reads as a to-do.
+
+- **ESACP-repo-scoped by design.** `REF_RE`'s lookbehind skips letter-prefixed
+  refs, so cross-repo refs MUST be written with their prefix (`LSKB#16`), never
+  bare `#16` — a bare cross-repo ref is read as ESACP and may mis-flag.
+- **Live-query the #480 path** (its companion deliverable): the `umbrella:480`
+  label replaces the remembered "remaining on #480" sentence —
+  `gh issue list --repo martinhbramwell/ESACP --label umbrella:480 --state open`.
+- Pure core `bare_closed_refs(text, states)` is offline-testable; tests in
+  `tools/test_agenda_lint.py`.
