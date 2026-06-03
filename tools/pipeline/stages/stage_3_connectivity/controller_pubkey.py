@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
+from tools.host_identity import operator_pubkey
 from tools.pipeline.stages.common.ssh import scp_to_vm, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
-CONTROLLER_PUBKEY = Path.home() / ".ssh" / "hasan_mighty.pub"
+CONTROLLER_PUBKEY = operator_pubkey()
 
 
 def _pubkey_installed(config: Config) -> bool:
@@ -28,7 +27,7 @@ def _pubkey_installed(config: Config) -> bool:
 
 
 def ensure_controller_pubkey(config: Config, emit: Emit) -> TaskResult:
-    """SCP hasan_mighty.pub to /tmp/ on the VM."""
+    """SCP the controller pubkey to /tmp/ on the VM."""
     if not CONTROLLER_PUBKEY.exists():
         return TaskResult(False, False,
                           f"{CONTROLLER_PUBKEY} not found")
@@ -39,4 +38,4 @@ def ensure_controller_pubkey(config: Config, emit: Emit) -> TaskResult:
     if r.returncode != 0:
         return TaskResult(False, False,
                           f"SCP pubkey failed: {r.stderr.strip()}")
-    return TaskResult(True, True, "hasan_mighty.pub → /tmp/")
+    return TaskResult(True, True, f"{CONTROLLER_PUBKEY.name} → /tmp/")

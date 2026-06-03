@@ -23,6 +23,12 @@ PROJ_ROOT = Path(__file__).parent.parent
 HOSTS_MAP  = PROJ_ROOT / "hosts_map.yml"
 KVM_INV    = PROJ_ROOT / "ansible" / "inventory" / "kvm.yml"
 
+# Resolve the operator's hypervisor login from config (ESACP#451) — keep the
+# project root on sys.path so this works when run as ./tools/generate_inventory.py.
+if str(PROJ_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJ_ROOT))
+from tools.host_identity import hypervisor_user  # noqa: E402
+
 # Only hosts with this backend (or no backend field) are included in kvm.yml.
 KVM_BACKEND = "kvm"
 
@@ -73,7 +79,9 @@ def build_inventory(data: dict) -> dict:
             # route there directly — ProxyJump through the hypervisor is required.
             hypervisor = attrs.get("hypervisor")
             if hypervisor:
-                hv["ansible_ssh_common_args"] = f"-o ProxyJump=hasan@{hypervisor}"
+                hv["ansible_ssh_common_args"] = (
+                    f"-o ProxyJump={hypervisor_user()}@{hypervisor}"
+                )
             host_vars[hostname] = hv
 
             for grp in attrs.get("ansible_groups", []):

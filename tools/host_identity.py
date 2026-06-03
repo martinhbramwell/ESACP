@@ -13,12 +13,14 @@ Usage:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import yaml
 
 PROJECT_ROOT = Path(__file__).parent.parent
 HOSTS_MAP_PATH = PROJECT_ROOT / "hosts_map.yml"
+GROUP_VARS_KVM_PATH = PROJECT_ROOT / "ansible" / "group_vars" / "kvm.yml"
 
 
 def _load_hosts_map() -> dict:
@@ -102,6 +104,44 @@ def virbr0_gateway(virbr0_ip: str) -> str:
 def virbr0_subnet_prefix() -> str:
     """Return the virbr0 subnet prefix from the hub's virbr0_ip (e.g. '192.168.122')."""
     return HUB_VIRBR0_IP.rsplit(".", 1)[0]
+
+
+# ── Operator SSH identity (single source of truth; ESACP#567/#396/#451) ──────
+# These replace literals (`~/.ssh/hasan_mighty`, `hasan_mighty.pub`, `hasan@`)
+# formerly baked into pipeline code.  The values live in config — the operator
+# key/user in ansible/group_vars/kvm.yml, the hypervisor login in hosts_map.yml.
+
+
+def _expand_home(raw: str) -> str:
+    """Expand the Ansible HOME lookup and a leading ``~`` to an absolute path."""
+    raw = raw.replace("{{ lookup('env', 'HOME') }}", str(Path.home()))
+    return os.path.expanduser(raw)
+
+
+def operator_ssh_key() -> str:
+    """Absolute path to the operator's private SSH key.
+
+    Single source of truth: ``ansible_ssh_private_key_file`` in
+    ``ansible/group_vars/kvm.yml`` (mirrors the value Ansible itself uses).
+    """
+    with open(GROUP_VARS_KVM_PATH) as f:
+        kvm = yaml.safe_load(f) or {}
+    return _expand_home(kvm.get("ansible_ssh_private_key_file", "~/.ssh/hasan_mighty"))
+
+
+def operator_pubkey() -> Path:
+    """Path to the operator's public key (private key path + ``.pub``)."""
+    return Path(operator_ssh_key() + ".pub")
+
+
+def hypervisor_user() -> str:
+    """Operator's login on the bare-metal hypervisor (ProxyJump user).
+
+    Single source of truth: ``groups.controller.local.hypervisor_user`` in
+    ``hosts_map.yml``.  Falls back to ``$USER`` when unset.
+    """
+    local = _hosts_map.get("groups", {}).get("controller", {}).get("local", {})
+    return local.get("hypervisor_user") or os.environ.get("USER", "")
 
 
 if __name__ == "__main__":

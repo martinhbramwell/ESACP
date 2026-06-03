@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from tools.host_identity import DEFAULT_HYPERVISOR, ZONE_DOMAINS
+from tools.host_identity import DEFAULT_HYPERVISOR, ZONE_DOMAINS, operator_ssh_key
 from tools.pipeline.stages.common.config_helpers import (
     _derive_zone,
     _read_erp_user,
@@ -39,7 +39,7 @@ def parse_verify_args() -> VerifyContext:
 
     target_ip, ssh_opts = _ssh_transport(host_cfg, use_wg)
     hypervisor = host_cfg.get("hypervisor") or DEFAULT_HYPERVISOR
-    ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
+    ssh_key = operator_ssh_key()
     erp_user = _read_erp_user(proj)
     nickname = host_cfg.get("nickname", hostname[:4])
     domain = ZONE_DOMAINS[_derive_zone(host_cfg.get("ansible_groups", []))]

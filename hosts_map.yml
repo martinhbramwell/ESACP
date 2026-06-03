@@ -150,6 +150,11 @@ groups:
       wg_role: spoke
       ansible_managed: true
       platform: kvm            # set to: kvm | vbox | macos
+      # Operator's login on the bare-metal hypervisor — the ProxyJump user
+      # in the generated Ansible inventory. Single source of truth for the
+      # value formerly hardcoded as `hasan@` in generate_inventory.py
+      # (ESACP#451). Falls back to $USER at regen time when unset.
+      hypervisor_user: hasan
       ansible_groups:
         - controller
 

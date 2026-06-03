@@ -6,7 +6,6 @@ calls — infrastructure work belongs in ``tools/pipeline/``.
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -14,6 +13,8 @@ from typing import Optional
 import yaml
 from rich.console import Console
 from rich.panel import Panel
+
+from tools.host_identity import operator_ssh_key
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 ANSIBLE_DIR  = PROJECT_ROOT / "ansible"
@@ -64,9 +65,8 @@ def hub_vm(config: dict) -> Optional[str]:
 
 
 def ssh_key_path(config: dict) -> str:
-    raw = config["kvm"].get("ansible_ssh_private_key_file", "~/.ssh/hasan_mighty")
-    raw = raw.replace("{{ lookup('env', 'HOME') }}", os.environ.get("HOME", "~"))
-    return os.path.expanduser(raw)
+    """Operator key path via operator_ssh_key (config kept for call-site compat)."""
+    return operator_ssh_key()
 
 
 def vm_user(config: dict) -> str:
