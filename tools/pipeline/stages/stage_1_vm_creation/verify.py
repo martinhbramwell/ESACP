@@ -12,6 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from tools.host_identity import operator_ssh_key
+
 
 def _ssh_hyp(hypervisor: str, cmd: str, timeout: int = 15):
     return subprocess.run(
@@ -99,7 +101,7 @@ def verify_stage_1(
 ) -> list[tuple[bool, str]]:
     """Run all Stage 1 postcondition checks.  Returns list of (pass, msg)."""
     if ssh_key is None:
-        ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
+        ssh_key = operator_ssh_key()
     return [
         check_wg_key_in_sops(hostname, project_root),
         check_wg_pubkey_in_groupvars(hostname, project_root),

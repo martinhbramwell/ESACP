@@ -36,42 +36,40 @@ SYNC_CHECK = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sync_chec
 # ── Domain → file mapping ──────────────────────────────────────────────────
 DOMAINS = {
     'core': [
-        # Always loaded: workflow, behavioural rules, mission
+        # Always loaded: workflow, behavioural rules, mission.
+        # Issues-as-memory + bug-workflow detail now live in CLAUDE.md
+        # (always loaded); core wires only the surviving memory docs.
         'mission_vision.md',
-        'feedback_github_issues.md',
-        'feedback_issue_workflow.md',
-        'feedback_metacognition.md',
-        'feedback_naming_conventions.md',
+        'feedback_issue_branch_session_discipline.md',  # was github_issues/issue_workflow
+        'feedback_stop_and_redesign.md',                # was metacognition
+        'feedback_no_real_client_names.md',             # was naming_conventions
         'feedback_scc_command.md',
     ],
     'erpnext': [
-        # ERPNext v13 lab install, production topology, ce_sri scripts
-        'project_erpnext_v13_lab.md',
+        # ERPNext topology + V16/Plan-B strategy, ce_sri scripts, frappe deps
         'project_production_erpnext.md',
+        'project_erpnext_idiomatic_refactor.md',
+        'project_end_state_v16_lts_current_stack.md',
         'feedback_envars_secrets_pattern.md',
         'feedback_frappe_v13_deps.md',
         'feedback_lab_passwords.md',
         'feedback_sudo_askpass.md',
     ],
     'kvm': [
-        # Hypervisor host, VM lifecycle, SSH gotchas, platform strategy
+        # Hypervisor host, VM lifecycle, SSH gotchas
         'toshiba_environment.md',
         'hypervisor_prep.md',
         'feedback_known_hosts_preclear.md',
         'feedback_non_esacp_hosts.md',
-        'project_platform_strategy.md',
     ],
     'docker': [
         # Observability stack, production topology
-        'observability_stack.md',
         'production_topology.md',
     ],
     'cytoscape': [
-        # Control plane prototype — compound node pitfalls, selectors, viewport
-        'feedback_cytoscape_compound.md',
-        'feedback_cytoscape_selectors.md',
-        'feedback_cytoscape_viewport.md',
-        'project_cytoscape_pending.md',
+        # Control-plane / topology UI work (Stage 2.3).
+        'feedback_topology_ui_first.md',
+        'feedback_chrome_mcp_cytoscape.md',
     ],
 }
 
@@ -96,11 +94,13 @@ for dom in active_domains:
 
 # ── Build context ──────────────────────────────────────────────────────────
 parts = []
+missing = []
 for f in to_load:
     path = os.path.join(MEMORY_DIR, f)
     if os.path.exists(path):
         parts.append('=== ' + f + ' ===\n' + open(path).read())
     else:
+        missing.append(f)
         parts.append('=== ' + f + ' === [FILE NOT FOUND]')
 
 # ── Sync check — only when KVM domain is active ────────────────────────────
@@ -124,6 +124,8 @@ ctx = '\n'.join(parts) + sync_output + (('\n' + bucket_output) if bucket_output 
 
 # ── Header note ───────────────────────────────────────────────────────────
 loaded_summary   = f"domains={active_domains}, buckets={active_buckets}, files={len(to_load)}"
+if missing:
+    loaded_summary += f"  ⚠️ MISSING DOMAIN FILES (map drift — repair the DOMAINS map): {missing}"
 unloaded_summary = (
     f"INACTIVE domains (files NOT loaded): {inactive_domains}. "
     f"To activate, add domain name to memory/session_focus.txt and start a new session. "

@@ -2,43 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import yaml
-
-from tools.host_identity import DEFAULT_HYPERVISOR, ZONE_DOMAINS
+from tools.host_identity import ZONE_DOMAINS, operator_ssh_key
+from tools.pipeline.stages.common.config_helpers import (
+    _derive_zone,
+    _read_erp_user,
+    _ssh_transport,
+)
 from tools.pipeline.stages.common.types import Config
 from tools.secrets import load_build_secrets
-
-
-def _derive_zone(ansible_groups: list[str]) -> str:
-    """Priority: production > staging > development."""
-    for zone in ("production", "staging", "development"):
-        if zone in ansible_groups:
-            return zone
-    return "development"
-
-
-def _ssh_transport(
-    host_cfg: dict, use_wg: bool,
-) -> tuple[str, list[str]]:
-    """Return (target_ip, ssh_opts) based on transport mode."""
-    if use_wg:
-        return host_cfg.get("wg_ip", ""), [
-            "-o", "StrictHostKeyChecking=no",
-            "-o", "ConnectTimeout=10",
-        ]
-    hyp = host_cfg.get("hypervisor") or DEFAULT_HYPERVISOR
-    return host_cfg.get("virbr0_ip", ""), [
-        "-o", f"ProxyJump={hyp}",
-        "-o", "StrictHostKeyChecking=no",
-    ]
-
-
-def _read_erp_user(project_root: str) -> str:
-    gv = Path(project_root) / "ansible" / "group_vars" / "all.yml"
-    with open(gv) as fh:
-        return yaml.safe_load(fh).get("erp_user", "erpadm")
 
 
 def build_config(
@@ -80,7 +51,7 @@ def build_config(
         bench_dir_orig=f"/home/{erp_user}/frappe-bench",
         provision_mode=provision_mode,
         hypervisor=host_cfg.get("hypervisor"),
-        ssh_key=str(Path.home() / ".ssh" / "hasan_mighty"),
+        ssh_key=operator_ssh_key(),
         ssh_opts=ssh_opts,
         project_root=project_root,
         force_refresh=force_refresh,

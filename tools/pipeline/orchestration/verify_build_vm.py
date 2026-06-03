@@ -18,6 +18,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from tools.pipeline.orchestration.hypervisor_helpers import (
     ansible_ping, tcp_probe_via_hypervisor, vm_exists, vm_state,
 )
+from tools.host_identity import operator_ssh_key
 from tools.pipeline.stages.common.known_hosts import known_hosts_entries, tcp_port_open
 from tools.pipeline.orchestration.load_host_config import load_host_config
 
@@ -48,7 +49,7 @@ def main() -> int:
             tcp_ok = tcp_port_open(virbr0_ip)
             results.append((tcp_ok, f"tcp_port_open({virbr0_ip}) = {tcp_ok}"))
 
-        ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
+        ssh_key = operator_ssh_key()
         ping_ok = ansible_ping(hostname, str(PROJECT_ROOT), ssh_key)
         results.append((ping_ok, f"ansible_ping({hostname}) = {ping_ok}"))
 

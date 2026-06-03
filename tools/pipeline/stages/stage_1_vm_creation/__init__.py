@@ -6,8 +6,7 @@ Orchestrates Steps 0–7 of the provision pipeline.  Extracted from
 
 from __future__ import annotations
 
-from pathlib import Path
-
+from tools.host_identity import operator_ssh_key
 from tools.pipeline.stages.common.log_format import step_header
 from tools.pipeline.stages.common.types import Emit
 from tools.pipeline.stages.env_kvm import KvmEnv
@@ -45,12 +44,13 @@ def run_stage_1(
     emit : Emit
         Log callback.
     ssh_key : str, optional
-        Path to controller SSH private key.  Defaults to ``~/.ssh/hasan_mighty``.
+        Path to controller SSH private key.  Defaults to the operator key
+        resolved from ``ansible/group_vars/kvm.yml`` (see ``operator_ssh_key``).
     cleanup_cfg : dict, optional
         If set, destroy leftover VM residue before building (Step 0).
     """
     if ssh_key is None:
-        ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
+        ssh_key = operator_ssh_key()
 
     # ── Idempotency gate: skip if all postconditions already met ──
     results = verify_stage_1(

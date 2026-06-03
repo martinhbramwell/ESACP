@@ -18,7 +18,7 @@ import jinja2
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from tools.host_identity import virbr0_gateway  # noqa: E402
+from tools.host_identity import operator_pubkey, virbr0_gateway  # noqa: E402
 from tools.pipeline.stages.common.types import Emit  # noqa: E402
 
 _TEMPLATES = Path(__file__).resolve().parents[3] / "platforms" / "kvm" / "cloud-init"
@@ -35,7 +35,7 @@ def _render(template_name: str, params: dict) -> str:
 
 def build_hub_seed_iso(hostname: str, virbr0_ip: str, platforms_kvm: str, emit: Emit) -> Path:
     """Render hub autoinstall artifacts and pack them into a cloud-localds ISO."""
-    pubkey_path = Path.home() / ".ssh" / "hasan_mighty.pub"
+    pubkey_path = operator_pubkey()
     if not pubkey_path.exists():
         raise FileNotFoundError(f"Controller pubkey not found: {pubkey_path}")
     params = {

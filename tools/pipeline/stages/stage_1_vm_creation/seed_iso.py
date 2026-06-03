@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from tools.host_identity import virbr0_gateway
+from tools.host_identity import operator_pubkey, virbr0_gateway
 from tools.pipeline.stages.common.types import Emit
 
 
@@ -22,7 +22,7 @@ def build_seed_iso(
     emit: Emit,
 ) -> Path:
     """Build a cloud-config seed ISO and return its local path."""
-    controller_pubkey_path = Path.home() / ".ssh" / "hasan_mighty.pub"
+    controller_pubkey_path = operator_pubkey()
     if not controller_pubkey_path.exists():
         raise FileNotFoundError(f"Controller pubkey not found: {controller_pubkey_path}")
     controller_pubkey = controller_pubkey_path.read_text().strip()

@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from pathlib import Path
+
+from tools.host_identity import operator_pubkey
 
 
 def _ssh_vm(target_ip: str, ssh_opts: list[str], ssh_key: str,
@@ -38,7 +39,7 @@ def check_controller_pubkey(
     target_ip: str, ssh_opts: list[str], ssh_key: str, erp_user: str,
 ) -> tuple[bool, str]:
     """Controller pubkey in erpadm authorized_keys (or staged in /tmp/)."""
-    pubkey_path = Path.home() / ".ssh" / "hasan_mighty.pub"
+    pubkey_path = operator_pubkey()
     if not pubkey_path.exists():
         return False, "Controller pubkey not found locally"
     key_blob = pubkey_path.read_text().strip().split()[1]
@@ -46,7 +47,7 @@ def check_controller_pubkey(
                 f"grep -qF '{key_blob}' "
                 f"/home/{erp_user}/.ssh/authorized_keys 2>/dev/null "
                 "&& echo installed"
-                " || (test -f /tmp/hasan_mighty.pub && echo staged)")
+                f" || (test -f /tmp/{pubkey_path.name} && echo staged)")
     if "installed" in r.stdout:
         return True, "Controller pubkey in authorized_keys"
     if "staged" in r.stdout:
