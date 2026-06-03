@@ -59,7 +59,7 @@ def run(args, config: dict) -> int:
                 console.print("           then add the public key as a recipient in .sops.yaml")
             elif ".pub" in str(path):
                 console.print(f"  SSH public key: ssh-keygen -y -f {ssh_key} > {path}")
-            elif "hasan_mighty" in str(path):
+            elif ssh_key.name in str(path):
                 console.print(f"  SSH key: generate with ssh-keygen -t ed25519 -f {path}")
             else:
                 console.print(f"  {desc}: {path} — see SETUP_GUIDE.md")

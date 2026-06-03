@@ -6,7 +6,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from tools.host_identity import DEFAULT_HYPERVISOR, HUB_VIRBR0_IP
+from tools.host_identity import DEFAULT_HYPERVISOR, HUB_VIRBR0_IP, operator_ssh_key
 from tools.pipeline.stages.common.types import Emit
 
 _PLATFORMS_PACKER = Path(__file__).resolve().parents[3] / "platforms" / "packer"
@@ -15,7 +15,7 @@ _REMOTE_EXIT = "/tmp/packer-build-output.log.exit"
 _SSH_OPTS = [
     "-o", f"ProxyJump={DEFAULT_HYPERVISOR}",
     "-o", "StrictHostKeyChecking=no",
-    "-i", str(Path.home() / ".ssh" / "hasan_mighty"),
+    "-i", operator_ssh_key(),
 ]
 _HUB_SSH = ["ssh", *_SSH_OPTS, f"you@{HUB_VIRBR0_IP}"]
 

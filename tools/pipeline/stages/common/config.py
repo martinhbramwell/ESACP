@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from tools.host_identity import ZONE_DOMAINS
+from tools.host_identity import ZONE_DOMAINS, operator_ssh_key
 from tools.pipeline.stages.common.config_helpers import (
     _derive_zone,
     _read_erp_user,
@@ -53,7 +51,7 @@ def build_config(
         bench_dir_orig=f"/home/{erp_user}/frappe-bench",
         provision_mode=provision_mode,
         hypervisor=host_cfg.get("hypervisor"),
-        ssh_key=str(Path.home() / ".ssh" / "hasan_mighty"),
+        ssh_key=operator_ssh_key(),
         ssh_opts=ssh_opts,
         project_root=project_root,
         force_refresh=force_refresh,

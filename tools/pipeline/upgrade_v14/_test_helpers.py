@@ -13,6 +13,8 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from tools.host_identity import operator_ssh_key  # noqa: E402
+
 
 def make_config(**overrides):
     base = dict(
@@ -22,7 +24,7 @@ def make_config(**overrides):
         erp_user="erpadm", erp_user_pwd="x", db_root_pwd="x",
         bench_dir="/home/erpadm/frappe-bench", bench_dir_orig="/home/erpadm/frappe-bench",
         provision_mode="restored", hypervisor="toshiba",
-        ssh_key="/home/hasan/.ssh/hasan_mighty",
+        ssh_key=operator_ssh_key(),
         ssh_opts=["-o", "StrictHostKeyChecking=no"],
         project_root=str(REPO_ROOT),
     )

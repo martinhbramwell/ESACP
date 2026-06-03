@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from tools.host_identity import HUB_VIRBR0_IP
+from tools.host_identity import HUB_VIRBR0_IP, operator_ssh_key
 
 
 def _ssh_vm(virbr0_ip: str, hypervisor: str, ssh_key: str,
@@ -134,7 +134,7 @@ def verify_stage_2(
 ) -> list[tuple[bool, str]]:
     """Run all Stage 2 postcondition checks.  Returns list of (pass, msg)."""
     if ssh_key is None:
-        ssh_key = str(Path.home() / ".ssh" / "hasan_mighty")
+        ssh_key = operator_ssh_key()
     return [
         check_hub_wg_peer(hostname, project_root, hypervisor, ssh_key),
         check_cloudflare_dns(hostname, wg_ip, domain=domain),
