@@ -11,11 +11,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+from tools.host_identity import GUEST_VM_USER
+
 
 def _ssh_vm(target_ip: str, ssh_opts: list[str], ssh_key: str,
             cmd: str, timeout: int = 15):
     return subprocess.run(
-        ["ssh", *ssh_opts, "-i", ssh_key, f"you@{target_ip}", cmd],
+        ["ssh", *ssh_opts, "-i", ssh_key, f"{GUEST_VM_USER}@{target_ip}", cmd],
         capture_output=True, text=True, timeout=timeout,
     )
 

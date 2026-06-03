@@ -18,7 +18,7 @@ import jinja2
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from tools.host_identity import operator_pubkey, virbr0_gateway  # noqa: E402
+from tools.host_identity import GUEST_VM_USER, operator_pubkey, virbr0_gateway  # noqa: E402
 from tools.pipeline.stages.common.types import Emit  # noqa: E402
 
 _TEMPLATES = Path(__file__).resolve().parents[3] / "platforms" / "kvm" / "cloud-init"
@@ -43,6 +43,7 @@ def build_hub_seed_iso(hostname: str, virbr0_ip: str, platforms_kvm: str, emit: 
         "virbr0_ip": virbr0_ip,
         "gateway": virbr0_gateway(virbr0_ip),
         "controller_pubkey": pubkey_path.read_text().strip(),
+        "vm_user": GUEST_VM_USER,
     }
     user_data = _render("hub-autoinstall.user-data.j2", params)
     meta_data = _render("hub-autoinstall.meta-data.j2", params)

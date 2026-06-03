@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 
-from tools.host_identity import DEFAULT_HYPERVISOR, HUB_VIRBR0_IP
+from tools.host_identity import DEFAULT_HYPERVISOR, GUEST_VM_USER, HUB_VIRBR0_IP
 from tools.pipeline.stages.common.types import Config
 
 
@@ -18,7 +18,7 @@ def hub_ssh_run(
          "-o", f"ProxyJump={hyp}",
          "-o", "StrictHostKeyChecking=no",
          "-i", config.ssh_key,
-         f"you@{HUB_VIRBR0_IP}",
+         f"{GUEST_VM_USER}@{HUB_VIRBR0_IP}",
          cmd],
         capture_output=True, text=True, timeout=timeout,
     )

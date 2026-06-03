@@ -5,6 +5,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from tools.host_identity import GUEST_VM_USER
+
 
 def vm_exists(vm: str, hypervisor: str | None = None) -> bool:
     """True if *vm* is defined (any state) on the hypervisor."""
@@ -37,7 +39,7 @@ def tcp_probe_via_hypervisor(
          "-o", "StrictHostKeyChecking=no",
          "-o", "BatchMode=yes",
          "-J", f"{user}@{hypervisor}",
-         f"you@{virbr0_ip}", "true"],
+         f"{GUEST_VM_USER}@{virbr0_ip}", "true"],
         capture_output=True,
     )
     return r.returncode == 0

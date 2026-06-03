@@ -9,6 +9,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from tools.host_identity import GUEST_VM_USER
 from tools.pipeline.orchestration.load_host_config import load_host_config
 from tools.pipeline.stages.common.config import build_config
 from tools.pipeline.stages.common.ssh import ssh_run
@@ -62,7 +63,7 @@ def capture_golden_backup(
     rsh = f"ssh {' '.join(config.ssh_opts)} -i {config.ssh_key}"
     r = subprocess.run(
         ["rsync", "-a", "-e", rsh,
-         f"you@{config.target_ip}:{config.bench_dir_orig}/BKP/{backup_name}",
+         f"{GUEST_VM_USER}@{config.target_ip}:{config.bench_dir_orig}/BKP/{backup_name}",
          str(local_dest)],
         capture_output=True, text=True, timeout=600,
     )

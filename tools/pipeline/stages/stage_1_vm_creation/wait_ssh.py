@@ -6,6 +6,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from tools.host_identity import GUEST_VM_USER
 from tools.pipeline.stages.common.types import Emit
 
 
@@ -30,7 +31,7 @@ def wait_for_ssh(
         "-o", "StrictHostKeyChecking=no",
         "-o", "ConnectTimeout=5",
         "-i", ssh_key,
-        f"you@{virbr0_ip}",
+        f"{GUEST_VM_USER}@{virbr0_ip}",
     ]
 
     for attempt in range(max_attempts):

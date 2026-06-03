@@ -144,6 +144,26 @@ def hypervisor_user() -> str:
     return local.get("hypervisor_user") or os.environ.get("USER", "")
 
 
+# ── Guest VM login user (single source of truth; ESACP#583) ──────────────────
+# The login created by cloud-init on every ESACP-built VM, and the user half of
+# every pipeline SSH/SCP/rsync target (`<user>@<ip>`).  Distinct from the
+# operator identity above (#582 deliberately left this for its own 1:1:1).
+
+
+def guest_vm_user() -> str:
+    """Login user of ESACP-built guest VMs (SSH/SCP/rsync target user).
+
+    Single source of truth: ``ansible_user`` in ``ansible/group_vars/kvm.yml``
+    (the same value Ansible connects as).  Falls back to ``you`` when unset.
+    """
+    with open(GROUP_VARS_KVM_PATH) as f:
+        kvm = yaml.safe_load(f) or {}
+    return kvm.get("ansible_user", "you")
+
+
+GUEST_VM_USER: str = guest_vm_user()
+
+
 if __name__ == "__main__":
     # Shell-eval emitter: `eval "$(./tools/host_identity.py)"` in bash.
     print(f"HUB_KEY={HUB_KEY}")
@@ -153,3 +173,4 @@ if __name__ == "__main__":
     print(f"HUB_WG_IP={HUB_WG_IP}")
     print(f"HUB_HYPERVISOR={HUB_HYPERVISOR}")
     print(f"DEFAULT_HYPERVISOR={DEFAULT_HYPERVISOR}")
+    print(f"GUEST_VM_USER={GUEST_VM_USER}")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from tools.host_identity import GUEST_VM_USER
 from tools.pipeline.stages.common.ssh import hub_ssh_run, ssh_run
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
@@ -40,7 +41,7 @@ def _push_pem(config: Config, pem_name: str, tmp_name: str) -> None:
     import subprocess
     write = subprocess.run(
         ["ssh", *config.ssh_opts, "-i", config.ssh_key,
-         f"you@{config.target_ip}",
+         f"{GUEST_VM_USER}@{config.target_ip}",
          f"sudo tee /tmp/{tmp_name} > /dev/null"],
         input=read.stdout.encode(), capture_output=True, timeout=15,
     )

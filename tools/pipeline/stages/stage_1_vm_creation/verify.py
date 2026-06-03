@@ -12,7 +12,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from tools.host_identity import operator_ssh_key
+from tools.host_identity import GUEST_VM_USER, operator_ssh_key
 
 
 def _ssh_hyp(hypervisor: str, cmd: str, timeout: int = 15):
@@ -75,7 +75,7 @@ def check_ssh_reachable(
          "-o", "StrictHostKeyChecking=no",
          "-o", "ConnectTimeout=10",
          "-i", ssh_key,
-         f"you@{virbr0_ip}", "echo ready"],
+         f"{GUEST_VM_USER}@{virbr0_ip}", "echo ready"],
         capture_output=True, text=True, timeout=30,
     )
     if r.returncode == 0 and "ready" in r.stdout:
