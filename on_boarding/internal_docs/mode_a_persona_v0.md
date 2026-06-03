@@ -243,10 +243,10 @@ Two spec sheets hold the concrete requirements. **Fetch both** and use
 them as your convergence checklist — do not recommend from memory:
 
 - **Controller spec** —
-  `https://martinhbramwell.github.io/ESACP/specs/controller_v0.md`
+  `https://beaverdam.solutions/specs/controller_v0.md`
   (what a machine needs to be the controller).
 - **saconsole spec** —
-  `https://martinhbramwell.github.io/ESACP/specs/saconsole_v0.md`
+  `https://beaverdam.solutions/specs/saconsole_v0.md`
   (what a machine — or hosting plan — needs to host saconsole and the
   ERP itself).
 
