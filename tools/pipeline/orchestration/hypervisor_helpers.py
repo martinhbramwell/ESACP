@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from tools.host_identity import GUEST_VM_USER
+from tools.host_identity import GUEST_VM_USER, hypervisor_user
 
 
 def vm_exists(vm: str, hypervisor: str | None = None) -> bool:
@@ -30,9 +30,10 @@ def start_vm(vm: str, hypervisor: str | None = None) -> None:
 
 
 def tcp_probe_via_hypervisor(
-    virbr0_ip: str, hypervisor: str, user: str = "hasan",
+    virbr0_ip: str, hypervisor: str, user: str | None = None,
 ) -> bool:
     """Probe TCP port 22 on a hypervisor-internal IP via ProxyJump."""
+    user = user or hypervisor_user()
     r = subprocess.run(
         ["ssh",
          "-o", "ConnectTimeout=5",

@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from tools.host_identity import DEFAULT_HYPERVISOR
+from tools.host_identity import hypervisor_user as resolve_hypervisor_user
 
 
 @dataclass(frozen=True)
@@ -17,7 +18,7 @@ class KvmEnv:
     """Immutable KVM environment context."""
 
     hypervisor_alias: str = DEFAULT_HYPERVISOR
-    hypervisor_user: str = "hasan"
+    hypervisor_user: str = field(default_factory=resolve_hypervisor_user)
     images_dir: str = "/mnt/esacp-disk/var/lib/libvirt/images"
     pool: str = "esacp"
 
