@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from tools.host_identity import HUB_VIRBR0_IP, operator_ssh_key
+from tools.host_identity import GUEST_VM_USER, HUB_VIRBR0_IP, operator_ssh_key
 
 
 def _ssh_vm(virbr0_ip: str, hypervisor: str, ssh_key: str,
@@ -24,7 +24,7 @@ def _ssh_vm(virbr0_ip: str, hypervisor: str, ssh_key: str,
          "-o", "StrictHostKeyChecking=no",
          "-o", "ConnectTimeout=10",
          "-i", ssh_key,
-         f"you@{virbr0_ip}", cmd],
+         f"{GUEST_VM_USER}@{virbr0_ip}", cmd],
         capture_output=True, text=True, timeout=timeout,
     )
 
@@ -36,7 +36,7 @@ def _ssh_hub(hypervisor: str, ssh_key: str,
          "-o", f"ProxyJump={hypervisor}",
          "-o", "StrictHostKeyChecking=no",
          "-i", ssh_key,
-         f"you@{HUB_VIRBR0_IP}", cmd],
+         f"{GUEST_VM_USER}@{HUB_VIRBR0_IP}", cmd],
         capture_output=True, text=True, timeout=timeout,
     )
 

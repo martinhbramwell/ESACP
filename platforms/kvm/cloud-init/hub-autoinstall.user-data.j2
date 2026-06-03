@@ -4,7 +4,7 @@ autoinstall:
 
   identity:
     hostname: {{ hostname }}
-    username: you
+    username: {{ vm_user }}
     # Password login disabled — SSH key only.
     # A hashed placeholder is required by the schema even when allow-pw: false.
     password: "!"
@@ -51,7 +51,7 @@ autoinstall:
   user-data:
     # Run on first boot after install
     runcmd:
-      - echo "you ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/you
-      - chmod 440 /etc/sudoers.d/you
+      - echo "{{ vm_user }} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{{ vm_user }}
+      - chmod 440 /etc/sudoers.d/{{ vm_user }}
       - systemctl enable --now docker
-      - usermod -aG docker you
+      - usermod -aG docker {{ vm_user }}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from tools.host_identity import GUEST_VM_USER
 from tools.pipeline.stages.common.types import Config
 
 # Hub-transport helpers live in ssh_hub.py; re-exported here so existing
@@ -21,7 +22,7 @@ def _ssh_base(config: Config) -> list[str]:
         "ssh",
         *config.ssh_opts,
         "-i", config.ssh_key,
-        f"you@{config.target_ip}",
+        f"{GUEST_VM_USER}@{config.target_ip}",
     ]
 
 
@@ -45,7 +46,7 @@ def scp_to_vm(
     """SCP one or more local files to *remote_dest* on the target VM."""
     return subprocess.run(
         ["scp", *config.ssh_opts, "-i", config.ssh_key,
-         *local_files, f"you@{config.target_ip}:{remote_dest}"],
+         *local_files, f"{GUEST_VM_USER}@{config.target_ip}:{remote_dest}"],
         capture_output=True, text=True, timeout=timeout,
     )
 
@@ -63,7 +64,7 @@ def rsync_to_vm(
         f"ssh {' '.join(config.ssh_opts)} -i {config.ssh_key}"
     )
     cmd = ["rsync", "-a", "-e", rsh, *(extra_args or []),
-           local_path, f"you@{config.target_ip}:{remote_path}"]
+           local_path, f"{GUEST_VM_USER}@{config.target_ip}:{remote_path}"]
     return subprocess.run(
         cmd, capture_output=True, text=True, timeout=timeout,
     )

@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import subprocess
 
+from tools.host_identity import GUEST_VM_USER
+
 
 def _ssh(wg_ip: str, cmd: str, timeout: int = 8) -> str:
     try:
         r = subprocess.run(
             ["ssh", "-o", "StrictHostKeyChecking=no",
              "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
-             f"you@{wg_ip}", cmd],
+             f"{GUEST_VM_USER}@{wg_ip}", cmd],
             capture_output=True, text=True, timeout=timeout,
         )
         return r.stdout.strip()
