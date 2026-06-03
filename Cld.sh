@@ -8,7 +8,7 @@
 # Satellite terminal (ESACP#383): by default Claude Code runs inside a shared
 # tmux session ("esacp") so a second terminal — e.g. the Iconia tablet over
 # WireGuard — can attach to the SAME live session and drive it:
-#     ssh you@10.10.0.2 -t 'tmux attach -t esacp'
+#     ssh ${USER}@10.10.0.2 -t "tmux attach -t esacp"   # ${USER} = controller login user, not guest `you`
 # `window-size largest` keeps this terminal full-size when the smaller tablet
 # screen attaches. Set ESACP_NO_TMUX=1 to launch claude directly (no mirror).
 
