@@ -43,7 +43,7 @@ jobs:
 
       - name: Build site
         working-directory: on_boarding/docs
-        run: bundle exec jekyll build --baseurl "/ESACP"
+        run: bundle exec jekyll build --baseurl ""
 
       - name: Stage persona doc alongside site
         run: |

@@ -1014,7 +1014,7 @@ URL query strings cap at 2–8KB, so the persona doc itself must be
 fetched at the destination URL, not embedded in the query string.
 
 Prototype + production hosting: **GitHub Pages raw-serve**
-(`https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md`,
+(`https://beaverdam.solutions/persona/mode_a_v0.md`,
 staged by `.github/workflows/jekyll-pages.yml`). The original
 gist-raw pin was **invalidated** — see the amendment below.
 
@@ -1174,7 +1174,7 @@ landed in Session 8 against agenda #489 / sub-branch #493:
 > **Transport superseded (Session 9, 2026-05-29, #497).** The gist
 > URLs below are **dead** — gist-raw is blocked by robots.txt (see the
 > §10.2 amendment). The live transport is GitHub Pages raw-serve:
-> `https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md`,
+> `https://beaverdam.solutions/persona/mode_a_v0.md`,
 > staged by `.github/workflows/jekyll-pages.yml`. The bullets are kept
 > as historical record of the Session-8 instantiation.
 
@@ -1184,7 +1184,7 @@ landed in Session 8 against agenda #489 / sub-branch #493:
   GH-Pages raw-serve path on push to `on_boarding`. *(Session 8 said
   "re-push to the gist" — superseded; no gist involved.)*
 - **Live raw URL** (for §10.2 URL-paste-with-framing):
-  `https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md`.
+  `https://beaverdam.solutions/persona/mode_a_v0.md`.
   ~~Original gist pin
   `https://gist.githubusercontent.com/martinhbramwell/f00ad381b2dc3d9c0995108ad87d2e21/raw/mode_a_persona_v0.md`~~
   — dead (robots.txt).
@@ -1194,7 +1194,7 @@ landed in Session 8 against agenda #489 / sub-branch #493:
   auth-wall per §10.2):
 
   > Please read from this link
-  > https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md
+  > https://beaverdam.solutions/persona/mode_a_v0.md
   > and take on the ESACP advisor role as it explains.
 
 - **First test input**: Buzz_002, the small-condo-property-
@@ -1225,11 +1225,11 @@ at `/specs/…`):
 
 - **Controller spec** — source
   [`on_boarding/docs/specs/controller_v0.md`](../docs/specs/controller_v0.md)
-  → live `https://martinhbramwell.github.io/ESACP/specs/controller_v0.md`
+  → live `https://beaverdam.solutions/specs/controller_v0.md`
   (#530). Derived from `on_boarding/tools/bootstrap.py`.
 - **saconsole spec** — source
   [`on_boarding/docs/specs/saconsole_v0.md`](../docs/specs/saconsole_v0.md)
-  → live `https://martinhbramwell.github.io/ESACP/specs/saconsole_v0.md`
+  → live `https://beaverdam.solutions/specs/saconsole_v0.md`
   (#531). Derived from the `virt-install` build figures (2 vCPU /
   4 GiB / 20 GB / NAT).
 

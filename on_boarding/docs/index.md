@@ -293,7 +293,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
       </p>
       <blockquote class="chain-narrative">
         Claude, please read from this link
-        <code>https://martinhbramwell.github.io/ESACP/persona/mode_a_v0.md</code>
+        <code>https://beaverdam.solutions/persona/mode_a_v0.md</code>
         and take on the Beaverdam specialist expert role "Nick" as it explains.
       </blockquote>
       <p class="why">
