@@ -45,8 +45,7 @@ DOMAINS = {
         'feedback_scc_command.md',
     ],
     'erpnext': [
-        # ERPNext v13 lab install, production topology, ce_sri scripts
-        'project_erpnext_v13_lab.md',
+        # ERPNext production topology, ce_sri scripts, frappe deps
         'project_production_erpnext.md',
         'feedback_envars_secrets_pattern.md',
         'feedback_frappe_v13_deps.md',
@@ -54,24 +53,19 @@ DOMAINS = {
         'feedback_sudo_askpass.md',
     ],
     'kvm': [
-        # Hypervisor host, VM lifecycle, SSH gotchas, platform strategy
+        # Hypervisor host, VM lifecycle, SSH gotchas
         'toshiba_environment.md',
         'hypervisor_prep.md',
         'feedback_known_hosts_preclear.md',
         'feedback_non_esacp_hosts.md',
-        'project_platform_strategy.md',
     ],
     'docker': [
         # Observability stack, production topology
-        'observability_stack.md',
         'production_topology.md',
     ],
     'cytoscape': [
-        # Control plane prototype — compound node pitfalls, selectors, viewport
-        'feedback_cytoscape_compound.md',
-        'feedback_cytoscape_selectors.md',
-        'feedback_cytoscape_viewport.md',
-        'project_cytoscape_pending.md',
+        # Empty after S98 purge (stale prototype-era notes removed).
+        # Repopulation tracked in ESACP#575.
     ],
 }
 
