@@ -6,7 +6,8 @@ import subprocess
 import time
 from pathlib import Path
 
-from tools.host_identity import DEFAULT_HYPERVISOR, HUB_VIRBR0_IP, operator_ssh_key
+from tools.host_identity import (  # noqa: E501
+    DEFAULT_HYPERVISOR, GUEST_VM_USER, HUB_VIRBR0_IP, operator_ssh_key)
 from tools.pipeline.stages.common.types import Emit
 
 _PLATFORMS_PACKER = Path(__file__).resolve().parents[3] / "platforms" / "packer"
@@ -17,7 +18,7 @@ _SSH_OPTS = [
     "-o", "StrictHostKeyChecking=no",
     "-i", operator_ssh_key(),
 ]
-_HUB_SSH = ["ssh", *_SSH_OPTS, f"you@{HUB_VIRBR0_IP}"]
+_HUB_SSH = ["ssh", *_SSH_OPTS, f"{GUEST_VM_USER}@{HUB_VIRBR0_IP}"]
 
 
 def build_template(emit: Emit) -> None:
@@ -27,7 +28,7 @@ def build_template(emit: Emit) -> None:
         ["rsync", "-az", "--delete",
          "-e", "ssh " + " ".join(_SSH_OPTS),
          str(_PLATFORMS_PACKER) + "/",
-         f"you@{HUB_VIRBR0_IP}:/opt/esacp/platforms/packer/"],
+         f"{GUEST_VM_USER}@{HUB_VIRBR0_IP}:/opt/esacp/platforms/packer/"],
         capture_output=True, text=True,
     )
     if rsync.returncode != 0:
@@ -36,7 +37,7 @@ def build_template(emit: Emit) -> None:
     emit(f"Connecting to hub ({HUB_VIRBR0_IP} via {DEFAULT_HYPERVISOR}) ...")
     subprocess.run(_HUB_SSH + [f"rm -f {_REMOTE_LOG} {_REMOTE_EXIT}"], capture_output=True)
     start_cmd = (
-        f"nohup bash -c 'bash /opt/esacp/platforms/packer/build.sh"
+        f"nohup bash -c 'VM_USER={GUEST_VM_USER} bash /opt/esacp/platforms/packer/build.sh"
         f" > {_REMOTE_LOG} 2>&1; echo $? > {_REMOTE_EXIT}'"
         f" > /dev/null 2>&1 & echo $!"
     )

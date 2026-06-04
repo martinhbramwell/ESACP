@@ -560,13 +560,17 @@ excludes them and Ansible never connects to them. The hub learns each one via th
 A second terminal attaches to the **same live session** and can drive it:
 
 ```bash
-ssh you@10.10.0.2 -t "tmux attach -t esacp"      # from the tablet, over WireGuard
+ssh ${USER}@10.10.0.2 -t "tmux attach -t esacp"      # from the tablet, over WireGuard
 ```
 
+- **`${USER}` is the *controller* login user**, not the guest-VM `you`. The shared
+  `esacp` session lives on the controller's per-UID tmux socket
+  (`/tmp/tmux-<uid>/default`), so you must attach as the account that owns it;
+  connecting as a different user reports "session not found". (ESACP#584)
 - **Use double quotes.** Windows `cmd.exe` passes single quotes through
   literally, so the remote shell receives `'tmux attach -t esacp'` as one word
-  and reports `command not found`. Double quotes are correct on `cmd.exe`, bash,
-  and macOS alike. (ESACP#383)
+  and reports `command not found`. Double quotes are correct on `cmd.exe`,
+  PowerShell, bash, and macOS alike. (ESACP#383)
 - Both terminals render the same output and accept input (turn-taking — one
   input stream).
 - `window-size largest` (set by `Cld.sh`) keeps the controller terminal full-size

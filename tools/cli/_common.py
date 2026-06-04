@@ -14,7 +14,7 @@ import yaml
 from rich.console import Console
 from rich.panel import Panel
 
-from tools.host_identity import operator_ssh_key
+from tools.host_identity import guest_vm_user, operator_ssh_key
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 ANSIBLE_DIR  = PROJECT_ROOT / "ansible"
@@ -70,4 +70,5 @@ def ssh_key_path(config: dict) -> str:
 
 
 def vm_user(config: dict) -> str:
-    return config["kvm"].get("ansible_user", "you")
+    """Guest VM user via guest_vm_user (config kept for call-site compat)."""
+    return guest_vm_user()

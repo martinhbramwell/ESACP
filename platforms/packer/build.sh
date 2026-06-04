@@ -41,7 +41,10 @@ BUILD_VM_RAM="4096"            # ERPNext v13 requires ≥4 GB
 BUILD_VM_DISK="40"             # ERPNext v13 requires ≥40 GB
 BUILD_VM_VCPUS="2"
 
-VM_USER="you"
+# Guest VM login user. Derived from config (ansible_user) and injected by
+# tools/pipeline/orchestration/build_template.py; `you` is the fallback default
+# when build.sh is run by hand on the hub without the repo present (ESACP#583).
+VM_USER="${VM_USER:-you}"
 SSH_KEY="${HOME}/.ssh/id_ed25519"
 
 FRAPPE_BRANCH="version-13"
