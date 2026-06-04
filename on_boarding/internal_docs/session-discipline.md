@@ -148,44 +148,32 @@ eventual `on_boarding` → `main` merge.)
 `on_boarding/internal_docs/SESSIONS.md` lives next to this file. Header row only; no
 prose between entries.
 
-### Closeout-PR backfill workflow
+**Do not self-cite the closeout PR in its own row (#609).** Substantive-work
+sub-branches and their PRs are cited by number as above — those PR numbers exist
+before the closeout commit is authored. The **closeout** PR is the exception: its
+number (and merge hash) do not exist until *after* the closeout commit is written,
+so citing it in the row it carries is a circular reference. Cite the closeout
+**sub-branch name only** (e.g. `docs/session-15-closeout`); omit its PR number. The
+closing PR stays discoverable via `git log --merges` on `on_boarding` (the merge
+commit names the PR that introduced the closeout commit). The closeout commit
+therefore gets **normal T1/T3** — nothing in its content is unknowable at commit
+time, so there is no structural skip and no next-session backfill.
 
-Session closeout PRs carry a circular-reference problem: the closeout
-commit's SESSIONS row and qa-log summary row need to cite the closeout
-PR's own number, which doesn't exist until the PR is opened. The
-established workflow handles this in two distinct precedents that
-**must not be conflated**:
+### Closeout-PR backfill workflow — retired (#609)
 
-**Precedent 1 — T1+T3 skip on the closeout commit itself.** The closeout
-commit (which writes the SESSIONS row + qa-log entries) leaves `PR #TBD`
-placeholders in the cells that would have cited its own PR. T1 and T3 on
-*this commit specifically* are skipped, because the inputs (the PR
-number) don't exist at commit time. T2 on the closeout PR's merge and
-T5 on any issues that PR closes still apply normally. Reference:
-Session-3 `7a66f4d`, Session-5 `c155c62`.
+**Retired.** This section formerly documented a two-precedent workflow for
+backfilling `PR #TBD` placeholders that the closeout commit left where it would
+have cited its own PR number. The root cause was the closeout row self-citing the
+closeout PR — a circular reference (the number doesn't exist at commit time). #609
+removed that self-citation from the row format (see §"One-line session log" above),
+so the circular reference, the `PR #TBD` placeholder, the precedent-1 structural
+T1+T3 skip, and the precedent-2 next-session backfill **no longer exist**. The
+closeout commit now gets normal T1/T3 like any other.
 
-**Precedent 2 — the backfill commit is its own sub-branch + PR.** Once
-the closeout PR has merged and its number is known, a *separate* commit
-substitutes `PR #TBD` → `#NNN` in the two cells. This backfill commit
-goes through the full sub-branch + T1 + commit + T3 + push + PR + T2 +
-merge cycle. It does **not** inherit the T1+T3 skip from precedent 1.
-By backfill time, the PR number is the entire content of the change —
-there is no longer any reason to skip QA gates. Reference: Session-5
-backfill = PR [#471](https://github.com/martinhbramwell/ESACP/pull/471).
-
-The skips are different because precedent 1's skip is structural (inputs
-don't exist) while precedent 2's would be merely procedural-shortcut
-(inputs do exist; we'd just be skipping for convenience). Session 6
-(2026-05-24) introduced commit `87e1043` directly to `on_boarding`,
-mistakenly applying precedent 1's skip to a precedent-2 commit. The
-content was correct but the discipline drifted; this section codifies
-the distinction so future Junior catches the shape before committing.
-
-**Mechanical check before committing**: if the diff touches only
-`PR #TBD → #NNN` substitutions in `SESSIONS.md` and/or `qa-log.md`, and
-you are about to commit directly to `on_boarding` (no sub-branch), STOP.
-Cut a `docs/session-N-pr-backfill` sub-branch first and route the change
-through a PR.
+Historical record: the backfill ran every session S3→S14 (S14 backfilled at S15 as
+PR #608, the last one). Those historical SESSIONS rows and their backfill commits
+stay as-landed — no retroactive rewrite. The superseded memory was
+`feedback_closeout_backfill_two_precedents`.
 
 ### Carry-forward: the three-way split
 
