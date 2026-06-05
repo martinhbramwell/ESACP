@@ -1,9 +1,12 @@
 name: Jekyll Pages (on_boarding)
 
-# Builds the Jekyll landing page under on_boarding/docs/ and stages the
-# Mode-A persona doc as a raw .md alongside the built site, then deploys
-# to GitHub Pages. Per ESACP#505 (unblocks #497 — persona-doc raw-serve
-# moved from gist.githubusercontent.com after robots.txt block).
+# Builds the Jekyll landing page under on_boarding/docs/ and deploys to
+# GitHub Pages. The Mode-A persona doc (on_boarding/docs/first_dialog.md)
+# and the spec sheets are front-matter-less .md files that Jekyll copies
+# verbatim into _site, so they serve raw at /first_dialog.md and /specs/…
+# — no manual staging step needed. Per ESACP#616 the persona doc moved
+# onto this same Jekyll-passthrough mechanism (was the #505/#497 install
+# hack from the gist→Pages migration; retired here).
 #
 # Baseurl handling: Option A from #505 — local _config.yml stays at
 # baseurl: "" for ergonomic localhost serve; CI builds with the flag.
@@ -14,7 +17,6 @@ on:
       - on_boarding
     paths:
       - 'on_boarding/docs/**'
-      - 'on_boarding/internal_docs/mode_a_persona_v0.md'
       - '.github/workflows/jekyll-pages.yml'
   workflow_dispatch:
 
@@ -44,12 +46,6 @@ jobs:
       - name: Build site
         working-directory: on_boarding/docs
         run: bundle exec jekyll build --baseurl ""
-
-      - name: Stage persona doc alongside site
-        run: |
-          install -d on_boarding/docs/_site/persona
-          install -m 0644 on_boarding/internal_docs/mode_a_persona_v0.md \
-                          on_boarding/docs/_site/persona/mode_a_v0.md
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
