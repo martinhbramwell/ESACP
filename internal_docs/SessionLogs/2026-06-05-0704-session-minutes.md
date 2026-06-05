@@ -73,3 +73,26 @@ frappe, route_planner, ce_sri, sales_partner_commissions, returnable, erpnext.
 Clean — both children re-grounded with evidence; decision B captured; plan written; memory
 updated. Forward item: **S106 implementation** on `umbrella/v16-clean-run` (author #617 probe +
 #618 R-script, wire into `v16_post_migrate_fixups.py`, then the #480 clean-run acceptance).
+
+## S105 extended (post-close exploration — operator-driven)
+
+After the close above, the operator pushed the #618 analysis to ground truth via live dev02-V16
+investigation (incl. logging in as real users). This **superseded the decision-B conclusion**:
+
+- **Route correction:** canonical private route is `/app/private/<slug>` (frappe `workspace.js`);
+  the earlier `/app/home-administrator` cited in the minutes/§#618-comment was an artifact.
+- **Root cause refined:** V16 desk sidebar is **app-centric** and does not surface private
+  per-user workspaces in the main nav. Migrated private records are **well-formed** (not corrupt;
+  #36872 red herring). User-POV confirmed: a real power user sees NONE of their atajos on V16.
+- **Lab test creds:** set `sasa` on 5 real customizer accounts (dev01+dev02) to view per-user UX;
+  operator waived reset (disposable VMs).
+- **Prototype:** promoting atajos to the STANDARD erpnext Home rendered them on the user's landing
+  (feasibility proven) BUT modified third-party code (dev-mode wrote `apps/erpnext/.../home.json`).
+  **Reverted** (DB Home restored; `home.json` git-checked-out clean).
+- **FINAL #618 decision (operator):** **shared tenant-owned Home** — R-script creates a NEW
+  tenant-owned PUBLIC workspace with the bespoke atajos, default landing, never touching standard
+  erpnext workspaces. Per-user private workspaces left intact in DB.
+- **Coded-up status:** **NOT yet.** `v16_post_migrate_fixups.py` still has only R1+R3. The
+  shared-tenant-Home R-script + #617 probe are **S106 substantive implementation** (own branch).
+- Record reconciled: #618 comment + memory + this addendum + S106 agenda updated; plan file holds
+  the full detail.
