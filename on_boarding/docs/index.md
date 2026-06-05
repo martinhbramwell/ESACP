@@ -190,18 +190,16 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
     <p class="role">Stage 1 &mdash; the shoe on a string</p>
     <h3>A short AI-guided discovery conversation.</h3>
     <p>
-			We want to guide you towards installing Beaverdam in a safe, fenced-off sandbox on one of your computers.
+			In a single chat with the free Claude.ai, "Nick" helps you decide one honest thing: <strong>could Beaverdam genuinely help your business?</strong>  If it can't &mdash; or not yet &mdash; he'll tell you straight.
 		</p>
     <p>
-	    The goal is clear and simple - figure out the best way to get you started using the computing power you already have and how confident you are in exploiting it.  So ...
+	    The goal is simple, and nothing gets installed today.  So ...
     </p>
     <p>
-    ... you and the AI discuss your current computing capabilities in general terms, <strong>no specifics!</strong> 
+    ... you brain-dump &mdash; in one message, in plain language, and only what you're comfortable sharing &mdash; about the information your business runs on, what you'd most like a computer to handle, what computers you have, and how comfortable you are with computers, AI, and "the cloud".  Bring any doubts, too. 
     </p>
     <p>
-          How many computers do you control?  How many run Windows? MacOS? or Linux? Do you understand virtual machines
-  like Hyper-V, VMWare or similar?  Do you already have an Internet presence.  Does your hosting service permit installing and
-  running your own programs?
+          Nick answers your questions, checks that what you've got can run Beaverdam at all, and names the one unavoidable cost up front: a <strong>Claude Code</strong> subscription, about $20 a month.  Nothing touches your computer, and no sensitive customer or financial detail is needed here.
     </p>
     <p class="comment">
       No installation. No commitment. No disruption. The summary is useful even
@@ -293,7 +291,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
       </p>
       <blockquote class="chain-narrative">
         Claude, please read from this link
-        <code>https://beaverdam.solutions/persona/mode_a_v0.md</code>
+        <code>https://beaverdam.solutions/first_dialog.md</code>
         and take on the Beaverdam specialist expert role "Nick" as it explains.
       </blockquote>
       <p class="why">
@@ -308,8 +306,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
       <h3>Answer in plain language.</h3>
       <p class="time-hint">~5&ndash;10 minutes</p>
       <p>
-        Nick will ask short series of questions about your "computing capabilities": 1)
-        how confident you are with your computer, with rearranging your network, with connecting devices, and 2) how many and what kinds of devices you have under your control: Windows? MacOS? etc.
+        Nick reads your brain-dump, answers any doubts, makes an honest call on whether Beaverdam fits, and &mdash; if it does &mdash; shows you the one next step: setting up Claude Code.
       </p>
       <p class="why">
         No technical vocabulary is required. Use the same words you would use with
@@ -403,7 +400,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
     <span class="tag caveat-tag">Privacy</span>
     <h3>You decide what to share.</h3>
     <p>
-      The discovery conversation will try to avoid any sensitive details. A summary
+      The discovery conversation asks you to share only what you're comfortable revealing. A summary
       will be anonymised and shared voluntarily to improve the process. Saying no is fine;
       the system should not depend on harvesting your business secrets like some Silicon Valley raccoon.
     </p>

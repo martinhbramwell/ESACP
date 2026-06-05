@@ -185,7 +185,8 @@ Essex during the conversation.
   (high-fidelity, low-tech-comfort); Buzz_003 (HVAC contractor) is
   deferred to production phase per §10.10.
 - **Mode-A persona doc content itself** — that lives in
-  [`../internal_docs/mode_a_persona_v0.md`](../internal_docs/mode_a_persona_v0.md)
+  [`../docs/first_dialog.md`](../docs/first_dialog.md) (served raw at
+  `/first_dialog.md`; ESACP#616)
   and is what Essex actually reads at conversation start. This
   archetype file is the *operator's* reference, not Essex's.
 - **The bridge into Claude Code** — §8.5 of

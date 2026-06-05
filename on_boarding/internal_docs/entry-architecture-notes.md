@@ -1014,9 +1014,10 @@ URL query strings cap at 2–8KB, so the persona doc itself must be
 fetched at the destination URL, not embedded in the query string.
 
 Prototype + production hosting: **GitHub Pages raw-serve**
-(`https://beaverdam.solutions/persona/mode_a_v0.md`,
-staged by `.github/workflows/jekyll-pages.yml`). The original
-gist-raw pin was **invalidated** — see the amendment below.
+(`https://beaverdam.solutions/first_dialog.md` since S16/#616; was
+`/persona/mode_a_v0.md`, served by `.github/workflows/jekyll-pages.yml`
+— now via plain Jekyll passthrough, no staging step; see §10.7.1). The
+original gist-raw pin was **invalidated** — see the amendment below.
 
 **Amendment (Session 8 → 9, 2026-05-29) — transport pin corrected (#497).**
 The original gist-raw + one-click-`?q=` design above is kept as
@@ -1177,14 +1178,28 @@ landed in Session 8 against agenda #489 / sub-branch #493:
 > `https://beaverdam.solutions/persona/mode_a_v0.md`,
 > staged by `.github/workflows/jekyll-pages.yml`. The bullets are kept
 > as historical record of the Session-8 instantiation.
+>
+> **Path + transport updated (Session 16, 2026-06-05, #616).** The
+> persona doc was rewritten from convergent install-planner to
+> **qualify-and-convert** and relocated from
+> `on_boarding/internal_docs/mode_a_persona_v0.md` to
+> `on_boarding/docs/first_dialog.md`. It now serves via the **same
+> Jekyll-passthrough mechanism as the spec sheets** (§10.7.2) — a
+> front-matter-less `.md` Jekyll copies verbatim into `_site` — so the
+> `jekyll-pages.yml` `install`-into-`_site/persona/` hack is **retired**.
+> Live URL is now `https://beaverdam.solutions/first_dialog.md`. All
+> install-planning (capability axis, spec-fetch, the convergent
+> recommendation) moved to the paid Claude-Code-side planner (#601/#602).
 
-- **In-repo source-of-truth**:
-  [`on_boarding/internal_docs/mode_a_persona_v0.md`](mode_a_persona_v0.md).
-  Edit here; `.github/workflows/jekyll-pages.yml` stages it to the
-  GH-Pages raw-serve path on push to `on_boarding`. *(Session 8 said
-  "re-push to the gist" — superseded; no gist involved.)*
+- **In-repo source-of-truth** *(updated S16, #616)*:
+  [`on_boarding/docs/first_dialog.md`](../docs/first_dialog.md). Edit
+  here; Jekyll copies this front-matter-less `.md` verbatim into `_site`
+  on push to `on_boarding`, so it serves raw with no staging step.
+  *(Session 8 said "re-push to the gist" — superseded; no gist involved.
+  The #505/#497 install-into-`_site/persona/` hack is also retired.)*
 - **Live raw URL** (for §10.2 URL-paste-with-framing):
-  `https://beaverdam.solutions/persona/mode_a_v0.md`.
+  `https://beaverdam.solutions/first_dialog.md` *(was
+  `/persona/mode_a_v0.md` pre-S16; #616)*.
   ~~Original gist pin
   `https://gist.githubusercontent.com/martinhbramwell/f00ad381b2dc3d9c0995108ad87d2e21/raw/mode_a_persona_v0.md`~~
   — dead (robots.txt).
@@ -1194,8 +1209,8 @@ landed in Session 8 against agenda #489 / sub-branch #493:
   auth-wall per §10.2):
 
   > Please read from this link
-  > https://beaverdam.solutions/persona/mode_a_v0.md
-  > and take on the ESACP advisor role as it explains.
+  > https://beaverdam.solutions/first_dialog.md
+  > and take on the Beaverdam specialist expert role "Nick" as it explains.
 
 - **First test input**: Buzz_002, the small-condo-property-
   management-firm archetype, lives at
@@ -1205,14 +1220,17 @@ landed in Session 8 against agenda #489 / sub-branch #493:
 
 This pin is the *prototype* shape per §10.0 — mechanism-validation,
 not content-quality. Expect the persona content to evolve across
-iterations; the URL stays stable. **Note (Session 9):** iteration #1
+iterations; the URL stayed stable until the S16 move to
+`/first_dialog.md` (#616). **Note (Session 9):** iteration #1
 proved the *transport* but showed the persona *content* aims at
 business-discovery rather than compute-environment convergence — that
 redesign is tracked in #518, distinct from this transport pin.
 **Update (Session 10):** the #518 redesign landed — persona content is
 now the convergent install-planner (§10.7 as amended), with the two
 spec sheets in §10.7.2. The `/persona/mode_a_v0.md` URL is unchanged;
-only the content was rewritten.
+only the content was rewritten. **(Superseded S16, #616: the URL is now
+`/first_dialog.md` and the convergent install-planner became
+qualify-and-convert — see the Session-16 note above.)**
 
 #### 10.7.2 Spec-sheet dependency (Session 10, #518/#530/#531)
 
