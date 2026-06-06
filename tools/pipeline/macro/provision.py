@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 
-from tools.pipeline.orchestration.load_host_config import load_host_config
+from tools.pipeline.orchestration.load_host_config import load_host_config, target_frappe_major  # noqa: E501
 from tools.pipeline.stages.common.config import build_config
 from tools.pipeline.stages.common.log_format import stage_banner
 from tools.pipeline.stages.common.types import Emit
@@ -41,6 +41,7 @@ def run(
         env=kvm_env,
         emit=emit,
         cleanup_cfg=cleanup_cfg,
+        target_major=target_frappe_major(load_host_config(hostname, project_root)),
     )
 
     # Build Config for stages 2–9 (host_cfg refreshed — stage 1 may update it)

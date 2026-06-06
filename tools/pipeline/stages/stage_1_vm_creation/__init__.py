@@ -29,7 +29,7 @@ def run_stage_1(
     emit: Emit,
     *,
     ssh_key: str | None = None,
-    cleanup_cfg: dict | None = None,
+    cleanup_cfg: dict | None = None, target_major: int = 13,
 ) -> None:
     """Execute VM creation (Steps 0–7).
 
@@ -82,9 +82,9 @@ def run_stage_1(
     emit(step_header("Upload seed ISO to hypervisor"))
     remote_seed = upload_seed_iso(hostname, seed_local, env, emit)
 
-    # ── Clone template qcow2 ──
+    # ── Clone template qcow2 (per-major; dual-template, ESACP #631) ──
     emit(step_header("Clone template qcow2"))
-    clone_template(hostname, env, emit)
+    clone_template(hostname, env, emit, major=target_major)
 
     # ── virt-install --import ──
     emit(step_header("virt-install --import"))
