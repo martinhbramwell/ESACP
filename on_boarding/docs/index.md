@@ -199,7 +199,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
     ... you brain-dump &mdash; in one message, in plain language, and only what you're comfortable sharing &mdash; about the information your business runs on, what you'd most like a computer to handle, what computers you have, and how comfortable you are with computers, AI, and "the cloud".  Bring any doubts, too. 
     </p>
     <p>
-          Nick answers your questions, checks that what you've got can run Beaverdam at all, and names the one unavoidable cost up front: a <strong>Claude Code</strong> subscription, about $20 a month.  Nothing touches your computer, and no sensitive customer or financial detail is needed here.
+          Nick answers your questions, checks that you can actually run Beaverdam, and names the one unavoidable cost up front: a <strong>Claude Code</strong> subscription, about $20 a month.  Nothing touches your computer, and no sensitive customer or financial detail is needed here.
     </p>
     <p class="comment">
       No installation. No commitment. No disruption. The summary is useful even
@@ -289,10 +289,13 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
         Inside your new project, click <strong>New chat</strong>. In the message
         box, paste this one line and press <strong>Send</strong>:
       </p>
-      <blockquote class="chain-narrative">
-        Claude, please read from this link
+      <blockquote class="chain-narrative chain-snippet">
+        <span class="snippet-text">Claude, please read from this link
         <code>https://beaverdam.solutions/first_dialog.md</code>
-        and take on the Beaverdam specialist expert role "Nick" as it explains.
+        and take on the Beaverdam specialist expert role "Nick" as it explains.</span>
+        <button type="button" class="copy-snippet" aria-label="Copy this line to your clipboard">
+          <span class="copy-label">Copy</span>
+        </button>
       </blockquote>
       <p class="why">
         What this does: the link tells Claude how the Beaverdam discovery conversation
@@ -304,7 +307,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
   <div class="step">
     <div>
       <h3>Answer in plain language.</h3>
-      <p class="time-hint">~5&ndash;10 minutes</p>
+      <p class="time-hint">As long as you need until you're satisfied</p>
       <p>
         Nick reads your brain-dump, answers any doubts, makes an honest call on whether Beaverdam fits, and &mdash; if it does &mdash; shows you the one next step: setting up Claude Code.
       </p>
