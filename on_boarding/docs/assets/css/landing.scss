@@ -445,6 +445,43 @@ body.tabs-overflow .hamburger  { visibility: visible; pointer-events: auto; }
   strong { color: var(--accent-strong); }
 }
 
+/* copy-to-clipboard snippet (the "invite Nick" paste line) */
+
+.chain-snippet {
+  position: relative;
+  padding-right: 5.25rem;        /* leave room for the copy button */
+
+  .snippet-text { display: block; }
+}
+
+.copy-snippet {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent);
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover { background: var(--accent); color: var(--card); }
+  &:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+
+  &.copied {
+    background: var(--accent);
+    color: var(--card);
+    border-color: var(--accent);
+  }
+}
+
 /* stages */
 
 .stages {
@@ -709,6 +746,19 @@ body.tabs-overflow .hamburger  { visibility: visible; pointer-events: auto; }
   .step::before { font-size: 1.5rem; }
 
   .chain-narrative { padding: 0.95rem 1.05rem; font-size: 0.98rem; }
+  .chain-snippet {
+    padding-right: 1.05rem;       /* button moves below the text on narrow screens */
+
+    .copy-snippet {
+      position: static;
+      display: block;
+      width: 100%;
+      margin-top: 0.7rem;
+      padding: 0.5rem;
+      text-align: center;
+    }
+    .copy-snippet .copy-label { display: inline; }
+  }
   .stage, .pain, .caveat { padding: 0.95rem 1rem 1.1rem; }
 
   .nav-arrows-bottom { margin-top: 2rem; }

@@ -232,5 +232,61 @@
       activate(initial, { silent: true });
     })();
   </script>
+
+  <script>
+    // Copy-to-clipboard for the "invite Nick" paste line. Reads the visible
+    // snippet text (single source of truth), normalises whitespace, and falls
+    // back to execCommand where the async Clipboard API is unavailable.
+    (function () {
+      var buttons = document.querySelectorAll('.copy-snippet');
+      if (!buttons.length) return;
+
+      function fallbackCopy(text) {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'absolute';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          var ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          return ok;
+        } catch (e) { return false; }
+      }
+
+      Array.prototype.forEach.call(buttons, function (btn) {
+        var snippet = btn.closest('.chain-snippet');
+        var textEl  = snippet && snippet.querySelector('.snippet-text');
+        if (!textEl) return;
+        var label    = btn.querySelector('.copy-label') || btn;
+        var original = label.textContent;
+        var timer;
+
+        function feedback(ok) {
+          label.textContent = ok ? 'Copied!' : 'Press Ctrl/⌘+C';
+          btn.classList.toggle('copied', ok);
+          clearTimeout(timer);
+          timer = setTimeout(function () {
+            label.textContent = original;
+            btn.classList.remove('copied');
+          }, 2000);
+        }
+
+        btn.addEventListener('click', function () {
+          var text = (textEl.textContent || '').replace(/\s+/g, ' ').trim();
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(
+              function () { feedback(true); },
+              function () { feedback(fallbackCopy(text)); }
+            );
+          } else {
+            feedback(fallbackCopy(text));
+          }
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
