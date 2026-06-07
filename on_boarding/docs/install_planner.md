@@ -168,18 +168,48 @@ the first that fits:
    cupboard — becomes the Linux saconsole host. Zero monthly cost. If
    the operator has, or can free up, a second machine that meets the
    Layer-B checklist, this beats any paid option.
-3. **A remote VPS / cloud host — the fallback, not the default.** Only
-   when **no** local machine can meet the saconsole-host checklist
-   (not enough memory anywhere, no virtualization, no spare box) do you
-   propose renting a small Linux server. When you do: name it as a real
-   recurring cost, give a realistic figure as a *range* drawn from the
-   spec's resource math (not a number you invented), and say plainly
-   that it exists because the local hardware fell short — so the operator
-   understands the bill and could remove it later by adding local
-   capacity.
+3. **A one-time inexpensive used machine — the safe sandbox.** When the
+   operator has no spare box to free up, the next option is **not** a
+   recurring bill — it is a **single, one-time purchase**: an
+   inexpensive second-hand desktop to act as the Linux saconsole host.
+   This is often the *best* answer, not a compromise, and you should
+   raise it plainly:
+   - **It clears the bar cheaply.** A roughly ten-year-old small
+     business desktop — a 2015-era machine with 8–16 GB of memory, the
+     kind that sells used for about **CAD 300–500** — comfortably meets
+     the saconsole-host checklist (real CPU virtualization, ≥ 8 GiB for
+     a one-target lab, ample disk). Confirm against the figures you read
+     in §1; don't assert specs you didn't check.
+   - **It's a one-time cost, and it stays theirs.** Frame the contrast
+     honestly: a used machine is paid once and fully owned; a rented
+     server (step 4) is paid every month, forever, on someone else's
+     hardware. Within months the one-time machine is cheaper, and it
+     keeps the whole system on a computer the operator controls.
+   - **It's the safest place to experiment.** A dedicated separate
+     machine means nothing Beaverdam does ever touches their real or
+     work computer — the fenced-off, well-lit zone of their own, where
+     mistakes cost nothing. For a cautious operator this reassurance is
+     often worth more than the money.
 
-Never reach step 3 without having genuinely ruled out steps 1 and 2 for
-*this* operator's actual hardware.
+   So **ask** it, in plain terms: *"Would you consider picking up an
+   inexpensive used desktop — a few hundred dollars, one time — to be a
+   safe, separate machine to experiment on? It's often cheaper than
+   renting, and it stays entirely yours."*
+
+4. **A remote VPS / cloud host — the genuine last resort.** Only when
+   **no** local machine works and a one-time purchase isn't on the table
+   (step 3 declined or not feasible) do you propose renting a small
+   Linux server. When you do: name it as a real **recurring** cost, give
+   a realistic figure as a *range* drawn from the spec's resource math
+   (not a number you invented), and say plainly that it exists because
+   the local hardware fell short — so the operator understands the bill
+   and could remove it later by adding local capacity. It is the one
+   option that leaves their own-hardware ideal behind; treat it
+   accordingly.
+
+Never reach step 4 without having genuinely ruled out steps 1–3 for
+*this* operator — including whether a one-time used machine (step 3)
+would serve before any recurring rental.
 
 ---
 
@@ -244,8 +274,9 @@ unsupported install.
 
 - **Don't web-search the spec figures.** §1 is the source of truth; a
   failed fetch is said out loud, never papered over with a search.
-- **Don't propose a paid VPS before ruling out the free local paths**
-  (§4 steps 1–2) for this operator's actual hardware.
+- **Don't propose a paid recurring VPS before ruling out the cheaper
+  paths** — the free local options *and* a one-time used machine
+  (§4 steps 1–3) — for this operator's actual hardware.
 - **Don't recommend against the machine's measured capability.** If
   inspection (§3) says no virtualization or too little memory, that
   machine is not the saconsole host — say so, and find the role it *can*

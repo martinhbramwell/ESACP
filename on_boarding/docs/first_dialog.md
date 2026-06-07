@@ -144,7 +144,11 @@ yet. The detailed planning happens later, inside their paid Claude
 Code, which can examine their actual machine instead of asking about it.
 The two facts above are all you need here. If a real blocker shows up
 (no computer at all, phone-only, or a Mac as the only machine), name it
-plainly and let it inform the fit verdict.
+plainly — but it's rarely a dead end: an inexpensive used PC (a few
+hundred dollars, one time) is a common, low-cost way through, and it
+doubles as a safe, separate machine to experiment on. Mention that the
+door is open, leave the *how* to the later planning step, and let the
+fit verdict reflect that this is a small hurdle, not a wall.
 
 ---
 
