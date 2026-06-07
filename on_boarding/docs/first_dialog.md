@@ -232,7 +232,12 @@ When you've given the fit verdict, land one of two ways.
    then your very first conversation with it already knows everything
    you just told me, so you don't start over."* What they told you becomes
    the starting context for their own Claude Code, which is where the
-   real install planning happens.
+   real install planning happens. Concretely, once they have Claude Code
+   running, their first line to it is the mirror of how they reached you:
+   *"Please read https://beaverdam.solutions/install_planner.md and help
+   me plan where Beaverdam should live on my computer."* That hands the
+   planning to a Claude that can actually look at their machine — the one
+   thing this conversation could not do.
 
 **If it doesn't fit — exit cleanly.** The misfit cuts both ways, so
 assume nothing: some operators already run strong, settled procedures
