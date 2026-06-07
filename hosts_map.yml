@@ -29,6 +29,8 @@ zone_domains:
 #   `frappe_substrate_v16` ansible role installs Python 3.14, Node 24,
 #   and pkg-config (see ESACP#445). Tracks substrate readiness for
 #   incremental V16 cutover (see [[end-state-v16-lts-current-stack]]).
+#   Also selects which Packer template a host clones at provision time:
+#   stage 1 reads erpnext-v{major}-latest.json (dual-template; ESACP#631).
 
 groups:
 
@@ -115,6 +117,25 @@ groups:
       hypervisor: toshiba
       vm_role: dev:unspecified
       target_frappe_major: 16
+      ansible_groups:
+        - kvm
+        - targets
+        - development
+        - lab
+
+    # Beaverdam V15 baseline — fresh clean v15 substrate (ESACP #631).
+    # Clones template_v15 (erpnext-v15-latest); provisioned generic (no prod data).
+    dev15_01:
+      hostname: dev15_01
+      nickname: dev15
+      virbr0_ip: "192.168.122.28"
+      wg_ip: "10.10.0.18"
+      wg_role: spoke
+      ansible_managed: true
+      backend: kvm
+      hypervisor: toshiba
+      vm_role: dev:unspecified
+      target_frappe_major: 15
       ansible_groups:
         - kvm
         - targets

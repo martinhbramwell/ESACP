@@ -29,6 +29,7 @@ wg_pubkey_target5: "8AFeP+XoqOyPTRNq6dINJxICREcixQ/wz7B1gZpdFRA="
 wg_pubkey_dev01: "ySQtN5mnR8+zEYM/Saxx/j9kO+nAq0liiLhtma/a3zw="
 wg_pubkey_dev02: "98Ht2/Cg08OSlPy11FJbpPoQhaK2nosu2e5vMx6WwXo="
 wg_pubkey_iconia: "XiykEtgWS7n6TnfpLYMznhGlofQKz/S8JbIgBcul61I="
+wg_pubkey_dev15_01: "l1msvdLcEnlbfSmTdTRXzS8qpZgNkK7Lm5h+Dn68xXk="
 
 # ── External WireGuard peers (manually configured; ansible never connects) ──
 # Roaming/mobile devices that join the mesh as spokes but are NOT in the

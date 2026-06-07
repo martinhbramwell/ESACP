@@ -17,6 +17,16 @@ set -euo pipefail
 # ERP_USER is passed by Packer execute_command — not hardcoded here.
 ERP_USER="${ERP_USER:?ERP_USER env var not set — pass via Packer execute_command}"
 
+# This fix is Frappe v13-specific (setuptools 70.3.0 pin restores pkg_resources;
+# urllib3/botocore pins). On v15+ those pins are wrong and would downgrade a
+# healthy environment, so this phase is a deliberate no-op off the v13 line.
+# FRAPPE_BRANCH is passed by Packer execute_command (dual-template; ESACP #631).
+FRAPPE_BRANCH="${FRAPPE_BRANCH:-version-13}"
+if [[ "${FRAPPE_BRANCH}" != "version-13" ]]; then
+    echo "[03_dep_fix $(date '+%H:%M:%S')] frappe ${FRAPPE_BRANCH} is not the v13 line — skipping v13 dependency fix."
+    exit 0
+fi
+
 cd "$HOME"
 BENCH_DIR="${HOME}/frappe-bench"
 BENCH_PIP="${BENCH_DIR}/env/bin/pip"
