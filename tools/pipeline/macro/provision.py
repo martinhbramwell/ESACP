@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import subprocess
-
-from tools.pipeline.orchestration.load_host_config import load_host_config
+from tools.pipeline.orchestration.load_host_config import load_host_config, target_frappe_major  # noqa: E501
+from tools.pipeline.orchestration.snapshot_ops import create_snapshot
 from tools.pipeline.stages.common.config import build_config
 from tools.pipeline.stages.common.log_format import stage_banner
 from tools.pipeline.stages.common.types import Emit
@@ -35,12 +34,14 @@ def run(
     # ── Stage 1: VM Creation (special signature — not yet Config-based) ──
     emit(stage_banner("Stage 1: VM Creation"))
     kvm_env = KvmEnv.from_project_root(project_root)
+    target_major = target_frappe_major(load_host_config(hostname, project_root))
     run_stage_1(
         hostname=hostname,
         virbr0_ip=virbr0_ip,
         env=kvm_env,
         emit=emit,
         cleanup_cfg=cleanup_cfg,
+        target_major=target_major,
     )
 
     # Build Config for stages 2–9 (host_cfg refreshed — stage 1 may update it)
@@ -62,25 +63,7 @@ def run(
         emit(stage_banner(label))
         stage_fn(config, emit)
 
-    # ── Final snapshot ──
+    # ── Final snapshot (version-labelled per target major; ESACP #636) ──
     emit(stage_banner("Final snapshot"))
-    _take_final_snapshot(hostname, kvm_env.hypervisor_alias, emit)
-
-
-def _take_final_snapshot(
-    hostname: str, hypervisor: str, emit: Emit,
-) -> None:
-    """Take the post-differentiation snapshot on the hypervisor."""
-    snap_name = "ERPNext v13 Restored Baseline"
-    r = subprocess.run(
-        [
-            "ssh", hypervisor,
-            f"virsh --connect qemu:///system snapshot-create-as"
-            f" {hostname} '{snap_name}' --atomic",
-        ],
-        capture_output=True, text=True, timeout=120,
-    )
-    if r.returncode != 0:
-        emit(f"  [WARN] Snapshot failed: {r.stderr.strip()}")
-    else:
-        emit(f"  [OK] Snapshot '{snap_name}' taken")
+    create_snapshot(hostname, f"ERPNext v{target_major} Restored Baseline",
+                    emit, kvm_env.hypervisor_alias)

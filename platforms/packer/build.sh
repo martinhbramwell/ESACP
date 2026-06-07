@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# build.sh — Orchestrate the ERPNext v13 Packer image build
+# build.sh — Orchestrate a version-parameterized ERPNext Packer image build
 #
 # Runs FROM the hub as user 'you'.
 # Creates a short-lived build VM on toshiba, hands it to Packer (null builder),
 # exports the resulting qcow2, then destroys the VM.
 #
-# Output: /mnt/esacp-disk/packer-output/erpnext-v13-YYYY-MM-DD.qcow2
-#         (also symlinked as erpnext-v13-latest.qcow2)
+# The frappe major version is derived from --frappe-branch (version-15 → 15) and
+# names the artifact + metadata, so multiple major lines (v13/v15/v16) coexist as
+# independent templates on the hypervisor (dual-template; ESACP #631).
 #
-# Usage:
-#   bash platforms/packer/build.sh [--frappe-branch version-13] [--erpnext-branch version-13]
+# Output: esacp pool volume erpnext-v{MAJOR}-YYYY-MM-DD.qcow2 (on toshiba)
+#         Metadata:          ${METADATA_DIR}/erpnext-v{MAJOR}-latest.json
+#
+# Usage (default builds the v13 line):
+#   bash platforms/packer/build.sh [--frappe-branch version-15] [--erpnext-branch version-15]
 #
 # Prerequisites (all met after bootstrap_hub.sh):
 #   - packer installed on the hub (declared by ansible/roles/packer/; see #388)
@@ -61,8 +65,6 @@ print(d.get('erp_user', 'erpadm'))
 AUTOINSTALL_TIMEOUT=3600   # 60 min — Ubuntu autoinstall on slow hardware
 SSH_POLL_TIMEOUT=120
 
-OUTPUT_IMAGE="erpnext-v13-${BUILD_DATE}.qcow2"
-
 # ── Parse args ─────────────────────────────────────────────────────────────────
 
 while [[ $# -gt 0 ]]; do
@@ -79,6 +81,17 @@ done
 log()  { echo "[$(date '+%H:%M:%S')] $*"; }
 die()  { echo; echo "ERROR: $*" >&2; exit 1; }
 step() { echo; echo "── $* ──────────────────────────────────"; }
+
+# ── Derive version-major + artifact names (dual-template; ESACP #631) ───────────
+#
+# The frappe branch is the source of truth for the major (version-15 → 15).
+# Artifact + metadata are named per-major so v13/v15/v16 templates coexist.
+VERSION_MAJOR="${FRAPPE_BRANCH#version-}"
+[[ "${VERSION_MAJOR}" =~ ^[0-9]+$ ]] \
+    || die "Cannot derive a numeric major from --frappe-branch '${FRAPPE_BRANCH}' (expected 'version-N')"
+
+OUTPUT_IMAGE="erpnext-v${VERSION_MAJOR}-${BUILD_DATE}.qcow2"
+METADATA_FILE="erpnext-v${VERSION_MAJOR}-latest.json"
 
 remote() { ssh "${HYPERVISOR_USER}@${HYPERVISOR_ALIAS}" "$@"; }
 
@@ -283,9 +296,10 @@ step "Phase 8: Record build metadata"
 # Metadata goes to hasan's home dir (writable without sudo).
 # api.py reads it from there via SSH to report template status.
 remote "mkdir -p '${METADATA_DIR}'"
-remote "cat > '${METADATA_DIR}/erpnext-v13-latest.json'" <<METADATA
+remote "cat > '${METADATA_DIR}/${METADATA_FILE}'" <<METADATA
 {
   "image":          "${OUTPUT_IMAGE}",
+  "version_major":  "${VERSION_MAJOR}",
   "frappe_branch":  "${FRAPPE_BRANCH}",
   "erpnext_branch": "${ERPNEXT_BRANCH}",
   "erp_user":       "${ERP_USER}",
@@ -295,14 +309,14 @@ remote "cat > '${METADATA_DIR}/erpnext-v13-latest.json'" <<METADATA
 }
 METADATA
 
-log "✓  Metadata: toshiba:${METADATA_DIR}/erpnext-v13-latest.json"
+log "✓  Metadata: toshiba:${METADATA_DIR}/${METADATA_FILE}"
 
 # EXIT trap destroys the build VM
 
-step "Done — ERPNext v13 undifferentiated image ready"
+step "Done — ERPNext v${VERSION_MAJOR} undifferentiated image ready"
 echo
 echo "  Volume:   esacp pool/${OUTPUT_IMAGE}  (on toshiba)"
-echo "  Metadata: toshiba:${METADATA_DIR}/erpnext-v13-latest.json"
+echo "  Metadata: toshiba:${METADATA_DIR}/${METADATA_FILE}"
 echo
 echo "  Next: register as a KVM pool volume or CloudStack template,"
 echo "  then 'Deploy from Template' in the Cytoscape stockroom."

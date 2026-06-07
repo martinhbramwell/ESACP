@@ -63,9 +63,13 @@ def run_destroy(args: dict) -> None:
     run(args["hostname"], args["host_cfg"], str(PROJECT_ROOT), emit)
 
 
-def run_build_template(_args: dict) -> None:
+def run_build_template(args: dict) -> None:
     from tools.pipeline.orchestration.build_template import build_template
-    build_template(emit)
+    build_template(
+        emit,
+        frappe_branch=args.get("frappe_branch", "version-13"),
+        erpnext_branch=args.get("erpnext_branch", "version-13"),
+    )
 
 
 RUNNERS = {"provision": run_provision, "provision_generic": run_provision_generic,

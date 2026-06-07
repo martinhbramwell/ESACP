@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import subprocess
-import time
 from pathlib import Path
 
 from tools.host_identity import (  # noqa: E501
     DEFAULT_HYPERVISOR, GUEST_VM_USER, HUB_VIRBR0_IP, operator_ssh_key)
+from tools.pipeline.orchestration.build_template_watch import watch_build
 from tools.pipeline.stages.common.types import Emit
 
 _PLATFORMS_PACKER = Path(__file__).resolve().parents[3] / "platforms" / "packer"
@@ -21,8 +21,11 @@ _SSH_OPTS = [
 _HUB_SSH = ["ssh", *_SSH_OPTS, f"{GUEST_VM_USER}@{HUB_VIRBR0_IP}"]
 
 
-def build_template(emit: Emit) -> None:
-    emit("── ERPNext v13 template build ──")
+def build_template(
+    emit: Emit, frappe_branch: str = "version-13", erpnext_branch: str = "version-13",
+) -> None:
+    emit(f"── ERPNext v{frappe_branch.removeprefix('version-')} template build"
+         f" (frappe={frappe_branch}, erpnext={erpnext_branch}) ──")
     emit("Syncing platforms/packer/ to hub ...")
     rsync = subprocess.run(
         ["rsync", "-az", "--delete",
@@ -38,6 +41,7 @@ def build_template(emit: Emit) -> None:
     subprocess.run(_HUB_SSH + [f"rm -f {_REMOTE_LOG} {_REMOTE_EXIT}"], capture_output=True)
     start_cmd = (
         f"nohup bash -c 'VM_USER={GUEST_VM_USER} bash /opt/esacp/platforms/packer/build.sh"
+        f" --frappe-branch {frappe_branch} --erpnext-branch {erpnext_branch}"
         f" > {_REMOTE_LOG} 2>&1; echo $? > {_REMOTE_EXIT}'"
         f" > /dev/null 2>&1 & echo $!"
     )
@@ -45,34 +49,4 @@ def build_template(emit: Emit) -> None:
     if r.returncode != 0:
         raise RuntimeError(f"Failed to start build on hub: {r.stderr.strip()}")
     emit(f"Build detached on hub (PID {r.stdout.strip()}) — polling log ...")
-
-    offset = 0
-    while True:
-        time.sleep(5)
-        offset = _flush_log(offset, emit)
-        r = subprocess.run(
-            _HUB_SSH + [f"cat {_REMOTE_EXIT} 2>/dev/null || echo -1"],
-            capture_output=True, text=True,
-        )
-        exit_str = r.stdout.strip()
-        if exit_str == "-1":
-            continue
-        _flush_log(offset, emit)
-        exit_code = int(exit_str) if exit_str.isdigit() else 1
-        if exit_code != 0:
-            raise RuntimeError(f"build.sh exited with code {exit_code}")
-        emit("── Build complete — new image ready on toshiba ──")
-        return
-
-
-def _flush_log(offset: int, emit: Emit) -> int:
-    r = subprocess.run(
-        _HUB_SSH + [f"tail -c +{offset + 1} {_REMOTE_LOG} 2>/dev/null || true"],
-        capture_output=True, text=True,
-    )
-    if r.stdout:
-        for line in r.stdout.splitlines():
-            if line.strip():
-                emit(line)
-        offset += len(r.stdout.encode("utf-8"))
-    return offset
+    watch_build(_HUB_SSH, _REMOTE_LOG, _REMOTE_EXIT, emit)
