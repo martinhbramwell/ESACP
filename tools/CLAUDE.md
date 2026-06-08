@@ -297,3 +297,32 @@ cause of #483/#541 staleness: hand-copied status that re-reads as a to-do.
   `gh issue list --repo martinhbramwell/ESACP --label umbrella:480 --state open`.
 - Pure core `bare_closed_refs(text, states)` is offline-testable; tests in
   `tools/test_agenda_lint.py`.
+
+## run_tests.py — Colocated test-execution gate (#663)
+
+`./tools/run_tests.py` — discovers every `test_*.py` under `tools/` (excluding
+`tools/vm_scripts/`, which is guest-deployed code, NOT a controller test) and
+runs each **as an executable** (`./path/test_x.py`). Invoking by path is
+deliberate: a missing `+x` bit or shebang surfaces as a **failure** instead of
+being silently masked (the root cause #663 fixes). Exits non-zero on any
+failure. Dependency-free.
+
+- **Every test must self-run.** Shebang + `chmod +x` + a `__main__` block that
+  runs its assertions. The house pattern is `if __name__ == "__main__":` calling
+  the test functions directly.
+- **`tools/testkit.py`** — ~50-line stdlib substitute for pytest. A module with
+  bare `test_*` functions (incl. ones using `monkeypatch`/`tmp_path`) self-runs
+  via `raise SystemExit(run_module_tests(globals()))` in its `__main__` block.
+  House style is **no pytest**; testkit is the dependency-free harness.
+- **The gate has three surfaces** (all call the runner / its lint):
+  1. **CI** — `.github/workflows/tests.yml` on every PR + push to `main`
+     (authoritative). Installs `PyYAML Jinja2 ruamel.yaml` (the suite's only
+     external deps) and runs the runner.
+  2. **sync_check.sh** §18 — session-start surfacing; a session can't start
+     green while the suite is red.
+  3. **pre-commit** — `tools/pre_commit_exec_check.py` asserts every staged
+     shebanged `tools/**/*.py` and every `test_*.py` carries `+x` (index mode
+     `100755`). Excludes `tools/vm_scripts/`.
+- **Canonical pre-commit hook** (`.git/hooks/` is untracked — reproduce on each
+  controller): a bash hook that runs `tools/pre_commit_size_check.py` **then**
+  `tools/pre_commit_exec_check.py`, both under `set -e`.

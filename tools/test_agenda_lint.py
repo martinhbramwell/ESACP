@@ -1,6 +1,12 @@
+#!/usr/bin/env python3
 """Colocated test for agenda_lint bare-CLOSED-ref detection (#560)."""
 
-from tools.agenda_lint import bare_closed_refs
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from tools.agenda_lint import bare_closed_refs  # noqa: E402
 
 STATES = {483: "CLOSED", 541: "CLOSED", 456: "OPEN", 560: "OPEN"}
 
@@ -44,3 +50,8 @@ def test_lineno_is_reported():
     text = "header\n\n- bare #541 rebrand underway"
     flagged = bare_closed_refs(text, STATES)
     assert flagged[0][0] == 3
+
+
+if __name__ == "__main__":
+    from tools.testkit import run_module_tests
+    raise SystemExit(run_module_tests(globals()))

@@ -1,13 +1,18 @@
+#!/usr/bin/env python3
 """Colocated test for substrate_apply primitive (#418)."""
 
 from __future__ import annotations
 
+import sys
 from dataclasses import replace
+from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
-from tools.pipeline.orchestration.substrate_apply import apply_substrate_migration
-from tools.pipeline.stages.common.types import Config
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
+from tools.pipeline.orchestration.substrate_apply import apply_substrate_migration  # noqa: E402
+from tools.pipeline.stages.common.types import Config  # noqa: E402
 
 
 def _config() -> Config:
@@ -78,3 +83,8 @@ def test_uses_bench_dir_not_bench_dir_orig():
         apply_substrate_migration(config, emitted.append)
     for call in s.call_args_list:
         assert "/home/erpadm/frappe-bench-D2IRBL" in call.args[1]
+
+
+if __name__ == "__main__":
+    from tools.testkit import run_module_tests
+    raise SystemExit(run_module_tests(globals()))

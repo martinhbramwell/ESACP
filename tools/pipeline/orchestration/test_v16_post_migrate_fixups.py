@@ -1,12 +1,17 @@
+#!/usr/bin/env python3
 """Colocated test for v16_post_migrate_fixups primitive (#498, #486)."""
 
+import sys
+from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
-from tools.pipeline.orchestration.v16_post_migrate_fixups import (
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
+from tools.pipeline.orchestration.v16_post_migrate_fixups import (  # noqa: E402
     apply_v16_post_migrate_fixups,
 )
-from tools.pipeline.stages.common.types import Config
+from tools.pipeline.stages.common.types import Config  # noqa: E402
 
 MOD = "tools.pipeline.orchestration.v16_post_migrate_fixups"
 SSH = "tools.pipeline.orchestration.fix_script_runner.ssh_run"
@@ -68,3 +73,8 @@ def test_rsync_failure_aborts_before_ssh():
 def test_r1_ssh_failure_short_circuits_r3():
     result, s = _run(r1=_cp(rc=1, stderr="boom"))
     assert not result.success and "R1" in result.message and s.call_count == 1
+
+
+if __name__ == "__main__":
+    from tools.testkit import run_module_tests
+    raise SystemExit(run_module_tests(globals()))

@@ -19,6 +19,7 @@ from tools.pipeline.orchestration.hub_seed_iso import _render  # noqa: E402
 
 _PARAMS = {
     "hostname": "saconsole",
+    "vm_user": "testvmuser",
     "virbr0_ip": "192.168.122.10",
     "gateway": "192.168.122.1",
     "controller_pubkey": "ssh-ed25519 AAAATESTKEY user@test",
@@ -30,6 +31,7 @@ def test_user_data_substitutes_all_variables() -> None:
     assert rendered.startswith("#cloud-config\n")
     assert "autoinstall:" in rendered
     assert "hostname: saconsole" in rendered
+    assert "username: testvmuser" in rendered
     assert "- 192.168.122.10/24" in rendered
     assert "via: 192.168.122.1" in rendered
     assert '- "ssh-ed25519 AAAATESTKEY user@test"' in rendered

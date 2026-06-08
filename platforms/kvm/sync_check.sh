@@ -26,6 +26,8 @@
 #  14.  Cloudflare MCP (binary path, cf-mcp-refresh functional test)
 #  15.  Telegram notification channel (bot token + API reachability)
 #  16.  Cytoscape prototype API (localhost:8088)
+#  17.  Claude in Chrome — ERPNext site view
+#  18.  Colocated test suite (#663 — tools/run_tests.py)
 
 PASS=0; FAIL=0; WARN=0
 
@@ -575,6 +577,22 @@ if [[ "${CHROME_RUNNING}" == true ]]; then
     else
         warn "No ERPNext hosts in hosts_map.yml — nothing to view in Chrome"
     fi
+fi
+
+# ── 18. Colocated test suite (#663) ───────────────────────────────────────────
+hdr "18. Colocated test suite"
+
+# Session-start surfacing of the test-execution gate: a session must not start
+# "green" while the colocated suite is red. The runner invokes every test_*.py
+# as an executable (missing +x surfaces as failure). CI is the authoritative
+# gate; this mirror catches local rot before work begins.
+TEST_OUT="$(cd "${PROJ_ROOT}" && ./tools/run_tests.py 2>&1)"; TEST_RC=$?
+TEST_SUMMARY="$(printf '%s\n' "${TEST_OUT}" | grep -E 'test files passed' | tail -1 | awk '{$1=$1};1')"
+if [[ ${TEST_RC} -eq 0 ]]; then
+    ok "Colocated tests — ${TEST_SUMMARY:-all green}"
+else
+    fail "Colocated tests RED — ${TEST_SUMMARY:-suite failing}"
+    fix "Run ./tools/run_tests.py from project root and fix failures before starting work"
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────
