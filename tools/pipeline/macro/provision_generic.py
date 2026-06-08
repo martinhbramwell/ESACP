@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from tools.pipeline.orchestration.load_host_config import load_host_config, target_frappe_major  # noqa: E501
-from tools.pipeline.orchestration.snapshot_ops import create_snapshot
+from tools.pipeline.orchestration.snapshot_ops import snapshot_or_raise
 from tools.pipeline.stages.common.config import build_config
 from tools.pipeline.stages.common.log_format import stage_banner
 from tools.pipeline.stages.common.types import Emit
@@ -69,7 +69,7 @@ def run(
         emit(stage_banner(label))
         stage_fn(config, emit)
 
-    # ── Final snapshot (version-labelled per target major; ESACP #636) ──
+    # ── Final snapshot — fatal on failure (no Baseline breaks idempotency, #658) ──
     emit(stage_banner("Final snapshot"))
-    create_snapshot(hostname, f"ERPNext v{target_major} Generic Baseline",
-                    emit, kvm_env.hypervisor_alias)
+    snapshot_or_raise(hostname, f"ERPNext v{target_major} Generic Baseline",
+                      emit, kvm_env.hypervisor_alias)
