@@ -46,7 +46,10 @@ OS_VARIANT_OVERRIDE=""
 BUILD_DATE="$(date +%Y-%m-%d)"
 BUILD_VM="packer-build-${BUILD_DATE}"
 BUILD_VM_IP="192.168.122.20"   # Reserved for packer builds — not used by any permanent VM
-BUILD_VM_RAM="4096"            # ERPNext v13 requires ≥4 GB
+BUILD_VM_RAM="4096"            # ERPNext v13 requires ≥4 GB. Injected via
+                               # --build-ram by build_template.py (which also
+                               # preflights host RAM, #655); this is the
+                               # hand-run fallback.
 BUILD_VM_DISK="40"             # ERPNext v13 requires ≥40 GB
 BUILD_VM_VCPUS="2"
 
@@ -77,6 +80,7 @@ while [[ $# -gt 0 ]]; do
         --frappe-branch)  FRAPPE_BRANCH="$2";  shift 2 ;;
         --erpnext-branch) ERPNEXT_BRANCH="$2"; shift 2 ;;
         --erp-user)       ERP_USER="$2";       shift 2 ;;
+        --build-ram)      BUILD_VM_RAM="$2";   shift 2 ;;
         --ubuntu-iso)     UBUNTU_ISO_OVERRIDE="$2"; shift 2 ;;
         --os-variant)     OS_VARIANT_OVERRIDE="$2"; shift 2 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
