@@ -20,7 +20,7 @@ from tools.host_identity import ZONE_DOMAINS
 from tools.pipeline.macro.provision_generic import run as run_macro
 from tools.pipeline.orchestration.wizard_run import run_wizard
 
-_WIZARD_MODES = ("record", "replay", "existing")
+_WIZARD_MODES = ("record", "replay", "existing", "none")
 
 
 def add_subparser(sub) -> None:
@@ -30,7 +30,8 @@ def add_subparser(sub) -> None:
     p.add_argument("--wizard-mode", dest="wizard_mode", default="record",
                    choices=_WIZARD_MODES,
                    help="record = capture new Playwright script; replay = run existing script; "
-                        "existing = restore from golden backup")
+                        "existing = restore from golden backup; none = skip the wizard "
+                        "(headless stages-1-9 rebuild, e.g. template acceptance)")
     p.add_argument("--wizard-arg", dest="wizard_arg", default="",
                    help="Script filename (replay) or backup filename (existing); required for those modes")
 

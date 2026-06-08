@@ -19,7 +19,7 @@ def run_wizard(
     mode: str, hostname: str, site_url: str, arg: str,
     project_root: Path, emit: Emit,
 ) -> None:
-    """Dispatch to record/replay/existing. Unknown modes emit a warning."""
+    """Dispatch to record/replay/existing/none. Unknown modes emit a warning."""
     if mode == "record":
         _record(hostname, site_url, project_root, emit)
         capture_golden_backup(hostname, str(project_root), emit)
@@ -30,6 +30,8 @@ def run_wizard(
         emit(f"── Restoring from golden backup: {arg} ──")
         restore_golden_backup(hostname, arg, str(project_root), emit)
         emit("  [OK] Golden backup restored")
+    elif mode == "none":
+        emit("  [OK] Wizard skipped (--wizard-mode none) — site left at setup screen")
     else:
         emit(f"  [WARN] Unknown wizard_mode '{mode}' — skipping wizard")
 
