@@ -48,6 +48,10 @@ CATEGORY_LIMITS = {
     "platforms/kvm/bootstrap_hub/": 100,
 }
 
+# Test runner + harness (#663): test-tooling, not logic monoliths. Exempt by
+# name so the skip is explicit (tools/ root is otherwise unmatched anyway).
+TEST_INFRA = {"tools/run_tests.py", "tools/testkit.py"}
+
 CHECKED_SUFFIXES = (".py", ".sh")
 
 
@@ -70,6 +74,13 @@ def count_lines(filepath):
 
 def get_limit_for(filepath):
     """Return the category limit for a file, or None if unchecked."""
+    # Tests + their harness are exempt (#663): self-run scaffolding (shebang +
+    # sys.path + testkit main) adds ~10 mandatory lines, and more test coverage
+    # is healthy — the anti-spiral cap targets dispatcher/pipeline *logic*
+    # monoliths, not tests. The exec-bit lint guards tests instead. TEST_INFRA
+    # is named explicitly so the skip is deliberate, not silently-unmatched.
+    if Path(filepath).name.startswith("test_") or filepath in TEST_INFRA:
+        return None
     if filepath in TARGET_LIMITS:
         return TARGET_LIMITS[filepath]
     for prefix, limit in CATEGORY_LIMITS.items():
