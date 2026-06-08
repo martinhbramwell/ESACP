@@ -90,7 +90,7 @@ Job types: `provision`, `provision_generic`, `refresh`, `destroy`, `build_templa
 - Writes timestamped lines to stdout (redirected to `/tmp/esacp-job-{id}.log` by the spawner)
 - Writes `done` or `error` to `/tmp/esacp-job-{id}.status` on completion
 - `tools/api/jobs.py` writes `/tmp/esacp-job-{id}.meta` (JSON: hostname, type, started_at) at spawn time
-- `provision_generic` delegates wizard completion (record/replay/existing) to `tools/pipeline/orchestration/wizard_run.py`
+- `provision_generic` delegates wizard completion (record/replay/existing/none) to `tools/pipeline/orchestration/wizard_run.py`. `--wizard-mode none` skips the wizard for a headless stages-1-9 rebuild (e.g. template acceptance; #657)
 
 ## esacp.py — Unified Lab CLI
 
@@ -230,7 +230,7 @@ subprocess out of dispatchers and funnels through `emit`:
 | `ansible_playbook_run.py` | `ansible_provision` | filtered `ansible-playbook` streamer |
 | `template_metadata.py` | API `/api/template/*` | read/delete Packer template JSON via SSH |
 | `host_health.py` | API `/api/health/{host}` | nginx/supervisor/mysql SSH probes |
-| `wizard_run.py` | `job_worker` | Playwright record/replay/existing dispatch |
+| `wizard_run.py` | `job_worker` | Playwright record/replay/existing/none dispatch (none = skip wizard, #657) |
 | `stages/preflight/apt_install.py` | `cli/confirm_prerequisites.py` | `sudo apt install -y` wrapper |
 
 ### Host-registration primitives (in `orchestration/`)
