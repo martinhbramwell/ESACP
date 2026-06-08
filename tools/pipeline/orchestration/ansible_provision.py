@@ -34,8 +34,12 @@ def provision_vm(
     existing = list_snapshots(vm, hypervisor)
     if skip_fresh_snapshot or "Fresh Install" in existing:
         emit("  [dim]Skipping (already exists or --skip-fresh-snapshot)[/dim]")
-    else:
-        create_snapshot(vm, "Fresh Install", emit, hypervisor=hypervisor)
+    elif not create_snapshot(vm, "Fresh Install", emit, hypervisor=hypervisor):
+        # Best-effort checkpoint: it speeds up rebuilds but is NOT the
+        # idempotency-gate key (that's the post-ansible Baseline below).
+        # create_snapshot already emitted a WARN; continue explicitly so the
+        # failure is a decision, not a silently-discarded return (#660).
+        emit("  [dim]Fresh Install checkpoint unavailable (non-fatal) — continuing[/dim]")
 
     emit("")
     emit("[bold]Step 3/4:[/bold] Ansible provisioning [dim](task names and changes only)[/dim]")
@@ -50,6 +54,10 @@ def provision_vm(
     emit("[bold]Step 4/4:[/bold] Baseline snapshot")
     if check:
         emit("  [dim]Skipping (check mode)[/dim]")
-    else:
-        create_snapshot(vm, "Baseline", emit, hypervisor=hypervisor)
+    elif not create_snapshot(vm, "Baseline", emit, hypervisor=hypervisor):
+        # The post-ansible Baseline IS the idempotency-gate key for this path;
+        # a missing one silently breaks rollback/self-repair. Fail loudly so
+        # the CLI exits non-zero rather than reporting a phantom success (#660).
+        emit(f"[red]❌  Baseline snapshot for {vm} could not be created — provision failed.[/red]")
+        return False
     return True
