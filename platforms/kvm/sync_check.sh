@@ -600,17 +600,18 @@ hdr "19. Branch-base currency"
 
 # S116 root cause: a sub-branch was cut off umbrella/v16-clean-run while it was
 # 30 commits behind main; the divergence surfaced only live, mid-session. This
-# surfaces every umbrella + the current branch's distance from origin/main BEFORE
-# any branch op. Severity split: WARN here (don't brick startup over pre-existing
-# umbrella debt) — esacp-qa hard-blocks commits/merges on a stale base at the
-# moment that distance actually matters. One source of truth: tools/branch_currency.py.
+# surfaces each umbrella + the current branch's distance from origin/main AND its
+# unmerged-commit count BEFORE any branch op. Severity split: WARN here (don't
+# brick startup over branches behind main) — esacp-qa hard-blocks commits/merges
+# on a base behind main at the moment it matters. behind ≠ obsolete: a branch's
+# unmerged-commit count is the retire-safety signal. Source: tools/branch_currency.py.
 CURR_OUT="$(cd "${PROJ_ROOT}" && ./tools/branch_currency.py 2>&1)"; CURR_RC=$?
 printf '%s\n' "${CURR_OUT}"
 if [[ ${CURR_RC} -eq 0 ]]; then
     ok "Branch bases current with origin/main"
 else
-    warn "Branch divergence from origin/main — see above"
-    fix "Rebase stale umbrella/* branches; esacp-qa hard-blocks commits/merges on a stale base"
+    warn "Branches behind origin/main — see above (behind ≠ obsolete; read the unmerged-commit counts)"
+    fix "Rebase before branching off a behind base; retire a branch only after assessing its unique commits + operator sign-off"
 fi
 
 # ── 20. Plan-substrate currency (#674) ────────────────────────────────────────
