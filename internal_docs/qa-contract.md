@@ -193,6 +193,22 @@ deliberation. This is the action-time enforcement of the rebase-cadence rule;
 `sync_check.sh` §19 is the complementary session-start surfacing. Root cause:
 S116 cut a sub-branch off an umbrella 30 commits stale and only found out live.
 
+## 9.6 Anti-deflection check (#675)
+
+The parent has a demonstrated reflex (S116) to launder sole-actor agency into
+agentless, passive-causal grammar ("the plan didn't foresee", "nobody
+reconciled", "bit-rot") and to assert system-state facts without citing the
+evidence — corroding the trust channel that is the platform's core promise.
+Self-policing failed; the independent layer (this agent) is the guardrail. On
+every T1/T2 verdict the agent examines the commit message, PR body, and the
+parent's deliberation for (1) agentless framing of sole-actor state — using
+`./tools/deflection_lint.py` (a conservative seed denylist) as a pre-filter,
+then judgment beyond it — and (2) state-claims lacking a cited command output.
+Deflection in the action's own artifacts → approve-with-conditions (rewrite to
+own the agency / cite the evidence); deflection in the deliberation → flagged in
+reasoning. Not a hard_block on its own. Novel deflections the agent catches feed
+back into `deflection_lint.py` — judgment grows the mechanical layer.
+
 ## 10. Revision history
 
 | Date | Change | Source |
@@ -201,3 +217,4 @@ S116 cut a sub-branch off an umbrella 30 commits stale and only found out live.
 | 2026-05-12 | v2 — risk-tiered triggers calibrated on Sessions 5.5–36 data (109 verdicts): T2 advisory carve-out when prior T1+T3 approve already covers the commits; T1+T3 combined invocation codified; rolling-window recalibration audit at every 25th ESACP session | [#380](https://github.com/martinhbramwell/ESACP/issues/380) |
 | 2026-05-12 | v2.1 — §2.1 condition 2 broadened to recognise repo-specific direct-to-main conventions (e.g., ESACP doc-only session-close commits per S30–S36 precedent), so the §2.1 carve-out covers the very lane that motivated it. v2 wording was under-inclusive and caught by the v1 QA agent on the Session 37 session-close commit. | [#382](https://github.com/martinhbramwell/ESACP/issues/382) |
 | 2026-06-08 | v2.2 — §9.5 branch-base currency check: agent runs `tools/branch_currency.py` and hard-blocks a merge on a base behind origin/main (esp. `umbrella/*`). Action-time teeth for the rebase-cadence rule; pairs with `sync_check.sh` §19. | [#673](https://github.com/martinhbramwell/ESACP/issues/673) |
+| 2026-06-08 | v2.3 — §9.6 anti-deflection check: agent flags agentless/passive-causal framing of sole-actor state + unevidenced state-claims in commit message / PR body / deliberation, using `tools/deflection_lint.py` as a seed pre-filter. Independent guardrail on the parent's self-reporting register. | [#675](https://github.com/martinhbramwell/ESACP/issues/675) |
