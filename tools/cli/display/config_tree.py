@@ -26,7 +26,7 @@ def build_tree(config: dict) -> Tree:
     _add_wireguard(tree, hosts_map, all_vars)
     _add_vms(tree, kvm_hosts(config))
     add_controller(tree, controller_info(config))
-    add_ssh(tree, kvm_vars, vm_user(config), ssh_key_path(config))
+    add_ssh(tree, kvm_vars, vm_user(config), ssh_key_path())
     add_ports(tree, all_vars)
     add_alerts(tree, all_vars)
     add_system(tree, all_vars)

@@ -64,8 +64,8 @@ def hub_vm(config: dict) -> Optional[str]:
     return None
 
 
-def ssh_key_path(config: dict) -> str:
-    """Operator key path via operator_ssh_key (config kept for call-site compat)."""
+def ssh_key_path() -> str:
+    """Operator key path via operator_ssh_key."""
     return operator_ssh_key()
 
 

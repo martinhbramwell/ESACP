@@ -21,7 +21,7 @@ def run(args, config: dict) -> int:
 
     console.print("Retrieving Grafana credentials...")
     user, password = source_grafana_creds(
-        vm_user=vm_user(config), ssh_key=ssh_key_path(config),
+        vm_user=vm_user(config), ssh_key=ssh_key_path(),
         emit=console.print,
     )
     if password is None:

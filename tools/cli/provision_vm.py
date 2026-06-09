@@ -16,7 +16,7 @@ def run(args, config: dict) -> int:
 
     banner(f"Provision VM: {vm}")
     ok = provision_vm(
-        vm, hypervisor, project_root, ssh_key_path(config),
+        vm, hypervisor, project_root, ssh_key_path(),
         console.print, check=args.check,
         skip_fresh_snapshot=args.skip_fresh_snapshot,
     )
