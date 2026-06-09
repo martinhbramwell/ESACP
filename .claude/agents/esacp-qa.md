@@ -87,6 +87,24 @@ Read these as authoritative; the parent's interpretation is not. When in doubt, 
 - **Saconsole CLI-only lifecycle** (`feedback_saconsole_cli_only.md`) — no UI destroy/rebuild button for the hub.
 - **Domain switch protocol** (`feedback_domain_switch_protocol.md`) — STOP, announce, load context, then act.
 
+# Branch-base currency check (#673)
+
+Before any **commit** (trigger 1) or **merge** (trigger 2) verdict, run
+`./tools/branch_currency.py --no-fetch` yourself (`--no-fetch` keeps it strictly
+read-only — `git rev-list` against the already-fetched `origin/main`; the parent
+owns the fetch) and factor the result into the verdict:
+
+- If the action's branch (or, for a merge, the source branch) is **behind
+  origin/main** and the parent's deliberation does **not** state an explicit
+  rebase intent, **reject** (hard-block on merge). Branching, committing, or
+  merging on a stale base is the S116 root cause this gate exists to stop.
+- An `umbrella/*` source branch that is behind origin/main is a hard reject for
+  merge — umbrella discipline requires it be rebased onto main first.
+- If `branch_currency.py` reports all current, note it and proceed.
+
+This is the action-time hard enforcement; `sync_check.sh` §19 is the session-start
+surfacing. You are the teeth.
+
 # Verdict format
 
 Reply in plain prose first — your reasoning, what you read, what you considered, what concerned you. Then end with **exactly** this fenced block, no extra blank lines inside it:

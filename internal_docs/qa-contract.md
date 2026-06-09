@@ -182,6 +182,17 @@ This is acceptable for v1 because the agent's output is text (a verdict), not ac
 
 ---
 
+## 9.5 Branch-base currency check (#673)
+
+Before any T1 (commit) or T2 (merge) verdict, the agent runs
+`./tools/branch_currency.py --no-fetch` (strictly read-only `git rev-list`
+against the already-fetched `origin/main`; the parent owns the fetch) and
+hard-blocks a merge whose source branch — especially any `umbrella/*` — is
+behind `origin/main` without an explicit rebase intent in the parent's
+deliberation. This is the action-time enforcement of the rebase-cadence rule;
+`sync_check.sh` §19 is the complementary session-start surfacing. Root cause:
+S116 cut a sub-branch off an umbrella 30 commits stale and only found out live.
+
 ## 10. Revision history
 
 | Date | Change | Source |
@@ -189,3 +200,4 @@ This is acceptable for v1 because the agent's output is text (a verdict), not ac
 | 2026-05-03 | v1 initial — implementation of #341 | `feat/esacp-qa-agent` branch, D2a |
 | 2026-05-12 | v2 — risk-tiered triggers calibrated on Sessions 5.5–36 data (109 verdicts): T2 advisory carve-out when prior T1+T3 approve already covers the commits; T1+T3 combined invocation codified; rolling-window recalibration audit at every 25th ESACP session | [#380](https://github.com/martinhbramwell/ESACP/issues/380) |
 | 2026-05-12 | v2.1 — §2.1 condition 2 broadened to recognise repo-specific direct-to-main conventions (e.g., ESACP doc-only session-close commits per S30–S36 precedent), so the §2.1 carve-out covers the very lane that motivated it. v2 wording was under-inclusive and caught by the v1 QA agent on the Session 37 session-close commit. | [#382](https://github.com/martinhbramwell/ESACP/issues/382) |
+| 2026-06-08 | v2.2 — §9.5 branch-base currency check: agent runs `tools/branch_currency.py` and hard-blocks a merge on a base behind origin/main (esp. `umbrella/*`). Action-time teeth for the rebase-cadence rule; pairs with `sync_check.sh` §19. | [#673](https://github.com/martinhbramwell/ESACP/issues/673) |
