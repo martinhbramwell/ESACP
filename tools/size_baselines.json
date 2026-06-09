@@ -104,7 +104,7 @@
   "tools/pipeline/orchestration/sops_key_remove.py": 73,
   "tools/pipeline/orchestration/substrate_apply.py": 72,
   "tools/pipeline/orchestration/template_metadata.py": 60,
-  "tools/pipeline/orchestration/v16_post_migrate_fixups.py": 67,
+  "tools/pipeline/orchestration/v16_post_migrate_fixups.py": 70,
   "tools/pipeline/orchestration/verify_build_vm.py": 81,
   "tools/pipeline/orchestration/verify_vpn.py": 77,
   "tools/pipeline/orchestration/virsh.py": 15,
@@ -208,7 +208,10 @@
   "tools/pipeline/upgrade_v14/verify.py": 42,
   "tools/vm_scripts/g1_seed_patch_log.py": 77,
   "tools/vm_scripts/install_specific/__init__.py": 14,
+  "tools/vm_scripts/install_specific/before_install/__init__.py": 40,
+  "tools/vm_scripts/install_specific/before_install/common_site_config_patch.py": 24,
   "tools/vm_scripts/r1_recreate_web_page_home.py": 80,
   "tools/vm_scripts/r3_disable_irs_1099_pf.py": 72,
+  "tools/vm_scripts/r8_naming_series_probe.py": 66,
   "tools/vm_scripts/u6_dedup_smoke_test.py": 70
 }

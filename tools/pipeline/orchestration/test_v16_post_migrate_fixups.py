@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Colocated test for v16_post_migrate_fixups primitive (#498, #486)."""
+"""Colocated test for v16_post_migrate_fixups primitive (#498, #486, #617)."""
 
 import sys
 from pathlib import Path
@@ -18,6 +18,9 @@ SSH = "tools.pipeline.orchestration.fix_script_runner.ssh_run"
 EMIT = lambda _m: None  # noqa: E731
 R1_CREATED = "  [OK] (was absent, now 1)\n  [PROBE] home=created\n"
 R3_OK = "  [OK] (was 0, now 1)\n  [PROBE] disabled=1\n"
+# R8 is a probe: a successful run ALWAYS advances the series (creates one draft
+# invoice), so it always carries the changed_marker.
+R8_OK = "  [OK] (series advanced)\n  [PROBE] naming_series=ok\n"
 
 
 def _config() -> Config:
@@ -36,33 +39,38 @@ def _cp(rc=0, stdout="", stderr=""):
     return CompletedProcess(args=[], returncode=rc, stdout=stdout, stderr=stderr)
 
 
-def _run(rsync=None, r1=None, r3=None):
+def _run(rsync=None, r1=None, r3=None, r8=None):
     r1 = r1 or _cp(stdout="  [PROBE] home=present\n")
     r3 = r3 or _cp(stdout="  [PROBE] disabled=1\n")
+    r8 = r8 or _cp(stdout=R8_OK)
     with patch(f"{MOD}.rsync_to_vm", return_value=rsync or _cp()), \
-         patch(SSH, side_effect=[r1, r3]) as s:
+         patch(SSH, side_effect=[r1, r3, r8]) as s:
         return apply_v16_post_migrate_fixups(_config(), EMIT), s
 
 
-def test_both_fresh_apply_sets_changed():
+def test_all_three_run_and_set_changed():
     result, s = _run(r1=_cp(stdout=R1_CREATED), r3=_cp(stdout=R3_OK))
     assert result.success and result.changed
     assert "home=created" in result.message and "disabled=1" in result.message
+    assert "naming_series=ok" in result.message
     cmds = [c.args[1] for c in s.call_args_list]
-    assert all(s in cmds[0] for s in ("r1_recreate_web_page_home.py", "sudo -u erpadm", "/sites &&"))
-    assert all(s in cmds[1] for s in ("r3_disable_irs_1099_pf.py", "sudo -u erpadm", "/sites &&"))
+    assert all(x in cmds[0] for x in ("r1_recreate_web_page_home.py", "sudo -u erpadm", "/sites &&"))
+    assert all(x in cmds[1] for x in ("r3_disable_irs_1099_pf.py", "sudo -u erpadm", "/sites &&"))
+    assert all(x in cmds[2] for x in ("r8_naming_series_probe.py", "sudo -u erpadm", "/sites &&"))
 
 
-def test_both_idempotent_skip_no_change():
+def test_r1_r3_idempotent_but_r8_always_advances():
+    # R1/R3 are no-ops here, but R8 advances the series on every success, so the
+    # aggregate is always `changed` once R8 is in the loop. Documented behaviour.
     result, _ = _run()
-    assert result.success and not result.changed
+    assert result.success and result.changed
+    assert "naming_series=ok" in result.message
 
 
-def test_r1_singleton_absent_is_no_op():
+def test_r1_singleton_absent_path_reports_message():
     result, _ = _run(r1=_cp(stdout="  [PROBE] homepage=absent\n"),
                      r3=_cp(stdout="  [PROBE] disabled=absent\n"))
-    assert result.success and not result.changed
-    assert "homepage=absent" in result.message
+    assert result.success and "homepage=absent" in result.message
 
 
 def test_rsync_failure_aborts_before_ssh():
@@ -70,9 +78,16 @@ def test_rsync_failure_aborts_before_ssh():
     assert not result.success and "rsync" in result.message and s.call_count == 0
 
 
-def test_r1_ssh_failure_short_circuits_r3():
+def test_r1_ssh_failure_short_circuits_rest():
     result, s = _run(r1=_cp(rc=1, stderr="boom"))
     assert not result.success and "R1" in result.message and s.call_count == 1
+
+
+def test_r8_mismatch_fails_the_run():
+    # A broken naming series => probe prints naming_series=mismatch (not in
+    # R8_EXPECTED) => the whole fixups run fails, after R1+R3+R8 all ran.
+    result, s = _run(r8=_cp(stdout="  [PROBE] naming_series=mismatch\n"))
+    assert not result.success and "R8" in result.message and s.call_count == 3
 
 
 if __name__ == "__main__":
