@@ -613,6 +613,23 @@ else
     fix "Rebase stale umbrella/* branches; esacp-qa hard-blocks commits/merges on a stale base"
 fi
 
+# ── 20. Plan-substrate currency (#674) ────────────────────────────────────────
+hdr "20. Plan-substrate currency"
+
+# S116 root cause: the S115 plan asserted "branch off the umbrella", "register
+# dev15_01" — already done on main by pickup. A plan reads true-now but is only
+# true-when-written. plan_lint verifies the latest agenda's declared plan-check
+# block (base branch currency + creates-host not already registered) against live
+# state. WARN surface; no block ⇒ soft pass (legacy agendas).
+PLAN_OUT="$(cd "${PROJ_ROOT}" && ./tools/plan_lint.py 2>&1)"; PLAN_RC=$?
+printf '%s\n' "${PLAN_OUT}"
+if [[ ${PLAN_RC} -eq 0 ]]; then
+    ok "Plan-substrate assertions match live state"
+else
+    warn "Plan-substrate drift — the agenda's declared base/host no longer matches live state"
+    fix "Re-ground the plan against live git + hosts_map before accepting the objective"
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""

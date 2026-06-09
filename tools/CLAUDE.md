@@ -298,6 +298,37 @@ cause of #483/#541 staleness: hand-copied status that re-reads as a to-do.
 - Pure core `bare_closed_refs(text, states)` is offline-testable; tests in
   `tools/test_agenda_lint.py`.
 
+## plan_lint.py — Plan-substrate currency gate (#674)
+
+`./tools/plan_lint.py [agenda-path]` — verifies a plan/agenda's **declared**
+substrate against **live** state at pickup, the session-start counterpart of
+`agenda_lint` (which runs at close). Root cause: S116 accepted an S115 plan
+asserting "branch off the umbrella" / "register dev15_01" — already done on
+main by pickup. A plan reads true-now but is only true-when-written.
+
+The agenda declares a machine-checkable block (an HTML comment, invisible in
+rendered markdown), authored at session close alongside the carry-forward:
+
+```
+<!-- plan-check
+base: umbrella/v16-clean-run
+creates-host: dev15_01
+-->
+```
+
+- `base:` — the branch the next session builds on. Must exist AND be current
+  with origin/main (reuses `branch_currency.behind_count`, #673 — one source of
+  truth). A stale base ⇒ FAIL.
+- `creates-host:` — a host the plan will register. Must NOT already be in
+  `hosts_map.yml` ⇒ FAIL if present (someone already did it).
+- No block ⇒ soft pass (legacy agendas). Exit 1 if any declared assertion fails.
+
+Surfaced at session start by `sync_check.sh` §20 (WARN). Pure cores
+`parse_block` / `check_creates_host` / `evaluate` are offline-testable; tests in
+`tools/test_plan_lint.py`. **When authoring a next-agenda whose objective builds
+on a specific branch or registers a host, include the plan-check block** so the
+pickup session's `sync_check` catches drift before any branch op.
+
 ## run_tests.py — Colocated test-execution gate (#663)
 
 `./tools/run_tests.py` — discovers every `test_*.py` under `tools/` (excluding
