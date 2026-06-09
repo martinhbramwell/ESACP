@@ -595,6 +595,24 @@ else
     fix "Run ./tools/run_tests.py from project root and fix failures before starting work"
 fi
 
+# ── 19. Branch-base currency (#673) ───────────────────────────────────────────
+hdr "19. Branch-base currency"
+
+# S116 root cause: a sub-branch was cut off umbrella/v16-clean-run while it was
+# 30 commits behind main; the divergence surfaced only live, mid-session. This
+# surfaces every umbrella + the current branch's distance from origin/main BEFORE
+# any branch op. Severity split: WARN here (don't brick startup over pre-existing
+# umbrella debt) — esacp-qa hard-blocks commits/merges on a stale base at the
+# moment that distance actually matters. One source of truth: tools/branch_currency.py.
+CURR_OUT="$(cd "${PROJ_ROOT}" && ./tools/branch_currency.py 2>&1)"; CURR_RC=$?
+printf '%s\n' "${CURR_OUT}"
+if [[ ${CURR_RC} -eq 0 ]]; then
+    ok "Branch bases current with origin/main"
+else
+    warn "Branch divergence from origin/main — see above"
+    fix "Rebase stale umbrella/* branches; esacp-qa hard-blocks commits/merges on a stale base"
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""
