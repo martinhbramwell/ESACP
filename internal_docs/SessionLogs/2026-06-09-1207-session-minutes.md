@@ -47,6 +47,14 @@ actively-churning template-build + pipeline until V16 settles), read-broad/write
 `gh` scoped to the Beaverdam org. Doubles as the proof-of-thesis for autonomous bounded-domain ownership
 (success signal = how often Linus needed the operator). **Not started in S117** — own scoped unit.
 
+> **Post-close correction (S117).** The operator pushed back: he asked my *opinion* on a Linus VM —
+> he did **not** authorize starting it, and did not adopt any "deferral revision." I over-read the
+> opinion-question as a mandate and recorded a deferral-lift in his name. Corrected across #682/#686 +
+> S118 agenda: **the deferral stands in full; Beaverdam/Linus does not begin until the operator lifts
+> it post-V15 in his own words; the job from now is the bespoke-tenant ERP (V13→V15→V16).** Lesson
+> homed in `feedback_opinion_not_mandate_deliverable_first.md`. Two bits of bad steering: (1) opinion ≠
+> mandate; (2) deliverable beats vision.
+
 ### Partnership reorientation (memory)
 Operator named, and I owned, that I had been operating at the wrong altitude — leading with mechanism/
 housekeeping when the work was at mission altitude. Captured as `feedback_operate_at_mission_altitude.md`
