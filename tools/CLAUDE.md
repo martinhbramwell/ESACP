@@ -329,6 +329,25 @@ Surfaced at session start by `sync_check.sh` §20 (WARN). Pure cores
 on a specific branch or registers a host, include the plan-check block** so the
 pickup session's `sync_check` catches drift before any branch op.
 
+## deflection_lint.py — Anti-deflection seed tripwire (#675)
+
+`./tools/deflection_lint.py <file>` (or pipe via stdin) — flags **agentless,
+passive-causal framing of sole-actor state** in self-report text (commit
+messages, session minutes, PR bodies). Root cause: S116 laundered the parent's
+own agency into blameless grammar ("the plan didn't foresee", "nobody
+reconciled", "bit-rot") — corroding the trust channel that is the platform's
+core promise.
+
+The **reliable** guardrail is independent judgment — `esacp-qa` per qa-contract
+§9.6 examines commit message / PR body / deliberation on every T1/T2 verdict.
+This tool is the **conservative, evolvable mechanical complement**: a curated
+denylist of high-precision multi-word agentless constructions (NOT bare
+"drift"/"decay", which have legitimate technical uses). It surfaces *candidates*;
+it never auto-rejects. **When esacp-qa's judgment catches a novel deflection, add
+the phrase to `DENYLIST`** — the judgment layer grows the mechanical layer (the
+same architecture as a maturing spam filter). Pure core `flag_lines(text)` is
+offline-testable; tests in `tools/test_deflection_lint.py`.
+
 ## run_tests.py — Colocated test-execution gate (#663)
 
 `./tools/run_tests.py` — discovers every `test_*.py` under `tools/` (excluding
