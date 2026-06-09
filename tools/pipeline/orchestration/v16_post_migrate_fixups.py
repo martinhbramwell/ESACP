@@ -1,22 +1,36 @@
 """V13->V16 post-migrate fixups primitive (ESACP#480 umbrella).
 
-Rsyncs vm_scripts/ + runs catalogued fix-scripts (R1 #486, R3 #498) via
-the run_fix_script helper. Each script is idempotent + V13-safe.
+Rsyncs vm_scripts/ + runs catalogued fix-scripts (R1 #486, R3 #498, R8 #617)
+via run_fix_script. R1/R3 are idempotent fixes; R8 is an end-to-end naming-
+series PROBE (creates one draft Sales Invoice per run, so it always reports
+`changed`). All V13-safe. Add a fixup by appending one FIXUPS row — no new
+function needed.
 """
 
 from pathlib import Path
+from typing import NamedTuple
 
 from tools.pipeline.orchestration.fix_script_runner import run_fix_script
 from tools.pipeline.stages.common.ssh import rsync_to_vm
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
-R1_SCRIPT = "/tmp/vm_scripts/r1_recreate_web_page_home.py"
-R1_EXPECTED = {"home=present", "home=created", "homepage=absent"}
-R1_CHANGED_MARKER = "(was absent, now 1)"
 
-R3_SCRIPT = "/tmp/vm_scripts/r3_disable_irs_1099_pf.py"
-R3_EXPECTED = {"disabled=1", "disabled=absent"}
-R3_CHANGED_MARKER = "(was 0, now 1)"
+class Fixup(NamedTuple):
+    """One post-migrate script: vm-side filename + its expected probe set."""
+    label: str
+    script: str          # filename under /tmp/vm_scripts/
+    expected: set        # acceptable [PROBE] values; anything else => fail
+    changed_marker: str  # substring of output => this run changed state
+
+
+FIXUPS = (
+    Fixup("R1", "r1_recreate_web_page_home.py",
+          {"home=present", "home=created", "homepage=absent"}, "(was absent, now 1)"),
+    Fixup("R3", "r3_disable_irs_1099_pf.py",
+          {"disabled=1", "disabled=absent"}, "(was 0, now 1)"),
+    Fixup("R8", "r8_naming_series_probe.py",
+          {"naming_series=ok"}, "(series advanced)"),
+)
 
 
 def _rsync_scripts(config: Config, emit: Emit) -> TaskResult:
@@ -29,26 +43,15 @@ def _rsync_scripts(config: Config, emit: Emit) -> TaskResult:
     return TaskResult(True, False, "vm_scripts rsynced")
 
 
-def _run_r1(config: Config, emit: Emit) -> TaskResult:
-    # cwd = bench_dir/sites so frappe's RotatingFileHandler can resolve
-    # its relative '../logs/database.log' to bench_dir/logs/ (#486).
+def _run_fixup(config: Config, emit: Emit, fx: Fixup) -> TaskResult:
+    # Uniform invocation (#503): bench venv + sudo + cwd at sites/. R1 and R8
+    # use the frappe API and need the venv; R3 only does raw mysql today, but
+    # the uniform shape prevents the silent venv-mismatch trap if a script
+    # later adds Frappe imports.
     cmd = (f"sudo -u {config.erp_user} bash -c 'cd {config.bench_dir}/sites "
-           f"&& {config.bench_dir}/env/bin/python {R1_SCRIPT} "
+           f"&& {config.bench_dir}/env/bin/python /tmp/vm_scripts/{fx.script} "
            f"--bench-dir {config.bench_dir} --site {config.site_url}'")
-    return run_fix_script(config, emit, "R1", cmd,
-                          R1_EXPECTED, R1_CHANGED_MARKER)
-
-
-def _run_r3(config: Config, emit: Emit) -> TaskResult:
-    # Same invocation shape as _run_r1 (#503): bench venv + sudo + cwd at
-    # sites/ even though R3 only does raw mysql today — prevents the silent
-    # venv-mismatch trap if a future R3 edit (or copy-paste descendant)
-    # adds Frappe imports.
-    cmd = (f"sudo -u {config.erp_user} bash -c 'cd {config.bench_dir}/sites "
-           f"&& {config.bench_dir}/env/bin/python {R3_SCRIPT} "
-           f"--bench-dir {config.bench_dir} --site {config.site_url}'")
-    return run_fix_script(config, emit, "R3", cmd,
-                          R3_EXPECTED, R3_CHANGED_MARKER)
+    return run_fix_script(config, emit, fx.label, cmd, fx.expected, fx.changed_marker)
 
 
 def apply_v16_post_migrate_fixups(config: Config, emit: Emit) -> TaskResult:
@@ -57,8 +60,8 @@ def apply_v16_post_migrate_fixups(config: Config, emit: Emit) -> TaskResult:
     if not sync.success:
         return sync
     results = []
-    for runner in (_run_r1, _run_r3):
-        r = runner(config, emit)
+    for fx in FIXUPS:
+        r = _run_fixup(config, emit, fx)
         if not r.success:
             return r
         results.append(r)
