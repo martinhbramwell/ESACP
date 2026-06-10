@@ -30,9 +30,17 @@ def switch_to_v14(config: Config, emit: Emit) -> TaskResult:
            f"'cd {config.bench_dir} && NODE_OPTIONS=--max-old-space-size=4096 "
            f"bench switch-to-branch version-14 frappe erpnext --upgrade'")
     r = ssh_run(config, cmd, timeout=1800)
-    if r.returncode != 0:
-        return TaskResult(False, False, f"switch-to-branch failed: {r.stderr[-500:]}")
+    # #331: `switch-to-branch --upgrade` reinstalls EVERY app via uv, which
+    # crashes on the bespoke apps — frappe v14's gunicorn git-URL dep is rejected
+    # by uv's transitive resolver. frappe+erpnext are switched to v14 BEFORE that
+    # crash; Stage 4 reinstalls the bespoke apps with --no-deps. The stage's
+    # success criterion is therefore the postcondition (both core apps on v14),
+    # not the exit code.
     if not (_on_v14(config, "frappe") and _on_v14(config, "erpnext")):
-        return TaskResult(False, False, "post-switch branch check failed")
+        return TaskResult(False, False,
+                          f"switch-to-branch failed (frappe/erpnext not on v14): {r.stderr[-500:]}")
+    if r.returncode != 0:
+        emit("  ⚠ switch-to-branch exited non-zero — expected #331 bespoke uv "
+             "crash; frappe+erpnext on v14, Stage 4 reinstalls bespoke --no-deps")
     emit("  ✓ frappe + erpnext on version-14")
     return TaskResult(True, True, "switched to version-14")
