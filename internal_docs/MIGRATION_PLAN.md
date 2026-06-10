@@ -186,4 +186,4 @@ The staged path below is why.
 
 Format per entry: `<step-id> | <date> | deliverable | proof command | migration_proofs/<step-id>.log | <commit>`
 
-- S0a | 2026-06-10 | migration_status probe + hosts_map lookup-drift fix + SessionStart wiring | `./tools/test_migration_status.py && ./tools/test_host_identity.py` | migration_proofs/S0a.log | _(commit pending)_
+- S0a | 2026-06-10 | migration_status probe + hosts_map lookup-drift fix + SessionStart wiring | `./tools/test_migration_status.py && ./tools/test_host_identity.py` | migration_proofs/S0a.log | d1686f7
