@@ -34,5 +34,35 @@ def test_bench_migrate_is_site_scoped() -> bool:
     return True
 
 
+def test_bench_migrate_pauses_writers_before_migrate() -> bool:
+    """#691: maintenance-mode on + scheduler pause must precede migrate."""
+    captured: list[str] = []
+
+    def fake(_cfg, cmd, *, timeout=30):
+        captured.append(cmd)
+        return ok()
+
+    orig = patch_ssh(bench_migrate, fake)
+    try:
+        bench_migrate.run_bench_migrate(make_config(), lambda _: None)
+    finally:
+        bench_migrate.ssh_run = orig
+    idx_maint = next((i for i, c in enumerate(captured) if "set-maintenance-mode on" in c), -1)
+    idx_pause = next((i for i, c in enumerate(captured) if "scheduler pause" in c), -1)
+    idx_migrate = next((i for i, c in enumerate(captured) if "migrate" in c and "set-maintenance" not in c), -1)
+    if idx_maint < 0 or idx_pause < 0:
+        print(f"FAIL: missing maintenance-on/scheduler-pause:\n{captured}")
+        return False
+    if not (idx_maint < idx_migrate and idx_pause < idx_migrate):
+        print(f"FAIL: pause must precede migrate:\n{captured}")
+        return False
+    print("PASS: bench_migrate pauses writers before migrate")
+    return True
+
+
 if __name__ == "__main__":
-    sys.exit(0 if test_bench_migrate_is_site_scoped() else 1)
+    ok_all = (
+        test_bench_migrate_is_site_scoped()
+        and test_bench_migrate_pauses_writers_before_migrate()
+    )
+    sys.exit(0 if ok_all else 1)
