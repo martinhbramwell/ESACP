@@ -145,7 +145,14 @@ The staged path below is why.
 - **Proof → `migration_proofs/S0b.log`:** `grep -c 'operator_confirmed: true'` = 22
   and `grep -c 'business_relevance: TBD'` = 0 in the catalogue; commit hash recorded.
 
-### S1 — V13 → V14, automated, structurally A/B-clean
+### S1 — V13 → V14, automated, structurally A/B-clean — **DONE (2026-06-10)**
+- **Outcome:** `./tools/upgrade_to_v14.py --substrate dev01` runs all 10 stages
+  clean (migrate exit 0, HTTPS 200 + v14). Five pipeline defects fixed
+  (#688/#331/#689/#690/#691 — never run end-to-end before). legacy_error_fixes
+  homed in LSV (`audit/legacy_error_fixes`, commit 024253a). V13→V14 structural
+  A/B: **LOST=0** (zero bespoke loss), +11 stock naming-series Property Setters
+  (expected). 18 fixture-equivalent core edits recreated as owned DB
+  customisations. Proof `migration_proofs/S1.log` (commit 2f24279).
 - **Objective:** staged V13→V14 on the prod-data bench via `upgrade_to_v14.py`,
   one command, no manual steps.
 - **Deliverable:** working `upgrade_to_v14` run on the bench + a structural-delta
@@ -198,3 +205,4 @@ Format per entry: `<step-id> | <date> | deliverable | proof command | migration_
 - S0a | 2026-06-10 | migration_status probe + hosts_map lookup-drift fix + SessionStart wiring | `./tools/test_migration_status.py && ./tools/test_host_identity.py` | migration_proofs/S0a.log | d1686f7
 - S0b-bench | 2026-06-10 | V13 prod-data baseline established on dev01 (not dev02=V16); delta_report_dev01.json (373 drifts) + guard test + `--write` persistence | `./tools/customisation_audit/test_baseline_dev01.py` | migration_proofs/S0b.log | 613f4bb
 - S0b-triage | 2026-06-10 | operator sign-off of all 22 behavioural entries (2 high / 6 medium / 14 wont_test); catalogue operator_confirmed + business_relevance + triage_note; drift_evidence_index.md binds every drift to its docs | `python3 -c "import yaml; from tools.bespoke_root import BESPOKE_ROOT; … entries==22 and confirmed==22 and tbd==0"` (full cmd in log) | migration_proofs/S0b-triage.log | LSV:8bf3271
+- S1 | 2026-06-10 | automated 10-stage V13→V14 (`upgrade_to_v14.py`); 5 pipeline fixes #688/#331/#689/#690/#691; legacy_error_fixes homed in LSV; V13→V14 structural A/B LOST=0 + 11 stock property-setter additions | `./tools/customisation_audit/test_s1_v14_zero_loss.py` | migration_proofs/S1.log | 2f24279

@@ -1,0 +1,61 @@
+STEP: S1 — V13 → V14, automated, structurally A/B-clean
+DATE: 2026-06-10
+DELIVERABLE:
+  - Working `./tools/upgrade_to_v14.py --substrate dev01` — the 10-stage staged
+    V13→V14 upgrade, one command, no manual steps. Five pipeline defects (only
+    ever manually trialed before, never run end-to-end) found + fixed this leg:
+      #688  Stage 2 snapshot used `sudo virsh` (fails over non-interactive SSH)
+            → route via virsh_ssh.
+      #331  Stage 3 aborted on the EXPECTED bespoke-uv crash → postcondition
+            (frappe+erpnext on v14) is the success criterion, Stage 4 repairs.
+      #689  Stage 4 called env/bin/uv (absent) → bare `uv --python env/bin/python`.
+      #690  Stage 5 phantom GitHub repo + git ownership + pre-migrate install
+            noise → rsync local checkout, git-init staging, install postcondition.
+      #691  Stage 6 migrate raced the background WORKERS → stop <bench>-workers
+            group before migrate (Stage 7 reload restarts); pausing only the
+            scheduler was insufficient.
+  - legacy_error_fixes app homed in LogiSoluValidations/audit/legacy_error_fixes
+    (LSV commit 024253a, pushed) — tenant version control, NOT a dedicated repo
+    (operator decision). 18 patches recreate the fixture-equivalent dev-mode drift
+    wiped by the V14 source checkout.
+  - internal_docs/migration_proofs/delta_report_dev01_v14.json — V14 structural
+    A/B report (384 drifts) from the post-migrate dev01 bench.
+  - tools/customisation_audit/test_s1_v14_zero_loss.py — cheap, offline guard
+    diffing V14 vs the V13 baseline.
+PROOF COMMAND: ./tools/customisation_audit/test_s1_v14_zero_loss.py
+--- OUTPUT ---
+OK test_s1_v14_zero_loss — 0 lost, 11 stock property-setter additions
+exit=0
+
+Supplementary evidence — the clean 10-stage run on dev01 (all fixes in place):
+  Stage 1 preflight       ✓ dev01 reachable; bench dir present
+  Stage 2 snapshot        ✓ pre-V14-upgrade-dev01-* rollback point
+  Stage 3 switch-to-v14   ✓ frappe+erpnext on version-14 (14.101.1); the
+                            non-zero exit is the expected #331 bespoke-uv crash
+  Stage 4 bespoke-install ✓ returnable, route_planner, ce_sri (uv --no-deps)
+  Stage 5 legacy app      ✓ rsync from LSV + git-init staging + get-app + install
+  Stage 6 bench migrate   ✓ set-maintenance-mode on + stop workers → migrate exit 0
+  Stage 7 service restart ✓ nginx + supervisorctl reload (workers back)
+  Stage 8 bench build     ✓
+  Stage 9 scheduler resume ✓ maintenance off; scheduler resumed
+  Stage 10 acceptance     ✓ HTTPS 200 on dev01.iridium.blue; bench version v14
+
+Structural A/B (the one-time expensive generation):
+$ ./tools/migration_status.py --bench dev01 --write internal_docs/migration_proofs/delta_report_dev01_v14.json
+  audit on dev01: 384 drifts
+  by_class: {'custom_docperm': 203, 'server_script': 5, 'in_place_core_edit': 31,
+             'naming_series': 119, 'print_format': 4, 'property_setter': 11,
+             'translation': 6, 'custom_doctype': 4, 'client_script': 1}
+
+V13(373) → V14(384) set-diff: LOST=0, ADDED=11 (all stock naming-series Property
+Setters: MAT-DT, CRM-LEAD, CRM-OPP, TS, ACC-JV, HR-DRI, CUST, MAT-RECO, SAL-CAM,
+SUP, MFG-WO — db_only). "Same-or-better": zero bespoke loss, only expected stock
+additions. The 18 fixture-equivalent dev-mode core edits became properly-owned DB
+customisations (18/18 legacy_error_fixes patches in Patch Log; Customer.
+forma_de_pago_preferida, Sales Invoice.commission_paid, Delivery Note/Sales
+Order.saldo_del_cliente, Purchase Order Item.comprobante_interno, es-EC
+translation all present on dev01). in_place_core_edit=31 is the catalogue-anchored
+Plan-B surface, unchanged by this leg (not a loss).
+--- VERDICT ---
+PASS
+COMMIT: 2f242796927d1d8d3b42999d5cebfb3c827afd2a (2026-06-10)
