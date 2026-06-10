@@ -1,4 +1,4 @@
-"""Stage 10 — acceptance: HTTPS 200 + bench version reports v14 + sample doc."""
+"""Stage 10 — acceptance: HTTPS 200 + bench version reports the target major."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ import subprocess
 
 from tools.pipeline.stages.common.ssh import ssh_run
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
+
+from .switch_branches import branch_for
 
 
 def _curl_https(site_url: str) -> int:
@@ -25,12 +27,16 @@ def _bench_version(config: Config) -> str:
     return r.stdout.strip()
 
 
-def check_acceptance(config: Config, emit: Emit) -> TaskResult:
-    code = _curl_https(config.site_url)
-    if code != 200:
-        return TaskResult(False, False, f"HTTPS check {config.site_url}: {code}")
-    ver = _bench_version(config)
-    if "14." not in ver and "version-14" not in ver:
-        return TaskResult(False, False, f"bench version not v14:\n{ver}")
-    emit(f"  ✓ HTTPS 200 on {config.site_url}; bench version mentions v14")
-    return TaskResult(True, False, "acceptance: HTTPS 200 + v14")
+def make_acceptance_stage(version: int):
+    """Build the Stage-10 unit asserting HTTPS 200 + bench reports ``version``."""
+    def check_acceptance(config: Config, emit: Emit) -> TaskResult:
+        code = _curl_https(config.site_url)
+        if code != 200:
+            return TaskResult(False, False, f"HTTPS check {config.site_url}: {code}")
+        ver = _bench_version(config)
+        if f"{version}." not in ver and branch_for(version) not in ver:
+            return TaskResult(False, False, f"bench version not v{version}:\n{ver}")
+        emit(f"  ✓ HTTPS 200 on {config.site_url}; bench version mentions v{version}")
+        return TaskResult(True, False, f"acceptance: HTTPS 200 + v{version}")
+
+    return check_acceptance

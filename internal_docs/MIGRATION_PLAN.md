@@ -64,7 +64,7 @@ the **`migration_proofs/<step-id>.log` path**, and the **commit hash + date**.
 
 | Asset | Path | What it is |
 |---|---|---|
-| Staged-upgrade engine | `tools/pipeline/upgrade_v14/` + `tools/upgrade_to_v14.py` | `bench switch-to-branch` chain; V13→V14 trialed in **#428 (CLOSED)** |
+| Staged-upgrade engine | `tools/pipeline/upgrade_v14/` + `tools/upgrade_to.py` (parametric `--target-version {14,15,16}`, S2) | `bench switch-to-branch` chain; V13→V14 trialed in **#428 (CLOSED)** |
 | Protected migrate | `applySubstrateMigration` (`substrate_apply.py`, #418) | g1+g2 guards + `bench migrate`, full log (#447) |
 | Post-migrate fixups | `apply_v16_post_migrate_fixups.py` (R1, R3, R8/#617) + #626 | catalogued V13→V15 / V15→V16-leg fixes |
 | Structural A/B engine | `tools/customisation_audit/` (12 `discover_*`, `core_diff_*`, `delta_report`) | discovers + diffs + classifies bespoke customisations between two substrates |
