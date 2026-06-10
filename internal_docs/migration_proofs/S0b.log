@@ -33,4 +33,4 @@ drift items"; {discardable_core_edit:10, human_review_core_edit:3}=13 matches th
 qa-log historical V13 count.
 --- VERDICT ---
 PASS
-COMMIT: <pending — stamped in follow-up>
+COMMIT: 613f4bb292b690c0ca0f002c005ee6bc5de2b5e1 (2026-06-10)
