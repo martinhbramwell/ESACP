@@ -203,7 +203,7 @@
   "tools/pipeline/upgrade_v14/preflight.py": 28,
   "tools/pipeline/upgrade_v14/scheduler_resume.py": 20,
   "tools/pipeline/upgrade_v14/service_restart.py": 15,
-  "tools/pipeline/upgrade_v14/snapshot.py": 27,
+  "tools/pipeline/upgrade_v14/snapshot.py": 31,
   "tools/pipeline/upgrade_v14/switch_branches.py": 38,
   "tools/pipeline/upgrade_v14/verify.py": 42,
   "tools/vm_scripts/g1_seed_patch_log.py": 77,
