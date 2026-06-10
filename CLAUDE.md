@@ -6,6 +6,27 @@ ESACP is bucket 1 of a three-bucket institutional architecture (decision: [#358]
 
 ---
 
+## 🚩 MIGRATION-PUSH MODE — ACTIVE (overrides the rules below)
+
+A focused push to deliver a correct, fully-automated **V13→V15** and **V15→V16**
+migration of the bespoke tenant is underway on branch `migration/v13-v15-v16`.
+**Until both end-products pass their acceptance, these overrides apply:**
+
+1. **READ `internal_docs/MIGRATION_PLAN.md` FIRST** (after `sync_check`). It is the
+   session protocol — the session list, the recorded structural/functional split,
+   and the durable proof method. Do not re-decide what it already records.
+2. **1:1:1, agendas, and minutes are SUSPENDED.** One objective : one session, all
+   on `migration/v13-v15-v16`. The plan file + `internal_docs/migration_proofs/`
+   replace the agenda/minutes ceremony.
+3. **Gates kept:** size-check, exec-bit lint, test gate. **Suspended:** per-commit
+   `esacp-qa`, issue-ref requirement (`esacp-qa` runs once at final merge).
+4. **Obstacles:** fix in-session, no GitHub issue — unless it is a defect in shared
+   code that outlives the migration, or genuinely needs the operator.
+
+This banner is removed when both migrations are delivered and merged to main.
+
+---
+
 ## Session Protocol
 
 At the start of every session, before doing anything else:
