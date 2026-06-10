@@ -114,15 +114,20 @@ The staged path below is why.
 - **S0 split (S0a, 2026-06-10):** S0 bundled bounded tooling with a heavyweight VM
   build, so it was split. **S0a — DONE** (tooling: `migration_status.py` + tests,
   the lookup-drift fix, SessionStart hook); proof `migration_proofs/S0a.log`.
-  **S0b-bench — NEXT** (own session): stand up the V13 prod-data bench, run the
-  structural A/B to **establish** the baseline (`delta_report_dev02.json` does not
-  exist yet — it is generated here, not "reproduced"), commit `S0b.log`.
+  **S0b-bench — DONE** (2026-06-10): the V13 prod-data bench is **dev01**, not
+  dev02 — dev02 has since been migrated to V16 (`16.18.3`); the clean V13
+  prod-data substrate is dev01 (frappe `13.58.22`, real tenant data: 22,433
+  Sales Invoices). Ran the structural A/B; **established** the baseline
+  `migration_proofs/delta_report_dev01.json` (373 drifts); proof
+  `migration_proofs/S0b.log`. (Host correction operator-approved 2026-06-10.)
 - **Proof → `migration_proofs/S0a.log`:** `migration_status.py` runs offline and
   prints live catalogue coverage (22 entries / 0 confirmed / 20 TBD); colocated
   tests green; `upgrade_to_v14 --substrate dev02` resolves past host lookup.
-- **Proof → `migration_proofs/S0b.log` (S0b-bench):** `migration_status.py --bench`
-  against the V13 bench reproduces the baseline (class counts match the established
-  `delta_report_dev02.json`); SessionStart hook injects current state.
+- **Proof → `migration_proofs/S0b.log` (S0b-bench):** `test_baseline_dev01.py`
+  asserts the committed `delta_report_dev01.json` carries the established
+  structural class/verdict distribution — a **cheap, offline** probe per the
+  proof-method rule (the SSH `--bench` audit is the expensive one-time generation,
+  not the routine proof; it ran once to produce the committed baseline).
 
 ### S0b — Finish operator triage of the 22 behavioural entries  *(operator-involved)*
 - **Objective:** complete the per-item sign-off the S10 catalogue left mid-triage
@@ -187,3 +192,4 @@ The staged path below is why.
 Format per entry: `<step-id> | <date> | deliverable | proof command | migration_proofs/<step-id>.log | <commit>`
 
 - S0a | 2026-06-10 | migration_status probe + hosts_map lookup-drift fix + SessionStart wiring | `./tools/test_migration_status.py && ./tools/test_host_identity.py` | migration_proofs/S0a.log | d1686f7
+- S0b-bench | 2026-06-10 | V13 prod-data baseline established on dev01 (not dev02=V16); delta_report_dev01.json (373 drifts) + guard test + `--write` persistence | `./tools/customisation_audit/test_baseline_dev01.py` | migration_proofs/S0b.log | &lt;pending&gt;

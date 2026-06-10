@@ -126,18 +126,28 @@ def _print_proofs() -> None:
         print(f"  {glyph}  {rec['step'] or log.name}  ($ {rec['command']})")
 
 
-def _run_audit(bench: str) -> int:
+def _run_audit(bench: str, write: str | None = None) -> int:
+    from tools.customisation_audit.delta_report import to_json
     from tools.customisation_audit.runner import run_audit
 
     report = run_audit(bench, str(REPO))
-    drifts = report.get("drifts", report)
-    print(f"  audit on {bench}: {len(drifts) if hasattr(drifts, '__len__') else '?'} drifts")
+    summary = report.get("summary", {})
+    print(f"  audit on {bench}: {summary.get('total_drifts', '?')} drifts")
+    print(f"  by_class: {summary.get('by_class', {})}")
+    print(f"  by_verdict: {summary.get('by_verdict', {})}")
+    if write:
+        out = Path(write)
+        out.write_text(to_json(report) + "\n")
+        print(f"  baseline written: {out}")
     return 0
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="V13->V15->V16 migration status probe")
     ap.add_argument("--bench", help="run the live structural A/B audit on this host")
+    ap.add_argument(
+        "--write", help="persist the audit report JSON to this path (baseline)"
+    )
     args = ap.parse_args()
 
     print("══ Migration status — V13 → V15 → V16 ══")
@@ -148,7 +158,7 @@ def main() -> int:
     _print_proofs()
     if args.bench:
         print("── live structural A/B audit ──")
-        return _run_audit(args.bench)
+        return _run_audit(args.bench, args.write)
     return 0
 
 
