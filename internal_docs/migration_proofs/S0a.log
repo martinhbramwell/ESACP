@@ -1,0 +1,51 @@
+STEP: S0a — migration_status probe + hosts_map lookup-drift fix + SessionStart wiring
+DATE: 2026-06-10
+DELIVERABLE:
+  - tools/migration_status.py — offline session-start probe: prints the recorded
+    structural/functional split, live catalogue coverage, and re-runs every DONE
+    step's proof; --bench HOST opt-in runs the live structural A/B audit.
+  - tools/test_migration_status.py — colocated tests for the pure cores.
+  - tools/host_identity.py: resolve_kvm_host(alias) — key/hostname/nickname → (key, attrs).
+  - tools/upgrade_to_v14.py: _load_host routed through resolve_kvm_host (was reading a
+    flat hosts[] that matched nothing against the live groups.kvm.<key> structure — the
+    dispatcher was non-functional; --substrate dev02 exited 1 "not found").
+  - tools/customisation_audit/runner.py: _build_audit_config routed through
+    host_identity.kvm_hosts() (single source of truth; its inline lookup was already
+    structurally correct — the plan's "stale" claim was imprecise, corrected in S0).
+  - .claude/settings.json: SessionStart hook runs tools/migration_status.py (offline; the
+    audit is opt-in so session start never blocks on SSH).
+PROOF COMMAND: ./tools/test_migration_status.py && ./tools/test_host_identity.py
+--- OUTPUT ---
+ok   test_catalogue_coverage_counts_entries_signoff_and_sections
+ok   test_catalogue_coverage_handles_empty_catalogue
+ok   test_catalogue_coverage_treats_missing_relevance_as_tbd
+ok   test_parse_proof_log_blank_when_fields_absent
+ok   test_parse_proof_log_extracts_step_command_and_pass
+ok   test_parse_proof_log_reports_fail_when_no_pass_line
+— 6/6 passed
+ok   test_guest_vm_user_constant_equals_resolver
+ok   test_guest_vm_user_falls_back_to_you
+ok   test_guest_vm_user_matches_group_vars_ansible_user
+ok   test_hypervisor_user_falls_back_to_env_user
+ok   test_hypervisor_user_matches_controller_block
+ok   test_operator_pubkey_is_private_key_plus_pub
+ok   test_operator_ssh_key_is_absolute_and_fully_expanded
+ok   test_operator_ssh_key_matches_group_vars_basename
+ok   test_resolve_kvm_host_by_key_hostname_and_nickname
+ok   test_resolve_kvm_host_unknown_returns_empty
+— 10/10 passed
+exit=0
+
+Supplementary evidence — probe runs offline and reports live state:
+$ ./tools/migration_status.py
+══ Migration status — V13 → V15 → V16 ══
+Recorded structural-vs-functional split (decided S10 — DO NOT re-ask):
+  [split printed]
+── catalogue coverage ──
+  catalogue: 22 entries — 0 operator_confirmed, 20 business_relevance=TBD
+  sections: {'A': 2, 'A1': 3, 'B': 1, 'E': 5, 'J': 6, 'M': 3, 'wont_test': 2}
+── DONE-step proofs (re-verified) ──
+  no DONE steps yet — ledger is empty.
+--- VERDICT ---
+PASS
+COMMIT: <filled at commit>

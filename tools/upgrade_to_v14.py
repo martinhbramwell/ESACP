@@ -14,21 +14,25 @@ import argparse
 import sys
 from pathlib import Path
 
-import yaml
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from tools.host_identity import resolve_kvm_host  # noqa: E402
 from tools.pipeline.stages.common.config import build_config  # noqa: E402
 from tools.pipeline.upgrade_v14 import run_upgrade_v14  # noqa: E402
 
 
-def _load_host(substrate: str) -> dict:
-    hosts = yaml.safe_load((REPO_ROOT / "hosts_map.yml").read_text())
-    for host in hosts.get("hosts", []):
-        if host.get("hostname") == substrate or host.get("nickname") == substrate:
-            return host
-    raise SystemExit(f"substrate {substrate!r} not found in hosts_map.yml")
+def _load_host(substrate: str) -> tuple[str, dict]:
+    """Resolve a substrate (key/hostname/nickname) to (key, host block).
+
+    Routes through ``host_identity.resolve_kvm_host`` — the live hosts_map
+    nests hosts under ``groups.kvm.<key>``; the old flat ``hosts[]`` read
+    matched nothing and made this dispatcher non-functional.
+    """
+    key, host_cfg = resolve_kvm_host(substrate)
+    if not host_cfg:
+        raise SystemExit(f"substrate {substrate!r} not found in hosts_map.yml")
+    return key, host_cfg
 
 
 def _emit(msg: str) -> None:
@@ -39,8 +43,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Phase 5 V14 upgrade orchestrator")
     ap.add_argument("--substrate", required=True, help="VM hostname or nickname (e.g. dev01)")
     args = ap.parse_args()
-    host_cfg = _load_host(args.substrate)
-    config = build_config(args.substrate, host_cfg, str(REPO_ROOT), use_wg=True)
+    key, host_cfg = _load_host(args.substrate)
+    config = build_config(key, host_cfg, str(REPO_ROOT), use_wg=True)
     try:
         run_upgrade_v14(config, _emit)
     except RuntimeError as exc:

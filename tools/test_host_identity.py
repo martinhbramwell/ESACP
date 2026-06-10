@@ -20,8 +20,10 @@ from tools.host_identity import (  # noqa: E402
     HOSTS_MAP_PATH,
     guest_vm_user,
     hypervisor_user,
+    kvm_hosts,
     operator_pubkey,
     operator_ssh_key,
+    resolve_kvm_host,
 )
 
 
@@ -74,6 +76,23 @@ def test_guest_vm_user_falls_back_to_you(monkeypatch, tmp_path):
     empty.write_text("ansible_python_interpreter: /usr/bin/python3\n")
     monkeypatch.setattr(hi, "GROUP_VARS_KVM_PATH", empty)
     assert hi.guest_vm_user() == "you"
+
+
+# ── KVM host resolver (migration S0 — upgrade_to_v14 host-lookup drift) ───────
+
+
+def test_resolve_kvm_host_by_key_hostname_and_nickname():
+    # Pick any real KVM host and confirm all three aliases resolve to it.
+    key, attrs = next(iter(kvm_hosts().items()))
+    for alias in (key, attrs.get("hostname"), attrs.get("nickname")):
+        if not alias:
+            continue
+        rk, ra = resolve_kvm_host(alias)
+        assert rk == key and ra is attrs
+
+
+def test_resolve_kvm_host_unknown_returns_empty():
+    assert resolve_kvm_host("no-such-substrate") == ("", {})
 
 
 if __name__ == "__main__":

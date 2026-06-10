@@ -90,6 +90,19 @@ def host_field(key: str, field: str, default: str = "") -> str:
     return _kvm.get(key, {}).get(field, default)
 
 
+def resolve_kvm_host(alias: str) -> tuple[str, dict]:
+    """Resolve a KVM host by hosts_map key, hostname, or nickname.
+
+    Single lookup for callers that accept any of the three (e.g. a CLI
+    ``--substrate`` arg).  Returns ``(key, attrs)`` — the canonical key plus
+    the host block — or ``("", {})`` if no match.
+    """
+    for key, attrs in _kvm.items():
+        if alias in (key, attrs.get("hostname"), attrs.get("nickname")):
+            return key, attrs
+    return "", {}
+
+
 def domain_for_zone(zone: str) -> str:
     """Return the canonical domain for a zone.  KeyError on unknown zone."""
     return ZONE_DOMAINS[zone]

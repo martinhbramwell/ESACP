@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import yaml
 from pathlib import Path
 
 from tools.customisation_audit import (
@@ -13,6 +12,7 @@ from tools.customisation_audit import (
     discover_unknown, discover_workflow,
 )
 from tools.customisation_audit.audit_config import AuditConfig
+from tools.host_identity import kvm_hosts
 from tools.pipeline.stages.common.config import build_config
 
 DISCOVER_MODULES = [
@@ -25,9 +25,7 @@ BESPOKE_APPS = ["ce_sri", "returnable", "route_planner"]
 
 
 def _build_audit_config(hostname: str, project_root: str) -> AuditConfig:
-    with open(Path(project_root) / "hosts_map.yml") as fh:
-        hosts = yaml.safe_load(fh)
-    host_cfg = hosts.get("groups", {}).get("kvm", {}).get(hostname)
+    host_cfg = kvm_hosts().get(hostname)
     if not host_cfg:
         raise RuntimeError(f"{hostname!r} not found in hosts_map.yml/groups/kvm")
     cfg = build_config(hostname, host_cfg, project_root, use_wg=True)

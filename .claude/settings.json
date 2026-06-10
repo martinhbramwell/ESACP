@@ -8,6 +8,18 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/tools/migration_status.py",
+            "timeout": 30,
+            "statusMessage": "Migration status (V13→V15→V16)…"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [

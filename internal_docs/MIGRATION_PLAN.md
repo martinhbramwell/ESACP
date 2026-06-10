@@ -104,12 +104,25 @@ The staged path below is why.
 - **Tools available:** `customisation_audit`, `customizations_catalogue.yml`,
   `delta_report`, restore primitives, SessionStart-hook infra.
 - **Tools lacking (build now):** `migration_status.py`; the banner; **fix
-  hosts_map lookup drift** — `customisation_audit/runner.py` reads
-  `groups.kvm.<host>` and `upgrade_to_v14.py` reads flat `hosts[]`, both stale vs
-  live `hosts_map.yml`; resolve via the pipeline's helper.
-- **Proof → `migration_proofs/S0.log`:** `tools/migration_status.py` run against
-  the V13 bench reproduces the catalogue baseline (372 drifts / class counts match
-  `delta_report_dev02.json`); SessionStart hook fires and injects current state.
+  hosts_map lookup drift.** *(Prose correction, S0a:* the drift is **only** in
+  `upgrade_to_v14.py` — it read a flat `hosts[]` that matches nothing against the
+  live `groups.kvm.<key>` structure, so the dispatcher exited 1 "not found" on any
+  real host. `customisation_audit/runner.py`'s `groups.kvm.<host>` read was already
+  structurally **correct**; it was DRY-routed through `host_identity.kvm_hosts()`
+  for single-source-of-truth, not because it was broken.*) Both now resolve via
+  `host_identity` (`resolve_kvm_host` / `kvm_hosts`).
+- **S0 split (S0a, 2026-06-10):** S0 bundled bounded tooling with a heavyweight VM
+  build, so it was split. **S0a — DONE** (tooling: `migration_status.py` + tests,
+  the lookup-drift fix, SessionStart hook); proof `migration_proofs/S0a.log`.
+  **S0b-bench — NEXT** (own session): stand up the V13 prod-data bench, run the
+  structural A/B to **establish** the baseline (`delta_report_dev02.json` does not
+  exist yet — it is generated here, not "reproduced"), commit `S0b.log`.
+- **Proof → `migration_proofs/S0a.log`:** `migration_status.py` runs offline and
+  prints live catalogue coverage (22 entries / 0 confirmed / 20 TBD); colocated
+  tests green; `upgrade_to_v14 --substrate dev02` resolves past host lookup.
+- **Proof → `migration_proofs/S0b.log` (S0b-bench):** `migration_status.py --bench`
+  against the V13 bench reproduces the baseline (class counts match the established
+  `delta_report_dev02.json`); SessionStart hook injects current state.
 
 ### S0b — Finish operator triage of the 22 behavioural entries  *(operator-involved)*
 - **Objective:** complete the per-item sign-off the S10 catalogue left mid-triage
@@ -173,4 +186,4 @@ The staged path below is why.
 
 Format per entry: `<step-id> | <date> | deliverable | proof command | migration_proofs/<step-id>.log | <commit>`
 
-- _(none yet — S0 is next)_
+- S0a | 2026-06-10 | migration_status probe + hosts_map lookup-drift fix + SessionStart wiring | `./tools/test_migration_status.py && ./tools/test_host_identity.py` | migration_proofs/S0a.log | _(commit pending)_

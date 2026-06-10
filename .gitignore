@@ -41,6 +41,9 @@ age-key.txt
 # Logs
 *.log
 logs/
+# Migration proof ledger — durable receipts, committed by design (MIGRATION_PLAN.md
+# proof method). Without this negation the global *.log ignore silently drops them.
+!internal_docs/migration_proofs/*.log
 
 # OS
 .DS_Store
