@@ -197,7 +197,7 @@
   "tools/pipeline/upgrade_v14/_test_helpers.py": 42,
   "tools/pipeline/upgrade_v14/acceptance.py": 36,
   "tools/pipeline/upgrade_v14/bench_build.py": 16,
-  "tools/pipeline/upgrade_v14/bench_migrate.py": 37,
+  "tools/pipeline/upgrade_v14/bench_migrate.py": 42,
   "tools/pipeline/upgrade_v14/bespoke_install.py": 48,
   "tools/pipeline/upgrade_v14/legacy_app_install.py": 80,
   "tools/pipeline/upgrade_v14/preflight.py": 28,

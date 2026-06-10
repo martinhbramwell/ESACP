@@ -7,22 +7,27 @@ re-run is safe.
 
 from __future__ import annotations
 
+import os
+
 from tools.pipeline.stages.common.ssh import ssh_run
 from tools.pipeline.stages.common.types import Config, Emit, TaskResult
 
 
 def _pause_writers(config: Config, emit: Emit) -> None:
-    """#691: quiesce concurrent DB writers before migrate. Otherwise the
-    scheduler + background workers contend for row locks and migrate dies with
-    'Lock wait timeout exceeded' (1205). Symmetric with Stage 9's resume."""
-    emit("  set-maintenance-mode on + scheduler pause (avoid lock contention)")
+    """#691: quiesce concurrent DB writers before migrate. The background
+    WORKERS (default/long/short) hold row locks and make migrate die with
+    'Lock wait timeout exceeded' (1205); pausing only the scheduler is NOT
+    enough — stop the whole worker supervisor group (proven on dev01). Stage 7's
+    `supervisorctl reload` restarts them. Group name = <bench>-workers, derived
+    from the real bench dir (not hardcoded)."""
+    workers = f"{os.path.basename(config.bench_dir_orig)}-workers:"
+    emit(f"  set-maintenance-mode on + stop {workers} (avoid lock contention)")
     for cmd in (
         f"sudo -u {config.erp_user} bash -c 'cd {config.bench_dir} && "
         f"bench --site {config.site_url} set-maintenance-mode on'",
-        f"sudo -u {config.erp_user} bash -c 'cd {config.bench_dir} && "
-        f"bench scheduler pause'",
+        f"sudo supervisorctl stop {workers}",
     ):
-        ssh_run(config, cmd, timeout=60)
+        ssh_run(config, cmd, timeout=120)
 
 
 def run_bench_migrate(config: Config, emit: Emit) -> TaskResult:

@@ -48,15 +48,15 @@ def test_bench_migrate_pauses_writers_before_migrate() -> bool:
     finally:
         bench_migrate.ssh_run = orig
     idx_maint = next((i for i, c in enumerate(captured) if "set-maintenance-mode on" in c), -1)
-    idx_pause = next((i for i, c in enumerate(captured) if "scheduler pause" in c), -1)
+    idx_stop = next((i for i, c in enumerate(captured) if "supervisorctl stop" in c and "workers" in c), -1)
     idx_migrate = next((i for i, c in enumerate(captured) if "migrate" in c and "set-maintenance" not in c), -1)
-    if idx_maint < 0 or idx_pause < 0:
-        print(f"FAIL: missing maintenance-on/scheduler-pause:\n{captured}")
+    if idx_maint < 0 or idx_stop < 0:
+        print(f"FAIL: missing maintenance-on/worker-stop:\n{captured}")
         return False
-    if not (idx_maint < idx_migrate and idx_pause < idx_migrate):
+    if not (idx_maint < idx_migrate and idx_stop < idx_migrate):
         print(f"FAIL: pause must precede migrate:\n{captured}")
         return False
-    print("PASS: bench_migrate pauses writers before migrate")
+    print("PASS: bench_migrate stops workers before migrate")
     return True
 
 
