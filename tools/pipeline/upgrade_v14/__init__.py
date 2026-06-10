@@ -1,10 +1,11 @@
 """upgrade_v14 — staged ERPNext major-version upgrade orchestration.
 
-Composes 10 stages into a single end-to-end upgrade run toward a target
+Composes 11 stages into a single end-to-end upgrade run toward a target
 major version (14, 15, 16). Each stage is `(Config, Emit) -> TaskResult`;
 the orchestrator stops on the first failure (no rollback — operator reverts
-via the snapshot from Stage 2). The two version-specific stages (3 switch,
-10 acceptance) are built by factories so the run loop stays version-agnostic.
+via the snapshot from Stage 2). The version-specific stages (3 switch,
+10 post-migrate fixups, 11 acceptance) are built by factories so the run loop
+stays version-agnostic.
 
 (Package dir name retains the `_v14` suffix as a historical artifact; the
 engine is multi-version. Renaming the dir is deferred housekeeping.)
@@ -19,6 +20,7 @@ from .bench_build import run_bench_build
 from .bench_migrate import run_bench_migrate
 from .bespoke_install import install_bespoke_apps
 from .legacy_app_install import install_legacy_app
+from .post_migrate_fixups import make_fixups_stage
 from .preflight import check_preflight
 from .scheduler_resume import resume_scheduler
 from .service_restart import restart_services
@@ -27,7 +29,7 @@ from .switch_branches import make_switch_stage
 
 
 def build_stages(target_version: int):
-    """Build the 10-stage tuple for a target major version."""
+    """Build the 11-stage tuple for a target major version."""
     return (
         ("1 preflight", check_preflight),
         ("2 snapshot", take_snapshot),
@@ -38,7 +40,8 @@ def build_stages(target_version: int):
         ("7 service restart", restart_services),
         ("8 bench build", run_bench_build),
         ("9 scheduler resume", resume_scheduler),
-        (f"10 acceptance (v{target_version})", make_acceptance_stage(target_version)),
+        (f"10 post-migrate fixups (v{target_version})", make_fixups_stage(target_version)),
+        (f"11 acceptance (v{target_version})", make_acceptance_stage(target_version)),
     )
 
 

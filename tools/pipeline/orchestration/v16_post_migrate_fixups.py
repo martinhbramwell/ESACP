@@ -1,10 +1,11 @@
 """V13->V16 post-migrate fixups primitive (ESACP#480 umbrella).
 
-Rsyncs vm_scripts/ + runs catalogued fix-scripts (R1 #486, R3 #498, R8 #617)
-via run_fix_script. R1/R3 are idempotent fixes; R8 is an end-to-end naming-
-series PROBE (creates one draft Sales Invoice per run, so it always reports
-`changed`). All V13-safe. Add a fixup by appending one FIXUPS row — no new
-function needed.
+Rsyncs vm_scripts/ + runs catalogued fix-scripts via run_fix_script. Each
+fixup carries `min_version` (the major it applies from); the leg runs only
+fixups with `min_version <= target` — cumulative. V15 leg: #626 server-scripts,
+R3 print-format, R8 naming-series probe; V16 adds R1 homepage. R8 is an
+end-to-end PROBE (one draft Sales Invoice/run → always `changed`). Add a fixup
+by appending one FIXUPS row — no new function needed.
 """
 
 from pathlib import Path
@@ -21,15 +22,19 @@ class Fixup(NamedTuple):
     script: str          # filename under /tmp/vm_scripts/
     expected: set        # acceptable [PROBE] values; anything else => fail
     changed_marker: str  # substring of output => this run changed state
+    min_version: int     # applies from this major version onward (15, 16, ...)
 
 
+# Dependency-ordered (docstring): #626 before R8; R1 is V16-only.
 FIXUPS = (
-    Fixup("R1", "r1_recreate_web_page_home.py",
-          {"home=present", "home=created", "homepage=absent"}, "(was absent, now 1)"),
+    Fixup("#626", "server_scripts_enable_626.py",
+          {"server_scripts=enabled"}, ", now 1)", 15),
     Fixup("R3", "r3_disable_irs_1099_pf.py",
-          {"disabled=1", "disabled=absent"}, "(was 0, now 1)"),
+          {"disabled=1", "disabled=absent"}, "(was 0, now 1)", 15),
     Fixup("R8", "r8_naming_series_probe.py",
-          {"naming_series=ok"}, "(series advanced)"),
+          {"naming_series=ok"}, "(series advanced)", 15),
+    Fixup("R1", "r1_recreate_web_page_home.py",
+          {"home=present", "home=created", "homepage=absent"}, "(was absent, now 1)", 16),
 )
 
 
@@ -54,17 +59,22 @@ def _run_fixup(config: Config, emit: Emit, fx: Fixup) -> TaskResult:
     return run_fix_script(config, emit, fx.label, cmd, fx.expected, fx.changed_marker)
 
 
-def apply_v16_post_migrate_fixups(config: Config, emit: Emit) -> TaskResult:
-    """Apply all V13->V16 post-migrate fixups to the target VM."""
+def apply_v16_post_migrate_fixups(config: Config, emit: Emit,
+                                  target_version: int = 16) -> TaskResult:
+    """Apply fixups with ``min_version <= target_version`` (cumulative).
+
+    Default 16 preserves the V13->V16 CLI behaviour (run all); the upgrade
+    leg passes its own target (e.g. 15) to run only that leg's fixups.
+    """
     sync = _rsync_scripts(config, emit)
     if not sync.success:
         return sync
     results = []
-    for fx in FIXUPS:
+    for fx in (f for f in FIXUPS if f.min_version <= target_version):
         r = _run_fixup(config, emit, fx)
         if not r.success:
             return r
         results.append(r)
     msg = "; ".join(r.message for r in results)
     return TaskResult(True, any(r.changed for r in results),
-                      f"V16 post-migrate fixups applied: {msg}")
+                      f"post-migrate fixups (v{target_version}) applied: {msg}")
