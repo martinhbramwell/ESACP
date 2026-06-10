@@ -36,6 +36,13 @@ def test_bespoke_install_skips_core_apps_and_uses_no_deps() -> bool:
     if not all("--no-deps" in c for c in install_cmds):
         print("FAIL: --no-deps missing on at least one install")
         return False
+    # #689: must call bare `uv` targeting the venv python, not env/bin/uv
+    if any("env/bin/uv" in c for c in install_cmds):
+        print(f"FAIL: uses env/bin/uv (does not exist on v14 bench):\n{install_cmds}")
+        return False
+    if not all("--python env/bin/python" in c for c in install_cmds):
+        print("FAIL: --python env/bin/python missing on at least one install")
+        return False
     if len(install_cmds) != 2:
         print(f"FAIL: expected 2 bespoke installs, got {len(install_cmds)}")
         return False

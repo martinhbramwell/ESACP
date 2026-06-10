@@ -32,8 +32,12 @@ def install_bespoke_apps(config: Config, emit: Emit) -> TaskResult:
     emit(f"  uv pip install --no-deps -e for {len(apps)} bespoke apps: {apps}")
     failures: list[str] = []
     for app in apps:
+        # #689: uv is installed globally (/usr/local/bin/uv), not in the bench
+        # venv — call bare `uv` from PATH and point it at the venv python, as
+        # the bench itself and #331's documented workaround do.
         cmd = (f"sudo -u {config.erp_user} bash -c "
-               f"'cd {config.bench_dir} && env/bin/uv pip install --no-deps -e apps/{app}'")
+               f"'cd {config.bench_dir} && uv pip install --no-deps -e apps/{app} "
+               f"--python env/bin/python'")
         r = ssh_run(config, cmd, timeout=300)
         if r.returncode != 0:
             failures.append(f"{app}: {r.stderr[-200:].strip()}")
