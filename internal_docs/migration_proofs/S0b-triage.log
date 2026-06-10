@@ -1,0 +1,28 @@
+STEP: S0b-triage — operator sign-off of the 22 behavioural catalogue entries
+DATE: 2026-06-10
+DELIVERABLE:
+  - LogiSoluValidations/audit/customizations_catalogue.yml — all 22 individual
+    entries triaged with the operator one-at-a-time (S119): business_relevance
+    set, operator_confirmed: true, one-line triage_note each. Committed to
+    LogiSoluValidations branch docs/drift-evidence-index (commit 8bf3271).
+    Result: 2 high / 6 medium / 14 wont_test.
+      * high (2): SRI withholding tables (IR/IVA) — verified BY the suite-A SRI
+        invoice spec, not standalone.
+      * medium (6): commission flow x3 (spec DEFERRED to Plan-B Phase-4;
+        long-term HIGH per operator directive — LSKB#6 + memory
+        project_commission_carry_forward_priority); customer_balance; 2
+        customer-facing Spanish print formats (broken on V16, LSKB#28).
+      * wont_test (14): 5 returnable (characterization-only — valuation-cascade
+        data-corruption defect, Phase-8 elimination); 6 translations (no runtime
+        logic); IRS-1099 (R3-disabled); FdI ejemplo (sample); ejm (ESACP#473
+        not-a-defect).
+  - LogiSoluValidations/audit/drift_evidence_index.md — every entry bound to its
+    full document trail; finding #8 records the commission after_submit dev-mode
+    core-edit migration hazard (comprobante_interno/tipo_comprobante).
+PROOF COMMAND: python3 -c "import yaml; from tools.bespoke_root import BESPOKE_ROOT; d=yaml.safe_load((BESPOKE_ROOT/'LogiSoluValidations/audit/customizations_catalogue.yml').read_text()); e=d['entries']; c=sum(1 for x in e if x.get('operator_confirmed') is True); tbd=sum(1 for x in e if x.get('business_relevance')=='TBD'); print('entries',len(e),'confirmed',c,'tbd',tbd); raise SystemExit(0 if len(e)==22 and c==22 and tbd==0 else 1)"
+--- OUTPUT ---
+entries 22 confirmed 22 tbd 0
+exit=0
+--- VERDICT ---
+PASS
+COMMIT: LSV:8bf3271 (catalogue deliverable, branch docs/drift-evidence-index); proof log + ledger on ESACP migration/v13-v15-v16

@@ -129,7 +129,11 @@ The staged path below is why.
   proof-method rule (the SSH `--bench` audit is the expensive one-time generation,
   not the routine proof; it ran once to produce the committed baseline).
 
-### S0b — Finish operator triage of the 22 behavioural entries  *(operator-involved)*
+### S0b — Finish operator triage of the 22 behavioural entries  *(operator-involved)* — **DONE (S119, 2026-06-10)**
+- **Outcome:** all 22 signed off one-at-a-time — 2 high / 6 medium / 14 wont_test;
+  catalogue `operator_confirmed: true` + `business_relevance` + `triage_note` each;
+  `drift_evidence_index.md` binds every drift to its document trail. Proof
+  `migration_proofs/S0b-triage.log` (LSV commit 8bf3271).
 - **Objective:** complete the per-item sign-off the S10 catalogue left mid-triage
   (`operator_confirmed: false`, `business_relevance: TBD` on all 22).
 - **Deliverable:** updated `customizations_catalogue.yml` with **22 entries
@@ -193,3 +197,4 @@ Format per entry: `<step-id> | <date> | deliverable | proof command | migration_
 
 - S0a | 2026-06-10 | migration_status probe + hosts_map lookup-drift fix + SessionStart wiring | `./tools/test_migration_status.py && ./tools/test_host_identity.py` | migration_proofs/S0a.log | d1686f7
 - S0b-bench | 2026-06-10 | V13 prod-data baseline established on dev01 (not dev02=V16); delta_report_dev01.json (373 drifts) + guard test + `--write` persistence | `./tools/customisation_audit/test_baseline_dev01.py` | migration_proofs/S0b.log | 613f4bb
+- S0b-triage | 2026-06-10 | operator sign-off of all 22 behavioural entries (2 high / 6 medium / 14 wont_test); catalogue operator_confirmed + business_relevance + triage_note; drift_evidence_index.md binds every drift to its docs | `python3 -c "import yaml; from tools.bespoke_root import BESPOKE_ROOT; … entries==22 and confirmed==22 and tbd==0"` (full cmd in log) | migration_proofs/S0b-triage.log | LSV:8bf3271
