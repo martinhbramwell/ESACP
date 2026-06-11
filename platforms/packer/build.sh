@@ -20,7 +20,7 @@
 #   - SSH access from the hub to toshiba: ssh hasan@toshiba
 #   - cloud-image-utils on the hub (cloud-localds)
 #   - The era-matched Ubuntu ISO on toshiba (per-major OS table, #643):
-#     v13 → 22.04 (constrained root fs), v15 → 24.04.4 (esacp-disk)
+#     v13 → 22.04 (constrained root fs), v15 → 24.04.4 (esacp-disk), v16 → 26.04 (esacp-disk)
 
 set -euo pipefail
 
@@ -106,7 +106,8 @@ VERSION_MAJOR="${FRAPPE_BRANCH#version-}"
 # Each frappe major builds on its era-matched Ubuntu LTS (operator decision #643):
 #   13 → 22.04 (genuinely pinned; frappe v13 deps break on newer — feedback_frappe_v13_deps)
 #   15 → 24.04 (Python 3.12; source-verified frappe/erpnext 15 requires-python clean)
-#   16 → 26.04 (deferred; v16 requires-python vs 26.04's Python must be verified first)
+#   16 → 26.04 (Python 3.14; verified: frappe version-16 requires-python ">=3.14,<3.15",
+#               erpnext version-16 ">=3.14" — 26.04 ships Python 3.14 as system Python)
 #
 # New ISO paths MUST live on the roomy esacp-disk, never the space-constrained root
 # filesystem (feedback_toshiba_vm_location). The v13 path is the one pre-existing
@@ -130,9 +131,9 @@ case "${VERSION_MAJOR}" in
         UBUNTU_VERSION="24.04"
         ;;
     16)
-        die "frappe major 16 builds on Ubuntu 26.04 — refused this session (#643). \
-The 26.04 template is deferred until v16 'requires-python' is verified against 26.04's \
-Python. Re-enable the 16) arm once validated, or pass --ubuntu-iso/--os-variant explicitly."
+        UBUNTU_ISO_PATH="/mnt/esacp-disk/var/lib/libvirt/images/ubuntu-26.04-live-server-amd64.iso"
+        OS_VARIANT="ubuntu20.04"
+        UBUNTU_VERSION="26.04"
         ;;
     *)
         die "No OS mapping for frappe major '${VERSION_MAJOR}' (#643). Add a case arm \

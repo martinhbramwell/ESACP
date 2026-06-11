@@ -83,14 +83,17 @@ FLUSH PRIVILEGES;
 SQL
 log "✓  MariaDB configured (root pwd: erpnext_build — replaced at deploy time)"
 
-# ── 4. NodeJS (18 on v13 / 20 LTS on v15) + yarn ───────────────────────────────
-# v13 stays on Node 18 (byte-identical); v15 → Node 20 LTS (#643 locked decision).
+# ── 4. NodeJS (18 on v13 / 20 LTS on v15 / 24 LTS on v16) + yarn ────────────────
+# v13 stays on Node 18 (byte-identical); v15 → Node 20 LTS (#643 locked decision);
+# v16 → Node 24 LTS — frappe version-16 package.json engines pin "node": ">=24",
+# and Node 22 fails v16 asset builds (source-verified, #643 numbat port).
 
-if [[ "${VERSION_MAJOR}" == "13" ]]; then
-    NODE_SETUP="18"
-else
-    NODE_SETUP="20"
-fi
+case "${VERSION_MAJOR}" in
+    13) NODE_SETUP="18" ;;
+    15) NODE_SETUP="20" ;;
+    16) NODE_SETUP="24" ;;
+    *)  NODE_SETUP="20" ;;
+esac
 log "Installing NodeJS ${NODE_SETUP} + yarn ..."
 curl -fsSL "https://deb.nodesource.com/setup_${NODE_SETUP}.x" | bash -
 apt-get install -y -qq nodejs

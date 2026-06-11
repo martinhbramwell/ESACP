@@ -184,7 +184,26 @@ The staged path below is why.
   V13-vs-V15 = **same-or-better** (no lost bespoke); 3 V15-leg probes pass on real
   data (#617 series increments, #626 server-script executes, R3 no PrintFormatError).
 
-### S3 — V15 → V16, automated = **END-PRODUCT #2 (V15→V16)**, same-or-better
+### S3 — V15 → V16, automated = **END-PRODUCT #2 (V15→V16)**, same-or-better — **IN PROGRESS / BLOCKED on #692**
+- **Mechanism change (2026-06-11):** V16 requires Python 3.14 (frappe `version-16`
+  `requires-python ">=3.14,<3.15"`, erpnext `>=3.14`; source-verified). 22.04/24.04
+  can't provide it, so S3 is **not** an in-place `switch-to-branch` like S1/S2 — it is
+  **restore-V15-onto-fresh-26.04-bench + migrate**. Operator directive: V16 on **Ubuntu
+  26.04 LTS** (ships py3.14 as system Python). New asset: **`template_v16@26.04`**.
+- **Done this leg:** 26.04 LTS ISO downloaded + sha256-verified on toshiba; `build.sh`
+  `16)` arm re-enabled (26.04 ISO/os-variant/version); `01_os_prep.sh` Node arm →
+  3-way (v16=Node **24** LTS, frappe v16 `engines node>=24`); dev01 snapshotted
+  (`dev01-postS2-preV16build-20260611`) then restored. **All edits are unvalidated**
+  — no clean build yet.
+- **BLOCKED — #692:** toshiba's qemu ESM auto-update (`+esm1`, 2026-06-10) broke
+  `qemu-img` qcow2 create/open → Packer Phase 4 (`virt-install --disk pool=esacp`)
+  fails. Operator waiting 1-2 days for a fixed `+esm2` before reverting. **Resume
+  trigger:** `qemu-img create -f qcow2` exits 0 on toshiba.
+- **Also pending before a real build:** API `POST /api/build/template` does not pass
+  the requested branch through — the v16 request ran as `version-13` (defaulted in
+  `run_build_template`'s `args.get(...,"version-13")`); must fix the API→job_worker
+  arg path. Stale-job guard cleared (Jun-7 build stuck "running" — no dead-process
+  detection; minor robustness gap, unfiled).
 - **Objective:** extend the staged leg to V16; apply V15→V16-leg fixups (R1
   homepage, #618 workspaces, leaderboard); automated end-to-end.
 - **Deliverable:** parametric V16 switch leg + automated run + structural-delta
