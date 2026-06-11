@@ -163,7 +163,16 @@ The staged path below is why.
   `customisation_audit` V13→V14 delta = **zero bespoke-customisation loss** (only
   expected stock additions).
 
-### S2 — V14 → V15, automated = **END-PRODUCT #1 (V13→V15)**, same-or-better
+### S2 — V14 → V15, automated = **END-PRODUCT #1 (V13→V15)**, same-or-better — **DONE (2026-06-11)**
+- **Outcome:** parametric leg `./tools/upgrade_to.py --substrate dev01
+  --target-version 15` runs all 11 stages clean; in-leg version-aware fixups
+  (Stage 10 = #626 + R3 + R8). New #626 fixup `server_scripts_enable_626.py`.
+  Three V15-only defects fixed (scheduler `--site`, R8→partner-free fixture, +
+  the #626 enable). V13→V15 structural A/B: **LOST=0** (zero bespoke loss),
+  +14 expected db_only stock (12 naming-series PS + 2 multi-company custom
+  fields). 3 V15-leg probes green (#626 server_scripts=enabled, R3 disabled=1,
+  R8 naming_series=ok). Commission KeyError surfaced + routed around (M1
+  rewrite-bound, carried as-is). Proof `migration_proofs/S2.log` (commit 199fdec+).
 - **Objective:** generalize the staged leg to V15; apply V13→V15-leg fixups (#626,
   #617/R8, R3); automated V13→V15.
 - **Deliverable:** parametric V15 switch leg (code) + automated V13→V15 run +
@@ -229,3 +238,4 @@ Format per entry: `<step-id> | <date> | deliverable | proof command | migration_
 - S0b-bench | 2026-06-10 | V13 prod-data baseline established on dev01 (not dev02=V16); delta_report_dev01.json (373 drifts) + guard test + `--write` persistence | `./tools/customisation_audit/test_baseline_dev01.py` | migration_proofs/S0b.log | 613f4bb
 - S0b-triage | 2026-06-10 | operator sign-off of all 22 behavioural entries (2 high / 6 medium / 14 wont_test); catalogue operator_confirmed + business_relevance + triage_note; drift_evidence_index.md binds every drift to its docs | `python3 -c "import yaml; from tools.bespoke_root import BESPOKE_ROOT; … entries==22 and confirmed==22 and tbd==0"` (full cmd in log) | migration_proofs/S0b-triage.log | LSV:8bf3271
 - S1 | 2026-06-10 | automated 10-stage V13→V14 (`upgrade_to_v14.py`); 5 pipeline fixes #688/#331/#689/#690/#691; legacy_error_fixes homed in LSV; V13→V14 structural A/B LOST=0 + 11 stock property-setter additions | `./tools/customisation_audit/test_s1_v14_zero_loss.py` | migration_proofs/S1.log | 2f24279
+- S2 | 2026-06-11 | parametric leg `upgrade_to.py --target-version 15` (11 stages, in-leg version-aware fixups Stage 10); new #626 fixup; 3 V15-only fixes (scheduler --site, R8 partner-free fixture, #626 enable); V13→V15 structural A/B LOST=0 + 14 stock additions (12 naming-series PS + 2 multi-company custom fields); 3 V15-leg probes green; commission KeyError routed around (M1 rewrite-bound) | `./tools/customisation_audit/test_s2_v15_zero_loss.py` | migration_proofs/S2.log | (this commit)

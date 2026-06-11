@@ -1,0 +1,65 @@
+STEP: S2 — V14 → V15, automated = END-PRODUCT #1 (V13→V15), same-or-better
+DATE: 2026-06-11
+DELIVERABLE:
+  - Parametric staged-upgrade leg: `./tools/upgrade_to.py --substrate dev01
+    --target-version 15` (renamed from upgrade_to_v14.py; required
+    --target-version {14,15,16}). The two version-specific stages (switch,
+    acceptance) are built by factories (make_switch_stage / make_acceptance_stage)
+    so the orchestrator loop stays version-agnostic. branch_for(v) → version-{v}.
+  - In-leg post-migrate fixups as Stage 10 (make_fixups_stage), version-aware:
+    the shared v16_post_migrate_fixups primitive gained `min_version` per Fixup
+    and a `target_version` arg; the V15 leg runs #626 + R3 + R8 (V16 adds R1).
+    The leg is now one command, no separate fixups dispatcher call.
+  - New #626 post-migrate fixup `vm_scripts/server_scripts_enable_626.py` —
+    idempotently re-asserts server_script_enabled=1 in common_site_config so the
+    migrated bench is self-contained (tenant commission Server Scripts run), not
+    reliant on a provision-time side effect surviving `bench migrate`.
+  Three V15-only defects found + fixed this leg (never run end-to-end before):
+      Stage 9  V15 dropped the currentsite.txt default-site fallback → a bare
+               `bench scheduler resume` exits 1 ("Please specify --site"), with
+               the message on stdout not stderr (blank error). Fix: add --site +
+               surface stdout. (commit c6c7ed5, test_scheduler_resume.py)
+      R8 probe With #626 enabling server scripts, R8's invoice on the tenant
+               customer `Compruebalo` (default_sales_partner set) ran the
+               sales-partner commission Before Save script → KeyError 'prueba'
+               (tenant data maps item→column 'prueba' that was never added; the
+               one-column-per-product brittleness, M1 rewrite-bound). Fix: point
+               R8 at the partner-free synthetic fixture `Cliente de Prueba` so the
+               commission script no-ops; R8 stops depending on tenant prod rows.
+               (commit 4cf4422) Commission itself untouched (carried as-is for M1).
+  - internal_docs/migration_proofs/delta_report_dev01_v15.json — V15 structural
+    A/B report (387 drifts) from the post-migrate dev01 bench.
+  - tools/customisation_audit/test_s2_v15_zero_loss.py — cheap, offline guard
+    diffing V15 vs the V13 baseline.
+PROOF COMMAND: ./tools/customisation_audit/test_s2_v15_zero_loss.py
+--- OUTPUT ---
+OK test_s2_v15_zero_loss — 0 lost, 14 expected stock additions (12 naming-series PS + 2 multi-company custom fields)
+exit=0
+
+Structural A/B verdict (V13 baseline vs V15): LOST = 0 (zero bespoke loss).
+  ADDED = 14, all db_only stock the V13→V15 migrate materialises:
+    12 × naming-series Property Setter (Delivery Trip, Lead, Opportunity,
+         Timesheet, Journal Entry, Driver, Installation Note, Customer, Stock
+         Reconciliation, Campaign, Supplier, Work Order)
+     2 × multi-company Custom Field (Email Account-company, Communication-company)
+  Expensive generation (run once): ./tools/migration_status.py --bench dev01
+    --write internal_docs/migration_proofs/delta_report_dev01_v15.json
+
+3 V15-leg probes (Stage 10, on real tenant data — #617/#626/R3):
+  #626  [PROBE] server_scripts=enabled   (server_script_enabled=1 in common_site_config)
+  R3    [PROBE] disabled=1               (IRS 1099 Form Print Format disabled; no PrintFormatError)
+  R8    [PROBE] naming_series=ok         (Sales Invoice 001-004-000000266 — series advanced)
+
+Supplementary evidence — the clean 11-stage run on dev01 (all fixes in place):
+  Stage 1 preflight          ✓ dev01 reachable; bench dir present
+  Stage 2 snapshot           ✓ pre-upgrade rollback point on toshiba
+  Stage 3 switch-to-v15      ✓ frappe+erpnext already on version-15
+  Stage 4 bespoke-install    ✓ legacy_error_fixes, returnable, route_planner, ce_sri
+  Stage 5 legacy app         ✓ already in apps.txt
+  Stage 6 bench migrate      ✓ stop workers → migrate exit 0
+  Stage 7 service restart    ✓ nginx + supervisorctl reload
+  Stage 8 bench build        ✓
+  Stage 9 scheduler resume   ✓ maintenance off; scheduler resumed (--site fix)
+  Stage 10 post-migrate fixups ✓ #626 + R3 + R8 all probe-green
+  Stage 11 acceptance        ✓ HTTPS 200 on dev01.iridium.blue; bench version v15
+  → ✓ V15 upgrade complete.
