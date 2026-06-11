@@ -24,7 +24,7 @@
   "tools/api/routes/power.py": 57,
   "tools/api/routes/promote.py": 21,
   "tools/api/routes/provision.py": 78,
-  "tools/api/routes/template.py": 56,
+  "tools/api/routes/template.py": 63,
   "tools/api/routes/wizard.py": 46,
   "tools/cli/__init__.py": 0,
   "tools/cli/_common.py": 74,

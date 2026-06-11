@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 
 from tools.api.jobs import JOB_DIR, read_job, spawn_job
 from tools.api_models import BuildTemplateReq
@@ -35,12 +35,19 @@ def delete_template():
 
 
 @router.post("/api/build/template")
-def start_build_template(req: BuildTemplateReq = BuildTemplateReq()):
+def start_build_template(req: BuildTemplateReq | None = Body(default=None)):
     """Start a background Packer build on the hub (one at a time).
 
     Body selects the frappe/erpnext line (defaults to the v13 line, preserving
     pre-#631 behaviour); the major names the resulting template.
+
+    NB: `req` must be `Body(...)` — a bare ``= BuildTemplateReq()`` default is NOT
+    recognised as a request body by FastAPI, so the posted JSON was silently
+    dropped and every build ran as version-13 (#692 session). An absent body
+    falls back to the v13 default below.
     """
+    if req is None:
+        req = BuildTemplateReq()
     for meta_file in JOB_DIR.glob("esacp-job-*.meta"):
         jid = meta_file.stem.replace("esacp-job-", "")
         j = read_job(jid)
