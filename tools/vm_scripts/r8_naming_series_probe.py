@@ -16,8 +16,8 @@ import frappe
 SERIES = "001-004-.#########"      # tenant test naming-series (Sales Invoice)
 SERIES_PREFIX = "001-004-"
 SERIES_DIGITS = 9
-TEST_CUSTOMER = "Compruebalo"       # purpose-built naming-probe fixtures
-TEST_ITEM = "Item de Prueba"
+TEST_CUSTOMER = "Cliente de Prueba"  # test_data.py synthetic fixture, partner-free
+TEST_ITEM = "Item de Prueba"         # so the commission server script no-ops (M1 rewrite-bound)
 
 
 def main():
