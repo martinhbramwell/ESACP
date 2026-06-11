@@ -198,6 +198,29 @@ The staged path below is why.
 
 ---
 
+## Post-migration mini-projects (join the main plan AFTER S4)
+
+Operator directive (S2, 2026-06-10): two tenant-logic **redesigns** are part of
+the **main plan**, sequenced **after all other migration issues are resolved**
+(once V13→V15→V16 is proven for everything else). They are carried through the
+migration **as functionality, not as their bad code** — never hacked mid-migration.
+
+- **M1 — Commission redesign (kill one-column-per-product).** `Sales Partner
+  Customer Item Commissions` stores one column per product; an end-user cannot add
+  a product without a schema change. **Live trigger:** end-user requesting the
+  **"Polvo de Roca"** variants. Redesign to an end-user-addable (row-per-product)
+  model. Memory: `commission_carry_forward_priority`, `post_migration_mini_projects`.
+  Execution home: Plan-B Phase 4 (LSKB#6/#14/#16) — sequencing now main-plan.
+- **M2 — Returnable serial-number redesign.** Serial-number $0.01 valuation
+  doubling-cascade → float overflow; full domain-model rewrite of the
+  out→returned→consumed→out cycle. Memory: `returnable_valuation_cascade`.
+  Execution home: Plan-B Phase 8 (LSKB#10) — sequencing now main-plan.
+
+Both are **gated on the migration's same-or-better proof** (S1–S4). Do NOT start
+either until that is demonstrated.
+
+---
+
 ## Session log — proof-of-delivery ledger (append at each session end)
 
 Format per entry: `<step-id> | <date> | deliverable | proof command | migration_proofs/<step-id>.log | <commit>`
