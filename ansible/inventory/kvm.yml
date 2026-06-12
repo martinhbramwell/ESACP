@@ -50,6 +50,14 @@ all:
           display_name: dev15_01
           target_frappe_major: 15
           ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
+        dev16_01: &id007
+          ansible_host: 192.168.122.29
+          wg_ip: 10.10.0.19
+          wg_role: spoke
+          vm_name: dev16_01
+          display_name: dev16_01
+          target_frappe_major: 16
+          ansible_ssh_common_args: -o ProxyJump=hasan@toshiba
     development:
       hosts:
         saconsole: *id001
@@ -58,6 +66,7 @@ all:
         dev01: *id004
         dev02: *id005
         dev15_01: *id006
+        dev16_01: *id007
     lab:
       hosts:
         saconsole: *id001
@@ -66,6 +75,7 @@ all:
         dev01: *id004
         dev02: *id005
         dev15_01: *id006
+        dev16_01: *id007
     hub:
       hosts:
         saconsole: *id001
@@ -76,6 +86,7 @@ all:
         dev01: *id004
         dev02: *id005
         dev15_01: *id006
+        dev16_01: *id007
     controller:
       hosts:
         localhost:

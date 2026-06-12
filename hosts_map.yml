@@ -141,6 +141,27 @@ groups:
         - targets
         - development
         - lab
+
+    # V16 template-acceptance substrate (migration S3, END-PRODUCT #2 path).
+    # Clones template_v16 (erpnext-v16-latest, Ubuntu 26.04 / py3.14);
+    # provisioned generic (no prod data) to prove the image boots to the
+    # reference bar before the V15→V16 migrate leg.
+    dev16_01:
+      hostname: dev16_01
+      nickname: dev16
+      virbr0_ip: "192.168.122.29"
+      wg_ip: "10.10.0.19"
+      wg_role: spoke
+      ansible_managed: true
+      backend: kvm
+      hypervisor: toshiba
+      vm_role: dev:unspecified
+      target_frappe_major: 16
+      ansible_groups:
+        - kvm
+        - targets
+        - development
+        - lab
   # ── VirtualBox guests (Windows/WSL workstation, Platform 1) ───────────────
   # wg_hub_endpoint for vbox saconsole is the console VM's bridged LAN IP.
   # Set it in ansible/group_vars/vbox.yml — it varies by LAN environment.

@@ -1,0 +1,49 @@
+# S3 — template_v16@26.04 image-content acceptance — PROOF
+# Captured: 2026-06-12 (migration/v13-v15-v16)
+# VM: dev16_01 (192.168.122.29), provisioned generic from erpnext-v16-2026-06-11.qcow2
+# Provision run: stages 1-9 clean; final snapshot hit ESACP #658 transient,
+#   taken manually on the idle VM (succeeded first try). Re-verifiable probes below.
+
+## PROBE 1 — template metadata on toshiba (cheap, offline-from-VM)
+$ ssh hasan@toshiba cat /home/hasan/esacp-packer-output/erpnext-v16-latest.json
+{
+  "image":          "erpnext-v16-2026-06-11.qcow2",
+  "version_major":  "16",
+  "ubuntu_version": "26.04",
+  "frappe_branch":  "version-16",
+  "erpnext_branch": "version-16",
+  "erp_user":       "erpadm",
+  "built_at":       "2026-06-12T01:19:15Z",
+  "built_by":       "hub:/opt/esacp/platforms/packer/build.sh",
+  "state":          "undifferentiated"
+}
+
+## PROBE 2 — guest OS
+$ grep -E 'PRETTY_NAME|VERSION_ID' /etc/os-release
+PRETTY_NAME="Ubuntu 26.04 LTS"
+VERSION_ID="26.04"
+
+## PROBE 3 — system Python
+$ python3 --version
+Python 3.14.4
+
+## PROBE 4 — frappe + erpnext app versions and branches
+$ cd frappe-bench-dev16 && grep __version__ apps/{frappe,erpnext}/.../__init__.py; git branch
+frappe  __version__ = "16.22.0"
+erpnext __version__ = "16.22.0"
+frappe branch:  version-16
+erpnext branch: version-16
+
+## PROBE 5 — HTTPS reachability (200 = nginx + gunicorn live)
+$ curl -sk -o /dev/null -w 'HTTP %{http_code}' https://192.168.122.29 -H 'Host: dev16_01.iridium.blue'
+HTTP 200
+
+## PROBE 6 — snapshots present (idempotency/rollback key)
+$ virsh --connect qemu:///system snapshot-list dev16_01
+ Name                           Creation Time               State
+---------------------------------------------------------------------
+ Baseline                       2026-06-12 06:59:19 -0400   running
+ ERPNext v16 Generic Baseline   2026-06-12 07:09:54 -0400   running
+
+
+## VERDICT: PASS — 26.04 + py3.14.4 + frappe/erpnext 16.22.0 (version-16) + HTTPS 200 + Generic Baseline snapshot.

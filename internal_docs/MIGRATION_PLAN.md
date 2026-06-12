@@ -192,9 +192,14 @@ The staged path below is why.
   26.04 LTS** (ships py3.14 as system Python). New asset: **`template_v16@26.04`**.
 - **`template_v16@26.04` BUILT (2026-06-12):** artifact `erpnext-v16-2026-06-11.qcow2`
   in the esacp pool; metadata `erpnext-v16-latest.json` records version_major 16 /
-  ubuntu 26.04 / frappe+erpnext version-16. Build ran clean end-to-end. **Image-content
-  acceptance still pending** — provision a VM from it and confirm it reports 26.04 +
-  Python 3.14 + frappe/erpnext v16 + HTTPS 200 + Baseline snapshot (reference doc bar).
+  ubuntu 26.04 / frappe+erpnext version-16. Build ran clean end-to-end.
+- **Image-content acceptance DONE (2026-06-12):** registered `dev16_01`
+  (192.168.122.29 / wg 10.10.0.19, `target_frappe_major: 16`) and provisioned it
+  generic from the v16 template (`provisionGeneric dev16_01 --wizard-mode none`,
+  stages 1-9 clean). Verified the reference bar: **Ubuntu 26.04 LTS + Python 3.14.4
+  + frappe/erpnext 16.22.0 (version-16) + HTTPS 200 + "ERPNext v16 Generic Baseline"
+  snapshot**. Proof `migration_proofs/S3-template-acceptance.log`. The final snapshot
+  hit the #658 transient (below) and was taken manually on the idle VM.
 - **Numbat porting fixes (validated by the successful build):** `build.sh` 16) arm
   (26.04 ISO/os-variant/version); `01_os_prep.sh` Node arm 3-way (v16=Node 24,
   frappe v16 `engines node>=24`); pip `--break-system-packages --ignore-installed`
@@ -206,10 +211,14 @@ The staged path below is why.
   **Release the hold + re-upgrade when a fixed `+esm2` lands** (tracked #692).
 - **#693 FIXED:** API `POST /api/build/template` now parses the JSON body
   (`Body(default=None)`); previously dropped the branch → builds defaulted to v13.
-- **NEXT (migration leg):** provision `dev16_01` from `template_v16@26.04` (= template
-  acceptance) → back up dev01's V15 site → restore onto dev16_01 → `bench migrate` →
-  V16-leg fixups (R1/#618/leaderboard) → V13-baseline-vs-V16 structural A/B = same-or-better
-  → `S3.log`.
+- **#658 REOPENED (2026-06-12):** the `Extra element disks in interleave` snapshot
+  transient (toshiba libvirt 6.0.0, newer-guest-correlated) recurred on 26.04; the
+  shipped 3×3s≈9s retry proved too short. Widened to 6×6s≈30s in `snapshot_ops.py`
+  (test pinned to explicit retries=3 for mechanism coverage). Shared-code fix that
+  outlives the migration.
+- **NEXT (migration leg):** ~~template acceptance~~ **DONE** → back up dev01's V15 site
+  → restore onto dev16_01 → `bench migrate` → V16-leg fixups (R1/#618/leaderboard) →
+  V13-baseline-vs-V16 structural A/B = same-or-better → `S3.log`.
 - **Objective:** extend the staged leg to V16; apply V15→V16-leg fixups (R1
   homepage, #618 workspaces, leaderboard); automated end-to-end.
 - **Deliverable:** parametric V16 switch leg + automated run + structural-delta
@@ -263,4 +272,5 @@ Format per entry: `<step-id> | <date> | deliverable | proof command | migration_
 - S0b-bench | 2026-06-10 | V13 prod-data baseline established on dev01 (not dev02=V16); delta_report_dev01.json (373 drifts) + guard test + `--write` persistence | `./tools/customisation_audit/test_baseline_dev01.py` | migration_proofs/S0b.log | 613f4bb
 - S0b-triage | 2026-06-10 | operator sign-off of all 22 behavioural entries (2 high / 6 medium / 14 wont_test); catalogue operator_confirmed + business_relevance + triage_note; drift_evidence_index.md binds every drift to its docs | `python3 -c "import yaml; from tools.bespoke_root import BESPOKE_ROOT; … entries==22 and confirmed==22 and tbd==0"` (full cmd in log) | migration_proofs/S0b-triage.log | LSV:8bf3271
 - S1 | 2026-06-10 | automated 10-stage V13→V14 (`upgrade_to_v14.py`); 5 pipeline fixes #688/#331/#689/#690/#691; legacy_error_fixes homed in LSV; V13→V14 structural A/B LOST=0 + 11 stock property-setter additions | `./tools/customisation_audit/test_s1_v14_zero_loss.py` | migration_proofs/S1.log | 2f24279
-- S2 | 2026-06-11 | parametric leg `upgrade_to.py --target-version 15` (11 stages, in-leg version-aware fixups Stage 10); new #626 fixup; 3 V15-only fixes (scheduler --site, R8 partner-free fixture, #626 enable); V13→V15 structural A/B LOST=0 + 14 stock additions (12 naming-series PS + 2 multi-company custom fields); 3 V15-leg probes green; commission KeyError routed around (M1 rewrite-bound) | `./tools/customisation_audit/test_s2_v15_zero_loss.py` | migration_proofs/S2.log | (this commit)
+- S2 | 2026-06-11 | parametric leg `upgrade_to.py --target-version 15` (11 stages, in-leg version-aware fixups Stage 10); new #626 fixup; 3 V15-only fixes (scheduler --site, R8 partner-free fixture, #626 enable); V13→V15 structural A/B LOST=0 + 14 stock additions (12 naming-series PS + 2 multi-company custom fields); 3 V15-leg probes green; commission KeyError routed around (M1 rewrite-bound) | `./tools/customisation_audit/test_s2_v15_zero_loss.py` | migration_proofs/S2.log | 199fdec
+- S3-template-acceptance | 2026-06-12 | registered dev16_01 + provisioned generic from template_v16@26.04 (stages 1-9 clean); verified 26.04 + py3.14.4 + frappe/erpnext 16.22.0 (version-16) + HTTPS 200 + Generic Baseline snapshot; #658 reopened + retry widened 3×3s→6×6s in snapshot_ops.py | `cat internal_docs/migration_proofs/S3-template-acceptance.log` (probes 1-6 re-runnable) | migration_proofs/S3-template-acceptance.log | (this commit)
