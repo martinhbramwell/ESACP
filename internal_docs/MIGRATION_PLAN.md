@@ -14,6 +14,19 @@ tenant's functionality, giving the same or better results** — reached by a
 **clean, automated run** (no hand-hacking). Nothing else decides done/not-done.
 Substrate is disposable VM copies; **production is never in reach.**
 
+> **⛔ RE-GRADE (2026-06-12) — read before trusting any "DONE" below.**
+> "Same or better **results**" is **functional**, and it was never tested. S1
+> (V13→V14) and S2 (V13→V15) were declared DONE on **structural A/B + a clean
+> migrate** — a *proxy*. No bespoke workflow was ever exercised. **S1/S2 are
+> downgraded to: structurally clean, FUNCTIONALLY UNVERIFIED.** The functional
+> bar is the existing **22-element catalogue** (8 business-relevant entries),
+> checked by **server-side `bench execute` assertion scripts run A/B (V15 source
+> bench = reference) — NO Playwright**. **The S3 migration leg is HALTED** until
+> the functional bar exists and V15 is functionally validated, via the
+> constrained-context **Wyatt** skill agent (`internal_docs/wyatt_workspace_plan.md`).
+> S3 *template acceptance* stands (the image was directly verified). Root cause
+> of the proxy-as-done failure: see the Wyatt plan.
+
 ### The recorded structural-vs-functional split — DO NOT re-ask (decided S10, 2026-05-05)
 
 The operator already triaged the customisation surface into two check methods.
@@ -26,7 +39,7 @@ This is persisted in `LogiSoluValidations/README.md` + the catalogue's
 | Check method | Surface (operator-assigned) | Tool |
 |---|---|---|
 | **Structural** | property setters, custom fields, custom docperms, translations, in-place core edits, print formats — *"explicitly NOT on the staffer list"* | `tools/customisation_audit/` A/B vs `customizations_catalogue.yml` |
-| **Behavioural (functional)** | staffer workflow sections **A–H** (SRI sales-invoice, returnable Stock Entry, delivery-trip binding, sales-partner commission) — the **22 catalogued entries** that are *"the V14-migration behavioural test surface"* | `LogiSoluValidations` Playwright specs, bound by `suite_section` |
+| **Behavioural (functional)** | staffer workflow sections **A–H** (SRI sales-invoice, returnable Stock Entry, delivery-trip binding, sales-partner commission) — the **22 catalogued entries** that are *"the V14-migration behavioural test surface"* | **server-side `bench execute` assertion scripts** run A/B (V15 bench = reference), driven by the catalogue — **NO Playwright** (operator directive, 2026-06-12) |
 
 - **Structural is the runnable per-leg bar** (mechanical, complete today).
 - **Behavioural is operator-paced** (specs grow as staff record) — it deepens
@@ -69,7 +82,7 @@ the **`migration_proofs/<step-id>.log` path**, and the **commit hash + date**.
 | Post-migrate fixups | `apply_v16_post_migrate_fixups.py` (R1, R3, R8/#617) + #626 | catalogued V13→V15 / V15→V16-leg fixes |
 | Structural A/B engine | `tools/customisation_audit/` (12 `discover_*`, `core_diff_*`, `delta_report`) | discovers + diffs + classifies bespoke customisations between two substrates |
 | Baseline catalogue | `LogiSoluValidations/audit/customizations_catalogue.yml` (V13 from `PRODUCTION_20260404`) | enumeration of bespoke surface = the structural bar (22 individual entries + 12 summary blocks) |
-| Functional suite | `LogiSoluValidations` (Playwright, staff-recorded; sections A–H) | behavioural A/B; nascent (~3✅/3⏳/~10❌, no committed specs yet) |
+| Functional suite | `LogiSoluValidations` — **server-side `bench execute` assertion scripts** (NO Playwright, 2026-06-12); catalogue-driven | behavioural A/B; **not yet built** — gating Wyatt deliverable |
 | Prod backup | `$BESPOKE_ROOT/ce_sri/BKP/` (`BACKUP.txt` → active dump) | real V13 tenant data (a copy) |
 
 **Failed jump on record:** single-jump restore-V13-onto-V15 + one migrate dies on
