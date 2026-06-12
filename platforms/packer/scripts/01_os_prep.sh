@@ -40,6 +40,14 @@ apt-get install -y -qq \
     supervisor cron \
     software-properties-common
 
+# pkg-config: frappe v16's `bench init` enforces check_pkg_config(); 26.04 minimal
+# does not ship it (v13/v15 got it transitively). Gate on v16+ to keep the proven
+# v13/v15 images byte-identical. (#643 numbat port)
+if [[ "${VERSION_MAJOR}" -ge 16 ]]; then
+    log "Installing pkg-config (frappe v16 bench init requirement) ..."
+    apt-get install -y -qq pkg-config
+fi
+
 # ── 3. MariaDB (10.6 on 22.04 / 10.11 on 24.04 — apt default) ──────────────────
 # mariadb-server/client are unversioned: apt installs 10.6 on 22.04, 10.11 on
 # 24.04. Only the dev headers differ — v13 used the MySQL dev package; on noble
@@ -151,6 +159,12 @@ log "✓  User '${ERP_USER}' ready"
 # out to — into /usr/local with their scripts on PATH, mirroring the v13 shape.
 # (pipx was tried first but isolates `uv` inside the bench venv, off PATH, so
 # `bench init` died with FileNotFoundError: 'uv'.)
+# v16 (26.04 numbat): on Python 3.14 newer pip additionally REFUSES to uninstall
+# an apt-managed dep lacking a dist-info RECORD (e.g. python3-click) when a
+# frappe-bench dep needs a different version → "Cannot uninstall click: no RECORD
+# file was found". --ignore-installed installs frappe-bench's deps into /usr/local
+# OVER the apt copies instead of removing them (/usr/local wins on PATH/import).
+# v15/24.04 did not need this (#643 numbat port).
 
 if [[ "${VERSION_MAJOR}" == "13" ]]; then
     log "Upgrading pip ..."
@@ -159,8 +173,10 @@ if [[ "${VERSION_MAJOR}" == "13" ]]; then
     log "Installing frappe-bench CLI (pip3) ..."
     pip3 install frappe-bench
 else
-    log "Installing frappe-bench CLI (pip3 --break-system-packages) ..."
-    pip3 install --break-system-packages frappe-bench
+    PIP_EXTRA=""
+    [[ "${VERSION_MAJOR}" -ge 16 ]] && PIP_EXTRA="--ignore-installed"
+    log "Installing frappe-bench CLI (pip3 --break-system-packages ${PIP_EXTRA}) ..."
+    pip3 install --break-system-packages ${PIP_EXTRA} frappe-bench
 fi
 
 # ── Reboot ────────────────────────────────────────────────────────────────────

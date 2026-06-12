@@ -190,20 +190,26 @@ The staged path below is why.
   can't provide it, so S3 is **not** an in-place `switch-to-branch` like S1/S2 — it is
   **restore-V15-onto-fresh-26.04-bench + migrate**. Operator directive: V16 on **Ubuntu
   26.04 LTS** (ships py3.14 as system Python). New asset: **`template_v16@26.04`**.
-- **Done this leg:** 26.04 LTS ISO downloaded + sha256-verified on toshiba; `build.sh`
-  `16)` arm re-enabled (26.04 ISO/os-variant/version); `01_os_prep.sh` Node arm →
-  3-way (v16=Node **24** LTS, frappe v16 `engines node>=24`); dev01 snapshotted
-  (`dev01-postS2-preV16build-20260611`) then restored. **All edits are unvalidated**
-  — no clean build yet.
-- **BLOCKED — #692:** toshiba's qemu ESM auto-update (`+esm1`, 2026-06-10) broke
-  `qemu-img` qcow2 create/open → Packer Phase 4 (`virt-install --disk pool=esacp`)
-  fails. Operator waiting 1-2 days for a fixed `+esm2` before reverting. **Resume
-  trigger:** `qemu-img create -f qcow2` exits 0 on toshiba.
-- **Also pending before a real build:** API `POST /api/build/template` does not pass
-  the requested branch through — the v16 request ran as `version-13` (defaulted in
-  `run_build_template`'s `args.get(...,"version-13")`); must fix the API→job_worker
-  arg path. Stale-job guard cleared (Jun-7 build stuck "running" — no dead-process
-  detection; minor robustness gap, unfiled).
+- **`template_v16@26.04` BUILT (2026-06-12):** artifact `erpnext-v16-2026-06-11.qcow2`
+  in the esacp pool; metadata `erpnext-v16-latest.json` records version_major 16 /
+  ubuntu 26.04 / frappe+erpnext version-16. Build ran clean end-to-end. **Image-content
+  acceptance still pending** — provision a VM from it and confirm it reports 26.04 +
+  Python 3.14 + frappe/erpnext v16 + HTTPS 200 + Baseline snapshot (reference doc bar).
+- **Numbat porting fixes (validated by the successful build):** `build.sh` 16) arm
+  (26.04 ISO/os-variant/version); `01_os_prep.sh` Node arm 3-way (v16=Node 24,
+  frappe v16 `engines node>=24`); pip `--break-system-packages --ignore-installed`
+  for v16+ (Py3.14 pip refuses to uninstall apt's no-RECORD `python3-click`);
+  `pkg-config` for v16+ (`bench init` `check_pkg_config()`). All gated v16+ so v13/v15
+  images stay byte-identical.
+- **#692 RESOLVED (downgrade):** toshiba's qemu `+esm1` auto-update broke `qemu-img`
+  qcow2 create; reverted the 15 qemu pkgs to `4.2-3ubuntu6.30` + `apt-mark hold`.
+  **Release the hold + re-upgrade when a fixed `+esm2` lands** (tracked #692).
+- **#693 FIXED:** API `POST /api/build/template` now parses the JSON body
+  (`Body(default=None)`); previously dropped the branch → builds defaulted to v13.
+- **NEXT (migration leg):** provision `dev16_01` from `template_v16@26.04` (= template
+  acceptance) → back up dev01's V15 site → restore onto dev16_01 → `bench migrate` →
+  V16-leg fixups (R1/#618/leaderboard) → V13-baseline-vs-V16 structural A/B = same-or-better
+  → `S3.log`.
 - **Objective:** extend the staged leg to V16; apply V15→V16-leg fixups (R1
   homepage, #618 workspaces, leaderboard); automated end-to-end.
 - **Deliverable:** parametric V16 switch leg + automated run + structural-delta
