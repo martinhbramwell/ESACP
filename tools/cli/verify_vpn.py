@@ -11,7 +11,7 @@ def run(args, config: dict) -> int:
     all_ok = verify_vpn(
         hosts=kvm_hosts(config),
         vm_user=vm_user(config),
-        ssh_key=ssh_key_path(config),
+        ssh_key=ssh_key_path(),
         emit=console.print,
     )
     console.print()

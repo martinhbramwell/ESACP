@@ -15,7 +15,7 @@ def run(args, config: dict) -> int:
     banner(f"Build VM: {vm}")
 
     try:
-        build_vm(vm, vm_info, project_root, ssh_key_path(config), console.print)
+        build_vm(vm, vm_info, project_root, ssh_key_path(), console.print)
     except RuntimeError as exc:
         console.print(f"[red]❌  {exc}[/red]")
         return 1

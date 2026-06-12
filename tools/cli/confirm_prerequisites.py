@@ -21,7 +21,7 @@ def run(args, config: dict) -> int:
 
     console.print()
     console.print("[bold cyan]File checks[/bold cyan]")
-    file_results = check_files(project_root, ssh_key_path(config), emit=console.print)
+    file_results = check_files(project_root, ssh_key_path(), emit=console.print)
     file_issues = [(p, d) for p, d, exists in file_results if not exists]
 
     console.print()
@@ -52,7 +52,7 @@ def run(args, config: dict) -> int:
     if file_issues:
         console.print()
         console.print("[yellow]Missing files:[/yellow]")
-        ssh_key = Path(ssh_key_path(config))
+        ssh_key = Path(ssh_key_path())
         for path, desc in file_issues:
             if "age/keys.txt" in str(path):
                 console.print(f"  age key: age-keygen -o {path}")
