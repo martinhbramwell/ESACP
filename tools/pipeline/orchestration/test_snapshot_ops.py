@@ -42,10 +42,13 @@ def test_retry_then_success() -> None:
 
 
 def test_exhausted_returns_false() -> None:
+    # Pin retries explicitly so this tests the retry MECHANISM, decoupled from
+    # the production default (_SNAPSHOT_RETRIES, widened to 6 under #658).
     lines: list[str] = []
     run_p, sleep_p = _patch({"return_value": _result(1, "boom")})
     with run_p as run, sleep_p as sleep:
-        ok = snapshot_ops.create_snapshot("dev15_01", "Baseline", lines.append)
+        ok = snapshot_ops.create_snapshot("dev15_01", "Baseline", lines.append,
+                                          retries=3, backoff_s=3.0)
     assert ok is False                                     # no masking upward
     assert run.call_count == 3 and sleep.call_count == 2   # slept between only
     assert any("failed after 3 attempts" in ln for ln in lines)

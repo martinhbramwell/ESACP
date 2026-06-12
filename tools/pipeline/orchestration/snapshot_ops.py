@@ -7,11 +7,11 @@ import time
 
 from tools.pipeline.stages.common.types import Emit
 
-# The post-provision snapshot can fail transiently right after heavy bench/site
-# disk I/O ("Extra element disks in interleave" on toshiba's libvirt 6.0.0); it
-# self-resolves within seconds. Retry a few times before giving up (ESACP #658).
-_SNAPSHOT_RETRIES = 3
-_SNAPSHOT_BACKOFF_S = 3.0
+# Post-provision snapshot transient on toshiba libvirt 6.0.0 ("Extra element
+# disks in interleave"), newer-guest-correlated (24.04/26.04); self-resolves as
+# qcow2 write-back settles. ~30s window, widened from 9s (too short on 26.04, #658).
+_SNAPSHOT_RETRIES = 6
+_SNAPSHOT_BACKOFF_S = 6.0
 
 
 def _virsh_cmd(action: str, *args: str, hypervisor: str | None = None) -> list[str]:
