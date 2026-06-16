@@ -190,9 +190,15 @@ test004/006 accounts):
 3. **Query-string caching.** Within one conversation, GETs to the same host+path
    differing only in query string return the FIRST cached body (original param
    *values* came back despite different params sent).
-4. **Cross-conversation is fresh** (new account got v4 after deploy). Cache is
-   per-conversation / short-TTL, not global. The §1.5 silent-re-fetch of the *same*
-   doc safely returns the same content.
+4. **Redeploy-to-same-path serves STALE across conversations (TTL-bound).** After
+   deploying #699 to `first_dialog_router.md` (fresh at origin via curl), a new chat
+   (Test008) still fetched the old #697 body through the egress proxy. The earlier
+   "cross-conversation is fresh" note was TTL expiry over time, **not** guaranteed
+   freshness — corrected. **Cache scope (per-account vs global) and TTL are UNKNOWN**
+   — so we cannot assume even a fresh-account cold visitor gets current content after
+   an update. Mitigation: bump the filename every publication (`first_visit_NNN.md`);
+   only a new path/host busts the cache (query strings are ignored). The router is
+   now served as `first_visit.md` (was `first_dialog_router.md`).
 
 **This decides the architecture:**
 - Dynamic `?interest=…&skill=…&kit=…` endpoint = **dead** (constructed URL blocked +
