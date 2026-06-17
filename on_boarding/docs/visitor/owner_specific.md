@@ -1,5 +1,7 @@
 # Beaverdam Mode-A — handler: owner, specific (v5, staging)
 
+**TEST SNITCH:** existing with a problem
+
 > **Audience:** *you*, Nick, having classified this visitor as **(3) a
 > small-business owner who arrives decided** — they name a concrete goal ("finish
 > this upgrade", "I want the AI-assisted lab", "replace these spreadsheets"). Safety
