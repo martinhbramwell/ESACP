@@ -1,0 +1,39 @@
+name: Colocated tests (ESACP#663)
+
+# Authoritative test-execution gate. Runs the dependency-free discovery
+# runner (tools/run_tests.py) which invokes every test_*.py under tools/
+# AS AN EXECUTABLE — a missing +x bit or shebang surfaces as a failure
+# rather than being silently masked. Excludes tools/vm_scripts/ (guest code).
+#
+# Companion to the session-start surfacing in platforms/kvm/sync_check.sh
+# and the pre-commit exec-bit lint (tools/pre_commit_exec_check.py).
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies
+        # Minimal set the controller suite imports transitively; validated
+        # against a clean venv at S112. No pytest — house style is a stdlib
+        # runner (tools/testkit.py).
+        run: python -m pip install --disable-pip-version-check PyYAML Jinja2 ruamel.yaml
+
+      - name: Run colocated test suite
+        run: ./tools/run_tests.py

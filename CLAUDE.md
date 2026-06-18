@@ -275,6 +275,8 @@ Pipeline primitives use `emit: Emit` exclusively. Never import Rich, FastAPI, or
 | Any `tools/cli/*.py` | 80 | Logic has leaked — extract to primitive |
 | Any `tools/pipeline/**/*.py` | 80 | Decompose into smaller units |
 
+`test_*.py` files — and the test harness/runner (`tools/testkit.py`, `tools/run_tests.py`, named in `pre_commit_size_check.py` `TEST_INFRA`) — are **exempt** from these caps (#663): self-run scaffolding adds ~10 mandatory lines and more test coverage is healthy — the cap targets *logic* monoliths, not tests. Tests are guarded by the exec-bit lint + the runner instead.
+
 A pre-commit hook enforces these limits mechanically (see #198).
 
 ### No subprocess calls in dispatchers
@@ -293,6 +295,10 @@ When a primitive is extracted from a monolith, the monolith code it replaces MUS
 | `tools/api.py` | 999 | ≤300 | #190, #193, #195 |
 | `tools/job_worker.py` | 400 | ≤100 | #192, #193 |
 | `tools/install_specific.py` | 721 | ≤50 | #197 |
+
+### Test-execution gate (#663)
+
+Colocated tests (`feedback_tests_with_code`) are only worth anything if something runs them. `./tools/run_tests.py` discovers every `test_*.py` under `tools/` (excluding guest-deployed `tools/vm_scripts/`) and runs each **as an executable** — a missing `+x`/shebang surfaces as a failure, never masked. The gate has three surfaces: **CI** (`.github/workflows/tests.yml`, authoritative, on PR + push to main), **sync_check.sh §18** (session can't start green while the suite is red), and a **pre-commit exec-bit lint** (`tools/pre_commit_exec_check.py`). No pytest — `tools/testkit.py` is the ~50-line stdlib harness that lets `test_*` modules self-run. Detail: `tools/CLAUDE.md`.
 
 ### QA Verdict Contract (#341)
 

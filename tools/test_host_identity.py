@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Colocated tests for the SSH-identity resolvers.
 
 Covers the operator identity (ESACP#567/#396/#451) and the guest VM user
@@ -6,11 +7,14 @@ identity values, so they survive an identity change without edits.
 """
 
 import os
+import sys
 from pathlib import Path
 
 import yaml
 
-from tools.host_identity import (
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from tools.host_identity import (  # noqa: E402
     GROUP_VARS_KVM_PATH,
     GUEST_VM_USER,
     HOSTS_MAP_PATH,
@@ -70,3 +74,8 @@ def test_guest_vm_user_falls_back_to_you(monkeypatch, tmp_path):
     empty.write_text("ansible_python_interpreter: /usr/bin/python3\n")
     monkeypatch.setattr(hi, "GROUP_VARS_KVM_PATH", empty)
     assert hi.guest_vm_user() == "you"
+
+
+if __name__ == "__main__":
+    from tools.testkit import run_module_tests
+    raise SystemExit(run_module_tests(globals()))

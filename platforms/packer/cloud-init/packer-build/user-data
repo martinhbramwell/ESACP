@@ -41,7 +41,13 @@ autoinstall:
   locale: en_US.UTF-8
   timezone: America/New_York
 
-  user-data:
-    runcmd:
-      - echo "you ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/you
-      - chmod 440 /etc/sudoers.d/you
+  # Passwordless sudo for the build user, written into the target at INSTALL time
+  # (not on first boot). On 24.04 the guest boots fast enough that sshd — and the
+  # Packer provisioner's `sudo … bash` — connect before a first-boot `runcmd` would
+  # have created /etc/sudoers.d/you, so sudo demanded a password (the account
+  # password is locked "!"). late-commands run before first boot, so the NOPASSWD
+  # rule is guaranteed present when Packer connects. Same resulting file on every
+  # major (v13 image content unchanged); the mechanism is just race-free. (#643)
+  late-commands:
+    - curtin in-target --target=/target -- bash -c "echo 'you ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/you"
+    - curtin in-target --target=/target -- chmod 440 /etc/sudoers.d/you

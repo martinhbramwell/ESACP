@@ -14,6 +14,14 @@ export DEBIAN_FRONTEND=noninteractive
 
 log() { echo "[01_os_prep $(date '+%H:%M:%S')] $*"; }
 
+# ── Frappe major → OS-specific package choices (ESACP #643) ─────────────────────
+# FRAPPE_BRANCH is passed by Packer execute_command (set in erpnext-v13.pkr.hcl).
+# v13 builds on Ubuntu 22.04; v15 on 24.04 (noble). Every noble-specific branch
+# below is guarded so the v13 (22.04) path runs the EXACT historical commands —
+# the v13 build stays byte-identical.
+FRAPPE_BRANCH="${FRAPPE_BRANCH:-version-13}"
+VERSION_MAJOR="${FRAPPE_BRANCH#version-}"
+
 # ── 1. System update ───────────────────────────────────────────────────────────
 
 log "System update ..."
@@ -32,12 +40,23 @@ apt-get install -y -qq \
     supervisor cron \
     software-properties-common
 
-# ── 3. MariaDB 10.6 ───────────────────────────────────────────────────────────
+# ── 3. MariaDB (10.6 on 22.04 / 10.11 on 24.04 — apt default) ──────────────────
+# mariadb-server/client are unversioned: apt installs 10.6 on 22.04, 10.11 on
+# 24.04. Only the dev headers differ — v13 used the MySQL dev package; on noble
+# the MariaDB dev headers (libmariadb-dev[-compat]) are the correct providers of
+# mariadb_config / the mysqlclient build symlinks.
 
-log "Installing MariaDB 10.6 ..."
-apt-get install -y -qq \
-    mariadb-server mariadb-client \
-    libmysqlclient-dev
+if [[ "${VERSION_MAJOR}" == "13" ]]; then
+    log "Installing MariaDB 10.6 ..."
+    apt-get install -y -qq \
+        mariadb-server mariadb-client \
+        libmysqlclient-dev
+else
+    log "Installing MariaDB 10.11 ..."
+    apt-get install -y -qq \
+        mariadb-server mariadb-client \
+        libmariadb-dev libmariadb-dev-compat
+fi
 
 # ERPNext requires these MariaDB settings
 cat > /etc/mysql/mariadb.conf.d/99-erpnext.cnf <<'MYCNF'
@@ -64,10 +83,16 @@ FLUSH PRIVILEGES;
 SQL
 log "✓  MariaDB configured (root pwd: erpnext_build — replaced at deploy time)"
 
-# ── 4. NodeJS 18 + yarn ───────────────────────────────────────────────────────
+# ── 4. NodeJS (18 on v13 / 20 LTS on v15) + yarn ───────────────────────────────
+# v13 stays on Node 18 (byte-identical); v15 → Node 20 LTS (#643 locked decision).
 
-log "Installing NodeJS 18 + yarn ..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+if [[ "${VERSION_MAJOR}" == "13" ]]; then
+    NODE_SETUP="18"
+else
+    NODE_SETUP="20"
+fi
+log "Installing NodeJS ${NODE_SETUP} + yarn ..."
+curl -fsSL "https://deb.nodesource.com/setup_${NODE_SETUP}.x" | bash -
 apt-get install -y -qq nodejs
 npm install -g yarn
 
@@ -114,15 +139,26 @@ chmod 700 "/home/${ERP_USER}/.ssh"
 
 log "✓  User '${ERP_USER}' ready"
 
-# ── 9. pip upgrade ────────────────────────────────────────────────────────────
+# ── 9–10. frappe-bench CLI ─────────────────────────────────────────────────────
+# v13 (22.04): the system Python is writable — upgrade pip, then pip3-install
+# bench system-wide (→ /usr/local/bin/bench, on every user's PATH incl. ${ERP_USER}).
+# v15 (24.04 noble): PEP-668 marks the system Python externally-managed, so a bare
+# `pip3 install` is blocked. --break-system-packages is the sanctioned override; it
+# installs bench AND its dependencies — including `uv`, which `bench init` shells
+# out to — into /usr/local with their scripts on PATH, mirroring the v13 shape.
+# (pipx was tried first but isolates `uv` inside the bench venv, off PATH, so
+# `bench init` died with FileNotFoundError: 'uv'.)
 
-log "Upgrading pip ..."
-python3 -m pip install --upgrade pip
+if [[ "${VERSION_MAJOR}" == "13" ]]; then
+    log "Upgrading pip ..."
+    python3 -m pip install --upgrade pip
 
-# ── 10. frappe-bench CLI ──────────────────────────────────────────────────────
-
-log "Installing frappe-bench CLI ..."
-pip3 install frappe-bench
+    log "Installing frappe-bench CLI (pip3) ..."
+    pip3 install frappe-bench
+else
+    log "Installing frappe-bench CLI (pip3 --break-system-packages) ..."
+    pip3 install --break-system-packages frappe-bench
+fi
 
 # ── Reboot ────────────────────────────────────────────────────────────────────
 # Packer expects this disconnect (expect_disconnect: true).
