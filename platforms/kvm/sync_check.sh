@@ -26,6 +26,8 @@
 #  14.  Cloudflare MCP (binary path, cf-mcp-refresh functional test)
 #  15.  Telegram notification channel (bot token + API reachability)
 #  16.  Cytoscape prototype API (localhost:8088)
+#  17.  Claude in Chrome — ERPNext site view
+#  18.  Colocated test suite (#663 — tools/run_tests.py)
 
 PASS=0; FAIL=0; WARN=0
 
@@ -575,6 +577,58 @@ if [[ "${CHROME_RUNNING}" == true ]]; then
     else
         warn "No ERPNext hosts in hosts_map.yml — nothing to view in Chrome"
     fi
+fi
+
+# ── 18. Colocated test suite (#663) ───────────────────────────────────────────
+hdr "18. Colocated test suite"
+
+# Session-start surfacing of the test-execution gate: a session must not start
+# "green" while the colocated suite is red. The runner invokes every test_*.py
+# as an executable (missing +x surfaces as failure). CI is the authoritative
+# gate; this mirror catches local rot before work begins.
+TEST_OUT="$(cd "${PROJ_ROOT}" && ./tools/run_tests.py 2>&1)"; TEST_RC=$?
+TEST_SUMMARY="$(printf '%s\n' "${TEST_OUT}" | grep -E 'test files passed' | tail -1 | awk '{$1=$1};1')"
+if [[ ${TEST_RC} -eq 0 ]]; then
+    ok "Colocated tests — ${TEST_SUMMARY:-all green}"
+else
+    fail "Colocated tests RED — ${TEST_SUMMARY:-suite failing}"
+    fix "Run ./tools/run_tests.py from project root and fix failures before starting work"
+fi
+
+# ── 19. Branch-base currency (#673) ───────────────────────────────────────────
+hdr "19. Branch-base currency"
+
+# S116 root cause: a sub-branch was cut off umbrella/v16-clean-run while it was
+# 30 commits behind main; the divergence surfaced only live, mid-session. This
+# surfaces each umbrella + the current branch's distance from origin/main AND its
+# unmerged-commit count BEFORE any branch op. Severity split: WARN here (don't
+# brick startup over branches behind main) — esacp-qa hard-blocks commits/merges
+# on a base behind main at the moment it matters. behind ≠ obsolete: a branch's
+# unmerged-commit count is the retire-safety signal. Source: tools/branch_currency.py.
+CURR_OUT="$(cd "${PROJ_ROOT}" && ./tools/branch_currency.py 2>&1)"; CURR_RC=$?
+printf '%s\n' "${CURR_OUT}"
+if [[ ${CURR_RC} -eq 0 ]]; then
+    ok "Branch bases current with origin/main"
+else
+    warn "Branches behind origin/main — see above (behind ≠ obsolete; read the unmerged-commit counts)"
+    fix "Rebase before branching off a behind base; retire a branch only after assessing its unique commits + operator sign-off"
+fi
+
+# ── 20. Plan-substrate currency (#674) ────────────────────────────────────────
+hdr "20. Plan-substrate currency"
+
+# S116 root cause: the S115 plan asserted "branch off the umbrella", "register
+# dev15_01" — already done on main by pickup. A plan reads true-now but is only
+# true-when-written. plan_lint verifies the latest agenda's declared plan-check
+# block (base branch currency + creates-host not already registered) against live
+# state. WARN surface; no block ⇒ soft pass (legacy agendas).
+PLAN_OUT="$(cd "${PROJ_ROOT}" && ./tools/plan_lint.py 2>&1)"; PLAN_RC=$?
+printf '%s\n' "${PLAN_OUT}"
+if [[ ${PLAN_RC} -eq 0 ]]; then
+    ok "Plan-substrate assertions match live state"
+else
+    warn "Plan-substrate drift — the agenda's declared base/host no longer matches live state"
+    fix "Re-ground the plan against live git + hosts_map before accepting the objective"
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────

@@ -1,10 +1,15 @@
+#!/usr/bin/env python3
 """Colocated test for fix_script_runner protocol (#486)."""
 
+import sys
+from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
-from tools.pipeline.orchestration.fix_script_runner import run_fix_script
-from tools.pipeline.stages.common.types import Config
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
+from tools.pipeline.orchestration.fix_script_runner import run_fix_script  # noqa: E402
+from tools.pipeline.stages.common.types import Config  # noqa: E402
 
 SSH = "tools.pipeline.orchestration.fix_script_runner.ssh_run"
 EMIT = lambda _m: None  # noqa: E731
@@ -61,3 +66,8 @@ def test_ssh_failure_emits_tails():
     assert not r.success and "X" in r.message
     assert any("STDO" in line for line in emitted)
     assert any("STDE" in line for line in emitted)
+
+
+if __name__ == "__main__":
+    from tools.testkit import run_module_tests
+    raise SystemExit(run_module_tests(globals()))

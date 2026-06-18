@@ -90,7 +90,7 @@ Job types: `provision`, `provision_generic`, `refresh`, `destroy`, `build_templa
 - Writes timestamped lines to stdout (redirected to `/tmp/esacp-job-{id}.log` by the spawner)
 - Writes `done` or `error` to `/tmp/esacp-job-{id}.status` on completion
 - `tools/api/jobs.py` writes `/tmp/esacp-job-{id}.meta` (JSON: hostname, type, started_at) at spawn time
-- `provision_generic` delegates wizard completion (record/replay/existing) to `tools/pipeline/orchestration/wizard_run.py`
+- `provision_generic` delegates wizard completion (record/replay/existing/none) to `tools/pipeline/orchestration/wizard_run.py`. `--wizard-mode none` skips the wizard for a headless stages-1-9 rebuild (e.g. template acceptance; #657)
 
 ## esacp.py — Unified Lab CLI
 
@@ -103,7 +103,7 @@ Non-obvious behaviours:
 - `snapShotVM`: KVM-only; dispatcher resolves `hypervisor` from `hosts_map.yml` (mirrors `provision_vm.py:13-14`) and calls `pipeline/orchestration/snapshot_ops.py`, which runs virsh locally when `hypervisor` is unset or via `ssh <hypervisor>` otherwise. Standalone `platforms/kvm/snapshot.py` still exists for operator use (revert/delete/start/state) per `internal_docs/BuildOutProcedure.md`.
 - `destroyVM` (legacy, local libvirt only): uses `tools/pipeline/orchestration/local_vm_teardown.py` for inspect + teardown; not to be confused with `destroy` which runs the full `macro/destroy.py`
 - `applySubstrateMigration` (#418): bundles `g1_seed_patch_log.py` + `g2_clear_fixture_custom_fields.py` + `bench migrate` over SSH on a lab VM. Use for LSKB#15-style bespoke-app migration tests on already-restored production data — closes the bypass that caused two cascading failures in S54/S55. Dispatcher calls `tools/pipeline/orchestration/substrate_apply.py`. See `tools/vm_scripts/README.md` for the protection catalogue.
-- `applyV16PostMigrateFixups` (#480 umbrella): runs catalogued V13→V16 post-migrate fix-scripts on a lab VM. Catalogue: R1 = recreate `Web Page route='home'` from runtime-salvaged `tabSingles` Homepage singleton (`tools/vm_scripts/r1_recreate_web_page_home.py`, #486); R3 = disable orphan `IRS 1099 Form` Print Format (`tools/vm_scripts/r3_disable_irs_1099_pf.py`, #498). Dispatcher calls `tools/pipeline/orchestration/v16_post_migrate_fixups.py`. Per-script invocation + probe-parsing is factored into `fix_script_runner.run_fix_script()`. Extensible — R6e.2 (#496) and future #480 children plug in via the same helper.
+- `applyV16PostMigrateFixups` (#480 umbrella): runs catalogued V13→V16 post-migrate fix-scripts on a lab VM. Catalogue is the `FIXUPS` tuple in `v16_post_migrate_fixups.py` — one `Fixup(label, script, expected, changed_marker)` row per child, all run through the same `_run_fixup` (bench-venv + cwd-at-sites) + `fix_script_runner.run_fix_script()`. **Add a child by appending one row — no new function.** Current rows: R1 = recreate `Web Page route='home'` from runtime-salvaged `tabSingles` Homepage singleton (`r1_recreate_web_page_home.py`, #486); R3 = disable orphan `IRS 1099 Form` Print Format (`r3_disable_irs_1099_pf.py`, #498); R8 = end-to-end naming-series **probe** — creates a real draft Sales Invoice on the tenant test series and asserts the incremented name (`r8_naming_series_probe.py`, #617). R8 is a probe (always advances the series → always reports `changed`) and needs **restored tenant data** (its test customer/item fixtures), not a generic site. NB requires `server_script_enabled` in common_site_config (#626) so document-creating probes run the tenant's commission server scripts.
 
 ## diagnose.py — Remote VM Process Diagnostics
 
@@ -230,7 +230,7 @@ subprocess out of dispatchers and funnels through `emit`:
 | `ansible_playbook_run.py` | `ansible_provision` | filtered `ansible-playbook` streamer |
 | `template_metadata.py` | API `/api/template/*` | read/delete Packer template JSON via SSH |
 | `host_health.py` | API `/api/health/{host}` | nginx/supervisor/mysql SSH probes |
-| `wizard_run.py` | `job_worker` | Playwright record/replay/existing dispatch |
+| `wizard_run.py` | `job_worker` | Playwright record/replay/existing/none dispatch (none = skip wizard, #657) |
 | `stages/preflight/apt_install.py` | `cli/confirm_prerequisites.py` | `sudo apt install -y` wrapper |
 
 ### Host-registration primitives (in `orchestration/`)
@@ -297,3 +297,82 @@ cause of #483/#541 staleness: hand-copied status that re-reads as a to-do.
   `gh issue list --repo martinhbramwell/ESACP --label umbrella:480 --state open`.
 - Pure core `bare_closed_refs(text, states)` is offline-testable; tests in
   `tools/test_agenda_lint.py`.
+
+## plan_lint.py — Plan-substrate currency gate (#674)
+
+`./tools/plan_lint.py [agenda-path]` — verifies a plan/agenda's **declared**
+substrate against **live** state at pickup, the session-start counterpart of
+`agenda_lint` (which runs at close). Root cause: S116 accepted an S115 plan
+asserting "branch off the umbrella" / "register dev15_01" — already done on
+main by pickup. A plan reads true-now but is only true-when-written.
+
+The agenda declares a machine-checkable block (an HTML comment, invisible in
+rendered markdown), authored at session close alongside the carry-forward:
+
+```
+<!-- plan-check
+base: umbrella/v16-clean-run
+creates-host: dev15_01
+-->
+```
+
+- `base:` — the branch the next session builds on. Must exist AND be current
+  with origin/main (reuses `branch_currency.behind_count`, #673 — one source of
+  truth). A stale base ⇒ FAIL.
+- `creates-host:` — a host the plan will register. Must NOT already be in
+  `hosts_map.yml` ⇒ FAIL if present (someone already did it).
+- No block ⇒ soft pass (legacy agendas). Exit 1 if any declared assertion fails.
+
+Surfaced at session start by `sync_check.sh` §20 (WARN). Pure cores
+`parse_block` / `check_creates_host` / `evaluate` are offline-testable; tests in
+`tools/test_plan_lint.py`. **When authoring a next-agenda whose objective builds
+on a specific branch or registers a host, include the plan-check block** so the
+pickup session's `sync_check` catches drift before any branch op.
+
+## deflection_lint.py — Anti-deflection seed tripwire (#675)
+
+`./tools/deflection_lint.py <file>` (or pipe via stdin) — flags **agentless,
+passive-causal framing of sole-actor state** in self-report text (commit
+messages, session minutes, PR bodies). Root cause: S116 laundered the parent's
+own agency into blameless grammar ("the plan didn't foresee", "nobody
+reconciled", "bit-rot") — corroding the trust channel that is the platform's
+core promise.
+
+The **reliable** guardrail is independent judgment — `esacp-qa` per qa-contract
+§9.6 examines commit message / PR body / deliberation on every T1/T2 verdict.
+This tool is the **conservative, evolvable mechanical complement**: a curated
+denylist of high-precision multi-word agentless constructions (NOT bare
+"drift"/"decay", which have legitimate technical uses). It surfaces *candidates*;
+it never auto-rejects. **When esacp-qa's judgment catches a novel deflection, add
+the phrase to `DENYLIST`** — the judgment layer grows the mechanical layer (the
+same architecture as a maturing spam filter). Pure core `flag_lines(text)` is
+offline-testable; tests in `tools/test_deflection_lint.py`.
+
+## run_tests.py — Colocated test-execution gate (#663)
+
+`./tools/run_tests.py` — discovers every `test_*.py` under `tools/` (excluding
+`tools/vm_scripts/`, which is guest-deployed code, NOT a controller test) and
+runs each **as an executable** (`./path/test_x.py`). Invoking by path is
+deliberate: a missing `+x` bit or shebang surfaces as a **failure** instead of
+being silently masked (the root cause #663 fixes). Exits non-zero on any
+failure. Dependency-free.
+
+- **Every test must self-run.** Shebang + `chmod +x` + a `__main__` block that
+  runs its assertions. The house pattern is `if __name__ == "__main__":` calling
+  the test functions directly.
+- **`tools/testkit.py`** — ~50-line stdlib substitute for pytest. A module with
+  bare `test_*` functions (incl. ones using `monkeypatch`/`tmp_path`) self-runs
+  via `raise SystemExit(run_module_tests(globals()))` in its `__main__` block.
+  House style is **no pytest**; testkit is the dependency-free harness.
+- **The gate has three surfaces** (all call the runner / its lint):
+  1. **CI** — `.github/workflows/tests.yml` on every PR + push to `main`
+     (authoritative). Installs `PyYAML Jinja2 ruamel.yaml` (the suite's only
+     external deps) and runs the runner.
+  2. **sync_check.sh** §18 — session-start surfacing; a session can't start
+     green while the suite is red.
+  3. **pre-commit** — `tools/pre_commit_exec_check.py` asserts every staged
+     shebanged `tools/**/*.py` and every `test_*.py` carries `+x` (index mode
+     `100755`). Excludes `tools/vm_scripts/`.
+- **Canonical pre-commit hook** (`.git/hooks/` is untracked — reproduce on each
+  controller): a bash hook that runs `tools/pre_commit_size_check.py` **then**
+  `tools/pre_commit_exec_check.py`, both under `set -e`.

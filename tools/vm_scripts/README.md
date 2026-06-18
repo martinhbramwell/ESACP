@@ -28,6 +28,7 @@ invoke these scripts in the right order; raw bench commands bypass them.
 | `u6_dedup_smoke_test.py` | Read-only post-migrate assertion that `(dt, fieldname)` pairs in `tabDocField` ∪ `tabCustom Field` are deduplicated (ESACP#335) | operator-invoked smoke test |
 | `r1_recreate_web_page_home.py` | V13 `Homepage` singleton row survives V13→V16 migrate with no V16 render target (DocType upstream-deleted in V14+); recreates a `Web Page` with `route='home'` from runtime-salvaged `tabSingles` fields (ESACP#486, #480 child) | `pipeline/orchestration/v16_post_migrate_fixups.py` |
 | `r3_disable_irs_1099_pf.py` | Orphan `IRS 1099 Form` Print Format (Jinja template upstream-deleted) remaining invokable after V13→V16 migrate — sets `disabled=1` (ESACP#498, #480 child) | `pipeline/orchestration/v16_post_migrate_fixups.py` |
+| `r8_naming_series_probe.py` | End-to-end naming-series acceptance **probe**: creates a real draft Sales Invoice on the tenant test series + asserts the incremented name (V16 renamed only the admin surface; autoname unchanged). Needs restored tenant data (test customer/item fixtures) (ESACP#617, #480 child) | `pipeline/orchestration/v16_post_migrate_fixups.py` |
 | `install_specific/` | Site differentiation (ce_sri config, naming series, test data) — see `tools/CLAUDE.md` § install_specific | `stages/stage_8_app_config/{pre,post}_restart_config.sh` |
 
 ## When you're designing a new lab workflow

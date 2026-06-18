@@ -19,7 +19,8 @@
 #   - packer installed on the hub (declared by ansible/roles/packer/; see #388)
 #   - SSH access from the hub to toshiba: ssh hasan@toshiba
 #   - cloud-image-utils on the hub (cloud-localds)
-#   - Ubuntu 22.04 ISO on toshiba at UBUNTU_ISO_PATH
+#   - The era-matched Ubuntu ISO on toshiba (per-major OS table, #643):
+#     v13 → 22.04 (constrained root fs), v15 → 24.04.4 (esacp-disk)
 
 set -euo pipefail
 
@@ -36,12 +37,19 @@ REMOTE_IMAGES_DIR="/mnt/esacp-disk/var/lib/libvirt/images"
 # hasan can't create /mnt/esacp-disk/packer-output (owned by root);
 # use home dir for the small JSON file.
 METADATA_DIR="/home/${HYPERVISOR_USER}/esacp-packer-output"
-UBUNTU_ISO_PATH="/var/lib/libvirt/images/ubuntu-22.04.2-live-server-amd64.iso"
+# UBUNTU_ISO_PATH + OS_VARIANT are derived per frappe-major by the OS-per-major
+# table below (#643), after VERSION_MAJOR is known. Optional --ubuntu-iso /
+# --os-variant override them.
+UBUNTU_ISO_OVERRIDE=""
+OS_VARIANT_OVERRIDE=""
 
 BUILD_DATE="$(date +%Y-%m-%d)"
 BUILD_VM="packer-build-${BUILD_DATE}"
 BUILD_VM_IP="192.168.122.20"   # Reserved for packer builds — not used by any permanent VM
-BUILD_VM_RAM="4096"            # ERPNext v13 requires ≥4 GB
+BUILD_VM_RAM="4096"            # ERPNext v13 requires ≥4 GB. Injected via
+                               # --build-ram by build_template.py (which also
+                               # preflights host RAM, #655); this is the
+                               # hand-run fallback.
 BUILD_VM_DISK="40"             # ERPNext v13 requires ≥40 GB
 BUILD_VM_VCPUS="2"
 
@@ -72,6 +80,9 @@ while [[ $# -gt 0 ]]; do
         --frappe-branch)  FRAPPE_BRANCH="$2";  shift 2 ;;
         --erpnext-branch) ERPNEXT_BRANCH="$2"; shift 2 ;;
         --erp-user)       ERP_USER="$2";       shift 2 ;;
+        --build-ram)      BUILD_VM_RAM="$2";   shift 2 ;;
+        --ubuntu-iso)     UBUNTU_ISO_OVERRIDE="$2"; shift 2 ;;
+        --os-variant)     OS_VARIANT_OVERRIDE="$2"; shift 2 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -89,6 +100,49 @@ step() { echo; echo "── $* ────────────────�
 VERSION_MAJOR="${FRAPPE_BRANCH#version-}"
 [[ "${VERSION_MAJOR}" =~ ^[0-9]+$ ]] \
     || die "Cannot derive a numeric major from --frappe-branch '${FRAPPE_BRANCH}' (expected 'version-N')"
+
+# ── OS-per-major table (ESACP #643) ─────────────────────────────────────────────
+#
+# Each frappe major builds on its era-matched Ubuntu LTS (operator decision #643):
+#   13 → 22.04 (genuinely pinned; frappe v13 deps break on newer — feedback_frappe_v13_deps)
+#   15 → 24.04 (Python 3.12; source-verified frappe/erpnext 15 requires-python clean)
+#   16 → 26.04 (deferred; v16 requires-python vs 26.04's Python must be verified first)
+#
+# New ISO paths MUST live on the roomy esacp-disk, never the space-constrained root
+# filesystem (feedback_toshiba_vm_location). The v13 path is the one pre-existing
+# exception — left untouched so the v13 build stays byte-identical.
+#
+# OS_VARIANT is a libvirt/libosinfo *hardware hint* only (virtio device defaults for
+# the transient build VM); the actual guest OS comes from the ISO. toshiba's
+# osinfo-db (0.20200325) only knows variants up to 'ubuntu20.04', so every arm uses
+# 'ubuntu20.04' as the newest-known hint regardless of the real ISO release — the
+# v13 line has built its 22.04 image this way for months. The --os-variant override
+# lets a caller pass an accurate variant once toshiba's osinfo-db is updated.
+case "${VERSION_MAJOR}" in
+    13)
+        UBUNTU_ISO_PATH="/var/lib/libvirt/images/ubuntu-22.04.2-live-server-amd64.iso"
+        OS_VARIANT="ubuntu20.04"
+        UBUNTU_VERSION="22.04"
+        ;;
+    15)
+        UBUNTU_ISO_PATH="/mnt/esacp-disk/var/lib/libvirt/images/ubuntu-24.04.4-live-server-amd64.iso"
+        OS_VARIANT="ubuntu20.04"
+        UBUNTU_VERSION="24.04"
+        ;;
+    16)
+        die "frappe major 16 builds on Ubuntu 26.04 — refused this session (#643). \
+The 26.04 template is deferred until v16 'requires-python' is verified against 26.04's \
+Python. Re-enable the 16) arm once validated, or pass --ubuntu-iso/--os-variant explicitly."
+        ;;
+    *)
+        die "No OS mapping for frappe major '${VERSION_MAJOR}' (#643). Add a case arm \
+with its era-matched Ubuntu LTS, or pass --ubuntu-iso and --os-variant explicitly."
+        ;;
+esac
+
+# Operator overrides (optional) take precedence over the table.
+UBUNTU_ISO_PATH="${UBUNTU_ISO_OVERRIDE:-${UBUNTU_ISO_PATH}}"
+OS_VARIANT="${OS_VARIANT_OVERRIDE:-${OS_VARIANT}}"
 
 OUTPUT_IMAGE="erpnext-v${VERSION_MAJOR}-${BUILD_DATE}.qcow2"
 METADATA_FILE="erpnext-v${VERSION_MAJOR}-latest.json"
@@ -237,7 +291,7 @@ virt-install \
     --location "${UBUNTU_ISO_PATH},kernel=casper/vmlinuz,initrd=casper/initrd" \
     --disk "path=${REMOTE_SEED},device=cdrom,readonly=on" \
     --network network=default \
-    --os-variant ubuntu20.04 \
+    --os-variant ${OS_VARIANT} \
     --extra-args 'autoinstall ds=nocloud' \
     --graphics vnc \
     --noautoconsole
@@ -300,6 +354,7 @@ remote "cat > '${METADATA_DIR}/${METADATA_FILE}'" <<METADATA
 {
   "image":          "${OUTPUT_IMAGE}",
   "version_major":  "${VERSION_MAJOR}",
+  "ubuntu_version": "${UBUNTU_VERSION}",
   "frappe_branch":  "${FRAPPE_BRANCH}",
   "erpnext_branch": "${ERPNEXT_BRANCH}",
   "erp_user":       "${ERP_USER}",
