@@ -291,14 +291,14 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
       </p>
       <blockquote class="chain-narrative chain-snippet">
         <span class="snippet-text">Claude, please read from this link
-        <code>https://beaverdam.solutions/first_dialog.md</code>
+        <code>https://beaverdam.solutions/first_visit_005.md</code>
         and take on the Beaverdam specialist expert role "Nick" as it explains.</span>
         <button type="button" class="copy-snippet" aria-label="Copy this line to your clipboard">
           <span class="copy-label">Copy</span>
         </button>
       </blockquote>
       <p class="why">
-        What this does: the link tells Claude how the Beaverdam discovery conversation
+        <strong>What this does:</strong> the link tells Claude how the Beaverdam discovery conversation
         must work and which types of questions to ask. Without it you get general-purpose Claude, which is helpful but not focused on this process.
       </p>
     </div>
