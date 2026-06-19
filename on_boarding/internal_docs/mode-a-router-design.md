@@ -1,5 +1,14 @@
 # Mode-A persona — router architecture (design note)
 
+> ⚠️ **SUPERSEDED (in part).** The central conceit of this note — the free claude.ai
+> chat *becomes* Nick ("you are Nick") — is replaced by
+> [`letter-of-introduction-model.md`](letter-of-introduction-model.md): the chat is
+> openly Claude, helping the visitor draft a **letter of introduction** to Nick, who
+> lives behind the door inside Claude Code. The platform analysis below (fetch
+> constraints §7b, the lazy-load/router pattern, the envelope reframe §3) is still
+> valid and is carried forward. Read the letter-model note first; treat this as
+> background/provenance.
+
 **Status:** design note for review — not yet built. A stepping stone, not a spec.
 **Phase:** prototype, architecture-validation only (`project_prototype_phase_scope`).
 **Lineage:** evolves the single-doc `first_dialog.md` (v3 → v4, ESACP#695). Sits beside
