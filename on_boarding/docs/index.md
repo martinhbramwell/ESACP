@@ -199,7 +199,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
     ... you brain-dump &mdash; in one message, in plain language, and only what you're comfortable sharing &mdash; about the information your business runs on, what you'd most like a computer to handle, what computers you have, and how comfortable you are with computers, AI, and "the cloud".  Bring any doubts, too. 
     </p>
     <p>
-          Nick answers your questions, checks that you can actually run Beaverdam, and names the one unavoidable cost up front: a <strong>Claude Code</strong> subscription, about $20 a month.  Nothing touches your computer, and no sensitive customer or financial detail is needed here.
+          Nick answers your questions, checks that you can actually run Beaverdam, and names the one unavoidable cost up front: a <strong>Claude Pro</strong> subscription, about $20 a month &mdash; which <em>includes</em> Claude Code, the tool you&rsquo;ll use in stage 2. Nothing touches your computer, and no sensitive customer or financial detail is needed here.
     </p>
     <p class="comment">
       No installation. No commitment. No disruption. The summary is useful even
@@ -211,7 +211,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
     <p class="role">Stage 2 &mdash; the rope</p>
     <h3>A safe local launcher environment.</h3>
     <p>
-      We call this stage "the controller".  Using your previous description of your computing environment we explain to you how to get started with Claude Code (+/- $20/mth) in one of your machines.  You then paste your questionnaire result as a prompt to Claude.  With your approval, step by step, Claude will help you create the third stage, the full ERP development, staging and production platform.  Those steps would normally cost you thousands of $$$ in consulting fees, (because learning it all takes months!)
+      We call this stage "the controller".  Using your previous description of your computing environment we explain how to get started with Claude Code &mdash; included in that same Claude Pro subscription (about $20/month, no extra charge) &mdash; on one of your machines.  You then paste your questionnaire result as a prompt to Claude.  With your approval, step by step, Claude will help you create the third stage, the full ERP development, staging and production platform.  Those steps would normally cost you thousands of $$$ in consulting fees, (because learning it all takes months!)
     </p>
     <p class="comment">
       Reversible by design. If it does not make sense, you stop before anything
@@ -393,9 +393,10 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
     <span class="tag caveat-tag">Cost</span>
     <h3>The first conversation is free. Real operation has real costs.</h3>
     <p>
-      Stage 1 can be tried with a free Claude account. Later stages may require
-      Claude Code, hosting, backups, and occasional human help. The target is around 
-      100 bucks a month all included, once the system becomes real.
+      Stage 1 is free with a free Claude account. Stage 2 needs Claude Pro &mdash; about
+      $20 a month, which <em>includes</em> Claude Code. A real, running system later adds
+      hosting and backups: the target is around 100 bucks a month all-in, once the system
+      becomes real.
     </p>
   </div>
 
@@ -433,9 +434,8 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
 
 <div class="essex-demo-note">
   <p>
-    Curious what Nick sounds like after discovery?
-    <a href="essex-demo.html">See a worked example of a stage-2 conversation</a>
-    where Nick helps a small-business owner set up a sandbox on a Windows 11 machine.
+    Curious what the full string &rarr; rope &rarr; chain will look like?
+    Read the <a href="{{ '/roll_out/' | relative_url }}">roll-out road map</a>.
   </p>
 </div>
 

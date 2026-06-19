@@ -616,6 +616,108 @@ body.tabs-overflow .hamburger  { visibility: visible; pointer-events: auto; }
   color: var(--accent-ink);
 }
 
+/* ── roll-out road map — calm standalone page (layout: roadmap) ── */
+
+/* centred topbar label (between brand and theme toggle) */
+.roadmap-title {
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.01em;
+}
+
+/* the road-map section's own sub-headings — scoped so the landing is untouched */
+#roll_out > h3 {
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 2.8vw, 1.35rem);
+  font-weight: 600;
+  color: var(--accent);
+  margin: 2.25rem 0 0.85rem;
+}
+
+/* the 8-rung ladder table */
+.ladder {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0 1.75rem;
+  font-size: 0.95rem;
+}
+
+.ladder th,
+.ladder td {
+  text-align: left;
+  padding: 0.62rem 0.7rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+.ladder thead th {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  border-bottom: 2px solid var(--rule);
+}
+
+.ladder .rung-num {
+  font-family: var(--serif);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.ladder .rung-meta {
+  color: var(--ink-muted);
+  font-size: 0.86em;
+}
+
+.ladder .ladder-money { white-space: nowrap; }
+
+.ladder .ladder-break td {
+  background: var(--accent-tint);
+  color: var(--accent-ink);
+  font-style: italic;
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+@media (max-width: 34rem) {
+  .ladder { font-size: 0.86rem; }
+  .ladder th, .ladder td { padding: 0.5rem 0.4rem; }
+}
+
+/* the two-question self-check gate */
+.self-check {
+  margin: 2.25rem 0 0;
+  padding: 1.25rem 1.4rem 1.35rem;
+  background: var(--accent-tint);
+  border: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: var(--radius);
+  color: var(--accent-ink);
+  line-height: 1.55;
+
+  h3 {
+    margin: 0 0 0.6rem;
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+
+  p { margin: 0.6rem 0; font-size: 0.97rem; }
+
+  ol { margin: 0.7rem 0; padding-left: 1.5rem; }
+
+  li {
+    margin: 0.35rem 0;
+    font-weight: 600;
+    font-size: 1.02rem;
+  }
+
+  .off-ramp { margin-top: 0.95rem; }
+}
+
 /* panel-end nudge link — +50% from prior */
 
 .panel-cue {
