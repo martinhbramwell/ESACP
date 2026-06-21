@@ -134,3 +134,7 @@ old_*.md
 
 # Scratch ideas (not for repo)
 internal_docs/Ideas/
+
+# Large media — never commit video into the repo (GitHub rejects >100 MB).
+# Host clips off-repo (Cloudflare R2 / external) or embed via iframe instead.
+on_boarding/docs/assets/video/
