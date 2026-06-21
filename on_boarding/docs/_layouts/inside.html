@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>{{ page.title | default: site.title }}</title>
+  <meta name="description" content="{{ page.description | default: site.description }}">
+  <link rel="stylesheet" href="{{ '/assets/css/landing.css' | relative_url }}">
+  <link rel="icon" type="image/svg+xml" href="{{ '/assets/favicon/favicon.svg' | relative_url }}">
+  <link rel="icon" type="image/png" sizes="96x96" href="{{ '/assets/favicon/favicon-96x96.png' | relative_url }}">
+  <link rel="shortcut icon" href="{{ '/assets/favicon/favicon.ico' | relative_url }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ '/assets/favicon/apple-touch-icon.png' | relative_url }}">
+  <link rel="manifest" href="{{ '/assets/favicon/site.webmanifest' | relative_url }}">
+  <script>
+    // Apply theme before paint to avoid flash; shares the site-wide saved choice.
+    (function () {
+      try {
+        var saved = localStorage.getItem('esacp-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) { /* localStorage blocked — CSS default */ }
+    })();
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="{{ '/' | relative_url }}" aria-label="Back to the Beaverdam home page">
+        <img class="brand-logo" src="{{ '/assets/images/beaverdam-icon.svg' | relative_url }}" alt="Beaverdam" width="700" height="700">
+      </a>
+      <nav class="tabs" aria-label="Section tabs"><!-- buttons injected from panels --></nav>
+      <div class="controls">
+        <button class="hamburger" type="button" aria-label="Show all sections" aria-expanded="false" aria-controls="tabs-menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <button class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <svg class="icon-sun"  width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="tabs-menu" id="tabs-menu" role="menu" hidden></div>
+  </header>
+
+  <main class="page inside">
+    {{ content }}
+
+    <div class="nav-arrows nav-arrows-bottom" aria-hidden="true">
+      <button class="nav-arrow nav-prev" type="button" aria-label="Previous section" title="Previous">&lsaquo;</button>
+      <button class="nav-arrow nav-next" type="button" aria-label="Next section" title="Next">&rsaquo;</button>
+    </div>
+
+    <nav class="bottom-tabs" aria-label="Section tabs (bottom)"></nav>
+
+    <div class="bottom-meta">
+      <p><a href="{{ '/' | relative_url }}">&lsaquo; Beaverdam home</a></p>
+      <p>Source: <a href="https://github.com/martinhbramwell/ESACP">martinhbramwell/ESACP</a> on GitHub.</p>
+    </div>
+  </main>
+
+  <script>
+    // Generalised tabbed page: the tab list is DERIVED from the panels present
+    // in the content (each <section data-panel="x" data-tab-label="Label">), so
+    // this layout is reusable and the page owns its own tab set. Mirrors the
+    // landing's tab behaviour (menu, bottom tabs, arrows, keyboard, overflow).
+    (function () {
+      var panels = Array.prototype.slice.call(document.querySelectorAll('main [data-panel]'));
+      if (!panels.length) return;
+      var TABS = panels.map(function (p) { return p.dataset.panel; });
+
+      var $tabs        = document.querySelector('.tabs');
+      var $hamburger   = document.querySelector('.hamburger');
+      var $menu        = document.getElementById('tabs-menu');
+      var $bottomTabs  = document.querySelector('.bottom-tabs');
+      var $themeToggle = document.querySelector('.theme-toggle');
+
+      // Build the top tab buttons from the panels.
+      panels.forEach(function (p) {
+        var b = document.createElement('button');
+        b.className = 'tab';
+        b.type = 'button';
+        b.dataset.tab = p.dataset.panel;
+        b.textContent = p.dataset.tabLabel || p.dataset.panel;
+        $tabs.appendChild(b);
+      });
+
+      // Mirror them into the dropdown menu + bottom-tabs (single source of truth).
+      Array.prototype.forEach.call($tabs.querySelectorAll('.tab'), function (t) {
+        var label = (t.textContent || '').replace(/\s+/g, ' ').trim();
+
+        var menuItem = document.createElement('button');
+        menuItem.className = 'tab-menu-item';
+        menuItem.dataset.tab = t.dataset.tab;
+        menuItem.textContent = label;
+        menuItem.setAttribute('role', 'menuitem');
+        menuItem.setAttribute('type', 'button');
+        $menu.appendChild(menuItem);
+
+        var bottomBtn = document.createElement('button');
+        bottomBtn.className = 'tab tab-bottom';
+        bottomBtn.dataset.tab = t.dataset.tab;
+        bottomBtn.textContent = label;
+        bottomBtn.setAttribute('type', 'button');
+        $bottomTabs.appendChild(bottomBtn);
+      });
+
+      function activate(id, opts) {
+        opts = opts || {};
+        if (TABS.indexOf(id) === -1) id = TABS[0];
+
+        Array.prototype.forEach.call(document.querySelectorAll('.tab, .tab-menu-item'), function (b) {
+          b.classList.toggle('is-active', b.dataset.tab === id);
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('[data-panel]'), function (p) {
+          p.classList.toggle('is-active', p.dataset.panel === id);
+        });
+
+        var idx = TABS.indexOf(id);
+        Array.prototype.forEach.call(document.querySelectorAll('.nav-prev'), function (b) { b.disabled = idx <= 0; });
+        Array.prototype.forEach.call(document.querySelectorAll('.nav-next'), function (b) { b.disabled = idx >= TABS.length - 1; });
+
+        if (!opts.silent) {
+          try { history.replaceState(null, '', '#' + id); } catch (e) {}
+          try { localStorage.setItem('esacp-inside-tab', id); } catch (e) {}
+        }
+        if (opts.scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function step(delta) {
+        var current = (location.hash || '').replace('#', '');
+        var idx = TABS.indexOf(current);
+        if (idx === -1) idx = 0;
+        var next = idx + delta;
+        if (next < 0 || next >= TABS.length) return;
+        activate(TABS[next], { scroll: true });
+      }
+
+      function setMenuOpen(open) {
+        $menu.hidden = !open;
+        if ($hamburger) $hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.tab, .tab-menu-item');
+        if (btn && btn.dataset.tab) {
+          activate(btn.dataset.tab, { scroll: true });
+          if (btn.classList.contains('tab-menu-item')) setMenuOpen(false);
+          return;
+        }
+        var a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (a) {
+          var id = a.getAttribute('href').slice(1);
+          if (TABS.indexOf(id) !== -1) { e.preventDefault(); activate(id, { scroll: true }); }
+        }
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll('.nav-prev'), function (b) {
+        b.addEventListener('click', function () { step(-1); });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.nav-next'), function (b) {
+        b.addEventListener('click', function () { step(1); });
+      });
+
+      if ($themeToggle) {
+        $themeToggle.addEventListener('click', function () {
+          var current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+          var next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          try { localStorage.setItem('esacp-theme', next); } catch (e) {}
+        });
+      }
+
+      if ($hamburger) {
+        $hamburger.addEventListener('click', function (e) { e.stopPropagation(); setMenuOpen($menu.hidden); });
+      }
+      document.addEventListener('click', function (e) {
+        if (!$menu.hidden && !$menu.contains(e.target) && e.target !== $hamburger) setMenuOpen(false);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !$menu.hidden) setMenuOpen(false);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+        if (e.key === 'ArrowLeft')  step(-1);
+        if (e.key === 'ArrowRight') step(1);
+      });
+
+      window.addEventListener('hashchange', function () {
+        var id = location.hash.replace('#', '');
+        if (TABS.indexOf(id) !== -1) activate(id, { silent: true });
+      });
+
+      function checkOverflow() {
+        if (!$tabs) return;
+        var overflow = ($tabs.scrollWidth - $tabs.clientWidth) > 2;
+        document.body.classList.toggle('tabs-overflow', overflow);
+      }
+      var rafId = 0;
+      window.addEventListener('resize', function () {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(checkOverflow);
+      });
+      if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+        document.fonts.ready.then(checkOverflow);
+      }
+      checkOverflow();
+
+      var initial = (location.hash || '').replace('#', '');
+      if (TABS.indexOf(initial) === -1) {
+        try { initial = localStorage.getItem('esacp-inside-tab') || TABS[0]; } catch (e) { initial = TABS[0]; }
+      }
+      activate(initial, { silent: true });
+    })();
+  </script>
+
+  <script>
+    // Video lightbox — plays a self-hosted clip in a floating overlay so the
+    // visitor never diverts away to another site. Built once, lazily.
+    (function () {
+      var triggers = document.querySelectorAll('.video-trigger');
+      if (!triggers.length) return;
+
+      var box = document.createElement('div');
+      box.className = 'video-lightbox';
+      box.hidden = true;
+      box.innerHTML =
+        '<div class="vl-window">' +
+          '<div class="vl-head"><button class="vl-close" type="button" aria-label="Close">×</button></div>' +
+          '<div class="vl-stage"></div>' +
+        '</div>';
+      document.body.appendChild(box);
+      var stage = box.querySelector('.vl-stage');
+
+      function open(t) {
+        stage.innerHTML = '';
+        if (t.dataset.iframe) {
+          // Embed the live page in a floating frame — no diverting away.
+          var f = document.createElement('iframe');
+          f.src = t.dataset.iframe;
+          f.setAttribute('allow', 'autoplay; fullscreen');
+          f.setAttribute('allowfullscreen', '');
+          stage.appendChild(f);
+        } else if (t.dataset.video) {
+          // Self-hosted clip.
+          var v = document.createElement('video');
+          v.controls = true;
+          v.playsInline = true;
+          if (t.dataset.poster) v.poster = t.dataset.poster;
+          v.src = t.dataset.video;
+          stage.appendChild(v);
+          v.play().catch(function () { /* autoplay blocked — poster shows */ });
+        }
+        box.hidden = false;
+      }
+      function close() {
+        box.hidden = true;
+        stage.innerHTML = '';   // stops the video / tears down the iframe
+      }
+
+      Array.prototype.forEach.call(triggers, function (t) {
+        t.addEventListener('click', function () { open(t); });
+      });
+      box.addEventListener('click', function (e) {
+        if (e.target === box || e.target.classList.contains('vl-close')) close();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !box.hidden) close();
+      });
+    })();
+  </script>
+
+  <script>
+    // Open every external link in a new tab (content + footer). "External" = a
+    // host different from this page; in-page anchors and same-site links are left
+    // alone. Done here so links added to the content later are covered automatically.
+    (function () {
+      var here = window.location.host;
+      Array.prototype.forEach.call(document.querySelectorAll('a[href]'), function (a) {
+        if (a.host && a.host !== here) {
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

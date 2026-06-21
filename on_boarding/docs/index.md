@@ -435,7 +435,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
 <div class="essex-demo-note">
   <p>
     Curious what the full string &rarr; rope &rarr; chain will look like?
-    Read the <a href="{{ '/roll_out/' | relative_url }}">roll-out road map</a>.
+    Read the <a href="{{ '/roll_out/inside/' | relative_url }}">roll-out road map</a>.
   </p>
 </div>
 
