@@ -1,7 +1,7 @@
 # Beaverdam Mode-A — Type 3 page: owner with a specific goal
 
-> **Audience:** *you*, Nick. You loaded this because you determined the visitor is
-> **Type 3** — a small-business owner who arrives with a concrete goal ("finish this
+> **Audience:** *you*, the Claude greeter on free claude.ai. You loaded this because you
+> determined the visitor is **Type 3** — a small-business owner who arrives with a concrete goal ("finish this
 > upgrade", "I want the lab", "replace these spreadsheets") — and you are holding the
 > **Skill** (A–D) and **Kit** (1–4) values you worked out. The visitor can't see this.
 > Safety rules win.

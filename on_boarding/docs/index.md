@@ -190,19 +190,19 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
     <p class="role">Stage 1 &mdash; the shoe on a string</p>
     <h3>A short AI-guided discovery conversation.</h3>
     <p>
-			In a single chat with the free Claude.ai, "Nick" helps you decide one honest thing: <strong>could Beaverdam genuinely help your business?</strong>  If it can't &mdash; or not yet &mdash; he'll tell you straight.
+			In a free chat on Claude.ai, Claude &mdash; acting as Beaverdam's greeter &mdash; helps you decide one honest thing: <strong>could Beaverdam genuinely help your business?</strong>  If it can't &mdash; or not yet &mdash; it'll tell you straight.
 		</p>
     <p>
 	    The goal is simple, and nothing gets installed today.  So ...
     </p>
     <p>
-    ... you brain-dump &mdash; in one message, in plain language, and only what you're comfortable sharing &mdash; about the information your business runs on, what you'd most like a computer to handle, what computers you have, and how comfortable you are with computers, AI, and "the cloud".  Bring any doubts, too. 
+    ... you talk it through &mdash; over a few back-and-forth messages, in plain language, and only what you're comfortable sharing. It isn't a deep survey of your business; just enough to weigh the <strong>fit</strong> (could Beaverdam help you?) and your <strong>setup</strong> (what computers you have, and how comfortable you and your people are with computers, AI, and "the cloud").  Bring any doubts, too. 
     </p>
     <p>
-          Nick answers your questions, checks that you can actually run Beaverdam, and names the one unavoidable cost up front: a <strong>Claude Pro</strong> subscription, about $20 a month &mdash; which <em>includes</em> Claude Code, the tool you&rsquo;ll use in stage 2. Nothing touches your computer, and no sensitive customer or financial detail is needed here.
+          Claude answers your questions, checks that you can actually run Beaverdam, and names the one unavoidable cost up front: a <strong>Claude Pro</strong> subscription, about $20 a month &mdash; which <em>includes</em> Claude Code, the tool you&rsquo;ll use in stage 2. Nothing touches your computer, and no sensitive customer or financial detail is needed here.
     </p>
     <p class="comment">
-      No installation. No commitment. No disruption. The summary is useful even
+      No installation. No commitment. No disruption. The letter of introduction you leave with is useful even
       if you go no further.
     </p>
   </div>
@@ -211,7 +211,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
     <p class="role">Stage 2 &mdash; the rope</p>
     <h3>A safe local launcher environment.</h3>
     <p>
-      We call this stage "the controller".  Using your previous description of your computing environment we explain how to get started with Claude Code &mdash; included in that same Claude Pro subscription (about $20/month, no extra charge) &mdash; on one of your machines.  You then paste your questionnaire result as a prompt to Claude.  With your approval, step by step, Claude will help you create the third stage, the full ERP development, staging and production platform.  Those steps would normally cost you thousands of $$$ in consulting fees, (because learning it all takes months!)
+      We call this stage "the controller".  Using your previous description of your computing environment we explain how to get started with Claude Code &mdash; included in that same Claude Pro subscription (about $20/month, no extra charge) &mdash; on one of your machines.  You then paste your letter of introduction as a prompt to Claude.  With your approval, step by step, Claude will help you create the third stage, the full ERP development, staging and production platform.  Those steps would normally cost you thousands of $$$ in consulting fees, (because learning it all takes months!)
     </p>
     <p class="comment">
       Reversible by design. If it does not make sense, you stop before anything
@@ -283,23 +283,23 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
 
   <div class="step">
     <div>
-      <h3>Invite "Nick" into the chat. They'll be your Beaverdam expert guide.</h3>
+      <h3>Start the discovery conversation.</h3>
       <p class="time-hint">~10 seconds</p>
       <p>
         Inside your new project, click <strong>New chat</strong>. In the message
         box, paste this one line and press <strong>Send</strong>:
       </p>
       <blockquote class="chain-narrative chain-snippet">
-        <span class="snippet-text">Claude, please read from this link
-        <code>https://beaverdam.solutions/first_visit_005.md</code>
-        and take on the Beaverdam specialist expert role "Nick" as it explains.</span>
+        <span class="snippet-text">Claude, please read
+        <code>https://beaverdam.solutions/first_visit_006.md</code>
+        and welcome me to Beaverdam as it explains.</span>
         <button type="button" class="copy-snippet" aria-label="Copy this line to your clipboard">
           <span class="copy-label">Copy</span>
         </button>
       </blockquote>
       <p class="why">
         <strong>What this does:</strong> the link tells Claude how the Beaverdam discovery conversation
-        must work and which types of questions to ask. Without it you get general-purpose Claude, which is helpful but not focused on this process.
+        must work and which questions to ask. Without it you get general-purpose Claude, which is helpful but not focused on this process. You meet the specialist crew &mdash; Nick and the others &mdash; later, after you install Claude Code.
       </p>
     </div>
   </div>
@@ -309,7 +309,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
       <h3>Answer in plain language.</h3>
       <p class="time-hint">As long as you need until you're satisfied</p>
       <p>
-        Nick reads your brain-dump, answers any doubts, makes an honest call on whether Beaverdam fits, and &mdash; if it does &mdash; shows you the one next step: setting up Claude Code.
+        Claude listens, answers any doubts, makes an honest call on whether Beaverdam fits, and &mdash; if it does &mdash; shows you the one next step: setting up Claude Code (where you'll meet Nick, your guide).
       </p>
       <p class="why">
         No technical vocabulary is required. Use the same words you would use with
@@ -320,14 +320,14 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
 
   <div class="step">
     <div>
-      <h3>Keep the summary.</h3>
+      <h3>Keep your letter of introduction.</h3>
       <p class="time-hint">~30 seconds</p>
       <p>
-        At the end, you receive a short written summary of your current operating
-        picture, in business language. Save it somewhere you can find it.
+        At the end, Claude writes you a short <strong>letter of introduction</strong> &mdash; a
+        plain-language note about your situation and what you&rsquo;re hoping for. Save it somewhere you can find it.
       </p>
       <p class="why">
-        The summary is yours. It is also the starting input for stage 2, so you do
+        The letter is yours. You hand it to Nick after you install Claude Code, so you do
         not have to explain the same business twice.
       </p>
     </div>
@@ -337,7 +337,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
 
 <div class="essex-demo-note">
   <p>
-    <strong>Stage 1 done.</strong> Your summary is the deliverable.
+    <strong>Stage 1 done.</strong> Your letter of introduction is the deliverable.
   </p>
   <p>
     Stage 2 &mdash; installing a safe local Beaverdam test environment with Claude Code
@@ -346,7 +346,7 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
   </p>
   <p>
     <strong>Want a human first?</strong> If you would rather talk before installing
-    anything, email your stage-1 summary to
+    anything, email your stage-1 letter of introduction to
     <a href="mailto:mhb.warehouseman@gmail.com">mhb.warehouseman@gmail.com</a>
     and we can walk through the next step. Or
     <a href="https://github.com/martinhbramwell/ESACP">watch the GitHub repo</a>
