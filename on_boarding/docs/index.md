@@ -495,17 +495,6 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
   </figcaption>
 </figure>
 
-<p>
-  The work happens in public. Entire history at
-  <a href="https://github.com/martinhbramwell/ESACP">github.com/martinhbramwell/ESACP</a>.
-</p>
-
-<p>
-  Want the deeper technical and project-history version?
-  <a href="{{ '/learn-more/' | relative_url }}">Read the background page</a>, including
-  the pitfalls research from many AI-assisted working sessions.
-</p>
-
 <p class="panel-cue"><a href="#start" class="panel-cue-link">&lsaquo; Ready to throw the shoe? Back to Getting Started</a></p>
 
 </section>
