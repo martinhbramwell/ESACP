@@ -366,6 +366,24 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
 
 <h2>What&rsquo;s the catch?</h2>
 
+<div class="legal-disclaimer">
+  <h3>Important &mdash; please read</h3>
+  <p>
+    <strong>Published for review only.</strong> This site is published solely for review by
+    early contributors. The AI-assisted parts of the software are <strong>pre-alpha</strong> and
+    under active development, and the ERPNext system shown here is specific to a single existing
+    user and <strong>predates</strong> Beaverdam&rsquo;s development. Nothing here is a finished
+    product, a release, or an offer of one.
+  </p>
+  <p>
+    <strong>No warranty, no liability &mdash; all risk is yours.</strong> Beaverdam is a free and
+    open-source project, provided as-is with no warranty of any kind. Anyone who obtains the
+    software, follows its AI-generated guidance, or commits time, money, or business data to
+    using it does so <strong>entirely at their own risk</strong>. The project and its
+    contributors accept no liability for any loss or damage arising from that use.
+  </p>
+</div>
+
 <p class="intro">
   The honest version, up front. If any of these are dealbreakers, better to know
   before anyone wastes time pretending software projects are powered by optimism and conference badges.
@@ -375,11 +393,14 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
 
   <div class="caveat">
     <span class="tag caveat-tag">Maturity</span>
-    <h3>This is an evolving prototype, not a polished SaaS product.</h3>
+    <h3>Only the first conversation is ready to use.</h3>
     <p>
-      Stage 1 is usable today. Stages 2 and 3 are being built from real operational
-      work and public design notes. Early users get more influence and more direct
-      help, but also less polish than they would get from a finished commercial platform.
+      The one thing usable today is the <strong>initial discovery dialog</strong> &mdash; the
+      free chat that helps you decide whether Beaverdam suits you. Everything past that is
+      <strong>pre-alpha</strong> and under active development: the AI-assisted build, the lab,
+      the later stages. The working ERPNext system it grew from is one bespoke, single-user
+      setup that predates the project, not a general release. Treat the rest as early work shown
+      for review &mdash; not a platform to lean a business on yet.
     </p>
   </div>
 

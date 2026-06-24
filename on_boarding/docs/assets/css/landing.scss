@@ -628,6 +628,33 @@ body.tabs-overflow .hamburger  { visibility: visible; pointer-events: auto; }
   color: var(--accent-ink);
 }
 
+/* legal disclaimer — formal notice pinned to the top of the catch panel */
+
+.legal-disclaimer {
+  margin: 0 0 1.75rem;
+  padding: 1.05rem 1.2rem 1.1rem 1.35rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--pain-tag);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink);
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.6rem;
+    color: var(--pain-tag);
+  }
+
+  p { margin: 0 0 0.7rem; }
+  p:last-child { margin-bottom: 0; }
+}
+
 /* the 8-step ladder table — wrapper scrolls horizontally on tiny screens
    rather than letting the table push the whole page wide */
 .ladder-wrap {
