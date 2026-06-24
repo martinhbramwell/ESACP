@@ -327,8 +327,12 @@ What does that mean?  If some of that is new to you, good! You'll soon get it. F
         plain-language note about your situation and what you&rsquo;re hoping for. Save it somewhere you can find it.
       </p>
       <p class="why">
-        The letter is yours. You hand it to Nick after you install Claude Code, so you do
-        not have to explain the same business twice.
+        The letter is yours, and it stays put &mdash; it lives in your claude.ai
+        <em>Beaverdam Discovery</em> project, which simply becomes a <strong>Pro</strong>
+        project when you upgrade, nothing to move or recreate. When you reach Claude Code, you
+        hand the letter to Nick by copy-pasting it in &mdash; or, if you have <strong>Claude in
+        Chrome</strong>, just let it read the letter across from your open claude.ai tab. Either
+        way you never explain the same business twice.
       </p>
     </div>
   </div>

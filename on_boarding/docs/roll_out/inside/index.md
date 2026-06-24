@@ -194,7 +194,7 @@ description: >-
     <span class="tag gain-tag">Step 4</span>
     <h3>Install Claude Code, meet your guide.</h3>
     <p>
-      The free chat advisor has done all it can with its resources; now you have Claude&rsquo;s full power for general use.  It&rsquo;ll introduce you to Nick who has the specialized, in depth, training in Beaverdam to guide you towards the full system.
+      The free chat advisor has done all it can with its resources; now you have Claude&rsquo;s full power for general use.  It&rsquo;ll introduce you to Nick who has the specialized, in depth, training in Beaverdam to guide you towards the full system. Bring the <strong>letter of introduction</strong> from your discovery chat &mdash; paste it in, or let Claude in Chrome read it across from your open claude.ai tab &mdash; so Nick starts already knowing your situation.
     </p>
   </div>
 
